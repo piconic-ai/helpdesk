@@ -4,6 +4,7 @@ import { applyMigrations } from '../../../tests/platform'
 import { extensionModeSQL } from '../../../tests/extension-mode'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import type { InboundEnv } from './bindings-store'
+import { deleteContent, drainDeleted } from '../retention/retention-store'
 
 let runtime: Miniflare
 let env: InboundEnv
@@ -25,6 +26,13 @@ beforeAll(async () => {
       ],
       compatibilityDate: '2026-11-03',
       compatibilityFlags: ['nodejs_compat'],
+      assets: {
+        binding: 'ASSETS',
+        directory: './public',
+        run_worker_first: true,
+        routerConfig: { has_user_worker: true },
+      },
+      email: { send_email: [{ name: 'EMAIL' }] },
       d1Databases: ['DB'],
       r2Buckets: ['RAW'],
       queueProducers: { JOBS: 'inbound' },
@@ -213,3 +221,99 @@ it('F01-AC7 F01-AC9 keeps unparseable sources for operators and drops unregister
   await waitCount('inbound_failures', 2)
   expect(await count('messages')).toBe(before)
 }, 30000)
+
+it.each(['before', 'after'])(
+  'recovers an interrupted enqueue %s queue acceptance',
+  async (interrupted) => {
+    const id = '<queue-' + interrupted + '@example.org>'
+    const raw = (await fixture('question')).replace(
+      '<question@example.org>',
+      id,
+    )
+    const response = await runtime.dispatchFetch('http://test.local/mail', {
+      method: 'POST',
+      body: raw,
+      headers: {
+        'X-Envelope-From': 'reader@example.org',
+        'X-Envelope-To': 'first@example.org',
+        'X-Test-Queue': interrupted,
+      },
+    })
+    expect(response.status).toBe(202)
+    expect((await runtime.dispatchFetch('http://test.local/cron')).status).toBe(
+      204,
+    )
+    await expect
+      .poll(
+        async () =>
+          env.DB.prepare(
+            'SELECT count(*) AS n FROM messages WHERE message_id=?',
+          )
+            .bind(id)
+            .first('n'),
+        { timeout: 8000 },
+      )
+      .toBe(1)
+    const key = await env.DB.prepare(
+      'SELECT raw_key FROM messages WHERE message_id=?',
+    )
+      .bind(id)
+      .first<string>('raw_key')
+    expect(await (await env.RAW.get(key!))?.text()).toBe(raw)
+  },
+)
+
+it('F01-AC29 erases archived mail awaiting queue recovery', async () => {
+  const contact = 'pending@example.org'
+  const raw = (await fixture('question')).replace('reader@example.org', contact)
+  const response = await runtime.dispatchFetch('http://test.local/mail', {
+    method: 'POST',
+    body: raw,
+    headers: {
+      'X-Envelope-From': contact,
+      'X-Envelope-To': 'first@example.org',
+      'X-Test-Queue': 'before',
+    },
+  })
+  expect(response.status, await response.text()).toBe(202)
+  const key = await env.DB.prepare(
+    'SELECT raw_key FROM inbound_jobs WHERE sender=?',
+  )
+    .bind(contact)
+    .first<string>('raw_key')
+  expect(await (await env.RAW.get(key!))?.text()).toBe(raw)
+  // A consumer may have uploaded an attachment before it committed the message.
+  const attachment = key!.replace('raw/', 'attachments/') + '/0'
+  await env.RAW.put(attachment, 'private attachment')
+  await deleteContent(env.DB, { contact })
+  await drainDeleted(env.DB, env.RAW)
+  expect((await runtime.dispatchFetch('http://test.local/cron')).status).toBe(
+    204,
+  )
+  expect(await env.RAW.get(key!)).toBeNull()
+  expect(await env.RAW.get(attachment)).toBeNull()
+  expect(
+    await env.DB.prepare('SELECT raw_key FROM inbound_jobs WHERE sender=?')
+      .bind(contact)
+      .first(),
+  ).toBeNull()
+  expect(
+    await env.DB.prepare('SELECT number FROM conversations WHERE contact=?')
+      .bind(contact)
+      .first(),
+  ).toBeNull()
+})
+
+it('F01-AC29 erases unparseable mail with a mixed-case envelope sender', async () => {
+  await deliver(await fixture('unparseable'), 'first', 'Failure@EXAMPLE.ORG')
+  const rawKey = () =>
+    env.DB.prepare('SELECT raw_key FROM inbound_failures WHERE sender=?')
+      .bind('Failure@EXAMPLE.ORG')
+      .first<string>('raw_key')
+  await expect.poll(rawKey).toEqual(expect.any(String))
+  const key = await rawKey()
+  await deleteContent(env.DB, { contact: 'failure@example.org' })
+  await drainDeleted(env.DB, env.RAW)
+  expect(await rawKey()).toBeNull()
+  expect(await env.RAW.get(key!)).toBeNull()
+})

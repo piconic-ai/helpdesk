@@ -4,6 +4,7 @@ import type { Bindings } from './src/core/settings/bindings'
 import type { AppEnv } from './src/core/operators/middleware'
 import { operatorRoutes } from './src/core/operations/operations-routes'
 import { receiveEmail } from './src/core/inbound/inbound-email'
+import { recoverInbound } from './src/core/inbound/inbound-usecase'
 import { processInbound } from './src/core/inbound/inbound-queue'
 import { deliverReply, recoverReplies } from './src/core/outbound/reply-usecase'
 import { purgeExpired } from './src/core/retention/retention-usecase'
@@ -99,6 +100,7 @@ export default {
     env = await configure(env, extensions, publicIntakes)
     await Promise.all([
       tick(env, event.scheduledTime),
+      recoverInbound(env, event.scheduledTime),
       recoverReplies(env),
       purgeExpired(env, event.scheduledTime),
     ])

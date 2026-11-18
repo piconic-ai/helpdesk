@@ -3,6 +3,7 @@ import { addressSchema, instantSchema } from '../conversations/state'
 
 export const inboundJob = z.object({
   kind: z.literal('inbound'),
+  tracked: z.literal(true).optional(),
   rawKey: z.string().regex(/^raw\/[a-f0-9-]{36}$/),
   from: z.string(),
   to: addressSchema,

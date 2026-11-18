@@ -21,9 +21,16 @@ export async function deleteContent(
   if (remove)
     statements.push(
       run(
-        'INSERT OR IGNORE INTO pending_deletions SELECT raw_key FROM inbound_failures WHERE sender=?',
+        'INSERT OR IGNORE INTO pending_deletions SELECT raw_key FROM inbound_jobs WHERE sender=?',
       ),
-      run('DELETE FROM inbound_failures WHERE sender=?'),
+      run(
+        "INSERT OR IGNORE INTO pending_deletions SELECT 'attachments/' || substr(raw_key,5) || '/' FROM inbound_jobs WHERE sender=?",
+      ),
+      run('DELETE FROM inbound_jobs WHERE sender=?'),
+      run(
+        'INSERT OR IGNORE INTO pending_deletions SELECT raw_key FROM inbound_failures WHERE sender=? COLLATE NOCASE',
+      ),
+      run('DELETE FROM inbound_failures WHERE sender=? COLLATE NOCASE'),
       run(`DELETE FROM conversations WHERE ${clause}`),
     )
   else
@@ -34,6 +41,16 @@ export async function deleteContent(
     )
   await db.batch(statements)
 }
+
+async function deleteAttachmentPrefix(bucket: R2Bucket, prefix: string) {
+  for (;;) {
+    const page = await bucket.list({ prefix })
+    if (page.objects.length)
+      await bucket.delete(page.objects.map((object) => object.key))
+    if (!page.truncated) return
+  }
+}
+
 export async function drainDeleted(db: D1Database, bucket: R2Bucket) {
   for (;;) {
     const rows = await db
@@ -44,6 +61,8 @@ export async function drainDeleted(db: D1Database, bucket: R2Bucket) {
       .parse(rows.results)
       .map((row) => row.key)
     if (!keys.length) return
+    for (const key of keys)
+      if (key.endsWith('/')) await deleteAttachmentPrefix(bucket, key)
     await bucket.delete(keys)
     await db.batch(
       keys.map((key) =>

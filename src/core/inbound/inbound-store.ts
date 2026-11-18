@@ -3,6 +3,9 @@ import { bouncedReply } from './bounce'
 import type { InboundJob } from './job'
 import type { ParsedMail } from './parse'
 import { threadFor, threadHints } from './threading'
+import { finishInbound } from './inbound-jobs-store'
+
+const eligible = '(?=0 OR EXISTS(SELECT 1 FROM inbound_jobs WHERE raw_key=?))'
 
 const system = JSON.stringify({ kind: 'system' })
 const candidateSchema = z.object({
@@ -30,12 +33,22 @@ export async function recordFailure(
   job: InboundJob,
   reason: string,
 ) {
-  await db
-    .prepare(
-      'INSERT OR IGNORE INTO inbound_failures(raw_key,mailbox,sender,reason,at) VALUES(?,?,?,?,?)',
-    )
-    .bind(job.rawKey, job.to, job.from, reason, job.receivedAt)
-    .run()
+  await db.batch([
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO inbound_failures(raw_key,mailbox,sender,reason,at) SELECT ?,?,?,?,? WHERE ${eligible}`,
+      )
+      .bind(
+        job.rawKey,
+        job.to,
+        job.from,
+        reason,
+        job.receivedAt,
+        Number(!!job.tracked),
+        job.rawKey,
+      ),
+    finishInbound(db, job),
+  ])
 }
 
 export async function receipt(
@@ -135,7 +148,7 @@ export async function saveMail(
   sql.push(
     db
       .prepare(`INSERT INTO messages(id,number,kind,body,html,raw_key,message_id,in_reply_to,refs,created_at)
-    VALUES(?,coalesce(?,last_insert_rowid()),'inbound',?,?,?,?,?,?,?)`)
+    SELECT ?,coalesce(?,last_insert_rowid()),'inbound',?,?,?,?,?,?,? WHERE ${eligible}`)
       .bind(
         id,
         number,
@@ -146,6 +159,8 @@ export async function saveMail(
         mail.inReplyTo,
         mail.refs,
         job.receivedAt,
+        Number(!!job.tracked),
+        job.rawKey,
       ),
   )
   sql.push(
@@ -195,7 +210,11 @@ export async function saveMail(
         .bind(attachmentKey(job, i), id, a.filename, a.mime),
     )
   }
-  await db.batch([...sql, ...bounceStatements(db, job, mail)])
+  await db.batch([
+    ...sql,
+    ...bounceStatements(db, job, mail),
+    finishInbound(db, job),
+  ])
 }
 
 export const attachmentKey = (job: InboundJob, index: number) =>
