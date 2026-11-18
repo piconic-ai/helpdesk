@@ -1,6 +1,5 @@
 const confirmation = document.getElementById('action-confirmation')
 const shortcuts = document.getElementById('keyboard-help')
-const composer = document.querySelector('.composer')
 const permitted = new WeakSet()
 
 function openDialog(dialog, trigger) {
@@ -42,7 +41,7 @@ function submissionDetails(form, trigger) {
     location.href,
   ).pathname
   const recipient =
-    composer?.dataset.contact ||
+    document.querySelector('.composer')?.dataset.contact ||
     document.querySelector('.thread-header')?.dataset.contact
   const label = trigger?.textContent.trim() || '実行する'
   if (form.matches('.composer') && !form.matches('.composer-note'))
@@ -195,8 +194,7 @@ function editTarget(element) {
   )
 }
 
-function editMode(mode) {
-  if (!composer) return
+function editMode(composer, mode) {
   const tab = composer.querySelectorAll('.composer-tabs button')[
     mode === 'note' ? 1 : 0
   ]
@@ -218,6 +216,7 @@ document.addEventListener('keydown', (event) => {
     document.querySelector('dialog[open]')
   )
     return
+  const composer = document.querySelector('.composer')
   const editing = editTarget(event.target)
   if (event.key === 'Escape') return dismissEditor(event.target, editing)
   if (
@@ -238,7 +237,7 @@ document.addEventListener('keydown', (event) => {
   if (!composer) return
   if (event.key === 'r' || event.key === 'n') {
     event.preventDefault()
-    editMode(event.key === 'n' ? 'note' : 'reply')
+    editMode(composer, event.key === 'n' ? 'note' : 'reply')
   }
 })
 function showShortcutHelp(trigger) {

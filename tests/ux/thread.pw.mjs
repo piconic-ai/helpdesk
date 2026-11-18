@@ -130,12 +130,24 @@ test('J3 失敗の理由を読んで再送する', async ({ page, scene }) => {
   const failed = page.getByRole('link', { name: /月額プランの明細/ })
   await expect(failed).toContainText('送信失敗')
   await capture(page, 'J3', '01-inbox', '一覧で送信失敗を見つける')
-  await failed.click()
-  await expect(
-    page.getByText('宛先のメールサーバーが受信を拒否しました。'),
-  ).toBeVisible()
-  await capture(page, 'J3', '02-reason', '失敗した理由を確認する')
-  await page.getByRole('button', { name: '再送', exact: true }).click()
+  const consoleAsset = Promise.withResolvers()
+  await page.route('**/ui/console.js', async (route) => {
+    await consoleAsset.promise
+    await route.continue()
+  })
+  try {
+    await failed.click({ noWaitAfter: true })
+    await expect(
+      page.getByText('宛先のメールサーバーが受信を拒否しました。'),
+    ).toBeVisible()
+    await capture(page, 'J3', '02-reason', '失敗した理由を確認する')
+    await page
+      .getByRole('button', { name: '再送', exact: true })
+      .click({ noWaitAfter: true })
+    await expect(page.locator('#action-confirmation')).toBeVisible()
+  } finally {
+    consoleAsset.resolve()
+  }
   await confirmSubmission(page)
   await expect(notice(page)).toContainText('再送')
   await seeDelivery(page, '明細を確認してご案内いたします。')

@@ -257,10 +257,37 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <script defer src="/ui/live-filters.js"></script>
         <link rel="stylesheet" href="/ui/inbox.css" />
         <link rel="stylesheet" href="/ui/patterns.css" />
-        <script defer src="/ui/workflows.js"></script>
       </head>
       <body className="app-shell" data-operator={frame?.operator.email}>
         <script src="/ui/form-drafts.js"></script>
+        <Dialog
+          id="action-confirmation"
+          title="操作を確認"
+          description={<span />}
+        >
+          <Button data-close-modal="" autofocus>
+            キャンセル
+          </Button>
+          <Button data-commit="">実行する</Button>
+        </Dialog>
+        <Dialog id="keyboard-help" title="キーボード操作">
+          <dl>
+            <dt>受信箱</dt>
+            <dd>
+              j / k で次・前の行へ、Enter で開く、e で完了、a で自分が担当
+            </dd>
+            <dt>会話</dt>
+            <dd>
+              r で返信、n で内部メモ、Cmd / Ctrl + Enter で送信、u で一覧へ
+            </dd>
+            <dt>共通</dt>
+            <dd>? でこの一覧、Esc で閉じる</dd>
+          </dl>
+          <Button data-close-modal="" autofocus>
+            閉じる
+          </Button>
+        </Dialog>
+        <script src="/ui/workflows.js"></script>
         <a href="#main" className="skip-link">
           本文へ移動
         </a>
@@ -293,33 +320,6 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <main id="main" className="main-column" tabindex={-1}>
           {content}
         </main>
-        <Dialog
-          id="action-confirmation"
-          title="操作を確認"
-          description={<span />}
-        >
-          <Button data-close-modal="" autofocus>
-            キャンセル
-          </Button>
-          <Button data-commit="">実行する</Button>
-        </Dialog>
-        <Dialog id="keyboard-help" title="キーボード操作">
-          <dl>
-            <dt>受信箱</dt>
-            <dd>
-              j / k で次・前の行へ、Enter で開く、e で完了、a で自分が担当
-            </dd>
-            <dt>会話</dt>
-            <dd>
-              r で返信、n で内部メモ、Cmd / Ctrl + Enter で送信、u で一覧へ
-            </dd>
-            <dt>共通</dt>
-            <dd>? でこの一覧、Esc で閉じる</dd>
-          </dl>
-          <Button data-close-modal="" autofocus>
-            閉じる
-          </Button>
-        </Dialog>
         <BfScripts />
       </body>
     </html>
