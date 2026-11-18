@@ -49,3 +49,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - run: python3 scripts/check-docs.py
+  visual:
+    name: Browser accessibility and screenshots
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 12.16.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install chromium
+      - run: pnpm test:ui

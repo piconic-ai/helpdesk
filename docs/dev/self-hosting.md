@@ -22,7 +22,7 @@ pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/self-ho
 pnpm exec wrangler dev --local --ip 127.0.0.1 --port "${HELPDESK_PORT:-8787}" --persist-to .wrangler/self-host --var ENVIRONMENT:local --var LOCAL_OPERATOR:operator@example.com --var SENDING_DOMAINS:example.com
 ```
 
-**端末 2** を同じディレクトリで開きます。画面で操作する場合は `http://127.0.0.1:8787/settings` を開き、**Register mailbox** で製品と窓口を登録します。以下は同じフォームを curl で操作する例です。新しい環境で最初にアクセスした `operator@example.com` が管理者になります。API トークンは発行時だけ表示されるので、この端末の環境変数に受け取ります。
+**端末 2** を同じディレクトリで開きます。画面で操作する場合は `http://127.0.0.1:8787/settings` を開き、**窓口を登録** で製品と窓口を登録します。以下は同じフォームを curl で操作する例です。新しい環境で最初にアクセスした `operator@example.com` が管理者になります。API トークンは発行時だけ表示されるので、この端末の環境変数に受け取ります。
 
 <!-- verify:configure -->
 ```sh
@@ -39,7 +39,7 @@ curl -fsS -o /dev/null --data-binary @tests/fixtures/mail-flow.eml \
   "$HELPDESK_URL/cdn-cgi/local/email?from=person@example.net&to=support@example.com"
 ```
 
-診断結果の `ready` が `true` になり、キューが受信メールを取り込むと、Inbox に **Receipt download** が表示されます。画面で会話を開き、本文と添付を確認できます。CLI で会話、メッセージ、操作履歴を JSON Lines に書き出すには、取り込み後、端末 2 で次を実行してください。メールアドレスと連絡先名は既定で伏せられます。本文には問い合わせに含まれる情報が残るので、保存先へのアクセスを制限してください。
+診断結果の `ready` が `true` になり、キューが受信メールを取り込むと、受信箱に **Receipt download** が表示されます。画面で会話を開き、本文と添付を確認できます。CLI で会話、メッセージ、操作履歴を JSON Lines に書き出すには、取り込み後、端末 2 で次を実行してください。メールアドレスと連絡先名は既定で伏せられます。本文には問い合わせに含まれる情報が残るので、保存先へのアクセスを制限してください。
 
 <!-- verify:export -->
 ```sh
@@ -160,7 +160,7 @@ git status --short --branch
 ## 最初の窓口を開設して確認する
 
 1. 初回セットアップ担当者が Access を通って `https://desk.example.com/settings` にログインします。最初の運営者に管理権限が付いたことを確認してから Access の許可対象に他の担当者を加えます。2 人目以降の初期権限は agent です。
-2. **Register mailbox** で製品 ID、表示名、窓口アドレスを登録します。登録時に画面に表示される自動送信の対象・条件を確認してください。必要に応じて **Extensions** で有効な送信拡張を調整します。Email Routing でこのアドレスを Worker に向けます。
-3. **API tokens** で読み取り権限のトークンを発行し、端末で `HELPDESK_URL` に本番 URL、`HELPDESK_TOKEN` に表示された値を設定します。`node cli/helpdesk.mjs doctor` で窓口・送信ドメインの不足を確認し、表示された設定を修正します。Cloudflare 側も照合する場合は端末だけに `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ZONE_IDS`（対象ゾーン ID のカンマ区切り）を渡し、`node cli/helpdesk.mjs --live doctor` を実行します。通常の診断は宣言済みドメイン、実照合はゾーンの Email Sending API が返す有効なドメインを確認します。[送信ドメイン一覧 API](https://developers.cloudflare.com/api/resources/email_sending/subresources/subdomains/methods/list/)
-4. 外部の検証用メールから窓口に送信し、Inbox に 1 件現れることを確認します。返信をプレビューして送信し、外部の受信箱で From、本文、スレッド表示を確認します。さらにその返信へ返事を送り、同じ会話に届くことを確認します。
-5. 保存期間を **Settings** で設定します。必要な場合は **Extensions** で export を有効にし、ローカル例のエクスポートコマンドを本番 URL と読み取りトークンで実行します。サンプルのアドレスやメッセージを実際の値に置き換え、エクスポートに期待した履歴が含まれることを確認してください。
+2. **窓口を登録** で製品 ID、表示名、窓口アドレスを登録します。登録時に画面に表示される自動送信の対象・条件を確認してください。必要に応じて **拡張の管理** で有効な送信拡張を調整します。Email Routing でこのアドレスを Worker に向けます。
+3. **API トークン** で読み取り権限のトークンを発行し、端末で `HELPDESK_URL` に本番 URL、`HELPDESK_TOKEN` に表示された値を設定します。`node cli/helpdesk.mjs doctor` で窓口・送信ドメインの不足を確認し、表示された設定を修正します。Cloudflare 側も照合する場合は端末だけに `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ZONE_IDS`（対象ゾーン ID のカンマ区切り）を渡し、`node cli/helpdesk.mjs --live doctor` を実行します。通常の診断は宣言済みドメイン、実照合はゾーンの Email Sending API が返す有効なドメインを確認します。[送信ドメイン一覧 API](https://developers.cloudflare.com/api/resources/email_sending/subresources/subdomains/methods/list/)
+4. 外部の検証用メールから窓口に送信し、受信箱に 1 件現れることを確認します。返信をプレビューして送信し、外部の受信箱で From、本文、スレッド表示を確認します。さらにその返信へ返事を送り、同じ会話に届くことを確認します。
+5. 保存期間を **設定** で設定します。必要な場合は **拡張の管理** で export を有効にし、ローカル例のエクスポートコマンドを本番 URL と読み取りトークンで実行します。サンプルのアドレスやメッセージを実際の値に置き換え、エクスポートに期待した履歴が含まれることを確認してください。

@@ -1,324 +1,315 @@
-import { BfScripts } from '@barefootjs/hono/scripts'
 import { ReplyComposer } from '@/components/ReplyComposer'
-import type { coreOperations } from '../operations/catalog-usecase'
 import type { Child } from 'hono/jsx'
-type Result<K extends keyof typeof coreOperations> = Awaited<
-  ReturnType<(typeof coreOperations)[K]['execute']>
->
-export function shell(title: string, content: Child) {
-  return (
-    <html lang="en">
-      <head>
-        <title>{title} · Helpdesk</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="stylesheet" href="/styles.css" />
-        <link rel="stylesheet" href="/uno.css" />
-      </head>
-      <body>
-        <header>
-          <a href="/">Helpdesk</a>
-          <nav>
-            <a href="/">Inbox</a>
-            <a href="/settings">Settings</a>{' '}
-            <a href="/extensions">Extensions</a>{' '}
-            <a href="/tokens">API tokens</a>
-          </nav>
-        </header>
-        <main>{content}</main>
-        <BfScripts />
-      </body>
-    </html>
-  )
+import { html, raw } from 'hono/html'
+import { actorSchema, type Actor } from './state'
+import type {
+  ConsoleFrame,
+  inboxMetadata,
+  threadFiles,
+} from './console-usecase'
+import {
+  shell,
+  action,
+  field,
+  select,
+  badge,
+  noteLabel,
+  stamp,
+} from './console-page'
+import type { Result } from './inbox-page'
+export { inboxPage } from './inbox-page'
+export { settingsPage } from './settings-page'
+export { shell } from './console-page'
+const deliveries: Record<string, string> = {
+  draft: '下書き',
+  awaiting_approval: '承認待ち',
+  queued: '送信待ち',
+  sent: '送信済み',
+  failed: '送信失敗',
 }
-function field(name: string, title: string, value = '', type = 'text') {
-  return (
-    <label>
-      {title}
-      <input type={type} name={name} value={value} />
-    </label>
-  )
+function actorName(a: Actor) {
+  switch (a.kind) {
+    case 'operator':
+      return a.id
+    case 'agent':
+      return 'エージェント ' + a.id + '（' + a.onBehalfOf + ' の代理）'
+    case 'extension':
+      return '拡張 ' + a.id
+    case 'system':
+      return 'システム'
+  }
 }
-function select(name: string, items: string[], value: string) {
-  return (
-    <label>
-      {name}
-      <select name={name}>
-        {items.map((item) => (
-          <option value={item} selected={value === item}>
-            {item}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-function action(name: string, label: string, children: Child, number?: number) {
-  return (
-    <form action={'/actions/' + name} method="post">
-      {number && <input type="hidden" name="number" value={number} />}
-      {children}
-      <button>{label}</button>
-    </form>
-  )
-}
-export function inboxPage(
-  rows: Result<'list'>,
-  failures: Result<'failures'>,
-  q: Record<string, string>,
-  panels?: Child,
+type Details = Result<'get'>
+type Files = Awaited<ReturnType<typeof threadFiles>>
+function message(
+  m: Details['messages'][number],
+  data: Details,
+  files: Files,
+  name: string,
+  now: number,
 ) {
-  return shell(
-    'Inbox',
-    <>
-      <h1>Inbox</h1>
-      {panels}
-      <form method="get" className="filters">
-        {field('query', 'Search', q.query)}
-        {select(
-          'status',
-          ['open', 'pending', 'closed', 'spam', 'received', 'reviewed', 'all'],
-          q.status ?? 'open',
+  const c = data.conversation
+  const label =
+    m.kind === 'inbound' ? name : m.kind === 'note' ? noteLabel : '返信'
+  return (
+    <article className={'message-' + m.kind}>
+      <header className="message-header">
+        <h2>{label}</h2>
+        {stamp(m.created_at, now)}
+      </header>
+      <div className="message-author">
+        {m.kind === 'inbound' ? (
+          <code>{c.contact}</code>
+        ) : (
+          <span>{actorName(m.actor)}</span>
         )}
-        {field('product', 'Product', q.product)}
-        {field('assignee', 'Assignee', q.assignee)}
-        {field('label', 'Label', q.label)}
-        <button>Filter</button>
-      </form>
-      <ul className="conversations">
-        {rows.map((r) => (
-          <li>
-            <a href={'/conversation/' + r.number}>
-              <strong>
-                #{r.number} {r.subject}
-              </strong>
-              <small>
-                {r.contact} · {r.product} · {r.status.kind}
-              </small>
-            </a>
-          </li>
-        ))}
-      </ul>
-      {!rows.length && <p>No matching conversations.</p>}
-      {failures.length > 0 && (
-        <section>
-          <h2>Inbound failures</h2>
-          {failures.map((f) => (
-            <p>
-              {f.mailbox} · {f.reason}
-            </p>
-          ))}
-        </section>
-      )}
-    </>,
-  )
-}
-function messages(data: Result<'get'>) {
-  return data.messages.map((m) => (
-    <article>
-      <h3>
-        {m.kind === 'inbound'
-          ? data.conversation.contact
-          : m.kind === 'note'
-            ? 'Internal note'
-            : 'Reply'}
-      </h3>
-      <p className="body">{m.body}</p>
+        {m.delivery && (
+          <span className={'delivery-' + m.delivery.replaceAll('_', '-')}>
+            {deliveries[m.delivery]}
+          </span>
+        )}
+      </div>
+      {m.body && <p className="message-body">{m.body}</p>}
       {m.html && (
-        <iframe sandbox="" title="HTML message" src={'/mail/' + m.id} />
+        <>
+          <p className="mail-privacy">外部の画像は非表示です。</p>
+          <iframe
+            sandbox=""
+            title="HTML メール"
+            src={'/mail/' + encodeURIComponent(m.id)}
+          />
+        </>
       )}
-      {m.delivery && (
-        <small>
-          {m.delivery} {m.reason}
-        </small>
+      {files.length > 0 && (
+        <ul className="attachments">
+          {files.map((f) => (
+            <li>
+              <a
+                href={'/attachment?key=' + encodeURIComponent(f.key)}
+                download={f.filename}
+              >
+                {f.filename}
+              </a>
+              {f.size !== undefined && <small>{fileSize(f.size)}</small>}
+            </li>
+          ))}
+        </ul>
       )}
+      {m.reason && <p className="banner-error">{m.reason}</p>}
       {m.delivery === 'failed' &&
         !data.uncertain.includes(m.id) &&
         action(
           'retry',
-          'Retry reply',
+          '再送',
           <input type="hidden" name="id" value={m.id} />,
-          m.number,
+          c.number,
         )}
       {(m.delivery === 'awaiting_approval' || m.delivery === 'draft') &&
         action(
           'approve',
-          'Approve and send',
+          '承認して送信',
           <input type="hidden" name="id" value={m.id} />,
-          m.number,
-        )}
-    </article>
-  ))
-}
-export function conversationPage(data: Result<'get'>, panels?: Child) {
-  const c = data.conversation
-  return shell(
-    c.subject,
-    <>
-      <p>
-        <a href="/">Inbox</a> / #{c.number}
-      </p>
-      <h1>{c.subject}</h1>
-      <p>
-        {c.product} · {c.mailbox} · {c.status.kind}
-      </p>
-      {messages(data)}
-      {panels}
-      {data.attachments.map((a) => (
-        <p>
-          <a
-            href={'/attachment?key=' + encodeURIComponent(a.key)}
-            download={a.filename}
-          >
-            {a.filename}
-          </a>
-        </p>
-      ))}
-      {c.kind === 'inquiry' && ['open', 'pending'].includes(c.status.kind) && (
-        <ReplyComposer
-          number={c.number}
-          mailbox={c.mailbox}
-          contact={c.contact}
-        />
-      )}
-      <section>
-        <h2>Manage conversation</h2>
-        {action(
-          'note',
-          'Add internal note',
-          <label>
-            Internal note
-            <textarea name="body" required />
-          </label>,
           c.number,
         )}
-        {c.kind === 'inquiry' &&
-          action(
-            'status',
-            'Update status',
-            select(
-              'event',
-              ['closed', 'reopened', 'marked_spam', 'unmarked_spam'],
-              'closed',
-            ),
-            c.number,
-          )}
-        {c.kind === 'inquiry' &&
-          action(
+    </article>
+  )
+}
+function fileSize(bytes: number) {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+function changeStatus(number: number, event: string, label: string) {
+  return action(
+    'status',
+    label,
+    <input type="hidden" name="event" value={event} />,
+    number,
+  )
+}
+function threadActions(c: Details['conversation']) {
+  if (c.kind !== 'inquiry') return null
+  const state = c.status.kind
+  return (
+    <div className="page-actions">
+      {(state === 'open' || state === 'pending') &&
+        changeStatus(c.number, 'closed', '完了にする')}
+      {state === 'closed' && changeStatus(c.number, 'reopened', '再開する')}
+      {state === 'spam' &&
+        changeStatus(c.number, 'unmarked_spam', '迷惑メールを解除')}
+      <details className="action-menu">
+        <summary className="button-secondary">その他の操作</summary>
+        <div>
+          {state === 'pending' &&
+            changeStatus(c.number, 'reopened', '未対応に戻す')}
+          {state !== 'spam' &&
+            changeStatus(c.number, 'marked_spam', '迷惑メールにする')}
+          {action(
             'assign',
-            'Save assignee',
+            '担当者を保存',
             field(
               'email',
-              'Assignee',
+              '担当者',
               c.assignment.kind === 'assigned' ? c.assignment.to : '',
               'email',
             ),
             c.number,
           )}
-        <p>{data.labels.map((l) => l.name).join(', ')}</p>
-        {action(
-          'label',
-          'Save label',
-          <>
-            {field('label', 'Label')}
-            {select('action', ['add', 'remove'], 'add')}
-          </>,
-          c.number,
-        )}
-      </section>
-      <section>
-        <h2>Other conversations from {c.contact}</h2>
-        {data.history.map((r) => (
-          <p>
-            <a href={'/conversation/' + r.number}>
-              #{r.number} {r.subject}
-            </a>
-          </p>
-        ))}
-      </section>
-      <details>
-        <summary>Activity</summary>
-        {data.events.map((e) => (
-          <p>
-            {new Date(e.at).toISOString()} · {e.kind} · {e.actor}
-          </p>
-        ))}
+        </div>
       </details>
-    </>,
+    </div>
   )
 }
-export function settingsPage(
-  data: Result<'settings'>,
-  issues: string[],
-  panels?: Child,
-) {
-  return shell(
-    'Settings',
-    <>
-      <h1>Settings</h1>
-      {issues.length > 0 && (
-        <section>
-          <h2>Setup needed</h2>
+const eventLabels: Record<string, string> = {
+  conversation_opened: '会話を開始',
+  message_received: 'メールを受信',
+  reply_drafted: '下書きを作成',
+  reply_queued: '返信を送信待ちに変更',
+  reply_sent: '返信を送信',
+  reply_failed: '返信の送信に失敗',
+  reply_approved: '返信を承認',
+  reply_retried: '返信を再送',
+  status_changed: '状態を変更',
+  assigned: '担当者を変更',
+  label_changed: 'ラベルを変更',
+  note_added: '内部メモを追加',
+  conversation_viewed: '会話を表示',
+  operation_invoked: '操作を実行',
+}
+function eventActor(actor: string) {
+  try {
+    const result = actorSchema.safeParse(JSON.parse(actor))
+    return result.success ? actorName(result.data) : '記録なし'
+  } catch {
+    return '記録なし'
+  }
+}
+function threadContext(data: Details, panels: Child, now: number) {
+  const c = data.conversation
+  return (
+    <details className="context-panel" data-context-panel="" open>
+      <summary>会話の詳細</summary>
+      <div className="context-cards">
+        <section className="settings-card">
+          <h2>ラベル</h2>
+          <p className="row-labels">
+            {data.labels.map((l) => (
+              <span className="label-chip">{l.name}</span>
+            ))}
+          </p>
+          {action(
+            'label',
+            'ラベルを保存',
+            <>
+              {field('label', 'ラベル名', '', 'text', true)}
+              {select('action', '操作', { add: '追加', remove: '削除' }, 'add')}
+            </>,
+            c.number,
+          )}
+        </section>
+        {panels}
+        <section className="settings-card">
+          <h2>この相手の問い合わせ</h2>
+          {data.history.length ? (
+            data.history.map((r) => (
+              <p>
+                <a href={'/conversation/' + r.number}>
+                  <code>#{r.number}</code> {r.subject}
+                </a>
+              </p>
+            ))
+          ) : (
+            <p>ほかの問い合わせはありません。</p>
+          )}
+        </section>
+        <details className="settings-card">
+          <summary>操作履歴</summary>
           <ul>
-            {issues.map((issue) => (
-              <li>{issue}</li>
+            {data.events.map((e) => (
+              <li>
+                {stamp(e.at, now)}
+                <span>
+                  {' '}
+                  {eventLabels[e.kind] ?? e.kind} · {eventActor(e.actor)}
+                </span>
+              </li>
             ))}
           </ul>
-        </section>
-      )}
-      {panels}
-      <section>
-        <h2>Mailboxes</h2>
-        {data.mailboxes.map((m) => (
-          <p>
-            {m.name} · {m.address}
-          </p>
-        ))}
-        {action(
-          'mailbox',
-          'Register mailbox',
-          <>
-            {field('product', 'Product ID')}
-            {field('name', 'Product name')}
-            {field('address', 'Mailbox address', '', 'email')}
-            <small>
-              Registering a mailbox authorizes the sending policies currently
-              enabled in Extensions.
-            </small>
-          </>,
-        )}
-      </section>
-      <section>
-        <h2>Operators</h2>
-        {data.operators.map((o) =>
-          action(
-            'role',
-            'Update role',
-            <>
-              <input type="hidden" name="email" value={o.email} />
-              {o.email}
-              {select('role', ['admin', 'agent'], o.role)}
-            </>,
-          ),
-        )}
-      </section>
-      <section>
-        <h2>Retention</h2>
-        {action(
-          'retention',
-          'Save retention',
-          field(
-            'days',
-            'Days after closure (0 keeps content)',
-            String(data.retentionDays),
-            'number',
-          ),
-        )}
-        {action(
-          'forget',
-          'Delete contact and all conversations',
-          field('contact', 'Contact to delete', '', 'email'),
-        )}
-      </section>
-    </>,
+        </details>
+      </div>
+    </details>
   )
+}
+export function conversationPage(
+  data: Details,
+  panels: Child,
+  frame: ConsoleFrame,
+  metadata: Awaited<ReturnType<typeof inboxMetadata>>,
+  files: Files,
+) {
+  const c = data.conversation
+  const info = metadata.get(c.number)
+  const reply =
+    c.kind === 'inquiry' &&
+    (c.status.kind === 'open' || c.status.kind === 'pending')
+  const main = (
+    <div className="thread-layout">
+      <div className="thread-main">
+        <header className="thread-header">
+          <a className="back-link" href="/">
+            &larr; 受信箱
+          </a>
+          <div className="page-header">
+            <h1 className="page-title">{c.subject}</h1>
+            {threadActions(c)}
+          </div>
+          <div className="thread-meta">
+            <code>#{c.number}</code>
+            <span>{info?.productName ?? c.product}</span>
+            {badge(c.status.kind)}
+            {c.kind === 'inquiry' && (
+              <span>
+                {c.assignment.kind === 'assigned'
+                  ? c.assignment.to
+                  : '担当なし'}
+              </span>
+            )}
+          </div>
+        </header>
+        <section className="message-list" aria-label="メッセージ">
+          {data.messages.map((m) =>
+            message(
+              m,
+              data,
+              files.filter((f) => f.message === m.id),
+              info?.name || c.contact,
+              frame.now,
+            ),
+          )}
+        </section>
+        <ReplyComposer
+          number={c.number}
+          mailbox={c.mailbox}
+          contact={c.contact}
+          noteOnly={!reply}
+        />
+      </div>
+      {threadContext(data, panels, frame.now)}
+    </div>
+  )
+  return shell(c.subject, main, frame)
+}
+// Only sanitized mail from readHtml may enter this isolated document.
+export function htmlMailPage(body: string) {
+  return html`<!doctype html>
+    <html lang="ja">
+      <head>
+        <meta charset="utf-8" />
+        <title>HTML メール</title>
+        <link rel="stylesheet" href="/styles.css" />
+      </head>
+      <body className="mail-document">
+        <main>${raw(body)}</main>
+      </body>
+    </html>`
 }

@@ -45,7 +45,7 @@ export const snooze: Extension = {
       async content(ctx, n) {
         const item = entry.nullable().parse(await ctx.get('until/' + n))
         return item && item.until > ctx.now
-          ? 'Snoozed until ' + new Date(item.until).toISOString()
+          ? '再表示日時　' + new Date(item.until).toISOString()
           : ''
       },
     },

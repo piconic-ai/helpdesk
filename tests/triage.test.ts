@@ -364,14 +364,14 @@ it('F19-AC1..3 Chromium reports reading and typing through the actual presence p
     )
     const first = pages[0],
       second = pages[1]
-    await first.getByText(other + ' (reading)').waitFor({ timeout: 10000 })
+    await first.getByText(other + '（閲覧中）').waitFor({ timeout: 10000 })
     await second
-      .getByLabel('Reply', { exact: true })
+      .getByLabel('返信', { exact: true })
       .fill('A draft that stays in this browser')
-    await first.getByText(other + ' (typing)').waitFor({ timeout: 10000 })
-    expect(
-      await first.getByRole('button', { name: 'Send reply' }).isEnabled(),
-    ).toBe(true)
+    await first.getByText(other + '（入力中）').waitFor({ timeout: 10000 })
+    expect(await first.getByRole('button', { name: '送信' }).isEnabled()).toBe(
+      true,
+    )
   } finally {
     await browser.close()
   }

@@ -6,6 +6,7 @@
   "sortPackageJson": false,
   "ignorePatterns": [
     "pnpm-lock.yaml",
+    "public/ui/tokens.css",
     "worker-configuration.d.ts",
     "meta/",
     "docs/",

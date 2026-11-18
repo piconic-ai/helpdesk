@@ -18,6 +18,7 @@ import {
 } from './src/core/extensions/dispatch-usecase'
 import { intakeRoutes } from './src/core/extensions/intake-routes'
 import { judgeArticles } from './src/extensions/chat/judge-client'
+import { hostedIntakeRoutes } from './src/public/intake-routes'
 import { publicRoutes } from './src/core/extensions/public-routes'
 import { machineRoutes } from './src/core/operations/machine-routes'
 
@@ -52,10 +53,12 @@ app.use('*', async (c, next) => {
 for (const asset of [
   '/extension-assets/*',
   '/components/*',
+  '/ui/*',
   '/styles.css',
   '/uno.css',
 ])
   app.get(asset, (c) => c.env.ASSETS.fetch(c.req.raw))
+app.route('/', hostedIntakeRoutes)
 app.route('/', publicRoutes)
 app.route('/', intakeRoutes)
 app.route('/', machineRoutes)

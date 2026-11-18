@@ -93,6 +93,9 @@ export const articles: Extension = {
     const data = article.safeParse(await ctx.get(articleKey(product, id)))
     if (!data.success || data.data.status !== 'published') return null
     if (!(await recordVote(ctx, product, id, await req.formData()))) return null
-    return { title: 'Thank you', html: '<p>Thank you for your feedback.</p>' }
+    return {
+      title: 'ご回答ありがとうございます',
+      html: '<h1>ご回答ありがとうございます</h1><p class="banner-success" role="status">記事への評価を受け付けました。</p>',
+    }
   },
 }

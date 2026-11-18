@@ -58,7 +58,15 @@ export async function settingsContent(ctx: ExtensionContext) {
   const docs = (await ctx.list('article/'))
     .map((r) => article.parse(r.value))
     .map(
-      (a) => a.product + ' / ' + a.id + ' · ' + a.title + ' (' + a.status + ')',
+      (a) =>
+        a.product +
+        ' / ' +
+        a.id +
+        ' · ' +
+        a.title +
+        ' (' +
+        (a.status === 'published' ? '公開' : '下書き') +
+        ')',
     )
   const topics = (await ctx.list('candidate/'))
     .map((r) => candidate.parse(r.value))

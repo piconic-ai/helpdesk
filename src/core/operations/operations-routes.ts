@@ -8,10 +8,17 @@ import {
   inboxPage,
   conversationPage,
   settingsPage,
+  htmlMailPage,
 } from '../conversations/conversations-page'
+import {
+  consoleFrame,
+  inboxMetadata,
+  threadFiles,
+} from '../conversations/console-usecase'
+import { operatorErrorPage } from '../conversations/console-page'
 import { readHtml, download } from '../conversations/media-usecase'
 import { recordView } from '../extensions/view-usecase'
-import { invoke } from './runtime-usecase'
+import { describe, invoke } from './runtime-usecase'
 import { panels, management, toggle } from '../extensions/registry-usecase'
 import {
   extensionPanels,
@@ -56,6 +63,12 @@ app.get('/', async (c) => {
       failures,
       query,
       extensionPanels(await panels(ctx, scopes, 'list')),
+      await consoleFrame(c.env, ctx.operator, c.req.path, query, ctx.now),
+      await inboxMetadata(
+        c.env,
+        rows.map((r) => r.number),
+        ctx.operator,
+      ),
     ),
   )
 })
@@ -65,6 +78,7 @@ app.get('/settings', async (c) =>
       await run(context(c), 'settings', {}),
       (await run(context(c), 'doctor', {})).issues,
       extensionPanels(await panels(context(c), scopes, 'settings')),
+      await consoleFrame(c.env, c.get('operator'), c.req.path),
     ),
   ),
 )
@@ -80,6 +94,15 @@ app.get('/conversation/:number', async (c) => {
         await panels(ctx, scopes, 'conversation', number),
         number,
       ),
+      await consoleFrame(
+        c.env,
+        ctx.operator,
+        c.req.path,
+        { product: data.conversation.product },
+        ctx.now,
+      ),
+      await inboxMetadata(c.env, [number], ctx.operator),
+      await threadFiles(c.env, data.attachments),
     ),
   )
 })
@@ -88,9 +111,9 @@ app.get('/mail/:id', async (c) => {
   if (html === null) return c.notFound()
   c.header(
     'Content-Security-Policy',
-    "default-src 'none'; sandbox; frame-ancestors 'self'; base-uri 'none'",
+    "default-src 'none'; style-src 'self'; sandbox; frame-ancestors 'self'; base-uri 'none'",
   )
-  return c.html(html)
+  return c.html(htmlMailPage(html))
 })
 app.get('/attachment', async (c) => {
   const file = await download(
@@ -106,18 +129,44 @@ app.get('/attachment', async (c) => {
     },
   })
 })
-app.get('/extensions', async (c) =>
-  c.get('operator').role === 'admin'
-    ? c.render(managementPage(await management(context(c))))
-    : c.text('Permission denied', 403),
-)
+app.get('/extensions', async (c) => {
+  const ctx = context(c)
+  authorize(ctx, 'admin', scopes)
+  return c.render(
+    managementPage(
+      await management(ctx),
+      await consoleFrame(c.env, ctx.operator, c.req.path),
+    ),
+  )
+})
 app.post('/extensions/:id', async (c) => {
-  if (c.get('operator').role !== 'admin')
-    return c.text('Permission denied', 403)
+  const ctx = context(c)
+  authorize(ctx, 'admin', scopes)
   const value = z.enum(['yes', 'no']).parse((await c.req.parseBody()).enabled)
-  await toggle(context(c), c.req.param('id'), value === 'yes')
+  await toggle(ctx, c.req.param('id'), value === 'yes')
   return c.redirect('/extensions', 303)
 })
+function extensionFormFields(
+  ctx: Context,
+  name: string,
+  input: Record<string, string | File>,
+) {
+  const properties =
+    describe(ctx, scopes).find((op) => op.name === name)?.inputSchema
+      .properties ?? {}
+  return Object.fromEntries(
+    Object.entries(input)
+      .filter(([, value]) => value !== '')
+      .map(([field, value]) => {
+        const definition = properties[field]
+        if (typeof definition === 'object' && definition?.type === 'boolean') {
+          if (value === 'true') return [field, true]
+          if (value === 'false') return [field, false]
+        }
+        return [field, value]
+      }),
+  )
+}
 app.post('/actions/:name', async (c) => {
   const name = c.req.param('name')
   const input = await c.req.parseBody()
@@ -130,16 +179,20 @@ app.post('/actions/:name', async (c) => {
     )
   )
     return c.notFound()
-  const fields = name.includes('.')
-    ? Object.fromEntries(
-        Object.entries(input).filter(([, value]) => value !== ''),
-      )
+  const ctx = context(c)
+  const args = name.includes('.')
+    ? extensionFormFields(ctx, name, input)
     : input
-  const result = await invoke(context(c), scopes, name, fields)
+  const result = await invoke(ctx, scopes, name, args)
   if (c.req.header('accept') === 'application/json') return c.json(result)
   if (name.includes('.'))
     return c.render(
-      operationResult(name, result, Number(input.number) || undefined),
+      operationResult(
+        name,
+        result,
+        Number(input.number) || undefined,
+        await consoleFrame(c.env, c.get('operator'), c.req.path),
+      ),
     )
   const number = z.coerce.number().int().positive().safeParse(input.number)
   return c.redirect(
@@ -147,7 +200,24 @@ app.post('/actions/:name', async (c) => {
     303,
   )
 })
-app.onError((err, c) => {
+app.onError(async (err, c) => {
+  if (c.req.header('accept')?.includes('text/html')) {
+    const status =
+      err instanceof PermissionDenied
+        ? 403
+        : err instanceof z.ZodError
+          ? 400
+          : err.message === 'Conversation not found'
+            ? 404
+            : 409
+    return c.html(
+      operatorErrorPage(
+        status,
+        await consoleFrame(c.env, c.get('operator'), c.req.path),
+      ),
+      status,
+    )
+  }
   if (err instanceof PermissionDenied) return c.text(err.message, 403)
   if (err instanceof z.ZodError)
     return c.text(

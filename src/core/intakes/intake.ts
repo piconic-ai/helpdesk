@@ -28,6 +28,7 @@ export const intakePolicySchema = z.object({
   publicKey: z.string().min(1),
   origins: z.array(exactOrigin).min(1),
   limitPerMinute: z.int().min(1).max(10000).default(10),
+  turnstileSiteKey: z.string().min(1).optional(),
   turnstileSecretBinding: z
     .string()
     .regex(/^[A-Z][A-Z0-9_]*$/)

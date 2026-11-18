@@ -122,7 +122,7 @@ test('F01-AC12/13/14/22/24/25/31 filter, search, history, internal notes, closur
   const page = await (await request('/conversation/' + number)).text()
   expect(page).toContain('Earlier inquiry')
   expect(page).toContain('Yellow ink')
-  expect(page).toContain('assigned')
+  expect(page).toContain('担当者を変更')
   expect(
     (await request('/actions/status', agent, { number, event: 'closed' }))
       .status,

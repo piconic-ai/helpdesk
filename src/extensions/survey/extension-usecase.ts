@@ -56,8 +56,8 @@ export const survey: Extension = {
     const row = await lookup(ctx, product, path)
     if (!row) return null
     return {
-      title: 'Resolution survey',
-      html: '<h1>Was your inquiry resolved?</h1><form method="post"><button name="resolved" value="yes">Yes</button> <button name="resolved" value="no">No</button></form>',
+      title: '解決アンケート',
+      html: '<h1>問い合わせは解決しましたか？</h1><form method="post" class="public-actions"><button class="button-secondary" name="resolved" value="yes">はい</button><button class="button-secondary" name="resolved" value="no">いいえ</button></form>',
     }
   },
   async publicAction(ctx, product, path, request) {
@@ -72,8 +72,8 @@ export const survey: Extension = {
     const resolved = z.boolean().parse(await ctx.get(key))
     await ctx.emit('answered', row.number, { product, resolved }, row.token)
     return {
-      title: 'Response recorded',
-      html: '<h1>Thank you for your response.</h1>',
+      title: '回答を記録しました',
+      html: '<h1>ご回答ありがとうございます</h1><p class="banner-success" role="status">回答を記録しました。</p>',
     }
   },
 }

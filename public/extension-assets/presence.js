@@ -27,7 +27,13 @@ async function heartbeat() {
     if (!response.ok) return
     const users = await response.json()
     display.textContent = users
-      .map((user) => user.email + ' (' + user.mode + ')')
+      .map(
+        (user) =>
+          user.email +
+          '（' +
+          (user.mode === 'typing' ? '入力中' : '閲覧中') +
+          '）',
+      )
       .join(', ')
   } catch {
     display.textContent = ''

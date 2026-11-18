@@ -1,9 +1,10 @@
 import { resolve } from 'node:path'
-import { defineConfig } from 'vitest/config'
+import { defineConfig, configDefaults } from 'vitest/config'
 
 export default defineConfig({
   resolve: { alias: { '@/components': resolve('dist/components') } },
   test: {
+    exclude: [...configDefaults.exclude, '.audit/**', '.pnpm-store/**'],
     coverage: {
       provider: 'v8',
       thresholds: { statements: 71, branches: 66, functions: 71, lines: 74 },

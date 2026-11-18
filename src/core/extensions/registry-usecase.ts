@@ -72,6 +72,8 @@ export async function panels(
         (n) => installed.extension.id + '.' + n,
       )
       result.push({
+        id: installed.extension.id,
+        slot,
         title: panel.title,
         script: panel.script,
         content: await panel.content?.(api, number),

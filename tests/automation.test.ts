@@ -222,7 +222,7 @@ it('F14-AC1/2 asks once and records one answer for a private ticket', async () =
   ).toBeNull()
   const page = await publicRoutes.request(url.href, {}, ctx.env)
   expect(page.status).toBe(200)
-  expect(await page.text()).toContain('Was your inquiry resolved?')
+  expect(await page.text()).toContain('問い合わせは解決しましたか？')
   expect(
     (
       await publicRoutes.request(
@@ -244,7 +244,7 @@ it('F14-AC1/2 asks once and records one answer for a private ticket', async () =
     request.headers.set('Origin', url.origin)
     const response = await publicRoutes.fetch(request, ctx.env)
     expect(response.status).toBe(200)
-    expect(await response.text()).toContain('Thank you for your response')
+    expect(await response.text()).toContain('ご回答ありがとうございます')
   }
   const events = (await api.events()).filter(
     (e) => e.kind === 'survey.answered',

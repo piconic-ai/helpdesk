@@ -75,10 +75,10 @@ afterAll(async () => {
 
 async function registerMailbox(page: Page) {
   await page.goto(origin + '/settings')
-  await page.getByLabel('Product ID').fill('shop')
-  await page.getByLabel('Product name').fill('Shop')
-  await page.getByLabel('Mailbox address').fill('support@example.com')
-  await page.getByRole('button', { name: 'Register mailbox' }).click()
+  await page.getByLabel('プロダクト ID').fill('shop')
+  await page.getByLabel('プロダクト名').fill('Shop')
+  await page.getByLabel('窓口のメールアドレス').fill('support@example.com')
+  await page.getByRole('button', { name: '窓口を登録' }).click()
   await page.getByText('Shop · support@example.com').waitFor()
 }
 async function receive(fixtureName: string) {
@@ -109,7 +109,7 @@ async function enterConversation(page: Page) {
   await thread.click()
 }
 async function inspectMail(page: Page) {
-  const frame = page.frameLocator('iframe[title="HTML message"]')
+  const frame = page.frameLocator('iframe[title="HTML メール"]')
   await frame.getByText('Where can I download the receipt?').waitFor()
   expect(await page.locator('iframe').getAttribute('sandbox')).toBe('')
   expect(await frame.locator('body').textContent()).not.toContain(
@@ -142,10 +142,16 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
     await enterConversation(page)
     await inspectMail(page)
     const reply = 'Open your order and choose Receipt.'
-    await page.getByLabel('Reply', { exact: true }).fill(reply)
-    await page.getByRole('button', { name: 'Preview reply' }).click()
+    await page.getByLabel('返信', { exact: true }).fill(reply)
+    await page.getByRole('button', { name: 'プレビュー' }).click()
     await page.locator('pre').filter({ hasText: reply }).waitFor()
-    await page.getByRole('button', { name: 'Send reply' }).click()
+    await Promise.all([
+      page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+      ),
+      page.getByRole('button', { name: '送信' }).click(),
+    ])
     await expect
       .poll(
         async () => {
@@ -154,7 +160,7 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
         },
         { timeout: 15_000 },
       )
-      .toMatch(/support@example\.com · pending/)
+      .toMatch(/返信待ち[\s\S]*support@example\.com/)
     await expect
       .poll(
         async () => {
@@ -162,7 +168,7 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
           return page
             .locator('article')
             .filter({ hasText: reply })
-            .getByText('sent', { exact: true })
+            .getByText('送信済み', { exact: true })
             .count()
         },
         { timeout: 15000 },
@@ -177,9 +183,8 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
         },
         { timeout: 15_000 },
       )
-      .toMatch(/support@example\.com · open[\s\S]*I found the receipt/)
-    await page.getByLabel('event').selectOption('closed')
-    await page.getByRole('button', { name: 'Update status' }).click()
+      .toMatch(/未対応[\s\S]*I found the receipt/)
+    await page.getByRole('button', { name: '完了にする' }).click()
     await page.goto(origin)
     expect(
       await page.getByRole('link', { name: /Receipt download/ }).count(),

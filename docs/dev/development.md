@@ -13,7 +13,7 @@ pnpm exec wrangler dev --local --ip 127.0.0.1 --port 8787 --var ENVIRONMENT:loca
 ## 受信から完了まで
 
 1. ブラウザで `http://127.0.0.1:8787/settings` を開きます。初回の運営者が管理者になります。
-2. **Product ID** に `shop`、**Product name** に `Shop`、**Mailbox address** に `support@example.com` を入力し、**Register mailbox** を押します。
+2. **プロダクト ID** に `shop`、**プロダクト名** に `Shop`、**窓口のメールアドレス** に `support@example.com` を入力し、**窓口を登録** を押します。
 3. 別の端末で、添付と HTML 本文を含むメールをローカルの受信口に渡します。
 
    ```sh
@@ -21,8 +21,8 @@ pnpm exec wrangler dev --local --ip 127.0.0.1 --port 8787 --var ENVIRONMENT:loca
      'http://127.0.0.1:8787/cdn-cgi/local/email?from=person@example.net&to=support@example.com'
    ```
 
-4. **Inbox** を開きます。キューがメールを取り込むと **Receipt download** が現れます。会話を開くと送信元、本文、添付、返信欄が表示されます。
-5. **Reply** に本文を書き、**Preview reply** で確認して **Send reply** を押します。ローカルの Email Service が送信を受け付けると、会話は `pending` になります。必要に応じてページを再読み込みしてください。
+4. **未対応** を開きます。キューがメールを取り込むと **Receipt download** が現れます。会話を開くと送信元、本文、添付、返信欄が表示されます。
+5. **返信** に本文を書き、**プレビュー** で確認して **送信** を押します。ローカルの Email Service が送信を受け付けると、会話は `pending` になります。必要に応じてページを再読み込みしてください。
 6. 同じ会話に相手の返事が入ることを確かめます。次のメールを投入し、会話を再読み込みしてください。本文が追加され、状態が `open` に戻ります。
 
    ```sh
@@ -30,7 +30,7 @@ pnpm exec wrangler dev --local --ip 127.0.0.1 --port 8787 --var ENVIRONMENT:loca
      'http://127.0.0.1:8787/cdn-cgi/local/email?from=person@example.net&to=support@example.com'
    ```
 
-7. **event** で `closed` を選び、**Update status** を押します。既定の受信箱から会話が消えます。**status** を `closed` にして **Filter** を押すと、完了済みの会話を確認できます。
+7. **完了にする** を押すと、既定の受信箱から会話が消えます。サイドバーの **完了** を開くと、完了済みの会話を確認できます。
 
 開発用の固定運営者はループバックだけで使用します。Wrangler は D1 と R2 の状態を `.wrangler/state` に保存します。同じメールを再投入すると再配送として扱います。新しい会話を試すときは、例を別ファイルに複製し、Message-ID を変えてください。
 

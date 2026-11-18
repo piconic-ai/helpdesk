@@ -38,19 +38,22 @@ test('reply preview renders untrusted draft text and preserves the native submis
           body: await readFile(resolve('public', '.' + path)),
         })
       }
-      return route.fulfill({ contentType: 'text/html', body: html })
+      return route.fulfill({
+        contentType: 'text/html; charset=utf-8',
+        body: html,
+      })
     })
     await page.goto('http://helpdesk.test/')
     const draft = '<strong>Thank you!</strong>'
-    await page.getByLabel('Reply', { exact: true }).fill(draft)
-    await page.getByRole('button', { name: 'Preview reply' }).click()
+    await page.getByLabel('返信', { exact: true }).fill(draft)
+    await page.locator('form button[aria-expanded]').click()
     await page.locator('pre').waitFor({ state: 'visible' })
     expect(await page.locator('pre').textContent()).toBe(draft)
     expect(await page.locator('pre strong').count()).toBe(0)
     const submitted = page.waitForRequest(
       (request) => request.method() === 'POST',
     )
-    await page.getByRole('button', { name: 'Send reply' }).click()
+    await page.getByRole('button', { name: '送信' }).click()
     const request = await submitted
     expect(new URL(request.url()).pathname).toBe('/actions/reply')
     expect(

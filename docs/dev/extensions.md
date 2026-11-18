@@ -24,7 +24,7 @@ export const reference: Extension = {
 }
 ```
 
-`extensions` 配列に `{ extension: reference, enabled: false, settings: {} }` を追加します。管理者が **Extensions** で権限を確認して有効にすると、会話画面、操作一覧 API、CLI と MCP に `reference.format` が現れます。設定を編集した場合は Worker をビルドし直してください。
+`extensions` 配列に `{ extension: reference, enabled: false, settings: {} }` を追加します。管理者が **拡張の管理** で権限を確認して有効にすると、会話画面、操作一覧 API、CLI と MCP に `reference.format` が現れます。設定を編集した場合は Worker をビルドし直してください。
 
 ## データと権限
 
@@ -36,7 +36,11 @@ export const reference: Extension = {
 
 フォームの受付は `intakes` にパスと手続きを登録し、`ctx.open` で会話を作ります。本人確認済みの利用者が継続して問い合わせる入口では、相手と窓口を照合した会話に対して `ctx.addInboundMessage(number, body)` で追記できます。公開用のキー、ブラウザの Origin、回数上限はプロダクト単位の `publicIntakes` に設定します。ブラウザは JSON を `POST /public/form/PRODUCT/submit` に送り、`X-Helpdesk-Key` を指定します。Turnstile を有効にする場合は `turnstileSecretBinding` と `CF-Turnstile-Response` を使用します。
 
-`subscribers` は核が書き込んだ出来事を非同期に受け取ります。キューが停止しても D1 にイベントと配送状況が残ります。定期処理は期限を過ぎた配送を再びキューに積みます。送信先側でも冪等性を確保してください。運営者は **Extensions** で失敗理由と試行回数を確認できます。
+公開フォームを helpdesk 上で提供する場合は、そのオリジンを `publicIntakes[PRODUCT].origins` に含めて、対象の拡張を有効にします。問い合わせは `/help/form/PRODUCT`、フィードバックは `/help/feedback/PRODUCT`、ヘルプチャットは `/help/chat/PRODUCT` で開けます。ヘルプチャットでは連絡先を入力する前に関連する記事を探せます。該当する記事がないときに、担当者が返信するためのメールアドレスを入力します。
+
+Turnstile を使う公開フォームには、シークレットのバインディング名に加えて、対応するウィジェットの公開サイトキーを `turnstileSiteKey` に設定します。サイトキーが未設定の間は該当する HTML フォームの受付を停止します。
+
+`subscribers` は核が書き込んだ出来事を非同期に受け取ります。キューが停止しても D1 にイベントと配送状況が残ります。定期処理は期限を過ぎた配送を再びキューに積みます。送信先側でも冪等性を確保してください。運営者は **拡張の管理** で失敗理由と試行回数を確認できます。
 
 [拡張契約](../../src/core/extensions/extension.ts)・[フォーム受付](../../src/extensions/form/extension.ts)・[定型返信](../../src/extensions/canned/extension.ts)・[GitHub issue](../../src/extensions/issues/extension-usecase.ts)
 
@@ -55,7 +59,7 @@ export const reference: Extension = {
 ## ローカルで試す
 
 1. 最小の例を `src/extensions/reference/extension.ts` に保存し、設定に登録します。
-2. ローカル開発手順でビルドと migration を実行し、管理者が **Extensions** で有効にします。
+2. ローカル開発手順でビルドと migration を実行し、管理者が **拡張の管理** で有効にします。
 3. 会話画面で **Show the conversation reference** を押し、表示が元の番号と一致することを確認します。API トークンを発行し、CLI で同じ操作を呼びます。
 4. 拡張を無効にし、画面の操作と CLI の一覧から消えたことを確認します。
 

@@ -8,17 +8,20 @@ export function articleIndex(product: string, articles: Article[], q: string) {
     (a.title + ' ' + a.body).toLocaleLowerCase().includes(query),
   )
   return {
-    title: product + ' Help',
+    title: 'ヘルプ記事',
     html: String(
-      html`<h1>${product} Help</h1>
-        <form method="get">
-          <label>Search articles <input name="q" value="${q}" /></label
-          ><button>Search</button>
+      html`<h1>ヘルプ記事</h1>
+        <form method="get" class="article-search">
+          <label>記事を検索<input type="search" name="q" value="${q}" /></label
+          ><button class="button-secondary">検索</button>
         </form>
-        <ul>
-          ${results.map((a) => html`<li><a href="${publicPath(product, a.id)}">${a.title}</a></li>`)}
-        </ul>
-        ${!results.length ? 'No matching articles.' : ''}`,
+        ${
+          results.length
+            ? html`<ul class="article-list">
+                ${results.map((a) => html`<li><a href="${publicPath(product, a.id)}">${a.title}</a></li>`)}
+              </ul>`
+            : html`<p class="empty-state">該当する記事はありません。</p>`
+        }`,
     ),
   }
 }
@@ -50,19 +53,31 @@ export function articleDetail(a: Article, token: string) {
     ],
     allowedAttributes: { a: ['href', 'title'] },
     allowedSchemes: ['http', 'https', 'mailto'],
+    transformTags: { h1: 'h2' },
   })
   return {
     title: a.title,
     html: String(
-      html`<a href="${publicPath(a.product)}">All help articles</a>
+      html`<nav class="article-back" aria-label="記事ナビゲーション">
+          <a href="${publicPath(a.product)}">ヘルプ記事一覧</a>
+        </nav>
         <h1>${a.title}</h1>
         <article>${raw(content)}</article>
-        <form method="post" action="${publicPath(a.product, a.id)}">
+        <form
+          method="post"
+          action="${publicPath(a.product, a.id)}"
+          class="article-vote"
+        >
           <input type="hidden" name="visit" value="${token}" />
           <fieldset>
-            <legend>Was this article helpful?</legend>
-            <button name="helpful" value="yes">Yes</button
-            ><button name="helpful" value="no">No</button>
+            <legend>この記事は役に立ちましたか？</legend>
+            <div class="public-actions">
+              <button class="button-secondary" name="helpful" value="yes">
+                はい</button
+              ><button class="button-secondary" name="helpful" value="no">
+                いいえ
+              </button>
+            </div>
           </fieldset>
         </form>`,
     ),

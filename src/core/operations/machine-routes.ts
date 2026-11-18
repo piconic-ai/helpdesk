@@ -1,3 +1,5 @@
+import { consoleFrame } from '../conversations/console-usecase'
+import { operatorErrorPage } from '../conversations/console-page'
 import { Hono } from 'hono'
 import { createMiddleware } from 'hono/factory'
 import type { Context, Scope } from './catalog-usecase'
@@ -61,7 +63,13 @@ machine.all('/mcp', (c) => {
 machine.use('/tokens', authenticate)
 machine.use('/tokens/*', authenticate)
 machine.get('/tokens', async (c) =>
-  c.html(tokensPage(await listTokens(c.env, c.get('operator').email))),
+  c.html(
+    tokensPage(
+      await listTokens(c.env, c.get('operator').email),
+      undefined,
+      await consoleFrame(c.env, c.get('operator'), '/tokens'),
+    ),
+  ),
 )
 machine.post('/tokens', async (c) => {
   const owner = c.get('operator').email
@@ -71,7 +79,14 @@ machine.post('/tokens', async (c) => {
     await c.req.parseBody(),
     Date.now(),
   )
-  return c.html(tokensPage(await listTokens(c.env, owner), secret), 201)
+  return c.html(
+    tokensPage(
+      await listTokens(c.env, owner),
+      secret,
+      await consoleFrame(c.env, c.get('operator'), '/tokens'),
+    ),
+    201,
+  )
 })
 machine.post('/tokens/:id/revoke', async (c) => {
   const deleted = await disableToken(
@@ -82,8 +97,22 @@ machine.post('/tokens/:id/revoke', async (c) => {
   )
   return deleted ? c.redirect('/tokens', 303) : c.notFound()
 })
-machine.onError((err, c) => {
+machine.onError(async (err, c) => {
   const error = machineError(err)
+  const operator = c.get('operator')
+  if (
+    operator &&
+    c.req.path.startsWith('/tokens') &&
+    c.req.header('accept')?.includes('text/html')
+  ) {
+    return c.html(
+      operatorErrorPage(
+        error.status,
+        await consoleFrame(c.env, operator, '/tokens'),
+      ),
+      error.status,
+    )
+  }
   return c.json({ error: error.message }, error.status)
 })
 export { machine as machineRoutes }

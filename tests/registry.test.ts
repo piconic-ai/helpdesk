@@ -53,7 +53,7 @@ test('F02-AC1–6 registration validates config, isolates permissions and retrie
       {},
     )
     const settings = await app.request('http://desk.local/extensions', {}, env)
-    expect(await settings.text()).toContain('Disable example')
+    expect(await settings.text()).toContain('exampleを無効にする')
     const ctx: Context = {
       env,
       now: 1,

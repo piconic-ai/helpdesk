@@ -64,8 +64,8 @@ it('F20-AC4 the first administrator sees both onboarding steps and can register 
   const page = await app.request(url + '/settings', {}, env)
   expect(page.status).toBe(200)
   const text = await page.text()
-  expect(text).toContain('Register the first mailbox')
-  expect(text).toContain('set SENDING_DOMAINS')
+  expect(text).toContain('最初の窓口を登録してください。')
+  expect(text).toContain('SENDING_DOMAINS に設定してください。')
   const form = new URLSearchParams({
     product: 'shop',
     name: 'Shop',
