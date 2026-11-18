@@ -4,6 +4,8 @@ import { extensionStorage } from './extension-store'
 import { canonical, type Aliases } from './aliases'
 import { listConversations, detail } from '../conversations/conversations-store'
 import type { z } from 'zod'
+import { setLabel } from '../operations/operator-store'
+import type { Audit } from '../conversations/conversations-store'
 
 type Env = Pick<Bindings, 'DB' | 'EXTENSIONS'>
 export async function conversationAliases(env: Env) {
@@ -39,11 +41,28 @@ export async function visibleConversations(
     (c) => !hidden.has(c.number) && aliases[c.number] === undefined,
   )
 }
-export async function groupedDetail(env: Env, number: number) {
+async function conversationGroup(env: Env, number: number) {
   const aliases = await conversationAliases(env)
   const main = canonical(aliases, number)
   const members = Object.keys(aliases)
     .map(Number)
     .filter((alias) => canonical(aliases, alias) === main)
-  return detail(env.DB, main, [main, ...members])
+  return { main, numbers: [main, ...members] }
+}
+export async function groupedDetail(env: Env, number: number) {
+  const group = await conversationGroup(env, number)
+  return detail(env.DB, group.main, group.numbers)
+}
+export async function changeGroupLabel(
+  env: Env,
+  audit: Audit,
+  input: { number: number; label: string; action: 'add' | 'remove' },
+) {
+  const group = await conversationGroup(env, input.number)
+  return setLabel(
+    env.DB,
+    audit,
+    { ...input, number: group.main },
+    group.numbers,
+  )
 }

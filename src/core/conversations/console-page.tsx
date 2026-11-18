@@ -1,7 +1,6 @@
 import type { Child } from 'hono/jsx'
 import { BfScripts } from '@barefootjs/hono/scripts'
 import type { ConsoleFrame } from './console-usecase'
-import { extensionLabel } from '../extensions/extension-labels'
 
 export const statuses: Record<string, string> = {
   open: '未対応',
@@ -12,6 +11,8 @@ export const statuses: Record<string, string> = {
   reviewed: '確認済み',
   all: 'すべて',
   mine: '自分の担当',
+  feedback: 'フィードバック',
+  approval: '承認待ち',
 }
 export const noteLabel = '内部メモ（相手には送られません）'
 export function stamp(at: number, now: number) {
@@ -54,6 +55,8 @@ const symbols = {
   spam: 'M10 2l7 3v4c0 4-3 6-7 9-4-3-7-5-7-9V5z M10 6v4 M10 13v.2',
   extensions: 'M3 3h5v5H3z M12 3h5v5h-5z M3 12h5v5H3z M12 12h5v5h-5z',
   settings: 'M3 5h14 M3 10h14 M3 15h14 M7 3v4 M13 8v4 M8 13v4',
+  feedback: 'M3 3h14v10H9l-5 4v-4H3z',
+  approval: 'M5 2h10v3l-4 5 4 5v3H5v-3l4-5-4-5z',
   tokens: 'M11 8a4 4 0 1 1 3 3L7 18H3v-4z',
   menu: 'M3 5h14 M3 10h14 M3 15h14',
   close: 'M4 4l12 12 M16 4 4 16',
@@ -100,37 +103,26 @@ function navItem(
   )
 }
 export function selectedView(q: Record<string, string>, email: string) {
+  if (q.view === 'feedback' || q.view === 'approval') return q.view
   return q.assignee === email ? 'mine' : q.status || 'open'
 }
 function extensionMenu(frame: ConsoleFrame) {
-  const entries = frame.extensions.flatMap(({ id, slots }) => {
-    const anchor = '#extension-' + encodeURIComponent(id)
-    if (slots.includes('list')) return [{ id, href: '/' + anchor }]
-    if (
-      frame.path.startsWith('/conversation/') &&
-      slots.includes('conversation')
-    )
-      return [{ id, href: frame.path + anchor }]
-    if (frame.operator.role === 'admin')
-      return [
-        {
-          id,
-          href:
-            (slots.includes('settings') ? '/settings' : '/extensions') + anchor,
-        },
-      ]
-    return []
-  })
-  if (!entries.length) return null
+  const routes = [
+    { id: 'articles', path: '/articles', label: 'ヘルプ記事' },
+    { id: 'metrics', path: '/metrics', label: '対応状況の集計' },
+  ].filter((route) => frame.extensions.some((ext) => ext.id === route.id))
+  if (!routes.length) return null
   return (
     <nav className="sidebar-extensions" aria-label="有効な拡張">
       <h2>拡張</h2>
-      {entries.map(({ id, href }) => (
-        <a className="sidebar-item" href={href}>
-          {glyph('extensions')}
-          {extensionLabel(id)}
-        </a>
-      ))}
+      {routes.map((route) =>
+        navItem(
+          route.path,
+          route.label,
+          'extensions',
+          frame.path === route.path,
+        ),
+      )}
     </nav>
   )
 }
@@ -184,6 +176,21 @@ function navigation(frame: ConsoleFrame) {
             frame.counts[key],
           )
         })}
+        {navItem(
+          inboxUrl({ view: 'approval', product }),
+          '承認待ち',
+          'approval',
+          active === 'approval',
+          frame.counts.approval,
+        )}
+        {frame.extensions.some((ext) => ext.id === 'feedback') &&
+          navItem(
+            inboxUrl({ view: 'feedback', product }),
+            'フィードバック',
+            'feedback',
+            active === 'feedback',
+            frame.counts.received,
+          )}
       </nav>
       {extensionMenu(frame)}
       <nav className="sidebar-footer" aria-label="管理">
@@ -278,7 +285,7 @@ export function select(
   return (
     <label className="field">
       <span>{title}</span>
-      <select className="text-input" name={name}>
+      <select className="text-input" name={name} aria-label={title}>
         {Object.entries(choices).map(([key, label]) => (
           <option value={key} selected={key === value}>
             {label}

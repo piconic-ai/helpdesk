@@ -1,4 +1,5 @@
-import { setAssignment, setLabel } from '../operations/operator-store'
+import { changeGroupLabel } from './triage-usecase'
+import { setAssignment } from '../operations/operator-store'
 import { history, snapshot, inboundBody, emitOnce } from './history-store'
 import { queueStanding } from '../outbound/reply-usecase'
 import { changeFeedback } from '../conversations/feedback-usecase'
@@ -80,8 +81,8 @@ export function extensionContext(
         { number, email },
       ),
     label: (number, label) =>
-      setLabel(
-        c.env.DB,
+      changeGroupLabel(
+        c.env,
         { actor: JSON.stringify(actor), now: c.now },
         { number, label, action: 'add' },
       ),

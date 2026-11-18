@@ -59,7 +59,17 @@ export function makeCatalog(handlers: typeof usecases) {
       handlers.label,
     ),
     reply: operation('draft', address.extend({ body }), handlers.reply),
-    approve: operation('send', message, handlers.approve),
+    approve: operation(
+      'send',
+      message.extend({ body: body.optional() }),
+      handlers.approve,
+    ),
+    discard: operation('send', message, handlers.discard),
+    replyAndClose: operation(
+      'send',
+      address.extend({ body }),
+      handlers.replyAndClose,
+    ),
     retry: operation('send', message, handlers.retry),
     settings: operation('admin', empty, handlers.settings),
     mailbox: operation(
@@ -69,7 +79,11 @@ export function makeCatalog(handlers: typeof usecases) {
     ),
     role: operation(
       'admin',
-      z.object({ email, role: z.enum(['admin', 'agent']) }),
+      z.object({
+        email,
+        role: z.enum(['admin', 'agent']),
+        displayName: z.string().trim().max(100).optional(),
+      }),
       handlers.role,
     ),
     retention: operation(

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
+import { createGithub } from '../ux/github.mjs'
 import { applyMigrations } from '../platform.ts'
 
 export const fixedTime = Date.UTC(2026, 10, 18, 5)
@@ -184,7 +185,49 @@ async function seed(db, raw, extensions) {
   )
 }
 
-async function extensionData(db, extensions) {
+async function extensionData(db, extensions, origin) {
+  if (extensions.includes('metrics')) {
+    const event = db.prepare(
+      'INSERT INTO events(number,kind,actor,payload,at) VALUES(8,?,?,?,?)',
+    )
+    const day = 86400000
+    await db.batch([
+      db
+        .prepare(
+          'UPDATE conversations SET created_at=?,closed_at=? WHERE number=8',
+        )
+        .bind(fixedTime - 12 * day, fixedTime - 8 * day),
+      db
+        .prepare('UPDATE messages SET created_at=? WHERE number=8')
+        .bind(fixedTime - 12 * day),
+      db
+        .prepare('UPDATE events SET at=? WHERE number=8')
+        .bind(fixedTime - 12 * day),
+      event.bind(
+        'conversation_opened',
+        json({ kind: 'system' }),
+        '{}',
+        fixedTime - 12 * day,
+      ),
+      event.bind(
+        'status_changed',
+        json({ kind: 'operator', id: operator }),
+        json({ from: 'open', to: 'closed' }),
+        fixedTime - 8 * day,
+      ),
+    ])
+  }
+  if (extensions.includes('merge'))
+    await db
+      .prepare(
+        "UPDATE conversations SET contact='customer1@example.net', contact_name='山田 花' WHERE number=2",
+      )
+      .run()
+  if (extensions.includes('issues'))
+    await db
+      .prepare('INSERT INTO issues_data VALUES(?,?)')
+      .bind('repository/slide', json({ repo: 'example/helpdesk', origin }))
+      .run()
   if (extensions.includes('articles')) {
     const article = {
       id: 'receipt',
@@ -211,8 +254,11 @@ async function extensionData(db, extensions) {
 export async function startScene(
   extensions = [],
   source = '.',
-  { port = 0, emptyInbox = false } = {},
+  { port = 0, emptyInbox = false, embedOrigin } = {},
 ) {
+  const simulationKey = crypto.randomUUID()
+  const github = createGithub()
+  const notifications = []
   const runtime = new Miniflare(
     convertV4MiniflareOptions({
       modules: [
@@ -246,12 +292,25 @@ export async function startScene(
       email: { send_email: [{ name: 'EMAIL' }] },
       queueProducers: { JOBS: 'ui-jobs' },
       queueConsumers: { 'ui-jobs': { maxBatchSize: 10, maxBatchTimeout: 0 } },
+      outboundService: async (request) => {
+        if (request.url === 'https://notify.example.test/webhook') {
+          notifications.push(await request.json())
+          return new Response(null, { status: 204 })
+        }
+        return github.fetch(request)
+      },
       host: '127.0.0.1',
       port,
       bindings: {
         ENVIRONMENT: 'local',
         LOCAL_OPERATOR: operator,
         SENDING_DOMAINS: 'example.com',
+        SIMULATION_KEY: simulationKey,
+        ...(embedOrigin && { TEST_EMBED_ORIGIN: embedOrigin }),
+        GITHUB_TOKEN: 'local-test-only',
+        ...(extensions.includes('notify') && {
+          NOTIFY_WEBHOOK_URL: 'https://notify.example.test/webhook',
+        }),
         FIXED_NOW: fixedTime,
       },
     }),
@@ -269,8 +328,64 @@ export async function startScene(
     const origin = (await runtime.ready).origin
     const bootstrap = await fetch(origin + '/extensions')
     if (!bootstrap.ok) throw new Error(await bootstrap.text())
-    await extensionData(DB, extensions)
-    return { origin, stop: () => runtime.dispose() }
+    await extensionData(DB, extensions, origin)
+    async function receive({
+      subject,
+      body,
+      messageId,
+      inReplyTo,
+      authentication,
+      from = 'customer@example.net',
+      to = 'support@example.com',
+    }) {
+      const headers = [
+        'From: ' + from,
+        'To: ' + to,
+        'Subject: =?UTF-8?B?' + Buffer.from(subject).toString('base64') + '?=',
+        'Message-ID: ' + messageId,
+        'Content-Type: text/plain; charset=UTF-8',
+      ]
+      if (authentication)
+        headers.push('Authentication-Results: ' + authentication)
+      if (inReplyTo) headers.push('In-Reply-To: ' + inReplyTo)
+      const response = await fetch(
+        origin + '/__simulation/mail?' + new URLSearchParams({ from, to }),
+        {
+          method: 'POST',
+          headers: { 'X-Simulation-Key': simulationKey },
+          body: headers.join('\r\n') + '\r\n\r\n' + body,
+        },
+      )
+      if (!response.ok) throw new Error(await response.text())
+      const deadline = Date.now() + 12000
+      while (Date.now() < deadline) {
+        if (
+          await DB.prepare('SELECT 1 FROM messages WHERE message_id=?')
+            .bind(messageId)
+            .first()
+        )
+          return
+        await new Promise((resolve) => setTimeout(resolve, 60))
+      }
+      throw new Error('Local mail was not delivered: ' + messageId)
+    }
+    async function closeIssue() {
+      github.close()
+      const response = await fetch(origin + '/__simulation/scheduled', {
+        method: 'POST',
+        headers: { 'X-Simulation-Key': simulationKey },
+      })
+      if (!response.ok) throw new Error(await response.text())
+    }
+    return {
+      origin,
+      db: DB,
+      receive,
+      github,
+      notifications,
+      closeIssue,
+      stop: () => runtime.dispose(),
+    }
   } catch (error) {
     await runtime.dispose()
     throw error

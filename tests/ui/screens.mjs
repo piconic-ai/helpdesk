@@ -56,6 +56,9 @@ const extensionScreens = [
   { ...admin('auto-ack'), label: '自動受付返信' },
   {
     ...panel('metrics', 'list', 'Resolution metrics'),
+    beforeUrl: '/',
+    url: '/metrics',
+    after: null,
     label: '解決までの指標',
   },
   {
@@ -63,7 +66,13 @@ const extensionScreens = [
     url: '/conversation/10',
     label: 'フィードバックの確認',
   },
-  { ...panel('articles', 'settings', 'Help articles'), label: '記事の管理' },
+  {
+    ...panel('articles', 'settings', 'Help articles'),
+    beforeUrl: '/settings',
+    url: '/articles',
+    after: null,
+    label: '記事の管理',
+  },
   {
     name: 'chat',
     url: '/help/chat/slide',
@@ -75,7 +84,12 @@ const extensionScreens = [
     url: '/help/survey/slide/' + surveyId,
     label: '解決アンケート',
   },
-  { ...panel('export', 'settings', 'Export'), label: 'データの書き出し' },
+  {
+    ...panel('export', 'settings', 'Export'),
+    beforeUrl: '/settings',
+    url: '/extensions/export',
+    label: 'データの書き出し',
+  },
   { ...panel('snooze', 'conversation', 'Snooze'), label: 'スヌーズ' },
   {
     ...panel('merge', 'conversation', 'Merge conversations'),
@@ -172,12 +186,21 @@ export const screens = [
       mobile: mode === 'note',
     }),
   ),
-  screen('設定', 'mailboxes', 'プロダクトと窓口', '/settings', settings, {
-    before: 'section',
-    beforeHeading: 'Mailboxes',
-    after: '#mailboxes',
-  }),
-  screen('設定', 'operators', '運営者', '/settings', settings, {
+  screen(
+    '設定',
+    'mailboxes',
+    'プロダクトと窓口',
+    '/settings/mailboxes',
+    settings,
+    {
+      beforeUrl: '/settings',
+      before: 'section',
+      beforeHeading: 'Mailboxes',
+      after: '#mailboxes',
+    },
+  ),
+  screen('設定', 'operators', '運営者', '/settings/operators', settings, {
+    beforeUrl: '/settings',
     before: 'section',
     beforeHeading: 'Operators',
     after: '#operators',
@@ -194,17 +217,17 @@ export const screens = [
     '設定',
     'invalid',
     '入力エラー',
-    '/settings',
+    '/settings/mailboxes',
     '入力した内容を保持し、修正方法を欄の近くに表示します。',
-    { action: 'invalid' },
+    { action: 'invalid', beforeUrl: '/settings' },
   ),
   screen(
     '設定',
     'forget',
     '削除の確認',
-    '/settings',
+    '/settings/deletion',
     '確認ダイアログに削除対象を表示します。旧版は確認前の削除フォームを載せています。',
-    { action: 'forget' },
+    { action: 'forget', beforeUrl: '/settings' },
   ),
   ...extensionScreens,
   screen(
@@ -273,8 +296,8 @@ export const screens = [
     '関連画面',
     'result',
     '拡張の操作結果',
-    '/',
+    '/metrics',
     '結果と会話・受信箱への戻り先を示します。',
-    { action: 'result', extensions: ['metrics'] },
+    { action: 'result', beforeUrl: '/', extensions: ['metrics'] },
   ),
 ]

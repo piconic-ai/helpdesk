@@ -86,7 +86,7 @@ export function matchingArticles(
     html: String(
       html`<h1>関連する記事</h1>
         <ul class="article-list">
-          ${items.map((a) => html`<li><a href="${a.url}">${a.title}</a></li>`)}
+          ${items.map((a) => html`<li><a href="${a.url}" target="_blank" rel="noopener noreferrer">${a.title}（新しいタブ）</a></li>`)}
         </ul>
         <a class="button-quiet" href="">別の質問をする</a>`,
     ),

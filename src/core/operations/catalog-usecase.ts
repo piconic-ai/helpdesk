@@ -1,6 +1,7 @@
 import { makeCatalog } from './catalog'
 import type { filterSchema } from '../conversations/filters'
 import {
+  changeGroupLabel,
   visibleConversations,
   groupedDetail,
 } from '../extensions/triage-usecase'
@@ -14,7 +15,12 @@ import {
 import { instantSchema, actorSchema } from '../conversations/state'
 import { transition } from '../conversations/transitions'
 import { deleteContent, drainDeleted } from '../retention/retention-store'
-import { queueReply, approveReply, retryReply } from '../outbound/reply-usecase'
+import {
+  queueReply,
+  approveReply,
+  discardReply,
+  retryReply,
+} from '../outbound/reply-usecase'
 import { diagnose } from '../settings/doctor-usecase'
 import * as store from './operator-store'
 
@@ -66,12 +72,16 @@ export const handlers = {
   label: (
     c: Context,
     i: Ticket & { label: string; action: 'add' | 'remove' },
-  ) => store.setLabel(c.env.DB, audit(c), i),
+  ) => changeGroupLabel(c.env, audit(c), i),
   reply: (c: Context, i: Reply) =>
     queueReply(c.env, { ...i, actor: c.actor, now: c.now }),
   retry: (c: Context, i: { id: string }) =>
     retryReply(c.env, { ...i, actor: c.actor, now: c.now }),
-  approve: (c: Context, i: { id: string }) =>
+  replyAndClose: (c: Context, i: Reply) =>
+    queueReply(c.env, { ...i, close: true, actor: c.actor, now: c.now }),
+  discard: (c: Context, i: { id: string }) =>
+    discardReply(c.env, { ...i, actor: c.actor, now: c.now }),
+  approve: (c: Context, i: { id: string; body?: string }) =>
     approveReply(c.env, { ...i, actor: c.actor, now: c.now }),
   settings: (c: Context) => store.adminSettings(c.env.DB),
   mailbox: (
@@ -87,8 +97,10 @@ export const handlers = {
         .map((x) => x.extension.id) ?? [],
       c.operator.email,
     ),
-  role: (c: Context, i: { email: string; role: 'admin' | 'agent' }) =>
-    store.setRole(c.env.DB, audit(c), i),
+  role: (
+    c: Context,
+    i: { email: string; role: 'admin' | 'agent'; displayName?: string },
+  ) => store.setRole(c.env.DB, audit(c), i),
   retention: (c: Context, i: { days: number }) =>
     store.saveRetention(c.env.DB, audit(c), i.days),
   forget: async (c: Context, i: { contact: string }) => {

@@ -1,8 +1,16 @@
 import { html, raw } from 'hono/html'
 
 type Product = { name: string; mailbox: string | null }
-export const publicPolicy =
-  "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+const policy =
+  "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors "
+export function publicPolicy(origins?: string[]) {
+  if (!origins) return policy + "'none'"
+  // Only exact HTTP(S) hosts may become CSP source expressions.
+  const sources = origins.filter((s) =>
+    /^https?:\/\/(?:[a-z0-9.-]+|\[[0-9a-f:]+\])(?::[0-9]+)?$/i.test(s),
+  )
+  return policy + ["'self'", ...sources].join(' ')
+}
 export function publicDocument(
   product: Product,
   page: { title: string; html: string },

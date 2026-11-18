@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
-import { config, article, articleKey, slug } from './article'
+import { config, article, articleKey, slug, publicPath } from './article'
 import {
   edit,
   attach,
@@ -19,6 +19,12 @@ export const articles: Extension = {
   id: 'articles',
   permissions: [],
   config,
+  async replyLinks(ctx, product) {
+    return (await published(ctx, product)).map((a) => ({
+      title: a.title,
+      path: publicPath(product, a.id),
+    }))
+  },
   resources: [{ name: 'published', run: published }],
   operations: [
     {

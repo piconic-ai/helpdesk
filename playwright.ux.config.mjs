@@ -1,0 +1,16 @@
+import { defineConfig } from '@playwright/test'
+export default defineConfig({
+  outputDir: '.audit/ux-results-' + process.pid,
+  testDir: './tests/ux',
+  testMatch: '**/*.pw.mjs',
+  fullyParallel: true,
+  workers: 3,
+  timeout: 65_000,
+  expect: { timeout: 6000 },
+  use: {
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+    timezoneId: 'Asia/Tokyo',
+    reducedMotion: 'reduce',
+  },
+})

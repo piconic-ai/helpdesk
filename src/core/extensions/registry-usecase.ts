@@ -68,6 +68,7 @@ export async function panels(
     const api = extensionContext(ctx, installed)
     for (const panel of installed.extension.panels ?? []) {
       if (panel.slot !== slot) continue
+      if (panel.available && !(await panel.available(api, number))) continue
       const names = panel.operations.map(
         (n) => installed.extension.id + '.' + n,
       )
@@ -84,4 +85,21 @@ export async function panels(
     }
   }
   return result
+}
+
+export async function replyLinks(
+  ctx: Context,
+  product: string,
+  origin: string,
+) {
+  const links = await Promise.all(
+    (ctx.env.EXTENSIONS?.active ?? []).map(
+      async (item) =>
+        item.extension.replyLinks?.(extensionContext(ctx, item), product) ?? [],
+    ),
+  )
+  return links.flat().map((link) => ({
+    title: link.title,
+    url: new URL(link.path, origin).href,
+  }))
 }

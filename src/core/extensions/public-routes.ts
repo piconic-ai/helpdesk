@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../operators/middleware'
 import { extensionContext } from './context-usecase'
 import { publicDocument, publicPolicy } from '../../public/layout-pages'
+import { hostedPolicy } from '../intakes/hosted-policy-usecase'
 import { publicProduct } from '../../public/product-usecase'
 const app = new Hono<AppEnv>()
 app.all('/help/:id/:product/:path{.*}?', async (c) => {
@@ -33,7 +34,12 @@ app.all('/help/:id/:product/:path{.*}?', async (c) => {
           )
         : null
   if (!page) return c.notFound()
-  c.header('Content-Security-Policy', publicPolicy)
+  const origins =
+    id === 'articles'
+      ? ((await hostedPolicy(c.env, product, new URL(c.req.url).origin))
+          ?.origins ?? [])
+      : undefined
+  c.header('Content-Security-Policy', publicPolicy(origins))
   const info = await publicProduct(c.env, product)
   return c.html(
     publicDocument(info ?? { name: product, mailbox: null }, page, {

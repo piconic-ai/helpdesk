@@ -15,3 +15,15 @@ export async function registerOperator(db: D1Database, email: string) {
   ])
   return operatorSchema.parse(row.results[0])
 }
+
+export async function listOperators(db: D1Database) {
+  const rows = await db
+    .prepare(
+      "SELECT o.email, o.role, coalesce(nullif(p.display_name,''), substr(o.email,1,instr(o.email,'@')-1)) AS displayName FROM operators o LEFT JOIN operator_profiles p ON p.email=o.email ORDER BY displayName,o.email",
+    )
+    .all()
+  return operatorSchema
+    .extend({ displayName: z.string() })
+    .array()
+    .parse(rows.results)
+}

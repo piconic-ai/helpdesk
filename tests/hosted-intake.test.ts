@@ -146,3 +146,61 @@ it('requires an enabled intake, its hosted origin and a verifiable Turnstile sub
     ).status,
   ).toBe(403)
 })
+
+it('opens only an explicitly enabled hosted origin and gives deployment policy precedence', async () => {
+  const hosted = { ...env, PUBLIC_INTAKES: {} }
+  const endpoint = origin + '/settings/public-intakes/shop'
+  const entry = origin + '/help/feedback/shop'
+  const enable = (bindings: Bindings, requestOrigin = origin) =>
+    app.request(
+      endpoint,
+      {
+        method: 'POST',
+        headers: { origin: requestOrigin },
+        body: new URLSearchParams({ returnTo: '/extensions/feedback' }),
+      },
+      bindings,
+    )
+  expect((await app.request(entry, {}, hosted)).status).toBe(404)
+  expect((await enable(hosted, 'https://unknown.example')).status).toBe(403)
+  await app.request(origin, {}, hosted)
+  expect(
+    (await enable({ ...hosted, LOCAL_OPERATOR: 'staff@example.org' })).status,
+  ).toBe(403)
+  expect((await enable(hosted)).status).toBe(303)
+  expect((await enable(hosted)).status).toBe(303)
+  expect((await app.request(entry, {}, hosted)).status).toBe(200)
+  expect(
+    (
+      await app.request(
+        'https://unknown.example/help/feedback/shop',
+        {},
+        hosted,
+      )
+    ).status,
+  ).toBe(404)
+  const locked = {
+    ...hosted,
+    PUBLIC_INTAKES: { shop: { ...policy, origins: ['https://other.example'] } },
+  }
+  expect((await app.request(entry, {}, locked)).status).toBe(404)
+  expect((await enable(locked)).status).toBe(409)
+  expect(
+    await platform.DB.prepare(
+      "SELECT count(*) n FROM events WHERE kind='hosted_intake_started'",
+    ).first('n'),
+  ).toBe(1)
+  expect(
+    (
+      await app.request(
+        origin + '/public/feedback/shop/submit',
+        {
+          method: 'POST',
+          headers: { origin, 'content-type': 'application/json' },
+          body: JSON.stringify({ email: 'visitor@example.org', body: 'Hello' }),
+        },
+        hosted,
+      )
+    ).status,
+  ).not.toBe(201)
+})

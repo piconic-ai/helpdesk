@@ -46,14 +46,14 @@ test('reply preview renders untrusted draft text and preserves the native submis
     await page.goto('http://helpdesk.test/')
     const draft = '<strong>Thank you!</strong>'
     await page.getByLabel('返信', { exact: true }).fill(draft)
-    await page.locator('form button[aria-expanded]').click()
+    await page.getByRole('button', { name: 'プレビュー', exact: true }).click()
     await page.locator('pre').waitFor({ state: 'visible' })
     expect(await page.locator('pre').textContent()).toBe(draft)
     expect(await page.locator('pre strong').count()).toBe(0)
     const submitted = page.waitForRequest(
       (request) => request.method() === 'POST',
     )
-    await page.getByRole('button', { name: '送信' }).click()
+    await page.getByRole('button', { name: '送信', exact: true }).click()
     const request = await submitted
     expect(new URL(request.url()).pathname).toBe('/actions/reply')
     expect(

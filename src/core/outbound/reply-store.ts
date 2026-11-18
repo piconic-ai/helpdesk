@@ -22,8 +22,15 @@ type Submission = {
   actor: Actor
   now: number
   approval: Approval | null
+  close?: boolean
 }
-type Enqueue = { id: string; actor: Actor; now: number; approval: Approval }
+type Enqueue = {
+  id: string
+  actor: Actor
+  now: number
+  approval: Approval
+  close?: boolean
+}
 function event(
   db: D1Database,
   kind: string,
@@ -49,22 +56,20 @@ function queueWrites(db: D1Database, input: Enqueue, attempt: string) {
   ]
 }
 function statusWrites(db: D1Database, input: Enqueue, attempt: string) {
+  const target = input.close ? 'closed' : 'pending'
+  const condition = `number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt}
+    AND ? NOT IN(SELECT message FROM standing_messages) AND status IN ('open','pending') AND status!=?`
+  const match = [input.id, attempt, input.id, target]
   return [
     db
       .prepare(`INSERT INTO events(number,kind,actor,at,payload)
-      SELECT number,'status_changed',?,?,json_object('from','open','to','pending') FROM conversations
-      WHERE status='open' AND number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt} AND ? NOT IN(SELECT message FROM standing_messages)`)
-      .bind(
-        JSON.stringify(input.actor),
-        input.now,
-        input.id,
-        attempt,
-        input.id,
-      ),
+      SELECT number,'status_changed',?,?,json_object('from',status,'to',?) FROM conversations WHERE ${condition}`)
+      .bind(JSON.stringify(input.actor), input.now, target, ...match),
     db
-      .prepare(`UPDATE conversations SET status='pending' WHERE status='open' AND
-      number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt} AND ? NOT IN(SELECT message FROM standing_messages)`)
-      .bind(input.id, attempt, input.id),
+      .prepare(
+        `UPDATE conversations SET status=?,closed_at=? WHERE ${condition}`,
+      )
+      .bind(target, input.close ? input.now : null, ...match),
   ]
 }
 
@@ -132,20 +137,42 @@ export async function insertDraft(
 
 export async function requeueReply(
   db: D1Database,
-  input: Enqueue,
+  input: Enqueue & { body?: string },
   from: 'failed' | 'awaiting_approval',
 ) {
   const update = db
-    .prepare(`UPDATE messages SET delivery='queued',approval=?,reason=NULL,provider_id=NULL,sent_at=NULL WHERE id=? AND kind='outbound'
+    .prepare(`UPDATE messages SET delivery='queued',approval=?,body=coalesce(?,body),reason=NULL,provider_id=NULL,sent_at=NULL WHERE id=? AND kind='outbound'
     AND (delivery=? OR (delivery='draft' AND ?='awaiting_approval')) AND number IN (SELECT number FROM conversations WHERE kind='inquiry' AND status IN ('open','pending'))
-    AND NOT EXISTS (SELECT 1 FROM outbox WHERE message=messages.id)`)
-    .bind(JSON.stringify(input.approval), input.id, from, from)
+    AND NOT EXISTS (SELECT 1 FROM outbox WHERE message=messages.id) RETURNING id`)
+    .bind(
+      JSON.stringify(input.approval),
+      input.body ?? null,
+      input.id,
+      from,
+      from,
+    )
   const [result] = await db.batch([
     update,
     ...queueWrites(db, input, crypto.randomUUID()),
   ])
-  if (result.meta.changes !== 1)
+  if (!result.results.length)
     throw new Error(`Reply cannot be queued from ${from}`)
+}
+
+export async function discardDraft(
+  db: D1Database,
+  input: { id: string; actor: Actor; now: number },
+) {
+  const predicate =
+    "kind='outbound' AND delivery IN ('draft','awaiting_approval') AND approval IS NULL"
+  const [, removed] = await db.batch([
+    event(db, 'reply_discarded', input, predicate),
+    db
+      .prepare(`DELETE FROM messages WHERE id=? AND ${predicate} RETURNING id`)
+      .bind(input.id),
+  ])
+  if (!removed.results.length)
+    throw new Error('Only unsent drafts can be discarded')
 }
 
 const claimSchema = replyEnvelopeSchema.extend({

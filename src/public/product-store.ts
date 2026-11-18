@@ -11,3 +11,19 @@ export async function readPublicProduct(db: D1Database, product: string) {
     .nullable()
     .parse(row)
 }
+
+export async function hostedProducts(
+  db: D1Database,
+  origin: string,
+  configured: string[],
+) {
+  const rows = await db
+    .prepare(`SELECT DISTINCT p.id,p.name FROM products p
+    LEFT JOIN hosted_intakes h ON h.product=p.id
+    WHERE h.origin=? OR p.id IN (SELECT value FROM json_each(?)) ORDER BY p.name,p.id`)
+    .bind(origin, JSON.stringify(configured))
+    .all()
+  return z
+    .array(z.object({ id: z.string(), name: z.string() }))
+    .parse(rows.results)
+}

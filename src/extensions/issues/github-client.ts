@@ -26,7 +26,7 @@ function githubRequest(
   }
   const token = ctx.secret('GITHUB_TOKEN')
   if (token) headers.Authorization = 'Bearer ' + token
-  const request = { headers, redirect: 'error' } as const
+  const request = { headers, redirect: 'manual' } as const
   return json
     ? ctx.request(url, {
         ...request,
@@ -81,6 +81,31 @@ export async function backlinkExists(
       .parse(await response.json())
     if (comments.some((comment) => comment.body === body)) return true
     if (!response.headers.get('Link')?.includes('rel="next"')) return false
+    page++
+  }
+}
+
+export async function selectableIssues(ctx: ExtensionContext, repo: string) {
+  const items = []
+  let page = 1
+  for (;;) {
+    const response = await githubRequest(
+      ctx,
+      repo,
+      '?state=all&per_page=100&page=' + page,
+    )
+    if (!response.ok) throw new Error('Could not read GitHub issues')
+    const rows = z
+      .array(
+        z.object({
+          number: z.int().positive(),
+          title: z.string(),
+          pull_request: z.unknown().optional(),
+        }),
+      )
+      .parse(await response.json())
+    items.push(...rows.filter((row) => !row.pull_request))
+    if (!response.headers.get('Link')?.includes('rel="next"')) return items
     page++
   }
 }

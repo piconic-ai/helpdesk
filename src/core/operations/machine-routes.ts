@@ -68,6 +68,7 @@ machine.get('/tokens', async (c) =>
       await listTokens(c.env, c.get('operator').email),
       undefined,
       await consoleFrame(c.env, c.get('operator'), '/tokens'),
+      c.req.query('revoked') === '1',
     ),
   ),
 )
@@ -95,7 +96,7 @@ machine.post('/tokens/:id/revoke', async (c) => {
     c.req.param('id'),
     Date.now(),
   )
-  return deleted ? c.redirect('/tokens', 303) : c.notFound()
+  return deleted ? c.redirect('/tokens?revoked=1', 303) : c.notFound()
 })
 machine.onError(async (err, c) => {
   const error = machineError(err)

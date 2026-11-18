@@ -117,3 +117,13 @@ export async function expireVisits(ctx: ExtensionContext) {
     if (visit.parse(row.value).at < ctx.now - lifetime)
       await ctx.remove(row.key)
 }
+export async function library(ctx: ExtensionContext) {
+  const [articles, candidates] = await Promise.all([
+    ctx.list('article/'),
+    ctx.list('candidate/'),
+  ])
+  return {
+    articles: articles.map((row) => article.parse(row.value)),
+    candidates: candidates.map((row) => candidate.parse(row.value).topic),
+  }
+}

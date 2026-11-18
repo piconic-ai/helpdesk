@@ -74,7 +74,7 @@ if (forget) {
   function confirmDeletion() {
     if (!forget.reportValidity()) return
     forget.querySelector('[data-delete-contact]').textContent =
-      forget.elements.contact.value
+      forget.elements.contact.selectedOptions[0]?.textContent ?? ''
     dialog.showModal()
   }
   forget
@@ -141,3 +141,9 @@ document
       ?.classList.remove('conversation-row-selected')
     row.classList.add('conversation-row-selected')
   })
+
+const reportFilter = document.querySelector('form[action="/metrics"]')
+reportFilter?.addEventListener('change', (event) => {
+  if (event.target.type === 'date')
+    reportFilter.elements.period.value = 'custom'
+})

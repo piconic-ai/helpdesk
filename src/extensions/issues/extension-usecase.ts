@@ -1,4 +1,4 @@
-import { impactOperation } from './impact'
+import { impactOperation } from './impact-usecase'
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
 import {
@@ -17,6 +17,7 @@ import {
   issueLinks,
   panelLinks,
   pollIssues,
+  configuredRepository,
 } from './issues-usecase'
 
 const withUrl = linked.extend({ url: z.url() })
@@ -71,6 +72,15 @@ export const issues: Extension = {
       slot: 'conversation',
       title: 'GitHub issues',
       operations: ['preview', 'create', 'link', 'impact'],
+      async available(ctx, number) {
+        return (
+          !!number &&
+          !!(await configuredRepository(
+            ctx,
+            (await ctx.contact(number)).product,
+          ))
+        )
+      },
       links: panelLinks,
     },
   ],

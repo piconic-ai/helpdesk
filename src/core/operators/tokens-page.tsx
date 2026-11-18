@@ -12,6 +12,7 @@ export function tokensPage(
   tokens: z.infer<typeof tokenSummary>[],
   secret?: string,
   frame?: ConsoleFrame,
+  revoked = false,
 ) {
   return shell(
     'API トークン',
@@ -19,6 +20,11 @@ export function tokensPage(
       <header className="page-header">
         <h1>API トークン</h1>
       </header>
+      {revoked && (
+        <p className="banner-success" role="status">
+          トークンを失効させました。
+        </p>
+      )}
       {secret && (
         <section className="banner-success" role="status">
           <h2>トークンを発行しました</h2>

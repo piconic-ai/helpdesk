@@ -75,7 +75,9 @@ afterAll(async () => {
 
 async function registerMailbox(page: Page) {
   await page.goto(origin + '/settings')
-  await page.getByLabel('プロダクト ID').fill('shop')
+  await page
+    .getByRole('link', { name: 'プロダクトと窓口', exact: true })
+    .click()
   await page.getByLabel('プロダクト名').fill('Shop')
   await page.getByLabel('窓口のメールアドレス').fill('support@example.com')
   await page.getByRole('button', { name: '窓口を登録' }).click()
@@ -150,7 +152,7 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
         'framenavigated',
         (frame) => frame === page.mainFrame(),
       ),
-      page.getByRole('button', { name: '送信' }).click(),
+      page.getByRole('button', { name: '送信', exact: true }).click(),
     ])
     await expect
       .poll(

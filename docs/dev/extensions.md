@@ -36,7 +36,7 @@ export const reference: Extension = {
 
 フォームの受付は `intakes` にパスと手続きを登録し、`ctx.open` で会話を作ります。本人確認済みの利用者が継続して問い合わせる入口では、相手と窓口を照合した会話に対して `ctx.addInboundMessage(number, body)` で追記できます。公開用のキー、ブラウザの Origin、回数上限はプロダクト単位の `publicIntakes` に設定します。ブラウザは JSON を `POST /public/form/PRODUCT/submit` に送り、`X-Helpdesk-Key` を指定します。Turnstile を有効にする場合は `turnstileSecretBinding` と `CF-Turnstile-Response` を使用します。
 
-公開フォームを helpdesk 上で提供する場合は、そのオリジンを `publicIntakes[PRODUCT].origins` に含めて、対象の拡張を有効にします。問い合わせは `/help/form/PRODUCT`、フィードバックは `/help/feedback/PRODUCT`、ヘルプチャットは `/help/chat/PRODUCT` で開けます。ヘルプチャットでは連絡先を入力する前に関連する記事を探せます。該当する記事がないときに、担当者が返信するためのメールアドレスを入力します。
+公開フォームを helpdesk 上で提供する場合は、対象の拡張を有効にし、「設定・使い始め方」でプロダクトを選んで「このサイトで受付を開始」を押します。この操作はホスト画面を現在のオリジンで公開します。外部の受付 API や Turnstile を使う場合は `publicIntakes[PRODUCT]` を設定し、ホスト画面のオリジンを `origins` に含めます。デプロイ時の設定がある場合は、そちらが優先されます。問い合わせは `/help/form/PRODUCT`、フィードバックは `/help/feedback/PRODUCT`、ヘルプチャットは `/help/chat/PRODUCT` で開けます。ヘルプチャットでは連絡先を入力する前に関連する記事を探せます。該当する記事がないときに、担当者が返信するためのメールアドレスを入力します。
 
 Turnstile を使う公開フォームには、シークレットのバインディング名に加えて、対応するウィジェットの公開サイトキーを `turnstileSiteKey` に設定します。サイトキーが未設定の間は該当する HTML フォームの受付を停止します。
 

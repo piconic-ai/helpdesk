@@ -3,7 +3,7 @@ import type {
   ExtensionEvent,
 } from '../../core/extensions/extension'
 import { z } from 'zod'
-import { productRepo } from './issues'
+import { issueDestination } from './issues-usecase'
 const input = z.object({
   product: z.string().min(1),
   issue: z.coerce.number().int().positive(),
@@ -52,7 +52,7 @@ export const impactOperation = {
   output: impactOutput,
   async run(ctx: ExtensionContext, args: unknown) {
     const { product, issue, days } = input.parse(args)
-    const { repo } = productRepo(ctx.config, product)
+    const { repo } = await issueDestination(ctx, product)
     const events = await ctx.events()
     const match = events.filter(
       (e) => e.payload.repository === repo && e.payload.issue === issue,

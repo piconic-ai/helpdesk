@@ -22,7 +22,7 @@ pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/self-ho
 pnpm exec wrangler dev --local --ip 127.0.0.1 --port "${HELPDESK_PORT:-8787}" --persist-to .wrangler/self-host --var ENVIRONMENT:local --var LOCAL_OPERATOR:operator@example.com --var SENDING_DOMAINS:example.com
 ```
 
-**端末 2** を同じディレクトリで開きます。画面で操作する場合は `http://127.0.0.1:8787/settings` を開き、**窓口を登録** で製品と窓口を登録します。以下は同じフォームを curl で操作する例です。新しい環境で最初にアクセスした `operator@example.com` が管理者になります。API トークンは発行時だけ表示されるので、この端末の環境変数に受け取ります。
+**端末 2** を同じディレクトリで開きます。画面で操作する場合は `http://127.0.0.1:8787/settings` を開き、**プロダクトと窓口** を開いて製品名と窓口アドレスを登録します。以下は同じフォームを curl で操作する例です。新しい環境で最初にアクセスした `operator@example.com` が管理者になります。API トークンは発行時だけ表示されるので、この端末の環境変数に受け取ります。
 
 <!-- verify:configure -->
 ```sh
@@ -106,7 +106,7 @@ Zero Trust の Access で運営画面のホスト全体を対象に Self-hosted 
 }
 ```
 
-CLI・MCP を使う場合は、`/api/*` と `/mcp` にパスを限定した Access アプリの Bypass ポリシーを作り、Worker の Bearer トークン認証へ通します。公開フォームやヘルプを提供する場合は、使う拡張の公開 URL だけを例外にします。運営画面・設定・トークン発行の URL は運営者だけに許可します。[CLI と MCP の認証](machine-access.md)・[Access のパスの優先順位](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
+CLI・MCP を使う場合は、`/api/*` と `/mcp` にパスを限定した Access アプリの Bypass ポリシーを作り、Worker の Bearer トークン認証へ通します。公開フォームやヘルプを提供する場合は、使う拡張の公開 URL とヘルプの戻り先 `/help/`、公開画面が読み込む3つの静的な CSS（`/styles.css`、`/ui/public.css`、`/ui/tokens.css`）をパス限定の例外にします。運営画面・設定・トークン発行の URL は運営者だけに許可します。[CLI と MCP の認証](machine-access.md)・[Access のパスの優先順位](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
 
 ## 送受信を設定する
 

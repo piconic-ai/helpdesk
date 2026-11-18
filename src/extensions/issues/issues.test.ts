@@ -26,7 +26,7 @@ const posted: { url: string; data: unknown }[] = []
 let closed = false
 const mockGithub = vi.fn(async (url: string, init?: RequestInit) => {
   expect(url).toMatch(/^https:\/\/api.github.com\/repos\/acme\/desktop\/issues/)
-  expect(init?.redirect).toBe('error')
+  expect(init?.redirect).toBe('manual')
   expect(new Headers(init?.headers).get('Authorization')).toBe(
     'Bearer test-token',
   )
@@ -197,4 +197,29 @@ test('F06-AC4 compares issue-linked inquiries with all voices in equal windows a
     after: { total: 1, linked: 1, share: 1 },
     caveat: expect.stringContaining('目安'),
   })
+})
+
+test('external article and issue requests reject redirects without forwarding credentials', async () => {
+  const { externalRequest } =
+    await import('../../core/extensions/external-client')
+  const request = vi
+    .spyOn(globalThis, 'fetch')
+    .mockClear()
+    .mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://elsewhere.invalid/' },
+      }),
+    )
+  try {
+    await expect(
+      externalRequest('https://api.github.com/example', {
+        headers: { Authorization: 'test-token' },
+      }),
+    ).rejects.toThrow('redirect')
+    expect(request).toHaveBeenCalledTimes(1)
+    expect(request.mock.calls[0][1]?.redirect).toBe('manual')
+  } finally {
+    request.mockRestore()
+  }
 })

@@ -10,6 +10,7 @@ import { composeReply } from './compose'
 import {
   insertReply,
   insertStanding,
+  discardDraft,
   requeueReply,
   claim,
   finish,
@@ -27,9 +28,14 @@ const mutationSchema = z.object({
   actor: actorSchema,
   now: instantSchema,
 })
-const submitSchema = mutationSchema
-  .omit({ id: true })
-  .extend({ number: numberSchema, body: z.string().trim().min(1).max(131072) })
+const approvalInput = mutationSchema.extend({
+  body: z.string().trim().min(1).max(100000).optional(),
+})
+const submitSchema = mutationSchema.omit({ id: true }).extend({
+  number: numberSchema,
+  body: z.string().trim().min(1).max(131072),
+  close: z.boolean().optional(),
+})
 async function notify(env: QueueEnv, id: string) {
   // Cron also polls the durable outbox if the queue is unavailable after commit.
   await env.JOBS.send({ kind: 'outbound', id }).catch(() => undefined)
@@ -40,6 +46,7 @@ export async function queueReply(
   input: z.input<typeof submitSchema>,
 ) {
   const reply = submitSchema.parse(input)
+  if (reply.close) operatorApproval(reply.actor)
   const delivery = replyDelivery(reply.actor)
   const id = crypto.randomUUID()
   await insertReply(env.DB, {
@@ -53,10 +60,10 @@ export async function queueReply(
 
 async function queueExisting(
   env: QueueEnv,
-  input: z.input<typeof mutationSchema>,
+  input: z.input<typeof approvalInput>,
   from: 'failed' | 'awaiting_approval',
 ) {
-  const command = mutationSchema.parse(input)
+  const command = approvalInput.parse(input)
   const approval = operatorApproval(command.actor)
   await requeueReply(env.DB, { ...command, approval }, from)
   await notify(env, command.id)
@@ -64,9 +71,17 @@ async function queueExisting(
 }
 export function approveReply(
   env: QueueEnv,
-  input: z.input<typeof mutationSchema>,
+  input: z.input<typeof approvalInput>,
 ) {
   return queueExisting(env, input, 'awaiting_approval')
+}
+export async function discardReply(
+  env: QueueEnv,
+  input: z.input<typeof mutationSchema>,
+) {
+  const command = mutationSchema.parse(input)
+  operatorApproval(command.actor)
+  await discardDraft(env.DB, command)
 }
 export function retryReply(
   env: QueueEnv,

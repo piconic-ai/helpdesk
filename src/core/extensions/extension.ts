@@ -97,6 +97,7 @@ export type ExtensionOperation = {
   run: (ctx: ExtensionContext, input: unknown) => Promise<unknown>
 }
 export type Panel = {
+  available?: (ctx: ExtensionContext, number?: number) => Promise<boolean>
   script?: string
   slot: 'conversation' | 'settings' | 'list'
   title: string
@@ -109,6 +110,10 @@ export type Panel = {
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
 export type Extension = {
+  replyLinks?: (
+    ctx: ExtensionContext,
+    product: string,
+  ) => Promise<{ title: string; path: string }[]>
   requiresAI?: boolean
   secrets?: string[]
   id: string

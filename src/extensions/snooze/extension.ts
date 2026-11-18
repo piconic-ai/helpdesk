@@ -1,5 +1,10 @@
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
+const scheduleTime = new Intl.DateTimeFormat('ja-JP', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+  timeZone: 'Asia/Tokyo',
+})
 const number = z.coerce.number().int().positive()
 const schedule = z.object({ number, until: z.iso.datetime({ offset: true }) })
 const entry = z.object({ number, until: z.number().int() })
@@ -45,7 +50,7 @@ export const snooze: Extension = {
       async content(ctx, n) {
         const item = entry.nullable().parse(await ctx.get('until/' + n))
         return item && item.until > ctx.now
-          ? '再表示日時　' + new Date(item.until).toISOString()
+          ? '再表示日時（日本時間）　' + scheduleTime.format(item.until)
           : ''
       },
     },

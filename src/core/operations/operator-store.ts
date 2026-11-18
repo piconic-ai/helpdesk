@@ -3,12 +3,12 @@ import {
   eventStatement,
   type Audit,
 } from '../conversations/conversations-store'
-import { operatorSchema } from '../operators/operators-store'
+import { listOperators } from '../operators/operators-store'
 import { retentionDays } from '../retention/retention-store'
 
 export async function adminSettings(db: D1Database) {
   const [operators, mailboxes, days] = await Promise.all([
-    db.prepare('SELECT * FROM operators ORDER BY email').all(),
+    listOperators(db),
     db
       .prepare(
         'SELECT m.address,m.product,p.name FROM mailboxes m JOIN products p ON p.id=m.product ORDER BY p.name',
@@ -17,7 +17,7 @@ export async function adminSettings(db: D1Database) {
     retentionDays(db),
   ])
   return {
-    operators: operatorSchema.array().parse(operators.results),
+    operators,
     mailboxes: z
       .object({ address: z.email(), product: z.string(), name: z.string() })
       .array()
@@ -61,7 +61,7 @@ export async function setMailbox(
 export async function setRole(
   db: D1Database,
   a: Audit,
-  i: { email: string; role: string },
+  i: { email: string; role: string; displayName?: string },
 ) {
   const [result] = await db.batch([
     db
@@ -74,6 +74,15 @@ export async function setRole(
         "INSERT INTO events(kind,actor,payload,at) SELECT 'role_changed',?,?,? WHERE changes()=1",
       )
       .bind(a.actor, JSON.stringify(i), a.now),
+    ...(i.displayName === undefined
+      ? []
+      : [
+          db
+            .prepare(
+              'INSERT INTO operator_profiles(email,display_name) SELECT ?,? WHERE changes()=1 ON CONFLICT(email) DO UPDATE SET display_name=excluded.display_name',
+            )
+            .bind(i.email, i.displayName),
+        ]),
   ])
   if (!result.meta.changes)
     throw new Error('Unknown operator or last administrator')
@@ -119,16 +128,37 @@ export async function setLabel(
   db: D1Database,
   a: Audit,
   i: { number: number; label: string; action: 'add' | 'remove' },
+  group: number[],
 ) {
-  const sql =
+  const mutation =
     i.action === 'add'
-      ? 'INSERT OR IGNORE INTO labels(number,name) VALUES(?,?)'
-      : 'DELETE FROM labels WHERE number=? AND name=?'
+      ? db
+          .prepare('INSERT OR IGNORE INTO labels(number,name) VALUES(?,?)')
+          .bind(i.number, i.label)
+      : db
+          .prepare(
+            'DELETE FROM labels WHERE number IN (SELECT value FROM json_each(?)) AND name=?',
+          )
+          .bind(JSON.stringify(group), i.label)
   await db.batch([
-    db.prepare(sql).bind(i.number, i.label),
+    mutation,
     eventStatement(db, a, i.number, 'label_changed', {
       name: i.label,
       action: i.action,
     }),
   ])
+}
+
+export async function listContacts(db: D1Database) {
+  const rows = await db
+    .prepare(`
+    SELECT email, max(name) AS name FROM (
+      SELECT contact AS email, contact_name AS name FROM conversations
+      UNION ALL SELECT sender AS email, NULL AS name FROM inbound_failures
+      UNION ALL SELECT sender AS email, NULL AS name FROM inbound_jobs
+    ) WHERE email IS NOT NULL GROUP BY email ORDER BY coalesce(max(name),email),email`)
+    .all()
+  return z
+    .array(z.object({ email: z.string(), name: z.string().nullable() }))
+    .parse(rows.results)
 }

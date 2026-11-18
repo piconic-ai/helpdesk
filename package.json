@@ -10,7 +10,8 @@
     "test:coverage": "vitest run --coverage",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "test:ui": "playwright test -c playwright.ui.config.mjs"
+    "test:ui": "playwright test -c playwright.ui.config.mjs",
+    "test:ux": "playwright test -c playwright.ux.config.mjs"
   },
   "dependencies": {
     "@barefootjs/client": "^0.40.2",

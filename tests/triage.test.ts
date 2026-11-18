@@ -369,9 +369,11 @@ it('F19-AC1..3 Chromium reports reading and typing through the actual presence p
       .getByLabel('返信', { exact: true })
       .fill('A draft that stays in this browser')
     await first.getByText(other + '（入力中）').waitFor({ timeout: 10000 })
-    expect(await first.getByRole('button', { name: '送信' }).isEnabled()).toBe(
-      true,
-    )
+    expect(
+      await first
+        .getByRole('button', { name: '送信', exact: true })
+        .isEnabled(),
+    ).toBe(true)
   } finally {
     await browser.close()
   }

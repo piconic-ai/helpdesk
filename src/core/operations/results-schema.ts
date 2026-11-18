@@ -46,10 +46,16 @@ export const results = {
   label: z.null(),
   reply: receipt,
   approve: receipt,
+  replyAndClose: receipt,
+  discard: z.null(),
   retry: receipt,
   settings: z.object({
     operators: z
-      .object({ email: z.email(), role: z.enum(['admin', 'agent']) })
+      .object({
+        email: z.email(),
+        role: z.enum(['admin', 'agent']),
+        displayName: z.string(),
+      })
       .array(),
     mailboxes: z
       .object({ address: z.email(), product: z.string(), name: z.string() })

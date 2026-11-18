@@ -70,7 +70,9 @@ async function compose(page, mode, before) {
   }
   await form.locator('textarea:visible').fill(draft)
   if (mode === 'typing') return
-  const submit = form.locator('button[type=submit]:visible').first()
+  const submit = before
+    ? form.locator('button[type=submit]:visible').first()
+    : form.getByRole('button', { name: '送信', exact: true })
   let resume
   const held = new Promise((resolve) => {
     resume = resolve
@@ -175,37 +177,44 @@ async function publicIntake(page, scene, origin, before) {
       .waitFor()
 }
 
+async function prepareForget(page, before) {
+  const form = page.locator('form[action="/actions/forget"]')
+  await reveal(form)
+  if (before) await form.locator('[name=contact]').fill('customer8@example.net')
+  else
+    await form.locator('[name=contact]').selectOption('customer8@example.net')
+  if (!before) {
+    await form.locator('button:visible').first().click()
+    await page.getByRole('dialog').waitFor()
+    assert.match(
+      await page.getByRole('dialog').innerText(),
+      /customer8@example.net/,
+    )
+  }
+}
+async function invalidMailbox(page, before) {
+  const form = page.locator(
+    before ? 'form[action="/actions/mailbox"]' : '#mailboxes form',
+  )
+  await reveal(form)
+  if (before) await form.locator('[name=product]').fill('slide')
+  await form.locator('[name=name]').fill('Slide')
+  const address = form.locator(before ? '[name=address]' : '[name=local]')
+  await address.fill(before ? 'example' : 'invalid address')
+  await form.locator('button').click()
+  if (!before) assert.equal(await address.getAttribute('aria-invalid'), 'true')
+}
 async function takeAction(page, action, before) {
-  if (action === 'invalid') {
-    const form = page.locator('form[action="/actions/mailbox"]')
-    await reveal(form)
-    await form.locator('[name=product]').fill('slide')
-    await form.locator('[name=name]').fill('Slide')
-    await form.locator('[name=address]').fill('example')
-    await form.locator('button').click()
-    if (!before)
-      assert.equal(
-        await form.locator('[name=address]').getAttribute('aria-invalid'),
-        'true',
-      )
-  }
-  if (action === 'forget') {
-    const form = page.locator('form[action="/actions/forget"]')
-    await reveal(form)
-    await form.locator('[name=contact]').fill('customer8@example.net')
-    if (!before) {
-      await form.locator('button:visible').first().click()
-      await page.getByRole('dialog').waitFor()
-      assert.match(
-        await page.getByRole('dialog').innerText(),
-        /customer8@example.net/,
-      )
-    }
-  }
+  if (action === 'invalid') await invalidMailbox(page, before)
+  if (action === 'forget') await prepareForget(page, before)
   if (action === 'vote' || action === 'survey')
     await page.locator('button[value=yes]').click()
   if (action === 'result') {
-    const form = page.locator('form[action="/actions/metrics.report"]')
+    const form = page.locator(
+      before
+        ? 'form[action="/actions/metrics.report"]'
+        : 'form[action="/metrics"]',
+    )
     await reveal(form)
     await form.locator('button').click()
   }
@@ -266,7 +275,9 @@ async function pendingSearch(page, before) {
 export async function prepare(page, scene, origin, before) {
   if (before && /^(chat|feedback)-(articles|receipt)$/.test(scene.action))
     return publicIntake(page, scene, origin, true)
-  const response = await page.goto(origin + scene.url)
+  const response = await page.goto(
+    origin + (before ? (scene.beforeUrl ?? scene.url) : scene.url),
+  )
   assert.equal(
     response.status(),
     before && scene.beforeMissing ? 404 : 200,

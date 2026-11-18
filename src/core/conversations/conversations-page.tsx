@@ -7,16 +7,15 @@ import type {
   inboxMetadata,
   threadFiles,
 } from './console-usecase'
-import {
-  shell,
-  action,
-  field,
-  select,
-  badge,
-  noteLabel,
-  stamp,
-} from './console-page'
+import { shell, action, badge, noteLabel, stamp } from './console-page'
 import type { Result } from './inbox-page'
+import { replySubject } from '../outbound/compose'
+import {
+  assignment,
+  labelPicker,
+  draftReview,
+  threadNotice,
+} from './thread-controls-page'
 export { inboxPage } from './inbox-page'
 export { settingsPage } from './settings-page'
 export { shell } from './console-page'
@@ -27,12 +26,19 @@ const deliveries: Record<string, string> = {
   sent: '送信済み',
   failed: '送信失敗',
 }
-function actorName(a: Actor) {
+type Names = ReadonlyMap<string, string>
+function actorName(a: Actor, names: Names) {
   switch (a.kind) {
     case 'operator':
-      return a.id
+      return names.get(a.id) ?? a.id
     case 'agent':
-      return 'エージェント ' + a.id + '（' + a.onBehalfOf + ' の代理）'
+      return (
+        'エージェント ' +
+        a.id +
+        '（' +
+        (names.get(a.onBehalfOf) ?? a.onBehalfOf) +
+        ' の代理）'
+      )
     case 'extension':
       return '拡張 ' + a.id
     case 'system':
@@ -46,9 +52,14 @@ function message(
   data: Details,
   files: Files,
   name: string,
+  names: Names,
   now: number,
 ) {
   const c = data.conversation
+  const draft = m.delivery === 'draft' || m.delivery === 'awaiting_approval'
+  const canSend =
+    c.kind === 'inquiry' &&
+    (c.status.kind === 'open' || c.status.kind === 'pending')
   const label =
     m.kind === 'inbound' ? name : m.kind === 'note' ? noteLabel : '返信'
   return (
@@ -61,7 +72,7 @@ function message(
         {m.kind === 'inbound' ? (
           <code>{c.contact}</code>
         ) : (
-          <span>{actorName(m.actor)}</span>
+          <span>{actorName(m.actor, names)}</span>
         )}
         {m.delivery && (
           <span className={'delivery-' + m.delivery.replaceAll('_', '-')}>
@@ -69,7 +80,9 @@ function message(
           </span>
         )}
       </div>
-      {m.body && <p className="message-body">{m.body}</p>}
+      {m.body && (!draft || !canSend) && (
+        <p className="message-body">{m.body}</p>
+      )}
       {m.html && (
         <>
           <p className="mail-privacy">外部の画像は非表示です。</p>
@@ -80,23 +93,10 @@ function message(
           />
         </>
       )}
-      {files.length > 0 && (
-        <ul className="attachments">
-          {files.map((f) => (
-            <li>
-              <a
-                href={'/attachment?key=' + encodeURIComponent(f.key)}
-                download={f.filename}
-              >
-                {f.filename}
-              </a>
-              {f.size !== undefined && <small>{fileSize(f.size)}</small>}
-            </li>
-          ))}
-        </ul>
-      )}
+      {attachmentList(files)}
       {m.reason && <p className="banner-error">{m.reason}</p>}
-      {m.delivery === 'failed' &&
+      {canSend &&
+        m.delivery === 'failed' &&
         !data.uncertain.includes(m.id) &&
         action(
           'retry',
@@ -104,14 +104,26 @@ function message(
           <input type="hidden" name="id" value={m.id} />,
           c.number,
         )}
-      {(m.delivery === 'awaiting_approval' || m.delivery === 'draft') &&
-        action(
-          'approve',
-          '承認して送信',
-          <input type="hidden" name="id" value={m.id} />,
-          c.number,
-        )}
+      {draft && draftReview(m.id, c.number, m.body || '', canSend)}
     </article>
+  )
+}
+function attachmentList(files: Files) {
+  if (!files.length) return null
+  return (
+    <ul className="attachments">
+      {files.map((f) => (
+        <li>
+          <a
+            href={'/attachment?key=' + encodeURIComponent(f.key)}
+            download={f.filename}
+          >
+            {f.filename}
+          </a>
+          {f.size !== undefined && <small>{fileSize(f.size)}</small>}
+        </li>
+      ))}
+    </ul>
   )
 }
 function fileSize(bytes: number) {
@@ -144,17 +156,6 @@ function threadActions(c: Details['conversation']) {
             changeStatus(c.number, 'reopened', '未対応に戻す')}
           {state !== 'spam' &&
             changeStatus(c.number, 'marked_spam', '迷惑メールにする')}
-          {action(
-            'assign',
-            '担当者を保存',
-            field(
-              'email',
-              '担当者',
-              c.assignment.kind === 'assigned' ? c.assignment.to : '',
-              'email',
-            ),
-            c.number,
-          )}
         </div>
       </details>
     </div>
@@ -163,6 +164,7 @@ function threadActions(c: Details['conversation']) {
 const eventLabels: Record<string, string> = {
   conversation_opened: '会話を開始',
   message_received: 'メールを受信',
+  reply_discarded: '下書きを破棄',
   reply_drafted: '下書きを作成',
   reply_queued: '返信を送信待ちに変更',
   reply_sent: '返信を送信',
@@ -176,37 +178,25 @@ const eventLabels: Record<string, string> = {
   conversation_viewed: '会話を表示',
   operation_invoked: '操作を実行',
 }
-function eventActor(actor: string) {
+function eventActor(actor: string, names: Names) {
   try {
     const result = actorSchema.safeParse(JSON.parse(actor))
-    return result.success ? actorName(result.data) : '記録なし'
+    return result.success ? actorName(result.data, names) : '記録なし'
   } catch {
     return '記録なし'
   }
 }
-function threadContext(data: Details, panels: Child, now: number) {
+function threadContext(
+  data: Details,
+  panels: Child,
+  now: number,
+  names: Names,
+) {
   const c = data.conversation
   return (
     <details className="context-panel" data-context-panel="" open>
       <summary>会話の詳細</summary>
       <div className="context-cards">
-        <section className="settings-card">
-          <h2>ラベル</h2>
-          <p className="row-labels">
-            {data.labels.map((l) => (
-              <span className="label-chip">{l.name}</span>
-            ))}
-          </p>
-          {action(
-            'label',
-            'ラベルを保存',
-            <>
-              {field('label', 'ラベル名', '', 'text', true)}
-              {select('action', '操作', { add: '追加', remove: '削除' }, 'add')}
-            </>,
-            c.number,
-          )}
-        </section>
         {panels}
         <section className="settings-card">
           <h2>この相手の問い合わせ</h2>
@@ -230,7 +220,7 @@ function threadContext(data: Details, panels: Child, now: number) {
                 {stamp(e.at, now)}
                 <span>
                   {' '}
-                  {eventLabels[e.kind] ?? e.kind} · {eventActor(e.actor)}
+                  {eventLabels[e.kind] ?? e.kind} · {eventActor(e.actor, names)}
                 </span>
               </li>
             ))}
@@ -246,12 +236,15 @@ export function conversationPage(
   frame: ConsoleFrame,
   metadata: Awaited<ReturnType<typeof inboxMetadata>>,
   files: Files,
+  articles: { title: string; url: string }[] = [],
 ) {
   const c = data.conversation
+  const names = new Map(frame.operators.map((o) => [o.email, o.displayName]))
   const info = metadata.get(c.number)
-  const reply =
-    c.kind === 'inquiry' &&
-    (c.status.kind === 'open' || c.status.kind === 'pending')
+  const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
+  const position = frame.openNumbers.indexOf(c.number)
+  const candidate = frame.openNumbers[position + 1] ?? frame.openNumbers[0]
+  const next = candidate === c.number ? undefined : candidate
   const main = (
     <div className="thread-layout">
       <div className="thread-main">
@@ -259,6 +252,7 @@ export function conversationPage(
           <a className="back-link" href="/">
             &larr; 受信箱
           </a>
+          {threadNotice(frame.query.notice)}
           <div className="page-header">
             <h1 className="page-title">{c.subject}</h1>
             {threadActions(c)}
@@ -267,13 +261,9 @@ export function conversationPage(
             <code>#{c.number}</code>
             <span>{info?.productName ?? c.product}</span>
             {badge(c.status.kind)}
-            {c.kind === 'inquiry' && (
-              <span>
-                {c.assignment.kind === 'assigned'
-                  ? c.assignment.to
-                  : '担当なし'}
-              </span>
-            )}
+            {c.kind === 'inquiry' && assignment(c, frame)}
+            {labelPicker(c.number, data.labels, frame.labels)}
+            {next && <a href={'/conversation/' + next}>次の未対応へ</a>}
           </div>
         </header>
         <section className="message-list" aria-label="メッセージ">
@@ -283,6 +273,7 @@ export function conversationPage(
               data,
               files.filter((f) => f.message === m.id),
               info?.name || c.contact,
+              names,
               frame.now,
             ),
           )}
@@ -292,9 +283,12 @@ export function conversationPage(
           mailbox={c.mailbox}
           contact={c.contact}
           noteOnly={!reply}
+          closed={c.status.kind === 'closed'}
+          subject={replySubject(c.subject, c.number)}
+          articles={articles}
         />
       </div>
-      {threadContext(data, panels, frame.now)}
+      {threadContext(data, panels, frame.now, names)}
     </div>
   )
   return shell(c.subject, main, frame)

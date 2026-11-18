@@ -10,7 +10,10 @@ function localEnv(env, origin) {
     PUBLIC_INTAKES: {
       slide: {
         publicKey: 'visual-test',
-        origins: [origin],
+        origins: [
+          origin,
+          ...(env.TEST_EMBED_ORIGIN ? [env.TEST_EMBED_ORIGIN] : []),
+        ],
         limitPerMinute: 100,
       },
     },
@@ -29,12 +32,39 @@ function localEnv(env, origin) {
   }
 }
 export default {
-  fetch(request, env, ctx) {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url)
+    if (
+      request.method === 'POST' &&
+      request.headers.get('X-Simulation-Key') === env.SIMULATION_KEY &&
+      url.pathname.startsWith('/__simulation/')
+    ) {
+      const local = localEnv(env, url.origin)
+      if (url.pathname === '/__simulation/mail') {
+        await worker.email(
+          {
+            from: url.searchParams.get('from'),
+            to: url.searchParams.get('to'),
+            raw: request.body,
+          },
+          local,
+        )
+      } else if (url.pathname === '/__simulation/scheduled') {
+        await worker.scheduled({ scheduledTime: Date.now() }, local)
+      } else return new Response(null, { status: 404 })
+      return new Response(null, { status: 204 })
+    }
     return worker.fetch(
       request,
       localEnv(env, new URL(request.url).origin),
       ctx,
     )
+  },
+  email(message, env) {
+    return worker.email(message, localEnv(env, 'http://localhost'))
+  },
+  scheduled(event, env) {
+    return worker.scheduled(event, localEnv(env, 'http://localhost'))
   },
   queue(batch, env) {
     return worker.queue(batch, localEnv(env, 'http://localhost'))

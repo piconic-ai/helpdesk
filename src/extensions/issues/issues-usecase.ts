@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { ExtensionContext } from '../../core/extensions/extension'
 import {
   confirmInput,
@@ -9,11 +10,41 @@ import {
   postFor,
   previewInput,
   productRepo,
+  configSchema,
+  repository as repositorySchema,
   storedPreview,
   type Linked,
 } from './issues'
 import { githubIssue, linkComment, backlinkExists } from './github-client'
 
+const repositoryOverride = z.union([
+  repositorySchema,
+  z.object({
+    repo: repositorySchema,
+    origin: configSchema.shape.helpdeskOrigin,
+  }),
+])
+async function repositoryConfig(ctx: ExtensionContext, product: string) {
+  const config = configSchema.parse(ctx.config)
+  const value = await ctx.get('repository/' + product)
+  if (value == null) return config
+  const saved = repositoryOverride.parse(value)
+  const repo = typeof saved === 'string' ? saved : saved.repo
+  return {
+    repositories: { ...config.repositories, [product]: repo },
+    helpdeskOrigin:
+      typeof saved === 'string' ? config.helpdeskOrigin : saved.origin,
+  }
+}
+export async function configuredRepository(
+  ctx: ExtensionContext,
+  product: string,
+) {
+  return (await repositoryConfig(ctx, product)).repositories[product]
+}
+export async function issueDestination(ctx: ExtensionContext, product: string) {
+  return productRepo(await repositoryConfig(ctx, product), product)
+}
 function operator(ctx: ExtensionContext) {
   if (ctx.actor.kind !== 'operator')
     throw new Error('An operator must review and confirm the GitHub post')
@@ -24,7 +55,7 @@ export async function previewIssue(ctx: ExtensionContext, input: unknown) {
   const by = operator(ctx)
   const { number, summary } = previewInput.parse(input)
   const { product } = await ctx.contact(number)
-  const { repo, origin } = productRepo(ctx.config, product)
+  const { repo, origin } = await issueDestination(ctx, product)
   const confirmation = crypto.randomUUID()
   const proposal = {
     number,
@@ -58,7 +89,10 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
     proposal.expiresAt < ctx.now
   )
     throw new Error('Preview this issue again before creating it')
-  const { repo } = productRepo(ctx.config, (await ctx.contact(number)).product)
+  const { repo } = await issueDestination(
+    ctx,
+    (await ctx.contact(number)).product,
+  )
   if (proposal.repository !== repo)
     throw new Error('Repository changed. Preview the issue again.')
   if (!ctx.secret('GITHUB_TOKEN'))
@@ -81,8 +115,8 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
 export async function linkIssue(ctx: ExtensionContext, input: unknown) {
   const { number, issue } = linkInput.parse(input)
   operator(ctx)
-  const { repo, origin } = productRepo(
-    ctx.config,
+  const { repo, origin } = await issueDestination(
+    ctx,
     (await ctx.contact(number)).product,
   )
   const key = linkPrefix(repo, issue) + number
@@ -108,7 +142,7 @@ async function loadLinks(ctx: ExtensionContext, prefix: string) {
 }
 export async function issueLinks(ctx: ExtensionContext, input: unknown) {
   const { product, issue } = lookupInput.parse(input)
-  const { repo } = productRepo(ctx.config, product)
+  const { repo } = await issueDestination(ctx, product)
   return loadLinks(ctx, linkPrefix(repo, issue))
 }
 export async function panelLinks(ctx: ExtensionContext, number?: number) {
@@ -188,3 +222,5 @@ export async function pollIssues(ctx: ExtensionContext) {
   if (failures.length)
     throw new AggregateError(failures, 'GitHub issue synchronization failed')
 }
+
+export { selectableIssues as issueChoices } from './github-client'

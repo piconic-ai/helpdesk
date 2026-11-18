@@ -3,7 +3,8 @@ import { bodyLimit } from 'hono/body-limit'
 import { z } from 'zod'
 import type { AppEnv } from '../core/operators/middleware'
 import { verifyIntake } from '../core/intakes/intake-usecase'
-import { intakePolicySchema, type IntakePolicy } from '../core/intakes/intake'
+import type { IntakePolicy } from '../core/intakes/intake'
+import { hostedPolicy } from '../core/intakes/hosted-policy-usecase'
 import { extensionContext } from '../core/extensions/context-usecase'
 import type { ExtensionContext, Extension } from '../core/extensions/extension'
 import { question } from '../extensions/chat/chat'
@@ -86,17 +87,12 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
   const intake = installed?.extension.intakes?.find(
     (i) => i.path === (kind === 'chat' ? 'ask' : 'submit'),
   )
-  const policy = intakePolicySchema.safeParse(c.env.PUBLIC_INTAKES?.[product])
-  if (
-    !intake ||
-    !installed ||
-    !policy.success ||
-    !policy.data.origins.includes(origin)
-  )
-    return c.notFound()
+  if (!intake || !installed) return c.notFound()
+  const policy = await hostedPolicy(c.env, product, origin)
+  if (!policy) return c.notFound()
   const info = await publicProduct(c.env, product)
   if (!info) return c.notFound()
-  const turnstile = Boolean(policy.data.turnstileSecretBinding)
+  const turnstile = Boolean(policy.turnstileSecretBinding)
   const render = (
     page: { title: string; html: string },
     status: 200 | 400 | 403 | 503 = 200,
@@ -107,12 +103,12 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
     )
   c.header(
     'Content-Security-Policy',
-    publicPolicy +
+    publicPolicy(policy.origins) +
       (turnstile
         ? "; script-src https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self'"
         : ''),
   )
-  if (turnstile && !policy.data.turnstileSiteKey)
+  if (turnstile && !policy.turnstileSiteKey)
     return render(
       {
         title: '受付を一時停止しています',
@@ -120,19 +116,13 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
       },
       503,
     )
-  if (c.req.method === 'GET') return render(intakePage(kind, policy.data))
+  if (c.req.method === 'GET') return render(intakePage(kind, policy))
   if (c.req.header('origin') !== origin)
     return c.text('送信元を確認できませんでした。', 403)
   const data = await c.req.formData().catch(() => null)
   if (!data)
     return render(
-      intakePage(
-        kind,
-        policy.data,
-        {},
-        false,
-        'フォームから入力し直してください。',
-      ),
+      intakePage(kind, policy, {}, false, 'フォームから入力し直してください。'),
       400,
     )
   const fields = submittedFields(data)
@@ -141,14 +131,14 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
     c.env,
     product,
     submissionRequest(c.req.raw, data),
-    policy.data,
+    policy,
     now,
   )
   if (!allowed)
     return render(
       intakePage(
         kind,
-        policy.data,
+        policy,
         fields,
         Boolean(fields.email),
         '送信を確認できませんでした。時間をおいて、もう一度お試しください。',
@@ -166,13 +156,13 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
     installed,
   )
   try {
-    return render(await submit(kind, ctx, product, intake, policy.data, fields))
+    return render(await submit(kind, ctx, product, intake, policy, fields))
   } catch (error) {
     if (error instanceof z.ZodError)
       return render(
         intakePage(
           kind,
-          policy.data,
+          policy,
           fields,
           Boolean(fields.email),
           '入力内容を確認し、必要な項目を入力してください。',
@@ -182,7 +172,7 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
     return render(
       intakePage(
         kind,
-        policy.data,
+        policy,
         fields,
         Boolean(fields.email),
         '受付に失敗しました。時間をおいて、もう一度お試しください。',

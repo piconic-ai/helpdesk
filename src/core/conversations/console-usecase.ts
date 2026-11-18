@@ -1,4 +1,4 @@
-import type { Operator } from '../operators/operators-store'
+import { listOperators, type Operator } from '../operators/operators-store'
 import type { Bindings } from '../settings/bindings'
 import {
   conversationAliases,
@@ -6,7 +6,13 @@ import {
 } from '../extensions/triage-usecase'
 import { canonical } from '../extensions/aliases'
 import { filterSchema } from './filters'
-import { products, rowDetails, fileMessages } from './console-store'
+import {
+  products,
+  rowDetails,
+  fileMessages,
+  labelChoices,
+  awaitingApproval,
+} from './console-store'
 
 export async function consoleFrame(
   env: Bindings,
@@ -16,23 +22,43 @@ export async function consoleFrame(
   now = Date.now(),
 ) {
   const product = query.product ?? ''
-  const [choices, rows] = await Promise.all([
-    products(env.DB),
-    visibleConversations(
-      env,
-      filterSchema.parse({ product, status: 'all' }),
-      now,
-    ),
-  ])
+  const [choices, operators, labels, drafts, aliases, rows] = await Promise.all(
+    [
+      products(env.DB),
+      listOperators(env.DB),
+      labelChoices(env.DB),
+      awaitingApproval(env.DB),
+      conversationAliases(env),
+      visibleConversations(
+        env,
+        filterSchema.parse({ product, status: 'all' }),
+        now,
+      ),
+    ],
+  )
+  const draftNumbers = new Set(
+    drafts.map((number) => canonical(aliases, number)),
+  )
+  const openNumbers = rows
+    .filter((row) => row.status.kind === 'open')
+    .map((row) => row.number)
+  const approvalNumbers = new Set(
+    rows
+      .filter((row) => row.kind === 'inquiry' && draftNumbers.has(row.number))
+      .map((row) => row.number),
+  )
   const counts: Record<string, number> = {
     open: 0,
     pending: 0,
     closed: 0,
     spam: 0,
     mine: 0,
+    received: 0,
+    approval: approvalNumbers.size,
   }
   for (const r of rows) {
-    counts[r.status.kind] = (counts[r.status.kind] ?? 0) + 1
+    if (r.kind === 'inquiry' || r.status.kind === 'received')
+      counts[r.status.kind] = (counts[r.status.kind] ?? 0) + 1
     if (
       r.kind === 'inquiry' &&
       r.assignment.kind === 'assigned' &&
@@ -45,6 +71,10 @@ export async function consoleFrame(
     query,
     operator,
     products: choices,
+    operators,
+    labels,
+    approvalNumbers,
+    openNumbers,
     counts,
     extensions: (env.EXTENSIONS?.active ?? []).map(({ extension }) => ({
       id: extension.id,

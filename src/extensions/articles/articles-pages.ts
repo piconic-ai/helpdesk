@@ -25,8 +25,8 @@ export function articleIndex(product: string, articles: Article[], q: string) {
     ),
   }
 }
-export function articleDetail(a: Article, token: string) {
-  const content = sanitize(marked.parse(a.body, { async: false }), {
+export function articleMarkup(body: string) {
+  return sanitize(marked.parse(body, { async: false }), {
     allowedTags: [
       'p',
       'h1',
@@ -55,6 +55,9 @@ export function articleDetail(a: Article, token: string) {
     allowedSchemes: ['http', 'https', 'mailto'],
     transformTags: { h1: 'h2' },
   })
+}
+export function articleDetail(a: Article, token: string) {
+  const content = articleMarkup(a.body)
   return {
     title: a.title,
     html: String(

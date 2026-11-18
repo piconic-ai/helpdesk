@@ -13,12 +13,16 @@ export const replyEnvelopeSchema = z.object({
 
 export type ReplyEnvelope = z.infer<typeof replyEnvelopeSchema>
 
-export function composeReply(reply: ReplyEnvelope) {
-  const subject = reply.subject
+export function replySubject(subject: string, number: number) {
+  const clean = subject
     .replace(/[\r\n]+/g, ' ')
     .replace(/\s*\[#\d+\]/g, '')
     .replace(/^re:\s*/i, '')
     .trim()
+  return `Re: ${clean} [#${number}]`
+}
+
+export function composeReply(reply: ReplyEnvelope) {
   const headers: Record<string, string> = {}
   if (
     reply.in_reply_to &&
@@ -43,7 +47,7 @@ export function composeReply(reply: ReplyEnvelope) {
   return {
     from: reply.mailbox,
     to: reply.contact,
-    subject: `Re: ${subject} [#${reply.number}]`,
+    subject: replySubject(reply.subject, reply.number),
     text: reply.body,
     headers,
   }

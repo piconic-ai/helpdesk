@@ -6,6 +6,7 @@ import {
   queueReply,
   retryReply,
   approveReply,
+  discardReply,
   deliverReply,
   recoverReplies,
 } from './reply-usecase'
@@ -249,4 +250,43 @@ it('F01-AC21: cron exposes an interrupted claim without sending a second message
   await expect(
     retryReply(local, { id, actor: operator, now }),
   ).rejects.toThrow()
+})
+
+it('keeps approval and discard exclusive when two operators act on the same draft', async () => {
+  const number = await receive()
+  const { id } = await queueReply(local, {
+    number,
+    actor: agent,
+    body: 'Agent suggestion',
+    now,
+  })
+  await expect(discardReply(local, { id, actor: agent, now })).rejects.toThrow()
+  await expect(
+    queueReply(local, {
+      number,
+      actor: agent,
+      body: 'Agent may not close',
+      close: true,
+      now,
+    }),
+  ).rejects.toThrow()
+  const results = await Promise.allSettled([
+    approveReply(local, { id, actor: operator, body: 'Reviewed text', now }),
+    discardReply(local, { id, actor: operator, now }),
+  ])
+  expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+  const send = success()
+  await deliverReply({ ...local, EMAIL: { send } }, id, now)
+  if (results[0].status === 'fulfilled') {
+    expect(send).toHaveBeenCalledOnce()
+    expect(send.mock.calls[0][0].text).toBe('Reviewed text')
+    await expect(
+      discardReply(local, { id, actor: operator, now }),
+    ).rejects.toThrow()
+  } else {
+    expect(send).not.toHaveBeenCalled()
+    await expect(
+      approveReply(local, { id, actor: operator, now }),
+    ).rejects.toThrow()
+  }
 })
