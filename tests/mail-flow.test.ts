@@ -47,20 +47,25 @@ beforeAll(async () => {
       ],
       { env: { ...process.env, CI: 'true' } },
     )
-  server = await unstable_dev('worker.ts', {
-    config: 'wrangler.jsonc',
-    local: true,
-    ip: '127.0.0.1',
-    port: 0,
-    inspectorPort: 0,
-    persistTo: state,
-    vars: { ENVIRONMENT: 'local', LOCAL_OPERATOR: 'operator@example.com' },
-    experimental: {
-      disableDevRegistry: true,
-      disableExperimentalWarning: true,
-      watch: false,
+  server = await unstable_dev(
+    process.env.HELPDESK_TEST_EXTENSIONS === 'on'
+      ? 'tests/mail-flow-worker.ts'
+      : 'worker.ts',
+    {
+      config: 'wrangler.jsonc',
+      local: true,
+      ip: '127.0.0.1',
+      port: 0,
+      inspectorPort: 0,
+      persistTo: state,
+      vars: { ENVIRONMENT: 'local', LOCAL_OPERATOR: 'operator@example.com' },
+      experimental: {
+        disableDevRegistry: true,
+        disableExperimentalWarning: true,
+        watch: false,
+      },
     },
-  })
+  )
   origin = 'http://127.0.0.1:' + server.port
 }, 60_000)
 afterAll(async () => {

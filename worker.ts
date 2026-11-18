@@ -23,8 +23,19 @@ import { machineRoutes } from './src/core/operations/machine-routes'
 
 export const app = new Hono<AppEnv>()
 app.use('*', async (c, next) => {
-  if (c.env.LOCAL_OPERATOR && c.env.ENVIRONMENT !== 'local')
-    return c.text('LOCAL_OPERATOR requires ENVIRONMENT=local', 500)
+  try {
+    c.env = await configure(
+      { ...c.env, judgeArticles: c.env.judgeArticles ?? judgeArticles },
+      extensions,
+      publicIntakes,
+    )
+  } catch (error) {
+    return c.text(
+      'Invalid helpdesk configuration: ' +
+        (error instanceof Error ? error.message : 'Unknown error'),
+      500,
+    )
+  }
   await next()
   if (!c.res.headers.has('Content-Security-Policy'))
     c.header(
@@ -45,22 +56,6 @@ for (const asset of [
   '/uno.css',
 ])
   app.get(asset, (c) => c.env.ASSETS.fetch(c.req.raw))
-app.use('*', async (c, next) => {
-  try {
-    c.env = await configure(
-      { ...c.env, judgeArticles: c.env.judgeArticles ?? judgeArticles },
-      extensions,
-      publicIntakes,
-    )
-  } catch (error) {
-    return c.text(
-      'Invalid helpdesk configuration: ' +
-        (error instanceof Error ? error.message : 'Unknown error'),
-      500,
-    )
-  }
-  await next()
-})
 app.route('/', publicRoutes)
 app.route('/', intakeRoutes)
 app.route('/', machineRoutes)

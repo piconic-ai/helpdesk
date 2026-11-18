@@ -246,11 +246,25 @@ export function conversationPage(data: Result<'get'>, panels?: Child) {
     </>,
   )
 }
-export function settingsPage(data: Result<'settings'>, panels?: Child) {
+export function settingsPage(
+  data: Result<'settings'>,
+  issues: string[],
+  panels?: Child,
+) {
   return shell(
     'Settings',
     <>
       <h1>Settings</h1>
+      {issues.length > 0 && (
+        <section>
+          <h2>Setup needed</h2>
+          <ul>
+            {issues.map((issue) => (
+              <li>{issue}</li>
+            ))}
+          </ul>
+        </section>
+      )}
       {panels}
       <section>
         <h2>Mailboxes</h2>

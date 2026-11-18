@@ -4,37 +4,7 @@ import { authorize, PermissionDenied } from './catalog'
 import { extensionContext } from '../extensions/context-usecase'
 import { eventStatement } from '../conversations/conversations-store'
 
-const plainObject = z.record(z.string(), z.unknown())
-const rowList = z.array(plainObject)
-const outputs: Record<keyof typeof coreOperations, z.ZodType> = {
-  list: rowList,
-  get: z.object({
-    conversation: plainObject,
-    messages: rowList,
-    attachments: rowList,
-    history: rowList,
-    events: rowList,
-    labels: rowList,
-    uncertain: z.array(z.string()),
-  }),
-  failures: rowList,
-  status: z.null(),
-  note: z.null(),
-  assign: z.null(),
-  label: z.null(),
-  reply: z.object({ id: z.string() }),
-  approve: z.object({ id: z.string() }),
-  retry: z.object({ id: z.string() }),
-  settings: z.object({
-    operators: rowList,
-    mailboxes: rowList,
-    retentionDays: z.number(),
-  }),
-  mailbox: z.null(),
-  role: z.null(),
-  retention: z.null(),
-  forget: z.null(),
-}
+import { results as outputs } from './results-schema'
 function available(ctx: Context) {
   const core = Object.entries(coreOperations).map(([name, op]) => ({
     name,

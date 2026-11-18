@@ -1,11 +1,8 @@
+import type { filterSchema } from '../conversations/filters'
 import type { Bindings } from '../settings/bindings'
 import { extensionStorage } from './extension-store'
 import { canonical, type Aliases } from './aliases'
-import {
-  listConversations,
-  detail,
-  type filterSchema,
-} from '../conversations/conversations-store'
+import { listConversations, detail } from '../conversations/conversations-store'
 import type { z } from 'zod'
 
 type Env = Pick<Bindings, 'DB' | 'EXTENSIONS'>

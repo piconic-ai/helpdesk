@@ -6,7 +6,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { z } from 'zod'
-import { machineRoutes } from '../src/core/operations/machine-routes'
+import { app } from '../worker'
 import type { Bindings } from '../src/core/settings/bindings'
 import { registry } from '../src/core/extensions/registry'
 import type { Extension } from '../src/core/extensions/extension'
@@ -40,7 +40,7 @@ const server = createServer(async (req, res) => {
     const headers = new Headers()
     for (const [key, value] of Object.entries(req.headers))
       if (typeof value === 'string') headers.set(key, value)
-    const response = await machineRoutes.request(
+    const response = await app.request(
       origin + req.url,
       {
         method: req.method,
@@ -309,5 +309,39 @@ it('F15-AC1/2/3 downloads the same redacted JSON Lines via CLI and MCP', async (
     expect(output.result).toContain(lines.trim())
   } finally {
     await client.close()
+  }
+})
+
+it('F20-AC4 doctor uses a read token, reports incomplete domains and exits successfully after setup', async () => {
+  await expect(cli(read, '--json', 'doctor')).rejects.toMatchObject({
+    code: 1,
+    stdout: expect.stringContaining('set SENDING_DOMAINS'),
+  })
+  env.SENDING_DOMAINS = 'example.org'
+  try {
+    const run = await cli(read, '--json', 'doctor')
+    expect(JSON.parse(run.stdout).result).toEqual({
+      ready: true,
+      domains: ['example.org'],
+      issues: [],
+      providerCheck: 'declared-only',
+    })
+  } finally {
+    delete env.SENDING_DOMAINS
+  }
+})
+
+it('F20-AC2 doctor reports a missing Worker binding through its normal CLI entry', async () => {
+  const assets = env.ASSETS
+  try {
+    env.ASSETS = {} as Fetcher
+    await expect(cli(read, 'doctor')).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining(
+        "Configure the ASSETS binding in Wrangler's assets.",
+      ),
+    })
+  } finally {
+    env.ASSETS = assets
   }
 })

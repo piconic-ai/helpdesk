@@ -2,6 +2,7 @@ import type { Extension } from '../../core/extensions/extension'
 import { articleCandidate, question, config, decideChat } from './chat'
 export const chat: Extension = {
   id: 'chat',
+  requiresAI: true,
   permissions: ['external_fetch'],
   config,
   intakes: [

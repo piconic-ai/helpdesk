@@ -109,6 +109,7 @@ export type Panel = {
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
 export type Extension = {
+  requiresAI?: boolean
   secrets?: string[]
   id: string
   permissions: Permission[]

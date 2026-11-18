@@ -8,13 +8,22 @@ import type { Context, Scope } from '../operations/catalog-usecase'
 import type { Panel } from './extension'
 import { extensionContext } from './context-usecase'
 import { intakePolicySchema } from '../intakes/intake'
+import {
+  requireBindings,
+  requireExtensionBindings,
+  inspectStartup,
+} from '../settings/doctor-usecase'
 export async function configure(
   env: Bindings,
   entries: Registration[],
   publicIntakes: Record<string, unknown>,
 ) {
+  requireBindings(env)
   const installed =
     env.EXTENSIONS ?? registry(entries, await readOverrides(env.DB))
+  for (const { extension } of installed.active)
+    requireExtensionBindings(env, extension)
+  await inspectStartup(env)
   await migrateExtensions(env.DB, installed.active)
   return {
     ...env,
@@ -29,7 +38,10 @@ export async function toggle(ctx: Context, id: string, enabled: boolean) {
     throw new Error('Administrator required')
   const target = ctx.env.EXTENSIONS?.all.find((x) => x.extension.id === id)
   if (!target) throw new Error('Unknown extension')
-  if (enabled) registry([{ ...target, enabled }])
+  if (enabled) {
+    registry([{ ...target, enabled }])
+    requireExtensionBindings(ctx.env, target.extension)
+  }
   await setEnabled(ctx.env.DB, id, enabled, ctx.operator.email, ctx.now)
 }
 export async function management(ctx: Context) {

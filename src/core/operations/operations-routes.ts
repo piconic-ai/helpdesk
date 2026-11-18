@@ -63,6 +63,7 @@ app.get('/settings', async (c) =>
   c.render(
     settingsPage(
       await run(context(c), 'settings', {}),
+      (await run(context(c), 'doctor', {})).issues,
       extensionPanels(await panels(context(c), scopes, 'settings')),
     ),
   ),

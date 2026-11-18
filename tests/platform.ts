@@ -6,6 +6,13 @@ export async function testPlatform() {
     convertV4MiniflareOptions({
       modules: true,
       script: "export default {fetch(){return new Response('OK')}}",
+      assets: {
+        binding: 'ASSETS',
+        directory: './public',
+        run_worker_first: true,
+        routerConfig: { has_user_worker: true },
+      },
+      email: { send_email: [{ name: 'EMAIL' }] },
       d1Databases: ['DB'],
       r2Buckets: ['RAW'],
       queueProducers: { JOBS: 'jobs' },
@@ -15,10 +22,20 @@ export async function testPlatform() {
   const env = await runtime.getBindings<{
     DB: D1Database
     RAW: R2Bucket
+    EMAIL: SendEmail
+    ASSETS: Fetcher
     JOBS: Queue
   }>()
   await applyMigrations(env.DB)
-  return { ...env, dispose: () => runtime.dispose() }
+  return {
+    ...env,
+    AI: {
+      run: async () => {
+        throw new Error('No test AI response configured')
+      },
+    },
+    dispose: () => runtime.dispose(),
+  }
 }
 
 export async function applyMigrations(db: D1Database) {

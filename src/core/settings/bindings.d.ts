@@ -1,5 +1,6 @@
 import type { Registry } from '../extensions/registry'
 export interface Bindings {
+  SENDING_DOMAINS?: string
   EXTENSIONS?: Registry
   NOTIFY_WEBHOOK_URL?: string
   GITHUB_TOKEN?: string
