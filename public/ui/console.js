@@ -24,7 +24,9 @@ if (drawer && sidebar && openDrawer) {
     if (event.matches && drawer.open) closeDrawer()
   })
 }
-for (const form of document.querySelectorAll('.settings-view form')) {
+for (const form of document.querySelectorAll(
+  '[data-ui-page] form[method=post]',
+)) {
   const feedback = new Map()
   const clear = (field) => {
     feedback.get(field)?.remove()
@@ -117,7 +119,9 @@ if (inbox) {
     })
     window.navigation.addEventListener('navigateerror', reset)
   } else {
-    document.querySelector('form.filters')?.addEventListener('submit', loading)
+    document
+      .querySelector('form[data-live-filters]')
+      ?.addEventListener('submit', loading)
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') reset()
     })
@@ -125,7 +129,7 @@ if (inbox) {
   window.addEventListener('pageshow', reset)
 }
 document
-  .querySelector('.conversation-list')
+  .querySelector('[data-inbox-view] [data-ui=row-list]')
   ?.addEventListener('click', (event) => {
     const row = event.target.closest('a.conversation-row')
     if (!row) return

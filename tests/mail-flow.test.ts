@@ -75,13 +75,15 @@ afterAll(async () => {
 
 async function registerMailbox(page: Page) {
   await page.goto(origin + '/settings')
-  await page
-    .getByRole('link', { name: 'プロダクトと窓口', exact: true })
-    .click()
+  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
   await page.getByLabel('プロダクト名').fill('Shop')
   await page.getByLabel('窓口のメールアドレス').fill('support@example.com')
   await page.getByRole('button', { name: '窓口を登録' }).click()
-  await page.getByText('Shop · support@example.com').waitFor()
+  await page
+    .getByRole('listitem')
+    .filter({ hasText: 'Shop' })
+    .getByText('support@example.com', { exact: true })
+    .waitFor()
 }
 async function receive(fixtureName: string) {
   const fixture = await readFile('tests/fixtures/' + fixtureName, 'utf8')
@@ -191,7 +193,7 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
       )
       .toMatch(/未対応[\s\S]*I found the receipt/)
     await page.getByRole('button', { name: '完了にする' }).click()
-    await page.locator('.thread-meta .status-closed').waitFor()
+    await page.getByRole('button', { name: '完了', exact: true }).waitFor()
     await page.goto(origin)
     expect(
       await page.getByRole('link', { name: /Receipt download/ }).count(),

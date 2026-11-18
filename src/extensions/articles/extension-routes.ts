@@ -14,7 +14,12 @@ import {
   recordVote,
   expireVisits,
 } from './articles-usecase'
-import { articleDetail, articleIndex, retryArticleVote } from './articles-pages'
+import {
+  articleDetail,
+  articleIndex,
+  articleVoteReceipt,
+  retryArticleVote,
+} from './articles-pages'
 export const articles: Extension = {
   id: 'articles',
   permissions: [],
@@ -87,6 +92,7 @@ export const articles: Extension = {
         product,
         await published(ctx, product),
         query.get('q') ?? '',
+        query.get('page') ?? undefined,
       )
     if (!slug.safeParse(id).success) return null
     const data = article.safeParse(await ctx.get(articleKey(product, id)))
@@ -109,13 +115,6 @@ export const articles: Extension = {
         helpful.data,
       )
     }
-    return {
-      title: 'ご回答ありがとうございます',
-      html:
-        '<h1>ご回答ありがとうございます</h1><p class="banner-success" role="status">記事への評価を受け付けました。</p>' +
-        (form.get('helpful') === 'no'
-          ? '<p>記事で解決できなかった内容を、担当者にご相談いただけます。</p>'
-          : ''),
-    }
+    return articleVoteReceipt(helpful.data === 'yes')
   },
 }

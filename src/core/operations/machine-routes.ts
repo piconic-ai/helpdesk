@@ -67,7 +67,7 @@ machine.get('/tokens', async (c) =>
     tokensPage(
       await listTokens(c.env, c.get('operator').email),
       undefined,
-      await consoleFrame(c.env, c.get('operator'), '/tokens'),
+      await consoleFrame(c.env, c.get('operator'), '/tokens', c.req.query()),
       c.req.query('revoked') === '1',
     ),
   ),

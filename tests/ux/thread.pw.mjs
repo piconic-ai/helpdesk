@@ -2,7 +2,7 @@ import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
 const compose = (page) =>
   page.getByRole('textbox', { name: '返信', exact: true })
-const status = (page) => page.locator('.thread-meta')
+const status = (page) => page.locator('[data-ui=attributes]')
 const notice = (page) => page.locator('main [role="status"]').first()
 
 async function seeDelivery(page, body) {
@@ -34,11 +34,12 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
   await expect(incoming).toBeVisible()
   await capture(page, 'J1', '01-inbox', '受信した問い合わせを一覧で見つける')
   await incoming.click()
-  await page.getByRole('button', { name: '自分が担当する' }).click()
+  await page.getByRole('button', { name: /担当: 担当なし/ }).click()
+  await page.getByRole('button', { name: 'sato', exact: true }).click()
   await expect(notice(page)).toContainText('担当')
   await page.getByText('ラベルを選ぶ', { exact: true }).click()
   await page.getByRole('button', { name: '請求を付ける' }).click()
-  await expect(page.locator('.thread-meta')).toContainText('請求')
+  await expect(page.locator('[data-ui=attributes]')).toContainText('請求')
   await capture(page, 'J1', '02-assignment', '見出しで担当者とラベルを設定する')
   await compose(page).fill(answer)
   await page.getByRole('button', { name: 'プレビュー', exact: true }).click()

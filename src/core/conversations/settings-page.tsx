@@ -1,3 +1,24 @@
+import {
+  listRows,
+  ListFilters,
+  matchesSearch,
+  PageLinks,
+} from '../../ui/listing'
+import { Dialog } from '../../ui/controls'
+import {
+  ListPage,
+  EditPage,
+  OverviewPage,
+  ListRow,
+  SettingRow,
+  RowList,
+  Notice,
+  EmptyState,
+  ActionBar,
+  FormSection,
+} from '../../ui/patterns'
+import { Button, Field, Input, NativeSelect } from '../../ui/controls'
+import { SaveActions, Disclosure } from '../../ui/admin'
 import { z } from 'zod'
 import { shell, action, field, select } from './console-page'
 import type { Result } from './inbox-page'
@@ -37,56 +58,106 @@ function setupIssue(issue: string) {
 function setupIssues(issues: string[]) {
   return (
     issues.length > 0 && (
-      <section className="banner-error">
+      <Notice kind="error">
         <h2>初期設定が必要です</h2>
         <ul>
           {issues.map((i) => (
             <li>{setupIssue(i)}</li>
           ))}
         </ul>
-      </section>
+      </Notice>
     )
   )
 }
 
-export function settingsPage(issues: string[], frame: ConsoleFrame) {
+export function settingsPage(
+  issues: string[],
+  frame: ConsoleFrame,
+  data: Data,
+  tokenCount: number,
+) {
+  const query = frame.query
+  const general = [
+    {
+      href: '/settings/mailboxes',
+      title: titles.mailboxes,
+      description: '問い合わせを受け付ける窓口とメールの差出人を管理します。',
+      value: '窓口 ' + data.mailboxes.length + '件',
+    },
+    {
+      href: '/settings/operators',
+      title: titles.operators,
+      description: '運営者の表示名と権限を変更します。',
+      value: data.operators.length + '人',
+    },
+    {
+      href: '/settings/retention',
+      title: titles.retention,
+      description: '完了した問い合わせの本文を保持する期間を設定します。',
+      value: data.retentionDays ? data.retentionDays + '日' : '無期限',
+    },
+    {
+      href: '/tokens',
+      title: 'API トークンの管理',
+      description: 'CLI や MCP に使う自分のトークンを発行・失効します。',
+      value: tokenCount + '件',
+    },
+  ]
+  const sensitive = [
+    {
+      href: '/settings/deletion',
+      title: titles.deletion,
+      description: '相手と削除される会話の件数を確認してから実行します。',
+      value: '取り消し不可',
+    },
+  ]
+  if (frame.extensions.some((e) => e.id === 'export'))
+    sensitive.unshift({
+      href: '/extensions/export',
+      title: 'データの書き出し',
+      description: '会話・メッセージ・操作履歴を JSON Lines 形式で取得します。',
+      value: 'JSON Lines',
+    })
+  const matchingRows = (rows: typeof general, group: string) =>
+    rows
+      .filter((row) =>
+        matchesSearch(
+          [group, row.title, row.description, row.value].join(' '),
+          query.q,
+        ),
+      )
+      .map((row) => <SettingRow {...row} />)
+  const settings = matchingRows(general, '設定項目')
+  const dataManagement = matchingRows(sensitive, 'データ管理')
   return shell(
     '設定',
-    <div className="settings-view">
-      <header className="page-header">
-        <h1 className="page-title">設定</h1>
-      </header>
+    <OverviewPage
+      title="設定"
+      filters={
+        <ListFilters
+          title="設定項目"
+          path="/settings"
+          query={query}
+          sortable={false}
+        />
+      }
+    >
       {setupIssues(issues)}
-      <nav className="settings-card" aria-label="設定項目">
-        <ul className="article-list">
-          <li>
-            <a href="/settings/mailboxes">プロダクトと窓口</a>
-          </li>
-          <li>
-            <a href="/settings/operators">運営者</a>
-          </li>
-          <li>
-            <a href="/settings/retention">保存期間</a>
-          </li>
-          <li>
-            <a href="/tokens">API トークンの管理</a>
-          </li>
-        </ul>
-      </nav>
-      <section className="settings-card danger-zone">
-        <h2>データ管理</h2>
-        <ul className="article-list">
-          {frame.extensions.some((e) => e.id === 'export') && (
-            <li>
-              <a href="/extensions/export">データの書き出し</a>
-            </li>
-          )}
-          <li>
-            <a href="/settings/deletion">連絡先のデータ削除</a>
-          </li>
-        </ul>
-      </section>
-    </div>,
+      {settings.length > 0 && <nav aria-label="設定項目">{settings}</nav>}
+      {dataManagement.length > 0 && (
+        <FormSection
+          title="データ管理"
+          description="連絡先を削除すると、その相手との会話や添付ファイルも消えます。"
+        >
+          {dataManagement}
+        </FormSection>
+      )}
+      {!settings.length && !dataManagement.length && (
+        <EmptyState>
+          条件に合う設定項目はありません。検索条件を解除すると、すべての項目を表示できます。
+        </EmptyState>
+      )}
+    </OverviewPage>,
     frame,
   )
 }
@@ -95,10 +166,9 @@ function addressFields(domains: string[]) {
     return field('address', '窓口のメールアドレス', '', 'email', true)
   return (
     <>
-      <label className="field">
-        <span>窓口アドレスの先頭</span>
-        <input name="local" required pattern="[^@\s]+" maxlength={64} />
-      </label>
+      <Field label="窓口アドレスの先頭">
+        <Input name="local" required pattern="[^@\s]+" maxlength={64} />
+      </Field>
       {select(
         'domain',
         '送信ドメイン',
@@ -109,23 +179,20 @@ function addressFields(domains: string[]) {
   )
 }
 function mailboxes(data: Data, domains: string[], frame: ConsoleFrame) {
+  const cancel = '/settings'
   return (
     <>
       {data.mailboxes.length > 0 && (
-        <section className="settings-card">
-          <h2>登録済みの窓口</h2>
-          <ul>
+        <FormSection title="登録済みの窓口">
+          <RowList>
             {data.mailboxes.map((m) => (
-              <li>
-                {m.name} · <code>{m.address}</code>
-              </li>
+              <ListRow title={m.name} description={<code>{m.address}</code>} />
             ))}
-          </ul>
-        </section>
+          </RowList>
+        </FormSection>
       )}
       {frame.products.map((p) => (
-        <section className="settings-card">
-          <h2>{p.name} のメール差出人</h2>
+        <FormSection title={p.name + ' のメール差出人'}>
           <form
             method="post"
             action={'/settings/senders/' + encodeURIComponent(p.id)}
@@ -138,104 +205,104 @@ function mailboxes(data: Data, domains: string[], frame: ConsoleFrame) {
               true,
             )}
             <label>
-              <input
+              <Input
                 type="checkbox"
                 name="showOperator"
                 checked={p.showOperator}
               />{' '}
               返信した運営者の表示名を差出人に含める
             </label>
-            <button className="button-secondary">差出人を保存</button>
+            <SaveActions verb="差出人を保存" cancel={cancel} />
           </form>
-        </section>
+        </FormSection>
       ))}
-      <section className="settings-card" id="mailboxes">
-        <h2>新しいプロダクトと窓口</h2>
+      <FormSection title="新しいプロダクトと窓口" id="mailboxes">
         <form action="/settings/mailboxes" method="post">
           {field('name', 'プロダクト名', '', 'text', true)}
           {addressFields(domains)}
           <small>現在有効な拡張の自動送信ポリシーが承認されます。</small>
-          <button className="button-primary">窓口を登録</button>
+          <SaveActions verb="窓口を登録" cancel={cancel} primary />
         </form>
-      </section>
+      </FormSection>
       {data.mailboxes.length > 0 && (
-        <section className="settings-card">
-          <details>
-            <summary>登録済みのプロダクトに窓口を追加</summary>
-            <form action="/settings/mailboxes" method="post">
-              {select(
-                'product',
-                'プロダクト',
-                Object.fromEntries(
-                  data.mailboxes.map((m) => [m.product, m.name]),
-                ),
-                data.mailboxes[0].product,
-              )}
-              {addressFields(domains)}
-              <button className="button-secondary">窓口を追加</button>
-            </form>
-          </details>
-        </section>
+        <Disclosure title="登録済みのプロダクトに窓口を追加">
+          <form action="/settings/mailboxes" method="post">
+            {select(
+              'product',
+              'プロダクト',
+              Object.fromEntries(
+                data.mailboxes.map((m) => [m.product, m.name]),
+              ),
+              data.mailboxes[0].product,
+            )}
+            {addressFields(domains)}
+            <SaveActions verb="窓口を追加" cancel={cancel} />
+          </form>
+        </Disclosure>
       )}
     </>
   )
 }
-function operators(data: Data) {
+function operators(data: Data, visible: Data['operators']) {
   const admins = data.operators.filter((o) => o.role === 'admin')
   return (
-    <section className="settings-card" id="operators">
-      <h2>運営者の一覧</h2>
-      {data.operators.map((o) => (
-        <section aria-label={o.email}>
-          <h3>{o.displayName}</h3>
-          {action(
-            'role',
-            '運営者を保存',
-            <>
-              <code>{o.email}</code>
-              <input type="hidden" name="email" value={o.email} />
-              <label className="field">
-                <span>表示名</span>
-                <input
-                  name="displayName"
-                  maxlength={100}
-                  value={o.displayName}
-                />
-              </label>
-              {admins.length === 1 && admins[0].email === o.email ? (
-                <>
-                  <p>権限　管理者</p>
-                  <small>
-                    最後の管理者です。権限を変更するには、先にほかの運営者を管理者にしてください。
-                  </small>
-                  <input type="hidden" name="role" value="admin" />
-                </>
-              ) : (
-                select(
+    <RowList>
+      {visible.map((o) => (
+        <ListRow
+          title={o.displayName}
+          description={<code>{o.email}</code>}
+          status={o.role === 'admin' ? '管理者' : '担当者'}
+          action={
+            <Disclosure title={'編集：' + o.displayName}>
+              <section aria-label={o.email}>
+                <h3>{o.displayName}</h3>
+                {action(
                   'role',
-                  '権限',
-                  { admin: '管理者', agent: '担当者' },
-                  o.role,
-                )
-              )}
-            </>,
-          )}
-        </section>
+                  '運営者を保存',
+                  <>
+                    <input type="hidden" name="email" value={o.email} />
+                    <Field label="表示名">
+                      <Input
+                        name="displayName"
+                        maxlength={100}
+                        value={o.displayName}
+                      />
+                    </Field>
+                    {admins.length === 1 && admins[0].email === o.email ? (
+                      <>
+                        <p>権限　管理者</p>
+                        <small>
+                          最後の管理者です。権限を変更するには、先にほかの運営者を管理者にしてください。
+                        </small>
+                        <input type="hidden" name="role" value="admin" />
+                      </>
+                    ) : (
+                      select(
+                        'role',
+                        '権限',
+                        { admin: '管理者', agent: '担当者' },
+                        o.role,
+                      )
+                    )}
+                  </>,
+                )}
+              </section>
+            </Disclosure>
+          }
+        />
       ))}
-    </section>
+    </RowList>
   )
 }
 function retention(data: Data) {
   return (
-    <section className="settings-card" id="retention">
-      <h2>完了した会話の保存期間</h2>
-      {action(
-        'retention',
-        '保存期間を変更',
-        <label className="field">
-          <span>完了後に本文を保持する日数</span>
-          <input
-            className="text-input"
+    <FormSection title="完了した会話の保存期間" id="retention">
+      <form action="/actions/retention" method="post">
+        <Field
+          label="完了後に本文を保持する日数"
+          description="0 を指定すると無期限で保存します。"
+        >
+          <Input
             name="days"
             type="number"
             min="0"
@@ -243,24 +310,22 @@ function retention(data: Data) {
             required
             value={data.retentionDays}
           />
-          <small>0 を指定すると無期限で保存します。</small>
-        </label>,
-      )}
-    </section>
+        </Field>
+        <SaveActions verb="保存期間を変更" cancel="/settings" primary />
+      </form>
+    </FormSection>
   )
 }
 function deletion(contacts: Contact[]) {
   return (
-    <section className="settings-card danger-zone" id="forget">
-      <h2>相手を選んでデータを削除</h2>
+    <FormSection id="forget" title="相手を選んでデータを削除">
       <p>指定した相手の会話、メール原文、添付ファイルを削除します。</p>
       {!contacts.length ? (
-        <p className="empty-state">削除できる連絡先はありません。</p>
+        <EmptyState>削除できる連絡先はありません。</EmptyState>
       ) : (
         <form action="/actions/forget" method="post" data-forget="">
-          <label className="field">
-            <span>削除する相手</span>
-            <select name="contact" required>
+          <Field label="削除する相手">
+            <NativeSelect name="contact" required>
               <option value="">相手を選んでください</option>
               {contacts.map((c) => (
                 <option value={c.email} data-conversations={c.conversations}>
@@ -268,39 +333,39 @@ function deletion(contacts: Contact[]) {
                   {c.email}
                 </option>
               ))}
-            </select>
-          </label>
-          <button
-            className="button-danger"
-            type="button"
-            data-confirm-forget=""
-          >
+            </NativeSelect>
+          </Field>
+          <Button variant="destructive" type="button" data-confirm-forget="">
             削除内容を確認
-          </button>
-          <dialog className="confirm-dialog" aria-labelledby="delete-title">
-            <h2 id="delete-title">連絡先のデータを削除しますか？</h2>
-            <p>
-              <strong data-delete-contact=""></strong> の会話{' '}
-              <strong data-delete-count=""></strong>{' '}
-              件と、保存されたメール原文・添付ファイルが削除されます。この操作は取り消せません。
-            </p>
-            <div className="page-actions">
-              <button
-                className="button-secondary"
+          </Button>
+          <Dialog
+            id="delete-contact"
+            title="連絡先のデータを削除しますか？"
+            description={
+              <>
+                <strong data-delete-contact=""></strong> の会話{' '}
+                <strong data-delete-count=""></strong>{' '}
+                件と、保存されたメール原文・添付ファイルが削除されます。この操作は取り消せません。
+              </>
+            }
+          >
+            <ActionBar>
+              <Button
+                variant="outline"
                 type="button"
                 data-cancel-forget=""
                 autofocus
               >
                 キャンセル
-              </button>
-              <button className="button-danger" type="submit">
+              </Button>
+              <Button variant="destructive" type="submit">
                 すべて削除
-              </button>
-            </div>
-          </dialog>
+              </Button>
+            </ActionBar>
+          </Dialog>
         </form>
       )}
-    </section>
+    </FormSection>
   )
 }
 const notices: Record<Section, string> = {
@@ -317,30 +382,60 @@ export function settingsSectionPage(
   frame: ConsoleFrame,
   saved: string | undefined,
 ) {
+  const list = listRows(data.operators, frame.query, (person) => ({
+    text: person.displayName + ' ' + person.email,
+    filter: person.role,
+  }))
   const content = {
     mailboxes: () => mailboxes(data, domains, frame),
-    operators: () => operators(data),
+
     retention: () => retention(data),
     deletion: () => deletion(contacts),
   }
+  const notice = (saved === 'yes' ||
+    (section === 'mailboxes' && saved === 'sender')) && (
+    <Notice kind="success">
+      {saved === 'sender' ? 'メールの差出人を保存しました。' : notices[section]}
+    </Notice>
+  )
+  const back = { href: '/settings', label: '設定に戻る' }
+  const title = titles[section]
   return shell(
-    titles[section],
-    <div className="settings-view">
-      <a href="/settings" className="back-link">
-        設定に戻る
-      </a>
-      <header className="page-header">
-        <h1 className="page-title">{titles[section]}</h1>
-      </header>
-      {(saved === 'yes' || (section === 'mailboxes' && saved === 'sender')) && (
-        <p role="status" className="banner-success">
-          {saved === 'sender'
-            ? 'メールの差出人を保存しました。'
-            : notices[section]}
-        </p>
-      )}
-      {content[section]()}
-    </div>,
+    title,
+    section === 'operators' ? (
+      <ListPage
+        title={title}
+        description={list.total + '人'}
+        filters={
+          <ListFilters
+            title="運営者"
+            path="/settings/operators"
+            query={frame.query}
+            filterLabel="権限で絞り込む"
+            options={[
+              { value: 'admin', label: '管理者' },
+              { value: 'agent', label: '担当者' },
+            ]}
+          />
+        }
+        footer={
+          <PageLinks path="/settings/operators" query={frame.query} {...list} />
+        }
+        back={back}
+      >
+        {notice}
+        {list.rows.length ? (
+          operators(data, list.rows)
+        ) : (
+          <EmptyState>条件に合う運営者はいません。</EmptyState>
+        )}
+      </ListPage>
+    ) : (
+      <EditPage title={title} back={back}>
+        {notice}
+        {content[section]()}
+      </EditPage>
+    ),
     frame,
   )
 }

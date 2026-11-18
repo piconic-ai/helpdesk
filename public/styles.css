@@ -1,4 +1,5 @@
 @import url('/ui/tokens.css');
+@import url('/ui/patterns.css');
 
 *,
 *::before,
@@ -746,6 +747,10 @@ iframe {
   }
 }
 
+.skip-link {
+  color: var(--colors-ink);
+  text-decoration: none;
+}
 .sr-only,
 .skip-link:not(:focus) {
   position: absolute;

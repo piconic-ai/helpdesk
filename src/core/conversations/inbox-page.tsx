@@ -1,43 +1,109 @@
 import type { coreOperations } from '../operations/catalog-usecase'
 import type { ConsoleFrame, inboxMetadata } from './console-usecase'
-import { shell, selectedView, statuses, select, inboxUrl } from './console-page'
-
+import { shell, selectedView, statuses, inboxUrl } from './console-page'
+import { inboxStatus } from './inbox-location'
 import { conversationRow } from './inbox-row-page'
 import { operatorAvatar } from '../operators/identity-page'
+import {
+  Button,
+  Input,
+  NativeSelect,
+  Field,
+  ActionLink,
+} from '../../ui/controls'
+import {
+  FilterBar,
+  CandidateList,
+  Candidate,
+  ListPage,
+  RowList,
+  EmptyState,
+  LoadingState,
+  Notice,
+  ActionBar,
+} from '../../ui/patterns'
+import {
+  InboxFilters,
+  FilterPicker,
+  FilterChip,
+  BulkBar,
+  PageLinks,
+} from '../../ui/inbox-parts'
 export type Result<K extends keyof typeof coreOperations> = Awaited<
   ReturnType<(typeof coreOperations)[K]['execute']>
 >
 type Metadata = Awaited<ReturnType<typeof inboxMetadata>>
-function filters(
-  q: Record<string, string>,
-  frame: ConsoleFrame,
-  isFiltered: boolean,
+type Query = Record<string, string>
+function selectFilter(
+  name: string,
+  label: string,
+  choices: Record<string, string>,
+  value: string,
+  implicit?: string,
 ) {
   return (
-    <form method="get" className="filters" role="search">
-      {q.sort && <input type="hidden" name="sort" value={q.sort} />}
-      {q.view && <input type="hidden" name="view" value={q.view} />}
-      <label className="search-field">
-        <span className="sr-only">問い合わせを検索</span>
-        <input
+    <Field label={label}>
+      <NativeSelect
+        name={name}
+        aria-label={label}
+        data-implicit-value={implicit}
+      >
+        {Object.entries(choices).map(([key, text]) => (
+          <option value={key} selected={key === value}>
+            {text}
+          </option>
+        ))}
+      </NativeSelect>
+    </Field>
+  )
+}
+function chips(q: Query, frame: ConsoleFrame) {
+  const labels: Record<string, string | undefined> = {
+    query: q.query && '検索「' + q.query + '」',
+    product: frame.products.find((p) => p.id === q.product)?.name,
+    assignee:
+      frame.operators.find((op) => op.email === q.assignee)?.displayName ||
+      q.assignee,
+    label: q.label,
+    status: q.status && statuses[q.status],
+    sort: q.sort === 'newest' ? '新しい順' : undefined,
+  }
+  return Object.entries(labels)
+    .filter(([, text]) => text)
+    .map(([key, text]) => (
+      <FilterChip
+        href={inboxUrl({ ...q, [key]: '', page: '' })}
+        label={text!}
+      />
+    ))
+}
+function filters(q: Query, frame: ConsoleFrame) {
+  const feedback = q.view === 'feedback'
+  const status = inboxStatus(q)
+  const statusChoices = feedback ? feedbackStatuses : inquiryStatuses
+  const activeChips = chips(q, frame)
+  const person = frame.operators.find((o) => o.email === q.assignee)
+  return (
+    <FilterBar chips={activeChips.length ? activeChips : undefined}>
+      <InboxFilters>
+        {q.view && <Input type="hidden" name="view" value={q.view} />}
+        <Input
           name="query"
-          className="text-input"
           type="search"
           value={q.query ?? ''}
+          aria-label="問い合わせを検索"
           placeholder="件名・差出人・本文を検索"
         />
-      </label>
-      <details className="filter-tab" open={isFiltered || undefined}>
-        <summary>絞り込み{isFiltered ? '中' : ''}</summary>
-        <div className="filter-fields">
+        <FilterPicker label="絞り込み" id="inbox-filters">
           {q.view !== 'approval' &&
-            select(
+            selectFilter(
               'status',
               '状態',
-              q.view === 'feedback' ? feedbackStatuses : inquiryStatuses,
-              q.status ?? (q.view === 'feedback' ? 'received' : 'open'),
+              statusChoices,
+              status,
+              q.status ? undefined : status,
             )}
-          {select(
+          {selectFilter(
             'product',
             'プロダクト',
             {
@@ -46,233 +112,203 @@ function filters(
             },
             q.product ?? '',
           )}
-          {q.view !== 'feedback' && (
-            <div className="field">
-              <span id="filter-assignee-label">担当者</span>
-              <input type="hidden" name="assignee" value={q.assignee ?? ''} />
-              <button
-                type="button"
-                popovertarget="filter-assignee"
-                className="button-secondary"
-                id="filter-assignee-value"
-                aria-labelledby="filter-assignee-label filter-assignee-value"
-                data-filter-name=""
-              >
-                {frame.operators.find((o) => o.email === q.assignee)
-                  ?.displayName ?? 'すべて'}
-              </button>
-              <div
-                popover="auto"
+          {!feedback && (
+            <>
+              <Input type="hidden" name="assignee" value={q.assignee ?? ''} />
+              <FilterPicker
                 id="filter-assignee"
-                className="inbox-popover"
+                label={'担当者 ' + (person?.displayName ?? 'すべて')}
               >
-                <button
-                  type="button"
-                  data-filter-assignee=""
-                  className="button-quiet"
-                >
-                  すべて
-                </button>
-                {frame.operators.map((o) => (
-                  <button
+                <CandidateList>
+                  <Button
                     type="button"
-                    data-filter-assignee={o.email}
-                    data-label={o.displayName}
-                    className="button-quiet"
+                    variant="ghost"
+                    data-filter-assignee=""
+                    aria-pressed={!q.assignee}
                   >
-                    {operatorAvatar(o)}
-                    <span>{o.displayName}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <Candidate
+                      label="すべて"
+                      selected={!q.assignee}
+                      icon={operatorAvatar()}
+                    />
+                  </Button>
+                  {frame.operators.map((op) => (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      data-filter-assignee={op.email}
+                      aria-label={op.displayName}
+                      aria-pressed={q.assignee === op.email}
+                    >
+                      <Candidate
+                        label={op.displayName}
+                        selected={q.assignee === op.email}
+                        icon={operatorAvatar(op)}
+                      />
+                    </Button>
+                  ))}
+                </CandidateList>
+              </FilterPicker>
+            </>
           )}
-          {select(
+          {selectFilter(
             'label',
             'ラベル',
             {
               '': 'すべて',
-              ...Object.fromEntries(
-                frame.labels.map((label) => [label, label]),
-              ),
+              ...Object.fromEntries(frame.labels.map((l) => [l, l])),
             },
             q.label ?? '',
           )}
-        </div>
-      </details>
-      <button className="button-secondary">検索</button>
-    </form>
+        </FilterPicker>
+        <NativeSelect
+          name="sort"
+          aria-label="並び順"
+          data-implicit-value="waiting"
+        >
+          <option value="waiting" selected={q.sort !== 'newest'}>
+            待たせている順
+          </option>
+          <option value="newest" selected={q.sort === 'newest'}>
+            新しい順
+          </option>
+        </NativeSelect>
+      </InboxFilters>
+    </FilterBar>
   )
 }
 export function inboxPage(
   rows: Result<'list'>,
   failures: Result<'failures'>,
-  q: Record<string, string>,
-
+  q: Query,
   frame: ConsoleFrame,
   meta: Metadata,
   page: { page: number; pages: number; total: number },
 ) {
   const view = selectedView(q, frame.operator.email)
   const title = statuses[view] ?? '受信箱'
-  const isFiltered = !!(q.product || q.assignee || q.label || q.query)
+  const noMatch = !!(
+    q.product ||
+    q.label ||
+    q.query ||
+    (q.assignee && view !== 'mine')
+  )
   return shell(
     title,
-    <div className="inbox-view">
-      <header className="page-header">
-        <h1 className="page-title">{title}</h1>
-        <span className="view-count">{page.total} 件</span>
-        <label className="inbox-sort">
-          <span className="sr-only">並び順</span>
-          <select className="text-input" name="sort" data-sort="">
-            <option value="waiting" selected={q.sort !== 'newest'}>
-              待たせている順
-            </option>
-            <option value="newest" selected={q.sort === 'newest'}>
-              新しい順
-            </option>
-          </select>
-        </label>
-      </header>
-      {failures.length > 0 && (
-        <section className="banner-error" aria-label="受信エラー">
-          <h2>受信に失敗したメール</h2>
-          {failures.map((f) => (
-            <p>
-              <code>{f.mailbox}</code> · {f.reason}
-            </p>
-          ))}
-        </section>
-      )}
-      {filters(q, frame, isFiltered)}
-      <div data-inbox-results="" aria-live="polite">
-        <div data-inbox-content="">
-          {rows.length > 0 ? (
-            <>
-              {bulkBar(frame, view)}
-              <ul className="conversation-list">
-                {rows.map((row) => conversationRow(row, meta, frame))}
-              </ul>
-              {page.pages > 1 && (
-                <nav className="inbox-pagination" aria-label="ページ送り">
-                  {page.page > 1 && (
-                    <a
-                      className="button-secondary"
-                      href={inboxUrl({ ...q, page: String(page.page - 1) })}
-                    >
-                      前のページ
-                    </a>
-                  )}
-                  <span>
-                    {page.page} / {page.pages} ページ
-                  </span>
-                  {page.page < page.pages && (
-                    <a
-                      className="button-secondary"
-                      href={inboxUrl({ ...q, page: String(page.page + 1) })}
-                    >
-                      次のページ
-                    </a>
-                  )}
-                </nav>
-              )}
-            </>
-          ) : (
-            <p className="empty-state">
-              {isFiltered &&
-              !(view === 'mine' && !q.product && !q.query && !q.label)
-                ? '条件に一致する問い合わせはありません。'
-                : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
-            </p>
-          )}
-        </div>
-        <div data-inbox-loading="" hidden role="status">
-          <span className="sr-only">問い合わせを読み込み中です。</span>
-          <ul className="conversation-list" aria-hidden="true">
-            {Array.from(
-              { length: Math.max(1, Math.min(6, rows.length)) },
-              () => (
-                <li className="conversation-row">
-                  <span className="loading-placeholder"></span>
-                  <span className="loading-placeholder"></span>
-                </li>
-              ),
+    <div data-inbox-view="">
+      <ListPage
+        title={title}
+        description={page.total + ' 件'}
+        filters={filters(q, frame)}
+      >
+        {failures.length > 0 && (
+          <Notice kind="error">
+            <h2>受信に失敗したメール</h2>
+            {failures.map((f) => (
+              <p>
+                <code>{f.mailbox}</code> · {f.reason}
+              </p>
+            ))}
+          </Notice>
+        )}
+        <div data-inbox-results="" aria-live="polite">
+          <div data-inbox-content="">
+            {rows.length ? (
+              <>
+                {bulkBar(frame, view)}
+                <RowList>
+                  {rows.map((row) => conversationRow(row, meta, frame))}
+                </RowList>
+                {page.pages > 1 && (
+                  <PageLinks>
+                    {page.page > 1 && (
+                      <ActionLink
+                        href={inboxUrl({ ...q, page: String(page.page - 1) })}
+                      >
+                        前のページ
+                      </ActionLink>
+                    )}
+                    <span>
+                      {page.page} / {page.pages} ページ
+                    </span>
+                    {page.page < page.pages && (
+                      <ActionLink
+                        href={inboxUrl({ ...q, page: String(page.page + 1) })}
+                      >
+                        次のページ
+                      </ActionLink>
+                    )}
+                  </PageLinks>
+                )}
+              </>
+            ) : (
+              <EmptyState>
+                {noMatch
+                  ? '条件に一致する問い合わせはありません。'
+                  : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
+              </EmptyState>
             )}
-          </ul>
+          </div>
+          <div data-inbox-loading="" hidden>
+            <LoadingState label="問い合わせを読み込み中です。" />
+          </div>
         </div>
-      </div>
+      </ListPage>
     </div>,
     frame,
   )
 }
 function bulkBar(frame: ConsoleFrame, view: string) {
   return (
-    <section aria-label="まとめて操作" className="inbox-bulk" hidden>
-      <strong data-selected-count=""></strong>
-      {view !== 'feedback' && (
-        <>
-          <button
-            type="button"
-            className="button-secondary"
-            popovertarget="bulk-assignee"
-          >
-            担当者を選ぶ
-          </button>
-          <div popover="auto" id="bulk-assignee" className="inbox-popover">
-            {frame.operators.map((o) => (
-              <button
-                className="button-quiet"
-                type="button"
-                data-change="assign"
-                data-value={o.email}
-                aria-label={o.displayName}
-              >
-                {operatorAvatar(o)}
-                {o.displayName}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-      <button
-        type="button"
-        className="button-secondary"
-        popovertarget="bulk-label"
-      >
-        ラベルを付ける
-      </button>
-      <div popover="auto" id="bulk-label" className="inbox-popover">
-        {frame.labels.length ? (
-          frame.labels.map((l) => (
-            <button
-              className="button-quiet"
-              type="button"
-              data-change="add"
-              data-value={l}
-            >
-              {l}
-            </button>
-          ))
-        ) : (
-          <p>選べるラベルはまだありません。</p>
+    <BulkBar>
+      <strong data-selected-count="">0件を選択</strong>
+      <ActionBar>
+        {view !== 'feedback' && (
+          <FilterPicker id="bulk-assignee" label="担当者を選ぶ">
+            <CandidateList>
+              {frame.operators.map((op) => (
+                <Button
+                  variant="ghost"
+                  type="button"
+                  data-change="assign"
+                  data-value={op.email}
+                  aria-label={op.displayName}
+                >
+                  <Candidate icon={operatorAvatar(op)} label={op.displayName} />
+                </Button>
+              ))}
+            </CandidateList>
+          </FilterPicker>
         )}
-      </div>
-      {view !== 'feedback' && (
-        <button type="button" className="button-secondary" data-change="closed">
-          完了にする
-        </button>
-      )}
-      <button
-        type="button"
-        className="button-secondary"
-        data-change="marked_spam"
-      >
-        迷惑メールにする
-      </button>
-      <button type="button" className="button-quiet" data-clear-selection="">
-        選択を解除
-      </button>
-    </section>
+        <FilterPicker id="bulk-label" label="ラベルを付ける">
+          {frame.labels.length ? (
+            frame.labels.map((label) => (
+              <Button
+                type="button"
+                variant="ghost"
+                data-change="add"
+                data-value={label}
+              >
+                {label}
+              </Button>
+            ))
+          ) : (
+            <p>選べるラベルはまだありません。</p>
+          )}
+        </FilterPicker>
+        {view !== 'feedback' && (
+          <Button type="button" data-change="closed">
+            完了にする
+          </Button>
+        )}
+        <Button type="button" variant="ghost" data-change="marked_spam">
+          迷惑メールにする
+        </Button>
+        <Button type="button" variant="ghost" data-clear-selection="">
+          選択を解除
+        </Button>
+      </ActionBar>
+    </BulkBar>
   )
 }
 const emptyView: Record<string, string> = {

@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono'
+import { galleryPage } from './src/ui/gallery-page'
 import { z } from 'zod'
 import type { Bindings } from './src/core/settings/bindings'
 import type { AppEnv } from './src/core/operators/middleware'
@@ -96,6 +97,11 @@ for (const asset of [
   '/uno.css',
 ])
   app.get(asset, (c) => c.env.ASSETS.fetch(c.req.raw))
+app.get('/dev/ui', (c) =>
+  c.env.ENVIRONMENT === 'local'
+    ? c.html(galleryPage(new URL(c.req.url).searchParams))
+    : c.notFound(),
+)
 app.route('/', hostedIntakeRoutes)
 app.route('/', publicRoutes)
 app.on('GET', ['/help', '/help/'], async (c) => {
@@ -104,6 +110,7 @@ app.on('GET', ['/help', '/help/'], async (c) => {
     helpLanding(
       await helpDestinations(c.env, new URL(c.req.url).origin, query),
       query,
+      c.req.query('page'),
     ),
   )
 })

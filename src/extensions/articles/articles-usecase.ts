@@ -10,7 +10,7 @@ import {
   visit,
   lifetime,
 } from './article'
-export const edit = article
+export const edit = article.omit({ updatedAt: true })
 export const attach = z.object({
   number: z.coerce.number().int().positive(),
   id: slug,
@@ -28,7 +28,10 @@ export async function published(ctx: ExtensionContext, input: unknown) {
 }
 export async function saveArticle(ctx: ExtensionContext, input: unknown) {
   const data = edit.parse(input)
-  await ctx.put(articleKey(data.product, data.id), data)
+  await ctx.put(articleKey(data.product, data.id), {
+    ...data,
+    updatedAt: ctx.now,
+  })
   return { id: data.id, status: data.status }
 }
 export async function attachArticle(ctx: ExtensionContext, input: unknown) {
@@ -119,12 +122,31 @@ export async function expireVisits(ctx: ExtensionContext) {
       await ctx.remove(row.key)
 }
 export async function library(ctx: ExtensionContext) {
-  const [articles, candidates] = await Promise.all([
+  const [articles, candidates, votes] = await Promise.all([
     ctx.list('article/'),
     ctx.list('candidate/'),
+    ctx.events('articles.helpful'),
   ])
+  const totals = new Map<string, { helpful: number; votes: number }>()
+  for (const { payload } of votes) {
+    const { product, article: id, helpful } = payload
+    if (
+      typeof product !== 'string' ||
+      typeof id !== 'string' ||
+      typeof helpful !== 'boolean'
+    )
+      continue
+    const key = articleKey(product, id)
+    const count = totals.get(key) ?? { helpful: 0, votes: 0 }
+    count.votes++
+    if (helpful) count.helpful++
+    totals.set(key, count)
+  }
   return {
-    articles: articles.map((row) => article.parse(row.value)),
+    articles: articles.map(({ key, value }) => ({
+      ...article.parse(value),
+      ...(totals.get(key) ?? { helpful: 0, votes: 0 }),
+    })),
     candidates: candidates.map((row) => candidate.parse(row.value).topic),
   }
 }

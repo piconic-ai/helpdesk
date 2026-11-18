@@ -1,11 +1,23 @@
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import type { storedRules } from '../extensions/rules/extension'
 import { select } from '../core/conversations/console-page'
+import {
+  ActionBar,
+  EmptyState,
+  ListRow,
+  RowList,
+  FormSection,
+} from '../ui/patterns'
+import { Button, Input, Field } from '../ui/controls'
+import { Disclosure, SaveActions } from '../ui/admin'
 
 export function rulesSettings(
   frame: ConsoleFrame,
-  rules: Awaited<ReturnType<typeof storedRules>>,
+  rules: (Awaited<ReturnType<typeof storedRules>>[number] & {
+    index: number
+  })[],
   versions: Map<string, string>,
+  total: number,
 ) {
   const products = Object.fromEntries(frame.products.map((p) => [p.id, p.name]))
   const people = Object.fromEntries(
@@ -24,14 +36,13 @@ export function rulesSettings(
         { '': 'すべて', ...products },
         rule.product ?? '',
       )}
-      <label>
-        件名に含む言葉
-        <input
+      <Field label="件名に含む言葉">
+        <Input
           name="subjectContains"
           maxlength={200}
           value={rule.subjectContains}
         />
-      </label>
+      </Field>
       {select(
         'label',
         '付けるラベル',
@@ -47,71 +58,87 @@ export function rulesSettings(
         { '': '変更しない', ...people },
         rule.assignee ?? '',
       )}
-      <p>ラベルまたは担当者を選択してください。</p>
-      <button>{key ? '変更を保存' : 'ルールを保存'}</button>
+      <small>ラベルまたは担当者を選択してください。</small>
+      <SaveActions
+        verb={key ? '変更を保存' : 'ルールを保存'}
+        cancel="/extensions/rules"
+        primary={!key}
+      />
     </form>
   )
   return (
-    <section className="settings-card">
-      <h2>受信時の振り分け</h2>
-
-      <h3>保存済みのルール</h3>
+    <>
+      <h2>保存済みのルール</h2>
       <p>
         上から順に適用します。複数の担当者指定が一致すると、最後の指定が優先されます。
       </p>
-      {rules.length === 0 && (
-        <p className="empty-state">保存済みのルールはありません。</p>
+      {!rules.length && (
+        <EmptyState>
+          {total
+            ? '条件に合うルールはありません。'
+            : '保存済みのルールはありません。'}
+        </EmptyState>
       )}
-      <ol className="rule-list">
-        {rules.map(({ key, rule }, index) => (
-          <li>
-            <strong>
-              {products[rule.product ?? ''] ?? '全プロダクト'} ·{' '}
-              {rule.subjectContains || 'すべての件名'}
-            </strong>
-            <p>
-              {[rule.label, people[rule.assignee ?? '']]
+      <div data-list="rules">
+        <RowList>
+          {rules.map(({ key, rule, index }) => (
+            <ListRow
+              title={
+                (products[rule.product ?? ''] ?? '全プロダクト') +
+                ' · ' +
+                (rule.subjectContains || 'すべての件名')
+              }
+              description={[rule.label, people[rule.assignee ?? '']]
                 .filter(Boolean)
                 .join('・')}
-            </p>
-            <details>
-              <summary>編集</summary>
-              {editor(key, rule)}
-            </details>
-            <div className="page-actions">
-              <form action="/extensions/rules/move" method="post">
-                <input
-                  type="hidden"
-                  name="revision"
-                  value={versions.get('order') ?? ''}
-                />
-                <input type="hidden" name="key" value={key} />
-                <button name="direction" value="up" disabled={index === 0}>
-                  上へ
-                </button>
-                <button
-                  name="direction"
-                  value="down"
-                  disabled={index === rules.length - 1}
-                >
-                  下へ
-                </button>
-              </form>
-              <form action="/extensions/rules/remove" method="post">
-                <input
-                  type="hidden"
-                  name="revision"
-                  value={versions.get(key) ?? ''}
-                />
-                <input type="hidden" name="key" value={key} />
-                <button>このルールを解除</button>
-              </form>
-            </div>
-          </li>
-        ))}
-      </ol>
-      <h3>新しいルール</h3>
-      {editor()}
-    </section>
+              status={index + 1 + '番目'}
+              action={
+                <Disclosure title="編集">
+                  {editor(key, rule)}
+                  <ActionBar>
+                    <form action="/extensions/rules/move" method="post">
+                      <input
+                        type="hidden"
+                        name="revision"
+                        value={versions.get('order') ?? ''}
+                      />
+                      <input type="hidden" name="key" value={key} />
+                      <Button
+                        variant="ghost"
+                        name="direction"
+                        value="up"
+                        disabled={index === 0}
+                      >
+                        上へ
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        name="direction"
+                        value="down"
+                        disabled={index === total - 1}
+                      >
+                        下へ
+                      </Button>
+                    </form>
+                    <form action="/extensions/rules/remove" method="post">
+                      <input
+                        type="hidden"
+                        name="revision"
+                        value={versions.get(key) ?? ''}
+                      />
+                      <input type="hidden" name="key" value={key} />
+                      <Button variant="destructive">このルールを解除</Button>
+                    </form>
+                  </ActionBar>
+                </Disclosure>
+              }
+            />
+          ))}
+        </RowList>
+      </div>
+      <FormSection id="new-rule" title="新しいルール">
+        {editor()}
+      </FormSection>
+    </>
   )
 }

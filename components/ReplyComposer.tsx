@@ -1,6 +1,7 @@
 'use client'
 
 import { createSignal } from '@barefootjs/client'
+import { TabsList, TabsTrigger } from './PatternTabs'
 
 interface ReplyComposerProps {
   number: number
@@ -141,36 +142,33 @@ export function ReplyComposer(props: ReplyComposerProps) {
       aria-label="メッセージの作成"
     >
       <input type="hidden" name="number" value={props.number} />
-      <div
-        className="composer-tabs"
-        role="group"
-        aria-label="メッセージの種類"
-        hidden={props.noteOnly}
-      >
-        <button
-          type="button"
-          className="filter-tab"
-          aria-pressed={!note()}
-          disabled={sending()}
-          onClick={() => {
-            setNote(false)
-            setFailed(false)
-          }}
-        >
-          返信
-        </button>
-        <button
-          type="button"
-          className="filter-tab"
-          aria-pressed={note()}
-          disabled={sending()}
-          onClick={() => {
-            setNote(true)
-            setFailed(false)
-          }}
-        >
-          内部メモ
-        </button>
+      <div hidden={props.noteOnly}>
+        <TabsList className="composer-tabs" aria-label="メッセージの種類">
+          <TabsTrigger
+            value="reply"
+            className="filter-tab"
+            selected={!note()}
+            disabled={sending()}
+            onClick={() => {
+              setNote(false)
+              setFailed(false)
+            }}
+          >
+            返信
+          </TabsTrigger>
+          <TabsTrigger
+            value="note"
+            className="filter-tab"
+            selected={note()}
+            disabled={sending()}
+            onClick={() => {
+              setNote(true)
+              setFailed(false)
+            }}
+          >
+            内部メモ
+          </TabsTrigger>
+        </TabsList>
       </div>
       <p className="note-caption" hidden={!note()}>
         内部メモ（相手には送られません）

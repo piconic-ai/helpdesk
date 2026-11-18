@@ -91,6 +91,7 @@
   --typography-button-fontWeight: 600;
   --typography-button-lineHeight: 1;
   --typography-button: 600 14px/1 Inter, 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --components-switch-padding: 2px;
   --components-button-primary-backgroundColor: var(--colors-primary);
   --components-button-primary-textColor: var(--colors-on-primary);
   --components-button-primary-typography: var(--typography-button);

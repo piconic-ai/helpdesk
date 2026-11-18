@@ -1,6 +1,9 @@
 import type { ConsoleFrame } from '../conversations/console-usecase'
 import { shell, field } from '../conversations/console-page'
 import { operatorAvatar } from './identity-page'
+import { EditPage, Notice, FormSection, SettingRow } from '../../ui/patterns'
+import { Field, Input } from '../../ui/controls'
+import { SaveActions } from '../../ui/admin'
 
 export function accountPage(
   frame: ConsoleFrame,
@@ -12,24 +15,14 @@ export function accountPage(
   )
   return shell(
     'アカウント',
-    <div className="settings-view">
-      <header className="page-header">
-        <h1 className="page-title">アカウント</h1>
-      </header>
+    <EditPage title="アカウント" back={{ href: '/', label: '受信箱に戻る' }}>
       {frame.query.saved && (
-        <p className="banner-success" role="status">
-          アカウントを保存しました。
-        </p>
+        <Notice kind="success">アカウントを保存しました。</Notice>
       )}
-      {error && (
-        <p className="banner-error" role="alert">
-          {error}
-        </p>
-      )}
-      <section className="settings-card">
-        <h2>プロフィール</h2>
-        <p className="actor-identity">
-          {operatorAvatar(self, frame.operator.email)}
+      {error && <Notice kind="error">{error}</Notice>}
+      <FormSection title="プロフィール">
+        <p>
+          {operatorAvatar(self, frame.operator.email)}{' '}
           <code>{frame.operator.email}</code>
         </p>
         <form method="post" action="/account" enctype="multipart/form-data">
@@ -40,23 +33,29 @@ export function accountPage(
             'text',
             true,
           )}
-          <label className="field">
-            <span>アイコン画像</span>
-            <input
+          <Field label="アイコン画像">
+            <Input
               type="file"
               name="avatar"
               accept="image/png,image/jpeg"
               aria-describedby="avatar-formats"
             />
-          </label>
+          </Field>
           <small id="avatar-formats">
             JPEG・PNG（非インターレース）、2
             MB・200万画素まで。中央を正方形に切り抜きます。
           </small>
-          <button className="button-primary">アカウントを保存</button>
+          <SaveActions primary verb="アカウントを保存" cancel="/" />
         </form>
-      </section>
-    </div>,
+      </FormSection>
+      {frame.operator.role !== 'admin' && (
+        <SettingRow
+          title="API トークンの管理"
+          href="/tokens"
+          description="自分が発行した CLI・MCP のトークンを管理します。"
+        />
+      )}
+    </EditPage>,
     frame,
   )
 }

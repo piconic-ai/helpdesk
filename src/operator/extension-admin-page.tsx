@@ -1,3 +1,30 @@
+import { Popover } from '../ui/controls'
+import type { ListWindow } from '../ui/listing'
+import { listRows, ListFilters, PageLinks } from '../ui/listing'
+import {
+  ListPage,
+  DetailPage,
+  EditPage,
+  OverviewPage,
+  FilterBar,
+  ListRow,
+  MetricCard,
+  MetricGrid,
+  RowList,
+  Notice,
+  EmptyState,
+  ActionBar,
+  FormSection,
+} from '../ui/patterns'
+import {
+  ActionLink,
+  Button,
+  Field,
+  Input,
+  NativeSelect,
+  Textarea,
+} from '../ui/controls'
+import { ArticlePreview, SaveActions } from '../ui/admin'
 import { metricValue, metricDefinition, difference } from './metric-values'
 import { raw } from 'hono/html'
 import { shell } from '../core/conversations/console-page'
@@ -17,7 +44,7 @@ export function productSelect(frame: ConsoleFrame, selected = '', all = false) {
   return (
     <label>
       プロダクト
-      <select name="product" required={!all}>
+      <NativeSelect name="product" aria-label="プロダクト" required={!all}>
         {all && (
           <option value="" selected={!selected}>
             すべてのプロダクト
@@ -28,7 +55,7 @@ export function productSelect(frame: ConsoleFrame, selected = '', all = false) {
             {p.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   )
 }
@@ -40,60 +67,115 @@ export function adminPage(
 ) {
   return shell(
     title,
-    <>
-      <header className="page-header">
-        <h1>{title}</h1>
-        {action}
-      </header>
-      <div className="extension-workspace">{body}</div>
-    </>,
+    <EditPage
+      title={title}
+      action={action}
+      back={{ href: '/', label: '受信箱に戻る' }}
+    >
+      {body}
+    </EditPage>,
     frame,
   )
 }
+type LibraryItem = Article & { helpful: number; votes: number }
+const issueDate = new Intl.DateTimeFormat('ja-JP', {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  timeZone: 'Asia/Tokyo',
+})
 export function libraryPage(
   frame: ConsoleFrame,
-  articles: Article[],
+  items: LibraryItem[],
   candidates: string[],
+  query: Record<string, string>,
 ) {
-  return adminPage(
+  const list = listRows(items, query, (a) => ({
+    text:
+      a.title +
+      ' ' +
+      (frame.products.find((p) => p.id === a.product)?.name ?? a.product),
+    filter: a.status,
+  }))
+  const articles = list.rows
+  const filters = (
+    <ListFilters
+      title="記事"
+      path="/articles"
+      query={query}
+      filterLabel="公開状態"
+      options={[
+        { value: 'published', label: '公開中' },
+        { value: 'draft', label: '下書き' },
+      ]}
+    />
+  )
+  return shell(
     'ヘルプ記事',
-    frame,
-    <>
+    <ListPage
+      title="ヘルプ記事"
+      description={list.total + '件'}
+      footer={<PageLinks path="/articles" query={query} {...list} />}
+      filters={filters}
+      action={
+        <ActionLink variant="default" href="/articles/new">
+          記事を書く
+        </ActionLink>
+      }
+    >
       {articles.length ? (
-        <ul className="article-list">
+        <RowList>
           {articles.map((a) => (
-            <li>
-              <a
-                href={
-                  '/articles/edit?' +
-                  new URLSearchParams({ product: a.product, id: a.id })
-                }
-              >
-                {a.title}
-              </a>{' '}
-              <span className="label-chip">
-                {a.status === 'published' ? '公開中' : '下書き'}
-              </span>
-            </li>
+            <ListRow
+              title={a.title}
+              href={
+                '/articles/edit?' +
+                new URLSearchParams({ product: a.product, id: a.id })
+              }
+              description={
+                <>
+                  {frame.products.find((p) => p.id === a.product)?.name ??
+                    a.product}{' '}
+                  ·{' '}
+                  {a.updatedAt !== undefined ? (
+                    <time datetime={new Date(a.updatedAt).toISOString()}>
+                      更新 {issueDate.format(a.updatedAt)}
+                    </time>
+                  ) : (
+                    '更新日未記録'
+                  )}{' '}
+                  ·{' '}
+                  {a.votes
+                    ? '役に立った ' +
+                      Math.round((100 * a.helpful) / a.votes) +
+                      '%（' +
+                      a.votes +
+                      '件）'
+                    : '評価なし'}
+                </>
+              }
+              status={a.status === 'published' ? '公開中' : '下書き'}
+            />
           ))}
-        </ul>
+        </RowList>
       ) : (
-        <p className="empty-state">記事はまだありません。</p>
+        <EmptyState>
+          {items.length
+            ? '条件に合う記事はありません。'
+            : '記事はまだありません。'}
+        </EmptyState>
       )}
       {candidates.length > 0 && (
-        <section className="settings-card">
-          <h2>記事の候補</h2>
-          <ul>
+        <FormSection title="記事の候補">
+          <RowList>
             {candidates.map((topic) => (
-              <li>{topic}</li>
+              <ListRow title={topic} />
             ))}
-          </ul>
-        </section>
+          </RowList>
+        </FormSection>
       )}
-    </>,
-    <a className="button-primary" href="/articles/new">
-      記事を書く
-    </a>,
+    </ListPage>,
+    frame,
   )
 }
 export function editorPage(
@@ -103,25 +185,11 @@ export function editorPage(
   notice?: string,
 ) {
   const published = data.status === 'published'
-  return adminPage(
-    data.id ? '記事の編集' : '記事を書く',
-    frame,
-    <>
-      {notice && (
-        <p role="status" className="banner-success">
-          {notice}
-        </p>
-      )}
-      {published && (
-        <a href={publicPath(data.product!, data.id!)}>公開記事を読む</a>
-      )}
-      {preview && (
-        <article className="settings-card help-article">
-          <h2>{data.title}</h2>
-          {raw(articleMarkup(data.body ?? ''))}
-        </article>
-      )}
-      <form className="settings-card" method="post" action="/articles/edit">
+  const title = data.id ? '記事の編集' : '記事を書く'
+  const back = { href: '/articles', label: '記事一覧に戻る' }
+  const form = (
+    <form method="post" action="/articles/edit">
+      <FormSection title="記事の内容">
         {data.id ? (
           <>
             <input type="hidden" name="id" value={data.id} />
@@ -131,35 +199,67 @@ export function editorPage(
         ) : (
           productSelect(frame, data.product)
         )}
-        <label>
-          題名
-          <input
+        <Field label="題名">
+          <Input
             name="title"
             required
             maxlength={200}
             value={data.title ?? ''}
           />
-        </label>
-        <label>
-          本文
-          <textarea name="body" rows={10} required maxlength={100000}>
+        </Field>
+        <Field label="本文">
+          <Textarea name="body" rows={10} required maxlength={100000}>
             {data.body ?? ''}
-          </textarea>
-        </label>
-        <div className="public-actions">
-          <button name="intent" value="preview">
-            プレビュー
-          </button>
-          <button name="intent" value="draft">
-            {published ? '非公開にして保存' : '下書きを保存'}
-          </button>
-          <button className="button-primary" name="intent" value="publish">
+          </Textarea>
+        </Field>
+        <ActionBar>
+          <Button variant="default" name="intent" value="publish">
             {published ? '更新を公開' : '公開する'}
-          </button>
-        </div>
-      </form>
-      <a href="/articles">記事一覧に戻る</a>
-    </>,
+          </Button>
+          <Button variant="outline" name="intent" value="preview">
+            プレビュー
+          </Button>
+          <Button variant="ghost" name="intent" value="draft">
+            {published ? '非公開にして保存' : '下書きを保存'}
+          </Button>
+          <ActionLink href="/articles" variant="ghost" data-discard-draft="">
+            取り消し
+          </ActionLink>
+        </ActionBar>
+      </FormSection>
+    </form>
+  )
+  if (preview)
+    return shell(
+      '記事のプレビュー',
+      <DetailPage title="記事のプレビュー" back={back}>
+        <ArticlePreview title={data.title ?? ''}>
+          {raw(articleMarkup(data.body ?? ''))}
+        </ArticlePreview>
+        {form}
+      </DetailPage>,
+      frame,
+    )
+  return shell(
+    title,
+    <EditPage
+      title={title}
+      back={back}
+      action={
+        published && (
+          <ActionLink
+            variant="outline"
+            href={publicPath(data.product!, data.id!)}
+          >
+            公開記事を読む
+          </ActionLink>
+        )
+      }
+    >
+      {notice && <Notice kind="success">{notice}</Notice>}
+      {form}
+    </EditPage>,
+    frame,
   )
 }
 type Portal = {
@@ -179,50 +279,79 @@ export function guidePage(
   notice?: string,
   undoId?: string,
   hasError = false,
+  permissions = '追加の権限はありません',
+  list?: ListWindow,
 ) {
-  return adminPage(
+  const Page = list === undefined ? EditPage : ListPage
+  const create =
+    id === 'rules'
+      ? { id: 'new-rule', label: '新しいルール' }
+      : { id: 'new-template', label: '新しい定型文' }
+  return shell(
     extensionLabel(id),
-    frame,
-    <>
+    <Page
+      title={extensionLabel(id)}
+      description={list === undefined ? undefined : list.total + '件'}
+      filters={
+        list && (
+          <ListFilters
+            title={extensionLabel(id)}
+            path={'/extensions/' + id}
+            query={frame.query}
+          />
+        )
+      }
+      footer={
+        list && (
+          <PageLinks path={'/extensions/' + id} query={frame.query} {...list} />
+        )
+      }
+      back={{ href: '/extensions', label: '拡張の管理に戻る' }}
+      action={
+        list === undefined ? undefined : (
+          <ActionLink href={'#' + create.id}>{create.label}</ActionLink>
+        )
+      }
+    >
       {notice && (
-        <div
-          role={hasError ? 'alert' : 'status'}
-          className={hasError ? 'banner-error' : 'banner-success'}
-        >
+        <Notice kind={hasError ? 'error' : 'success'}>
           {notice}
           {undoId && (
             <form method="post" action={'/extensions/' + id + '/undo-setting'}>
               <input type="hidden" name="changeId" value={undoId} />
-              <button>元に戻す</button>
+              <Button>元に戻す</Button>
             </form>
           )}
-        </div>
+        </Notice>
       )}
       <p>
         {guides[id]?.start ?? '設定後、対象の画面で動作を確認してください。'}
       </p>
-      {id === 'articles' && <a href="/articles">記事の管理を開く</a>}
-      {id === 'metrics' && <a href="/metrics">集計画面を開く</a>}
+      {id === 'articles' && (
+        <ActionLink href="/articles">記事の管理を開く</ActionLink>
+      )}
+      {id === 'metrics' && (
+        <ActionLink href="/metrics">集計画面を開く</ActionLink>
+      )}
       {items.map((p) => (
-        <section className="settings-card">
-          <h2>{p.name}</h2>
+        <FormSection title={p.name}>
           {id === 'issues' ? (
             <form method="post" action="/extensions/issues/repository">
               <input type="hidden" name="product" value={p.id} />
               <label>
                 GitHub リポジトリ
-                <input
+                <Input
                   name="repository"
                   value={p.repository}
                   placeholder="owner/repository"
                   required
                 />
               </label>
-              <button>登録する</button>
+              <SaveActions verb="登録する" cancel="/extensions/issues" />
             </form>
           ) : p.ready ? (
             <>
-              <a href={p.url}>{publicGuides[id]}</a>
+              <ActionLink href={p.url}>{publicGuides[id]}</ActionLink>
               <p>
                 <code>{p.url}</code>
               </p>
@@ -231,13 +360,13 @@ export function guidePage(
               )}
               <label>
                 埋め込みコード
-                <textarea readonly rows={3}>
+                <Textarea readonly rows={3}>
                   {'<iframe src="' +
                     p.url +
                     '" title="' +
                     extensionLabel(id) +
                     '" width="100%" height="540" loading="lazy"></iframe>'}
-                </textarea>
+                </Textarea>
               </label>
             </>
           ) : p.configured ? (
@@ -249,22 +378,25 @@ export function guidePage(
               method="post"
               action={'/settings/public-intakes/' + encodeURIComponent(p.id)}
             >
-              <input
+              <Input
                 name="returnTo"
                 type="hidden"
                 value={'/extensions/' + id}
               />
-              <button>このサイトで受付を開始</button>
+              <Button>このサイトで受付を開始</Button>
             </form>
           )}
           {p.ready &&
             p.publicSettings &&
             publicSettingsFields(id, p.id, p.publicSettings)}
-        </section>
+        </FormSection>
       ))}
       {contents}
-      <a href="/extensions">拡張の管理に戻る</a>
-    </>,
+      <FormSection title="使用する権限">
+        <p>{permissions}</p>
+      </FormSection>
+    </Page>,
+    frame,
   )
 }
 export type MetricFilter = {
@@ -273,21 +405,60 @@ export type MetricFilter = {
   start: string
   end: string
 }
+const outcomes = ['resolutionMs', 'firstContactRate', 'operatorMs']
+const counts = ['resolved', 'closed', 'measured']
 export function metricsPage(
   frame: ConsoleFrame,
   filter: MetricFilter,
   result: Record<string, number | null>,
   previous: Record<string, number | null>,
 ) {
-  return adminPage(
-    '対応状況の集計',
-    frame,
-    <>
-      <form className="settings-card" action="/metrics" method="get">
+  function card(key: string) {
+    return (
+      <MetricCard
+        title={fieldLabel(key)}
+        value={metricValue(key, result[key])}
+        definition={metricDefinition[key]}
+        change={'前期比 ' + difference(key, result[key], previous[key])}
+      />
+    )
+  }
+  function url(change: Partial<MetricFilter>) {
+    const next = { ...filter, ...change }
+    const query = new URLSearchParams({ period: next.period })
+    if (next.product) query.set('product', next.product)
+    if (next.period === 'custom') {
+      query.set('start', next.start)
+      query.set('end', next.end)
+    }
+    return '/metrics?' + query
+  }
+  const filters = (
+    <FilterBar
+      chips={
+        <>
+          {filter.product && (
+            <ActionLink variant="ghost" href={url({ product: '' })}>
+              プロダクト：
+              {frame.products.find((p) => p.id === filter.product)?.name} ×
+            </ActionLink>
+          )}
+          {filter.period !== '30' && (
+            <ActionLink variant="ghost" href={url({ period: '30' })}>
+              期間：
+              {filter.period === 'custom'
+                ? filter.start + ' 〜 ' + filter.end
+                : filter.period + '日'}{' '}
+              ×
+            </ActionLink>
+          )}
+        </>
+      }
+    >
+      <form action="/metrics" method="get" data-live-filters="">
         {productSelect(frame, filter.product, true)}
-        <label>
-          期間
-          <select name="period">
+        <Field label="期間">
+          <NativeSelect name="period" aria-label="期間">
             {[
               ['7', '過去7日'],
               ['30', '過去30日'],
@@ -298,41 +469,53 @@ export function metricsPage(
                 {label}
               </option>
             ))}
-          </select>
-        </label>
-        <fieldset>
-          <legend>日付で指定（日本時間）</legend>
-          <label>
-            開始日
-            <input type="date" name="start" value={filter.start} />
-          </label>
-          <label>
-            終了日
-            <input type="date" name="end" value={filter.end} />
-          </label>
-        </fieldset>
-        <button>集計する</button>
+          </NativeSelect>
+        </Field>
+        {filter.period === 'custom' ? (
+          <Popover id="metric-dates" variant="outline" label="日付の範囲">
+            <Field label="開始日（日本時間）">
+              <Input
+                type="date"
+                name="start"
+                max={filter.end}
+                value={filter.start}
+                required
+              />
+            </Field>
+            <Field label="終了日（日本時間）">
+              <Input
+                type="date"
+                name="end"
+                min={filter.start}
+                value={filter.end}
+                required
+              />
+            </Field>
+          </Popover>
+        ) : (
+          <>
+            <input type="hidden" name="start" value={filter.start} />
+            <input type="hidden" name="end" value={filter.end} />
+          </>
+        )}
       </form>
-      <section className="settings-card">
-        <h2>集計結果</h2>
+    </FilterBar>
+  )
+  return shell(
+    '対応状況の集計',
+    <OverviewPage title="対応状況の集計" filters={filters}>
+      <section aria-label="集計結果">
+        <MetricGrid>{outcomes.map(card)}</MetricGrid>
         <p>
           直前の同じ日数と比較しています。
           {(result.resolved ?? 0) < 5 &&
             '解決件数が5件未満のため、値は目安です。'}
         </p>
-        <dl className="result-fields">
-          {Object.entries(result).map(([key, value]) => (
-            <div>
-              <dt>{fieldLabel(key)}</dt>
-              <dd className="metric-number">{metricValue(key, value)}</dd>
-              <dd className="metric-description">{metricDefinition[key]}</dd>
-              <dd className="metric-comparison">
-                前期比 {difference(key, value, previous[key])}
-              </dd>
-            </div>
-          ))}
-        </dl>
       </section>
-    </>,
+      <section aria-label="集計の内訳">
+        <MetricGrid>{counts.map(card)}</MetricGrid>
+      </section>
+    </OverviewPage>,
+    frame,
   )
 }

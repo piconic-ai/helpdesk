@@ -5,6 +5,7 @@ import { dirname, normalize, join } from 'node:path'
 
 /** Layers, from the name of a file under src/. The first match wins. */
 const LAYERS = [
+  ['pages', /^src\/ui\/.*\.tsx$/],
   ['routes', /(^|[-/])(routes|email|queue|cron|mcp|middleware)\.tsx?$/],
   ['usecase', /(^|[-/])usecase\.ts$/],
   ['store', /(^|[-/])store\.ts$/],

@@ -8,6 +8,22 @@ const inboxFilters = new Set([
   'sort',
   'page',
 ])
+export function inboxStatus(query: Record<string, string>) {
+  if (query.status) return query.status
+  if (query.view === 'approval' || query.query || query.assignee) return 'all'
+  return query.view === 'feedback' ? 'received' : 'open'
+}
+
+export function adjacentOpen(numbers: number[], current: number) {
+  const index = numbers.indexOf(current)
+  const next = numbers[index + 1] ?? numbers.at(0)
+  const previous = numbers[index - 1] ?? numbers.at(-1)
+  return {
+    next: next === current ? undefined : next,
+    previous: previous === current ? undefined : previous,
+  }
+}
+
 export function inboxSearch(entries: URLSearchParams | Record<string, string>) {
   const params = new URLSearchParams(entries)
   for (const key of Array.from(params.keys()))

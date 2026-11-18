@@ -251,6 +251,7 @@ async function extensionData(db, extensions, origin) {
       .run()
   if (extensions.includes('articles')) {
     const article = {
+      updatedAt: fixedTime - 86400000,
       id: 'receipt',
       product: 'slide',
       title: '領収書を発行する',

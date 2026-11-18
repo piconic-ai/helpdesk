@@ -51,7 +51,7 @@ export function extensionContext(
     notifyEmail: (number, to, body, key) => approvedSend(number, body, key, to),
     change: (number, event) =>
       coreOperations.status.execute({ ...c, actor }, { number, event }),
-    events: () => history(c.env.DB),
+    events: (kind) => history(c.env.DB, kind),
     snapshot: () => {
       requirePermission('read_body')
       return snapshot(c.env.DB)

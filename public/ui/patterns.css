@@ -1,0 +1,543 @@
+[data-ui-page] {
+  min-width: 0;
+  margin-inline: auto;
+  animation: pattern-fade-in var(--layout-fade) ease both;
+}
+[data-ui-page='detail'] {
+  max-width: calc(
+    var(--layout-thread-width) + var(--layout-context-width) + var(--spacing-xl)
+  );
+}
+[data-ui-page='list'],
+[data-ui-page='overview'] {
+  max-width: var(--layout-inbox-width);
+}
+[data-ui-page='edit'] {
+  max-width: 560px;
+  margin-inline: 0;
+}
+[data-ui='columns'],
+[data-ui='body'] {
+  min-width: 0;
+}
+[data-ui-page='detail'] [data-ui='body'] {
+  max-width: var(--layout-thread-width);
+}
+[data-ui='columns']:has(> [data-ui='panel']) {
+  display: grid;
+  grid-template-columns: minmax(0, var(--layout-thread-width)) minmax(
+      0,
+      var(--layout-context-width)
+    );
+  gap: var(--spacing-lg);
+}
+[data-ui='panel'] {
+  min-width: 0;
+}
+[data-ui='heading'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-block: 0 var(--spacing-md);
+  padding: 0;
+}
+[data-ui='heading'] h1 {
+  margin: 0;
+}
+.heading-description,
+[data-ui='setting-row'] small,
+[data-ui='list-row'] small,
+[data-ui='metric-card'] small,
+[data-slot='field-description'] {
+  color: var(--colors-muted);
+  font: var(--typography-caption);
+}
+[data-ui='actions'],
+[data-ui='attributes'],
+[data-ui='footer'],
+[data-ui='chips'],
+[data-slot='dialog-footer'] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+[data-ui='actions'],
+[data-ui='footer'],
+[data-ui='chips'] {
+  gap: var(--spacing-sm);
+}
+[data-ui='footer'] {
+  margin-block-start: var(--spacing-lg);
+}
+[data-ui='attributes'] button {
+  background: transparent;
+  border-color: transparent;
+}
+[data-ui='filters'] {
+  margin-block: var(--spacing-md);
+}
+[data-ui='filter-line'] {
+  display: flex;
+  align-items: end;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+[data-ui='filter-line'] > * {
+  min-width: 0;
+}
+[data-ui='filter-line'] :is(input, select) {
+  min-width: 0;
+  max-width: 100%;
+}
+[data-ui='chips']:not(:empty) {
+  margin-block-start: var(--spacing-xs);
+}
+[data-ui='row-list'] {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+[data-ui='list-row'],
+[data-ui='setting-row'] {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--colors-hairline);
+}
+[data-ui='list-row'] > :first-child,
+[data-ui='setting-row'] > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+[data-ui='list-row'] > :first-child,
+[data-ui='setting-row'] > span {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+[data-ui='list-row'] strong,
+[data-ui='setting-row'] strong {
+  color: var(--colors-ink);
+}
+[data-ui='setting-row'] > :first-child {
+  display: grid;
+}
+[data-ui='setting-row'] > :last-child {
+  color: var(--colors-muted);
+  flex-shrink: 0;
+}
+[data-ui='setting-row'] > :last-child > span {
+  font-size: var(--typography-title-sm-fontSize);
+}
+[data-ui='list-row'] a,
+[data-ui='setting-row'],
+[data-slot='button'] {
+  color: inherit;
+  text-decoration: none;
+}
+[data-ui='setting-row']:hover,
+[data-ui='list-row']:has(a):hover {
+  background: var(--colors-surface-soft);
+}
+[data-ui='setting-row']:active,
+[data-ui='list-row']:has(a):active {
+  background: var(--colors-surface-strong);
+}
+[data-ui='metrics'] {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+[data-ui='metric-card'],
+[data-ui='form-section'],
+[data-ui='extension-card'] {
+  background: var(--colors-surface-soft);
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-lg);
+  padding: var(--components-settings-card-padding);
+  min-width: 0;
+}
+[data-ui='metric-card'],
+[data-ui='extension-card'],
+[data-slot='field'] {
+  display: grid;
+  gap: var(--spacing-xs);
+  align-content: start;
+}
+[data-ui='metric-card'] > strong {
+  font: var(--typography-title-lg);
+  color: var(--colors-ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-ui='metric-card'] p,
+[data-ui='extension-card'] p {
+  color: var(--colors-muted);
+  margin: 0;
+}
+[data-ui='extension-card'] > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+[data-ui='extension-card'] > footer {
+  margin-block-start: var(--spacing-sm);
+}
+[data-ui='form-section'] {
+  background: var(--colors-canvas);
+}
+[data-ui='candidates'] {
+  display: grid;
+  gap: var(--spacing-xxs);
+}
+[data-ui='candidate'] {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--spacing-xs);
+}
+[data-ui='candidate'] > :nth-child(2) {
+  flex: 1;
+}
+[data-ui='loading'] {
+  display: grid;
+  padding: var(--spacing-md);
+  gap: var(--spacing-xs);
+}
+[data-ui='loading'] span {
+  background: var(--colors-surface-strong);
+  height: var(--components-loading-placeholder-height);
+  width: 72%;
+  border-radius: var(--rounded-xs);
+}
+[data-ui='loading'] span:nth-child(2) {
+  width: 86%;
+}
+[data-slot='field'] > :is(input, textarea, select) {
+  margin: 0;
+  max-width: 100%;
+}
+[data-slot='popover'],
+[data-slot='dropdown-menu'] {
+  display: inline-flex;
+  anchor-scope: --helpdesk-trigger;
+}
+[data-slot='popover-trigger'],
+[data-slot='dropdown-menu-trigger'] {
+  anchor-name: --helpdesk-trigger;
+}
+[data-slot='popover-content'],
+[data-slot='dropdown-menu-content'] {
+  position: fixed;
+  position-anchor: --helpdesk-trigger;
+  inset: auto;
+  top: calc(anchor(bottom) + var(--spacing-xxs));
+  left: max(var(--spacing-xxs), anchor(left));
+  position-try-fallbacks:
+    --helpdesk-align-end, --helpdesk-above, --helpdesk-above-end;
+  inline-size: max-content;
+  max-width: min(320px, calc(100dvw - 2 * var(--spacing-xxs)));
+  max-height: calc(100dvh - 2 * var(--spacing-xxs));
+  overflow: auto;
+  margin: 0;
+  padding: var(--spacing-xs);
+  border-radius: var(--rounded-md);
+  border: 1px solid var(--colors-hairline);
+  box-shadow: var(--layout-raised-shadow);
+  background: var(--colors-canvas);
+  color: var(--colors-ink);
+}
+@position-try --helpdesk-align-end {
+  left: auto;
+  right: max(4px, anchor(right));
+}
+@position-try --helpdesk-above {
+  top: auto;
+  bottom: calc(anchor(top) + 4px);
+}
+@position-try --helpdesk-above-end {
+  left: auto;
+  right: max(4px, anchor(right));
+  top: auto;
+  bottom: calc(anchor(top) + 4px);
+}
+[data-slot='popover-content'] button,
+[data-slot='dropdown-menu-content'] button {
+  display: flex;
+  width: 100%;
+}
+@keyframes pattern-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [popover] {
+    transition:
+      opacity var(--layout-fade),
+      display var(--layout-fade) allow-discrete,
+      overlay var(--layout-fade) allow-discrete;
+    opacity: 0;
+  }
+  [popover]:popover-open {
+    opacity: 1;
+  }
+  @starting-style {
+    [popover]:popover-open {
+      opacity: 0;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui-page] {
+    animation: none;
+  }
+}
+@media (max-width: 1199px) {
+  [data-ui='columns']:has(> [data-ui='panel']) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  [data-ui='metrics'] {
+    grid-template-columns: 1fr;
+  }
+  [data-ui='filter-line'] {
+    gap: var(--spacing-xxs);
+  }
+  [data-ui='setting-row'],
+  [data-ui='list-row'] {
+    padding-inline: var(--spacing-xs);
+  }
+  [data-ui='actions'] {
+    gap: var(--spacing-xs);
+  }
+}
+[data-ui='gallery'] main {
+  max-width: 1100px;
+  margin-inline: auto;
+  padding: var(--spacing-xl) var(--spacing-lg);
+}
+[data-ui='gallery'] main > header {
+  border-bottom: 1px solid var(--colors-hairline);
+  padding-block-end: var(--spacing-lg);
+}
+[data-ui='gallery'] main > header p {
+  font: var(--typography-caption);
+}
+[data-ui='gallery'] main > header nav {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-block-start: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+[data-ui='gallery'] nav a {
+  color: var(--colors-body);
+}
+[data-ui='gallery'] main > section {
+  padding-block: var(--spacing-lg);
+}
+[data-ui='gallery'] main > section > h2 {
+  border-bottom: 1px solid var(--colors-hairline);
+  padding-block-end: var(--spacing-xs);
+  margin-block-end: var(--spacing-lg);
+  color: var(--colors-muted);
+  font: var(--typography-caption);
+}
+[data-ui='gallery'] [data-ui-page] {
+  margin: 0;
+}
+[data-ui='gallery'] [data-ui='filter-line'] form {
+  display: flex;
+  gap: var(--spacing-xs);
+  max-width: 100%;
+}
+[data-ui='gallery'] [data-ui='filter-line'] form > label {
+  min-width: 0;
+}
+[data-ui='gallery'] [data-ui='message'],
+[data-ui='gallery'] [data-ui='notice'],
+[data-ui='gallery'] [data-ui='extension-card'] {
+  margin-block: var(--spacing-sm);
+}
+[data-ui='gallery'] :is(.row-top, .row-bottom) {
+  min-width: 0;
+}
+[data-ui='gallery'] [data-ui='form-section'] {
+  overflow-wrap: anywhere;
+}
+[data-ui='gallery'] [data-slot='field'] {
+  margin-block: var(--spacing-sm);
+}
+[data-ui='gallery'] [data-ui='candidate'] {
+  text-align: start;
+}
+[data-slot='tooltip'] {
+  position: relative;
+  display: inline-flex;
+}
+[data-slot='tooltip-content'] {
+  position: absolute;
+  width: max-content;
+  max-width: 220px;
+  bottom: 100%;
+  inset-inline-start: 0;
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  opacity: 0;
+  pointer-events: none;
+  background: var(--colors-primary);
+  color: var(--colors-on-primary);
+  font: var(--typography-caption);
+  transition: opacity var(--layout-fade);
+  z-index: 1;
+}
+[data-slot='tooltip-content'][data-state='open'] {
+  opacity: 1;
+}
+[data-slot='tabs-content'][data-state='inactive'] {
+  display: none;
+}
+@media (max-width: 767px) {
+  [data-ui='gallery'] main {
+    padding: var(--spacing-md);
+  }
+}
+[data-slot='tooltip']:is(:hover, :focus-within) > [role='tooltip'] {
+  opacity: 1;
+}
+[data-ui-page] :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: var(--layout-focus-width) solid var(--colors-focus-ring);
+  outline-offset: 2px;
+}
+[data-slot='button']:not(:disabled):hover {
+  background-color: var(--colors-surface-soft);
+}
+[data-slot='button']:not(:disabled):active,
+[data-slot='button'][aria-pressed='true'] {
+  background-color: var(--colors-surface-strong);
+  color: var(--colors-ink);
+}
+[data-slot='button'].button-primary {
+  background: var(--colors-primary);
+  color: var(--colors-on-primary);
+}
+[data-slot='button'].button-primary:not(:disabled):is(:hover, :active) {
+  background-color: var(--colors-primary-active);
+  color: var(--colors-on-primary);
+}
+[data-slot='button']:disabled {
+  color: var(--colors-muted);
+  background: var(--colors-primary-disabled);
+  cursor: not-allowed;
+}
+[data-ui='gallery'] [data-ui='body'] > .composer {
+  position: static;
+}
+[data-ui='gallery'] .row-select {
+  align-self: center;
+}
+[data-ui='filter-line'] form {
+  display: flex;
+  width: 100%;
+  align-items: end;
+  gap: var(--spacing-xs);
+}
+[data-ui='filter-line'] form > * {
+  min-width: 0;
+}
+[data-ui='metrics'] > [data-ui='metric-card']:first-child {
+  background: var(--colors-surface-soft);
+}
+[data-ui='metrics'] > [data-ui='metric-card']:first-child > strong {
+  font: var(--typography-title-lg);
+}
+[data-ui='metrics'] > [data-ui='metric-card']:not(:first-child) > strong {
+  font: var(--typography-title-sm);
+}
+[data-ui='extension-card'] [role='switch'] {
+  appearance: none;
+  color: var(--colors-body);
+  background: var(--colors-surface-card);
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-pill);
+  cursor: pointer;
+}
+[data-ui='extension-card'] input[role='switch'] {
+  display: inline-grid;
+  align-items: center;
+  width: 38px;
+  height: 22px;
+  padding: var(--components-switch-padding);
+  vertical-align: middle;
+}
+[data-ui='extension-card'] input[role='switch']::before {
+  content: '';
+  border-radius: var(--rounded-pill);
+  background: var(--colors-muted);
+  width: 15px;
+  height: 15px;
+}
+[data-ui='extension-card'] input[role='switch']:checked {
+  background: var(--colors-primary);
+}
+[data-ui='extension-card'] input[role='switch']:checked::before {
+  justify-self: end;
+  background: var(--colors-on-primary);
+}
+@keyframes pattern-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-old(root) {
+    animation: pattern-fade-out var(--layout-fade) ease both;
+  }
+  ::view-transition-new(root) {
+    animation: pattern-fade-in var(--layout-fade) ease both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='tooltip-content'] {
+    transition: none;
+  }
+}
+[data-ui='metric-card'] > h2,
+[data-ui='extension-card'] > header h3 {
+  font: var(--typography-title-sm);
+  margin: 0;
+}
+[data-slot='native-select-wrapper'] {
+  position: relative;
+  display: inline-grid;
+  width: fit-content;
+  max-width: 100%;
+  vertical-align: middle;
+}
+[data-slot='native-select-wrapper'] select {
+  appearance: none;
+  padding-inline-end: calc(var(--layout-icon-size) + var(--spacing-md));
+}
+[data-slot='native-select-icon'] {
+  position: absolute;
+  align-self: center;
+  right: var(--spacing-xs);
+  pointer-events: none;
+  color: var(--colors-muted);
+}

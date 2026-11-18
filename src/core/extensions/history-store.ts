@@ -2,12 +2,17 @@ import { z } from 'zod'
 import type { ExtensionEvent } from './extension'
 import { eventStatement } from '../conversations/conversations-store'
 import type { Context } from '../operations/catalog-usecase'
-export async function history(db: D1Database): Promise<ExtensionEvent[]> {
-  const result = await db
-    .prepare(
-      'SELECT e.*,c.product FROM events e LEFT JOIN conversations c USING(number) ORDER BY e.id',
-    )
-    .all()
+export async function history(
+  db: D1Database,
+  kind?: string,
+): Promise<ExtensionEvent[]> {
+  const select =
+    'SELECT e.*,c.product FROM events e LEFT JOIN conversations c USING(number)'
+  const statement =
+    kind === undefined
+      ? db.prepare(select + ' ORDER BY e.id')
+      : db.prepare(select + ' WHERE e.kind=? ORDER BY e.id').bind(kind)
+  const result = await statement.all()
   const schema = z.object({
     id: z.number(),
     at: z.number(),

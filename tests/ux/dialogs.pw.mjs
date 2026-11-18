@@ -93,10 +93,14 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
 }) => {
   await page.goto(scene.origin + '/conversation/1')
   const merge = page.locator('[data-extension="merge"]')
-  await merge.locator('summary').filter({ hasText: '会話を統合' }).click()
-  await inspectModal(page, merge.getByRole('button', { name: '会話を統合' }), {
-    content: 'ワークスペースの招待メール',
-  })
+  await merge.getByRole('button', { name: '会話を統合', exact: true }).click()
+  await inspectModal(
+    page,
+    merge.locator('form').getByRole('button', { name: '会話を統合' }),
+    {
+      content: 'ワークスペースの招待メール',
+    },
+  )
   await page.keyboard.press('Escape')
   const issues = page.locator('[data-extension="issues"]')
   await issues.getByText('Issue を起票する', { exact: true }).click()
@@ -125,13 +129,14 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   await page.goto(scene.origin + '/extensions')
   const disable = page
     .locator('[data-extension="rules"]')
-    .getByRole('button', { name: /無効にする/ })
+    .getByRole('switch', { name: /無効にする/ })
   await inspectModal(page, disable, { content: '無効にします' })
   await page.goto(scene.origin + '/extensions/rules')
   const editor = page.locator('form[action="/extensions/rules/add"]').last()
   await editor.getByLabel('件名に含む言葉').fill('請求内容の確認')
   await editor.getByLabel('付けるラベル').selectOption('請求')
   await editor.getByRole('button', { name: 'ルールを保存' }).click()
+  await page.locator('[data-list=rules] summary').first().click()
   await inspectModal(page, formButton(page, '/extensions/rules/remove'), {
     content: 'ルール1件',
   })
@@ -162,7 +167,15 @@ test('ショートカット一覧とモバイルメニューに一度に一つ�
   page,
 }) => {
   const help = page.locator('[data-keyboard-help]')
-  await inspectModal(page, help, { content: 'キーボード操作', first: '閉じる' })
+  const accountMenu = page.getByRole('button', { name: 'アカウントの操作' })
+  await inspectModal(page, accountMenu, {
+    open: async () => {
+      await accountMenu.click()
+      await help.click()
+    },
+    content: 'キーボード操作',
+    first: '閉じる',
+  })
   const link = page.locator('#navigation .brand')
   await link.focus()
   await inspectModal(page, link, {
@@ -177,12 +190,13 @@ test('ショートカット一覧とモバイルメニューに一度に一つ�
     first: 'メニューを閉じる',
   })
   await menu.click()
+  await accountMenu.click()
   await help.click()
   await expect(page.locator('#keyboard-help:modal')).toBeVisible()
   await expect(page.locator('dialog[open]')).toHaveCount(1)
   await page.keyboard.press('Escape')
   await expect(page.locator('#nav-drawer:modal')).toBeVisible()
-  await expect(help).toBeFocused()
+  await expect(accountMenu).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(menu).toBeFocused()
 })

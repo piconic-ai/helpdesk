@@ -145,6 +145,13 @@
     history.replaceState(history.state, '', url)
   }
 
+  document.addEventListener('click', (event) => {
+    const form = event.target
+      .closest?.('a[data-discard-draft]')
+      ?.closest('form')
+    if (!form || event.defaultPrevented) return
+    for (const entry of drafts.get(form) ?? []) put(entry.key, null)
+  })
   consumeReceipt()
   document.addEventListener('DOMContentLoaded', () => {
     for (const form of document.forms) bind(form)

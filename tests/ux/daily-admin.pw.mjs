@@ -15,10 +15,11 @@ test('保存したルールを編集・並べ替え、適用した会話の履�
     await add.getByLabel('付けるラベル').selectOption({ label })
     await add.getByRole('button').click()
   }
-  const rows = page.locator('.rule-list li')
+  const rows = page.locator('[data-list=rules] li')
   const receipt = rows.filter({
     has: page.locator('strong').filter({ hasText: '領収' }),
   })
+  await receipt.locator('summary').click()
   await receipt.getByRole('button', { name: '上へ' }).click()
   await expect(rows.first()).toContainText('領収')
   await rows.first().locator('summary').click()
@@ -48,6 +49,7 @@ test('保存したルールを編集・並べ替え、適用した会話の履�
     'メッセージの間に、適用したルールとラベルを表示',
   )
   await page.goto(scene.origin + '/extensions/rules')
+  await rows.first().locator('summary').click()
   await rows.first().getByRole('button', { name: 'このルールを解除' }).click()
   await confirmSubmission(page)
   await expect(rows).toHaveCount(1)
@@ -66,7 +68,7 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
     .getByLabel('定型文の本文')
     .fill('{{name}} 様、ご連絡ありがとうございます。')
   await newTemplate.getByRole('button').click()
-  await page.getByText('入金のご案内', { exact: true }).click()
+  await page.locator('summary').filter({ hasText: '入金のご案内' }).click()
   const edit = page.locator('details[open] form')
   await edit
     .getByLabel('定型文の本文')
@@ -74,11 +76,11 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await edit.getByRole('button').click()
   await page.goto(scene.origin + '/conversation/1')
   const canned = page.locator('[data-extension=canned]')
-  await canned.locator('summary').click()
+  await canned.locator('[data-slot=popover-trigger]').click()
   await canned
     .getByRole('combobox', { name: '定型文', exact: true })
     .selectOption({ label: '入金のご案内' })
-  await canned.getByRole('button').click()
+  await canned.locator('form').getByRole('button').click()
   await expect(page.getByRole('textbox', { name: '下書きの本文' })).toHaveValue(
     '山田 花 様、入金を確認しました。',
   )
@@ -108,14 +110,11 @@ test('集計に定義・前期差・少数件の案内があり未設定の拡�
   scene,
 }) => {
   await page.goto(scene.origin + '/metrics')
-  await expect(page.locator('.metric-description')).toHaveCount(6)
-  await expect(page.locator('.metric-comparison')).toHaveCount(6)
+  await expect(page.locator('[data-ui=metric-card] p')).toHaveCount(6)
+  await expect(page.locator('[data-ui=metric-card] small')).toHaveCount(6)
   await expect(page.getByText(/5件未満.*目安/)).toBeVisible()
   await expect(
-    page
-      .getByText('完了件数', { exact: true })
-      .locator('..')
-      .locator('.metric-comparison'),
+    page.getByText('完了件数', { exact: true }).locator('..').locator('small'),
   ).toHaveText('前期比 +1')
   await page.goto(scene.origin + '/extensions')
   for (const name of ['受け付ける', '答える', '直す', '整える'])

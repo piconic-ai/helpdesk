@@ -1,3 +1,6 @@
+import { Button, Input, Popover, Textarea, Field } from '../../ui/controls'
+import { Candidate, CandidateList, Notice } from '../../ui/patterns'
+import { DraftReview } from '../../ui/thread-parts'
 import { operatorAvatar } from '../operators/identity-page'
 import { action } from './console-page'
 import type { ConsoleFrame } from './console-usecase'
@@ -7,31 +10,41 @@ type Inquiry = Extract<Result<'get'>['conversation'], { kind: 'inquiry' }>
 export function assignment(c: Inquiry, frame: ConsoleFrame) {
   const email = c.assignment.kind === 'assigned' ? c.assignment.to : ''
   const assigned = frame.operators.find((o) => o.email === email)
-  const set = (value: string, label: string) =>
-    action(
-      'assign',
-      label,
-      <input type="hidden" name="email" value={value} />,
-      c.number,
-      'quiet',
-    )
+  const name = assigned?.displayName || email || '担当なし'
+  const choices = [{ email: '', displayName: '担当なし' }, ...frame.operators]
   return (
-    <>
-      <details className="action-menu thread-picker">
-        <summary className="button-secondary" title="担当者を選ぶ">
-          {operatorAvatar(assigned, email)} 担当:{' '}
-          {assigned?.displayName || email || '担当なし'}
-        </summary>
-        <div>
-          {frame.operators
-            .filter((o) => o.email !== email)
-            .map((o) => set(o.email, o.displayName || o.email))}
-          {email && set('', '担当を外す')}
-        </div>
-      </details>
-      {email !== frame.operator.email &&
-        set(frame.operator.email, '自分が担当する')}
-    </>
+    <Popover
+      id="thread-assignee"
+      label={
+        <>
+          <span aria-hidden="true">{operatorAvatar(assigned, email)}</span>{' '}
+          担当: {name}
+        </>
+      }
+    >
+      <CandidateList>
+        {choices.map((op) => {
+          const label = op.displayName
+          return (
+            <form action="/actions/assign" method="post">
+              <Input type="hidden" name="number" value={c.number} />
+              <Input type="hidden" name="email" value={op.email} />
+              <Button
+                variant="ghost"
+                aria-pressed={op.email === email}
+                aria-label={label}
+              >
+                <Candidate
+                  icon={operatorAvatar(op.email ? op : undefined)}
+                  selected={op.email === email}
+                  label={label}
+                />
+              </Button>
+            </form>
+          )
+        })}
+      </CandidateList>
+    </Popover>
   )
 }
 export function labelPicker(
@@ -40,50 +53,53 @@ export function labelPicker(
   choices: string[],
 ) {
   const used = new Set(labels.map((l) => l.name))
-  function toggle(name: string, remove: boolean) {
-    const verb = remove ? '外す' : '付ける'
-    return (
-      <form action="/actions/label" method="post">
-        <input type="hidden" name="number" value={number} />
-        <input type="hidden" name="label" value={name} />
-        <input type="hidden" name="action" value={remove ? 'remove' : 'add'} />
-        <button
-          className={remove ? 'label-chip' : 'button-quiet'}
-          aria-label={name + 'を' + verb}
-        >
-          {name}
-          {remove ? ' ×' : ''}
-        </button>
-      </form>
-    )
-  }
   return (
-    <>
-      {labels.map((l) => toggle(l.name, true))}
-      <details className="action-menu thread-picker">
-        <summary className="button-secondary">ラベルを選ぶ</summary>
-        <div>
-          {choices
-            .filter((name) => !used.has(name))
-            .map((name) => toggle(name, false))}
-          <details>
-            <summary>新しいラベルを作成</summary>
-            {action(
-              'label',
-              '作成して付ける',
-              <>
-                <input type="hidden" name="action" value="add" />
-                <label>
-                  新しいラベル名
-                  <input name="label" required maxlength={200} />
-                </label>
-              </>,
-              number,
-            )}
-          </details>
-        </div>
+    <Popover
+      id="thread-labels"
+      label={
+        labels.length
+          ? 'ラベル: ' + labels.map((l) => l.name).join('、')
+          : 'ラベルを選ぶ'
+      }
+    >
+      <CandidateList>
+        {choices.map((name) => {
+          const selected = used.has(name)
+          return (
+            <form action="/actions/label" method="post">
+              <Input type="hidden" name="number" value={number} />
+              <Input type="hidden" name="label" value={name} />
+              <Input
+                type="hidden"
+                name="action"
+                value={selected ? 'remove' : 'add'}
+              />
+              <Button
+                variant="ghost"
+                aria-pressed={selected}
+                aria-label={name + (selected ? 'を外す' : 'を付ける')}
+              >
+                <Candidate icon="#" selected={selected} label={name} />
+              </Button>
+            </form>
+          )
+        })}
+      </CandidateList>
+      <details>
+        <summary>新しいラベルを作成</summary>
+        {action(
+          'label',
+          '作成して付ける',
+          <>
+            <Input type="hidden" name="action" value="add" />
+            <Field label="新しいラベル名">
+              <Input name="label" required maxlength={200} />
+            </Field>
+          </>,
+          number,
+        )}
       </details>
-    </>
+    </Popover>
   )
 }
 export function draftReview(
@@ -92,26 +108,25 @@ export function draftReview(
   body: string,
   canSend: boolean,
 ) {
-  const message = <input type="hidden" name="id" value={id} />
+  const message = <Input type="hidden" name="id" value={id} />
   return (
-    <div className="draft-review">
+    <DraftReview>
       {canSend &&
         action(
           'approve',
           '承認して送信',
           <>
             {message}
-            <label className="field">
-              下書きの本文
-              <textarea name="body" rows={4} required maxlength={100000}>
+            <Field label="下書きの本文">
+              <Textarea name="body" rows={4} required maxlength={100000}>
                 {body}
-              </textarea>
-            </label>
+              </Textarea>
+            </Field>
           </>,
           number,
         )}
       {action('discard', '下書きを破棄', message, number, 'danger')}
-    </div>
+    </DraftReview>
   )
 }
 const notices: Record<string, string> = {
@@ -147,7 +162,7 @@ export function threadNotice(code?: string, number?: number, undoId?: string) {
         ? '操作を完了しました。'
         : ''
   return text ? (
-    <div className="banner-success" role="status">
+    <Notice kind="success">
       {text}
       {number &&
         undoId &&
@@ -155,7 +170,7 @@ export function threadNotice(code?: string, number?: number, undoId?: string) {
         action(
           'snooze.undo',
           '元に戻す',
-          <input type="hidden" name="changeId" value={undoId} />,
+          <Input type="hidden" name="changeId" value={undoId} />,
           number,
           'quiet',
         )}
@@ -165,13 +180,13 @@ export function threadNotice(code?: string, number?: number, undoId?: string) {
         action(
           'discard',
           '元に戻す',
-          <input type="hidden" name="id" value={undoId} />,
+          <Input type="hidden" name="id" value={undoId} />,
           number,
           'quiet',
         )}
       {number &&
         code === 'feedback.review' &&
         action('feedback.unreview', '元に戻す', null, number, 'quiet')}
-    </div>
+    </Notice>
   ) : null
 }

@@ -36,7 +36,7 @@ export type ExtensionContext = {
     number: number,
     event: 'marked_spam' | 'unmarked_spam',
   ) => Promise<void>
-  events: () => Promise<ExtensionEvent[]>
+  events: (kind?: string) => Promise<ExtensionEvent[]>
   snapshot: () => Promise<{
     conversations: Record<string, unknown>[]
     messages: Record<string, unknown>[]

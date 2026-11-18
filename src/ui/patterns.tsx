@@ -1,0 +1,302 @@
+import type { Child } from 'hono/jsx'
+import { ActionLink } from './controls'
+
+type Content = { children?: Child }
+type Heading = { title: Child; description?: Child; action?: Child }
+type Page = Heading &
+  Content & {
+    back?: { href: string; label: string }
+    filters?: Child
+    attributes?: Child
+    aside?: Child
+    footer?: Child
+    contact?: string
+  }
+
+export function PageHeading({ title, description, action }: Heading) {
+  return (
+    <header className="page-header pattern-heading" data-ui="heading">
+      <div>
+        <h1 className="page-title">{title}</h1>
+        {description && (
+          <div className="heading-description">{description}</div>
+        )}
+      </div>
+      {action && <div className="heading-actions">{action}</div>}
+    </header>
+  )
+}
+function Template({
+  kind,
+  title,
+  description,
+  action,
+  back,
+  filters,
+  attributes,
+  aside,
+  footer,
+  contact,
+  children,
+}: Page & { kind: 'list' | 'detail' | 'edit' | 'overview' }) {
+  return (
+    <section data-ui-page={kind} data-contact={contact}>
+      <div
+        className={contact ? 'thread-header' : 'pattern-intro'}
+        data-contact={contact}
+      >
+        {back && (
+          <ActionLink href={back.href} variant="ghost">
+            ← {back.label}
+          </ActionLink>
+        )}
+        <PageHeading title={title} description={description} action={action} />
+        {attributes}
+      </div>
+      {filters}
+      <div data-ui="columns">
+        <div data-ui="body">{children}</div>
+        {aside && <aside data-ui="panel">{aside}</aside>}
+      </div>
+      {footer && <footer data-ui="footer">{footer}</footer>}
+    </section>
+  )
+}
+export const ListPage = (props: Page) => <Template kind="list" {...props} />
+export const DetailPage = (props: Page) => <Template kind="detail" {...props} />
+export const EditPage = (props: Page) => <Template kind="edit" {...props} />
+export const OverviewPage = (props: Page) => (
+  <Template kind="overview" {...props} />
+)
+export function FilterBar({ children, chips }: Content & { chips?: Child }) {
+  return (
+    <div data-ui="filters">
+      <div data-ui="filter-line">{children}</div>
+      {chips && <div data-ui="chips">{chips}</div>}
+    </div>
+  )
+}
+export function ListRow({
+  title,
+  href,
+  newTab,
+  description,
+  status,
+  action,
+}: Heading & { href?: string; newTab?: boolean; status?: Child }) {
+  const caption = (
+    <>
+      <strong>{title}</strong>
+      {description && <span>{description}</span>}
+    </>
+  )
+  return (
+    <li data-ui="list-row">
+      {href ? (
+        <a
+          href={href}
+          target={newTab ? '_blank' : undefined}
+          rel={newTab ? 'noopener noreferrer' : undefined}
+        >
+          {caption}
+        </a>
+      ) : (
+        <div>{caption}</div>
+      )}
+      {status && <small>{status}</small>}
+      {action}
+    </li>
+  )
+}
+export function ConversationRow({
+  headline,
+  preview,
+  time,
+  assignee,
+  selection,
+  actions,
+  href,
+  read,
+  number,
+}: {
+  headline: Child
+  preview: Child
+  time: Child
+  assignee?: Child
+  selection?: Child
+  actions?: Child
+  href: string
+  read?: boolean
+  number?: number
+}) {
+  return (
+    <li data-ui="conversation-row" className="inbox-item" data-number={number}>
+      {selection && <label className="row-select">{selection}</label>}
+      <a className={'conversation-row' + (read ? '' : ' unread')} href={href}>
+        <span className="row-top">
+          {headline}
+          <span className="row-time">{time}</span>
+        </span>
+        <span className="row-bottom">
+          {preview}
+          <span className="row-assignee">{assignee}</span>
+        </span>
+      </a>
+      {actions}
+    </li>
+  )
+}
+export function SettingRow({
+  title,
+  description,
+  href,
+  value,
+}: {
+  title: Child
+  description: Child
+  href: string
+  value?: Child
+}) {
+  return (
+    <a data-ui="setting-row" href={href}>
+      <span>
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <span>
+        {value} <span aria-hidden="true">›</span>
+      </span>
+    </a>
+  )
+}
+export function MetricCard({
+  title,
+  value,
+  change,
+  definition,
+}: {
+  title: Child
+  value: Child
+  change: Child
+  definition: Child
+}) {
+  return (
+    <article data-ui="metric-card">
+      <h2>{title}</h2>
+      <strong>{value}</strong>
+      <small>{change}</small>
+      <p>{definition}</p>
+    </article>
+  )
+}
+export function FormSection({
+  id,
+  title,
+  description,
+  children,
+}: Content & { id?: string; title: Child; description?: Child }) {
+  return (
+    <section id={id} data-ui="form-section" className="settings-card">
+      <h2>{title}</h2>
+      {description && <p>{description}</p>}
+      {children}
+    </section>
+  )
+}
+export const AttributeRow = ({ children }: Content) => (
+  <div data-ui="attributes">{children}</div>
+)
+export const ActionBar = ({ children }: Content) => (
+  <div data-ui="actions">{children}</div>
+)
+export const CandidateList = ({ children }: Content) => (
+  <div data-ui="candidates">{children}</div>
+)
+export const RowList = ({ children }: Content) => (
+  <ul data-ui="row-list">{children}</ul>
+)
+export const MetricGrid = ({ children }: Content) => (
+  <div data-ui="metrics">{children}</div>
+)
+export function Candidate({
+  icon,
+  label,
+  selected,
+  children,
+}: Content & { icon: Child; label: Child; selected?: boolean }) {
+  return (
+    <span data-ui="candidate">
+      <span aria-hidden="true">{icon}</span>
+      <span>{label}</span>
+      {selected && <span aria-label="選択中">✓</span>}
+      {children}
+    </span>
+  )
+}
+export function ExtensionCard({
+  id,
+  extension,
+  title,
+  description,
+  toggle,
+  settings,
+}: {
+  id?: string
+  extension?: string
+  title: Child
+  description: Child
+  toggle: Child
+  settings?: Child
+}) {
+  return (
+    <article id={id} data-extension={extension} data-ui="extension-card">
+      <header>
+        <h3>{title}</h3>
+        {toggle}
+      </header>
+      <p>{description}</p>
+      {settings && <footer>{settings}</footer>}
+    </article>
+  )
+}
+export function Notice({
+  kind,
+  children,
+}: Content & { kind: 'success' | 'error' | 'info' }) {
+  return (
+    <div
+      data-ui="notice"
+      className={'banner-' + kind}
+      role={kind === 'error' ? 'alert' : 'status'}
+    >
+      {children}
+    </div>
+  )
+}
+export const EmptyState = ({ children }: Content) => (
+  <div data-ui="empty" className="empty-state">
+    {children}
+  </div>
+)
+export const LoadingState = ({ label = '読み込み中' }: { label?: string }) => (
+  <div data-ui="loading" role="status" aria-label={label}>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+)
+export function Message({
+  kind,
+  header,
+  children,
+}: Content & {
+  kind: 'inbound' | 'outbound' | 'note' | 'record'
+  header?: Child
+}) {
+  return (
+    <article data-ui="message" className={'message-' + kind}>
+      {header && <header>{header}</header>}
+      {children}
+    </article>
+  )
+}

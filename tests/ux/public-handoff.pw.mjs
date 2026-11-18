@@ -58,7 +58,10 @@ test('記事の評価後や検索で記事が見つからない場合にも問�
 }) => {
   await page.goto(scene.origin + '/help/articles/slide/')
   await page.getByLabel('記事を検索').fill('一致しない質問')
-  await page.getByRole('button', { name: '検索' }).click()
+  await expect(
+    page.getByRole('button', { name: '検索', exact: true }),
+  ).toHaveCount(0)
+  await page.waitForURL((url) => url.searchParams.has('q'))
   await expect(page.getByText('該当する記事はありません。')).toBeVisible()
   await page.getByRole('link', { name: 'お問い合わせ' }).click()
   await expect(page.getByLabel('お問い合わせ内容')).toBeVisible()
@@ -128,7 +131,10 @@ test('公開ヘルプの入口でプロダクトをまたいで記事を検索�
 }) => {
   await page.goto(scene.origin + '/help/')
   await page.getByLabel('すべてのヘルプ記事を検索').fill('領収書')
-  await page.getByRole('button', { name: '検索' }).click()
+  await expect(
+    page.getByRole('button', { name: '検索', exact: true }),
+  ).toHaveCount(0)
+  await page.waitForURL((url) => url.searchParams.has('q'))
   await page.getByRole('link', { name: '領収書を発行する' }).click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     '領収書を発行する',

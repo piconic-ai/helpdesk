@@ -5,7 +5,21 @@ const permitted = new WeakSet()
 
 function openDialog(dialog, trigger) {
   if (document.querySelector('dialog[open]')) return
-  dialog.addEventListener('close', () => trigger?.focus(), { once: true })
+  const previousPopover = trigger?.closest(':popover-open')
+  dialog.returnValue = ''
+  dialog.addEventListener(
+    'close',
+    () => {
+      if (
+        dialog.returnValue !== 'confirmed' &&
+        previousPopover?.isConnected &&
+        !previousPopover.matches(':popover-open')
+      )
+        previousPopover.showPopover()
+      trigger?.focus()
+    },
+    { once: true },
+  )
   dialog.showModal()
   dialog.querySelector('button')?.focus()
 }
@@ -16,7 +30,7 @@ function confirmAction(trigger, title, description, verb, commit) {
   const button = confirmation.querySelector('[data-commit]')
   button.textContent = verb
   button.onclick = () => {
-    confirmation.close()
+    confirmation.close('confirmed')
     commit()
   }
   openDialog(confirmation, trigger)
@@ -73,6 +87,11 @@ function submissionDetails(form, trigger) {
 function settingsConfirmation(action, form, trigger, label) {
   if (action === '/extensions/rules/remove')
     return [label, '選択した振り分けルール1件を削除します。']
+  if (form.elements.enabled?.value === 'yes' && form.dataset.permissions)
+    return [
+      trigger.getAttribute('aria-label'),
+      '使用する権限：' + form.dataset.permissions,
+    ]
   if (form.elements.enabled?.value === 'no')
     return [
       label,
@@ -213,7 +232,7 @@ document.addEventListener('keydown', (event) => {
   if (editing || event.metaKey || event.ctrlKey || event.altKey) return
   if (event.key === '?') openDialog(shortcuts, document.activeElement)
   if (event.key === 'u') {
-    document.querySelector('.thread-header .back-link')?.click()
+    document.querySelector('.thread-header > a')?.click()
     return
   }
   if (!composer) return
@@ -223,8 +242,13 @@ document.addEventListener('keydown', (event) => {
   }
 })
 function showShortcutHelp(trigger) {
+  const menu = trigger.closest('[popover]')
+  const opener =
+    menu && document.querySelector('[popovertarget="' + menu.id + '"]')
+  if (menu) menu.hidePopover()
+  const restore = opener || trigger
   const navigation = trigger.closest('#nav-drawer:modal')
-  if (!navigation) return openDialog(shortcuts, trigger)
+  if (!navigation) return openDialog(shortcuts, restore)
   navigation.addEventListener(
     'close',
     () => {
@@ -236,7 +260,7 @@ function showShortcutHelp(trigger) {
         },
         { once: true },
       )
-      openDialog(shortcuts, trigger)
+      openDialog(shortcuts, restore)
     },
     { once: true },
   )

@@ -10,12 +10,13 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   await page.getByRole('link', { name: new RegExp(inquiry) }).click()
   const panel = (id) => page.locator('[data-extension="' + id + '"]')
   const expand = async (id, label) => {
-    await panel(id).locator('summary').filter({ hasText: label }).click()
+    await panel(id).getByRole('button', { name: label, exact: true }).click()
   }
   await expand('canned', '定型文から下書きを作成')
   const templates = panel('canned').getByRole('combobox', { name: '定型文' })
   await templates.selectOption({ index: 0 })
   await panel('canned')
+    .locator('form')
     .getByRole('button', { name: '定型文から下書きを作成' })
     .click()
   const draft = page.getByRole('textbox', { name: '下書きの本文' })
@@ -32,6 +33,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     .getByLabel('再表示日時（日本時間）')
     .fill('2026-11-24T09:30')
   await panel('snooze')
+    .locator('form')
     .getByRole('button', { name: '指定日時まで保留' })
     .click()
   await expect(panel('snooze')).toContainText('2026年11月24日')
@@ -67,7 +69,10 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     '04-candidate',
     '同じ窓口・連絡先の会話を件名で選ぶ',
   )
-  await panel('merge').getByRole('button', { name: '会話を統合' }).click()
+  await panel('merge')
+    .locator('form')
+    .getByRole('button', { name: '会話を統合' })
+    .click()
   await confirmSubmission(page)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(target)
   const messages = page.locator('article')
@@ -81,10 +86,15 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     '05-merged',
     '統合先のスレッドに両方の問い合わせ本文が残る',
   )
+  const labels = page.getByRole('button', { name: /^ラベル:/ })
+  await labels.click()
   const inherited = page.getByRole('button', { name: '領収書を外す' })
   await inherited.click()
-  await expect.soft(inherited).toHaveCount(0)
+  await expect(labels).not.toContainText('領収書')
+  await labels.click()
+  await expect(inherited).toHaveCount(0)
   await expect(page.getByRole('button', { name: '経理を外す' })).toBeVisible()
+  await page.keyboard.press('Escape')
   await page.getByRole('link', { name: /^返信待ち/ }).click()
   const combined = page.getByRole('link', { name: new RegExp(target) })
   await expect.soft(combined).toContainText('Hello 山田 花')
@@ -108,9 +118,12 @@ test('保留の設定と解除は直前の状態へ戻せる', async ({ page, sc
   await page.goto(scene.origin + '/conversation/1')
   const panel = page.locator('[data-extension=snooze]')
   const defer = async () => {
-    await panel.locator('summary').click()
+    await panel.locator('[data-slot=popover-trigger]').click()
     await panel.getByLabel('再表示日時（日本時間）').fill('2026-11-24T09:30')
-    await panel.getByRole('button', { name: '指定日時まで保留' }).click()
+    await panel
+      .locator('form')
+      .getByRole('button', { name: '指定日時まで保留' })
+      .click()
   }
   const undo = () =>
     page.getByRole('button', { name: '元に戻す', exact: true }).click()

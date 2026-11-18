@@ -52,7 +52,7 @@ Turnstile を使う公開フォームには、シークレットのバインデ�
 | 別の拡張が公開した記事を使う | [chat](../../src/extensions/chat/extension.ts) と [articles](../../src/extensions/articles/extension-routes.ts) | 公開済みの記事だけを resource として渡す。記事や判断結果が足りないときは問い合わせに引き継ぐ |
 | 出来事に応じて送信する | [auto-ack](../../src/extensions/auto-ack/extension.ts) | `send` を宣言し、方針を有効にした管理者と送信のキーを指定する。再配送時に同じキーを使う |
 | 外部へ通知する | [notify](../../src/extensions/notify/extension.ts) | `external_fetch` と必要な secret binding を宣言する。本文を載せる場合にだけ `read_body` を使う |
-| 公開ページで回答を受ける | [survey](../../src/extensions/survey/extension-usecase.ts) | ランダムなトークンで対象を特定し、同一 Origin の POST で最初の回答を記録する |
+| 公開ページで回答を受ける | [survey](../../src/extensions/survey/extension-routes.ts) | ランダムなトークンで対象を特定し、同一 Origin の POST で最初の回答を記録する |
 | 一覧と受信の振り分けに関与する | [snooze](../../src/extensions/snooze/extension.ts) と [merge](../../src/extensions/merge/extension.ts) | 元の会話番号とメールの履歴を保持する。無効化すれば拡張のフックは呼ばれない |
 | 履歴から数値を求める | [metrics](../../src/extensions/metrics/calculate.ts) | 出来事の時刻と操作主体を純粋関数に渡し、例示データで計算を検証する |
 

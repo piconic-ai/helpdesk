@@ -1,5 +1,5 @@
 import { startScene } from '../ui/seed.mjs'
-import { test, expect } from './harness.mjs'
+import { test, expect, confirmSubmission } from './harness.mjs'
 test.use({ extensions: ['canned', 'rules'] })
 test('定型文・ルール・並べ替え・拡張有効化を結果から元に戻す', async ({
   page,
@@ -30,8 +30,9 @@ test('定型文・ルール・並べ替え・拡張有効化を結果から元�
   }
   await create('先に追加')
   await create('後から追加')
-  const rows = page.locator('.rule-list > li')
+  const rows = page.locator('[data-list=rules] li')
   await expect(rows.first()).toContainText('先に追加')
+  await rows.last().locator('summary').click()
   await rows.last().getByRole('button', { name: '上へ' }).click()
   await expect(rows.first()).toContainText('後から追加')
   await undo()
@@ -43,9 +44,11 @@ test('定型文・ルール・並べ替え・拡張有効化を結果から元�
   await expect(rows.first()).toContainText('先に追加')
   await page.goto(scene.origin + '/extensions')
   const card = page.locator('[data-extension="snooze"]')
-  await card.getByRole('button', { name: /有効にする/ }).click()
+  await card.getByRole('switch', { name: /有効にする/ }).click()
+  await expect(page.getByRole('dialog')).toContainText('使用する権限')
+  await confirmSubmission(page)
   await undo()
-  await expect(card.getByRole('button', { name: /有効にする/ })).toBeVisible()
+  await expect(card.getByRole('switch', { name: /有効にする/ })).toBeVisible()
 })
 
 const multiAdmin = test.extend({

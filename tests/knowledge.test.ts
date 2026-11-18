@@ -154,6 +154,10 @@ it('F12-AC1 through F12-AC5: published Markdown, search, drafts, candidate visib
     helpful: true,
     durationMs: expect.any(Number),
   })
+  const library = await (await read('/articles')).text()
+  expect(library).toContain('100%')
+  expect(library).toContain('評価なし')
+  expect(library).toMatch(/<time[^>]+datetime=/)
   const number = String(await receipt())
   await post('feedback.convert', { number })
   expect((await post('articles.attach', { number, id: 'secret' })).ok).toBe(

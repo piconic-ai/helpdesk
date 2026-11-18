@@ -4,6 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { startScene, fixedTime } from './seed.mjs'
 import { keyboardFlow, prepare } from './drive.mjs'
+import { compositionScreens } from './composition-screens.mjs'
 import { dailyScreens } from './daily-screens.mjs'
 import { screens } from './screens.mjs'
 
@@ -77,13 +78,20 @@ async function verifyViewport(browser, scene, origin, width) {
   }
 }
 
-const inventory = before ? screens : [...screens, ...dailyScreens]
+const inventory = before
+  ? screens
+  : [...screens, ...dailyScreens, ...compositionScreens]
 for (const [index, scene] of inventory.entries()) {
   test(scene.group + ' / ' + scene.label, async ({ browser }) => {
     const server = await startScene(scene.extensions, source, {
       emptyInbox: scene.emptyInbox,
       // The public URL is visible in installation guides and iframe snippets.
-      port: scene.id.startsWith('guide-') ? 23400 + index : 0,
+      port:
+        scene.id === 'issue-preview'
+          ? 23382
+          : scene.id.startsWith('guide-')
+            ? 23400 + index
+            : 0,
     })
     try {
       for (const width of [1440, 1024, 375])

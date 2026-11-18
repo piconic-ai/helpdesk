@@ -71,7 +71,7 @@ test('返信・内部メモ・承認待ちの編集を分け、送信を取り�
   const reply = page.getByRole('textbox', { name: '返信', exact: true })
   const note = page.getByRole('textbox', { name: '内部メモ', exact: true })
   await reply.fill('返信用の本文')
-  await page.getByRole('button', { name: '内部メモ', exact: true }).click()
+  await page.getByRole('tab', { name: '内部メモ', exact: true }).click()
   await note.fill('社内メモのみ')
   await page.goto(scene.origin + '/conversation/2')
   await page.goto(thread)
@@ -86,12 +86,12 @@ test('返信・内部メモ・承認待ちの編集を分け、送信を取り�
     .getByRole('button', { name: 'キャンセル' })
     .click()
   await expect(reply).toHaveValue('返信用の本文')
-  await page.getByRole('button', { name: '内部メモ', exact: true }).click()
+  await page.getByRole('tab', { name: '内部メモ', exact: true }).click()
   await expect(note).toHaveValue('社内メモのみ')
   await page.getByRole('button', { name: 'メモを残す' }).click()
   await expect(page.getByRole('status')).toContainText('メモを保存')
   await expect(reply).toHaveValue('返信用の本文')
-  await page.getByRole('button', { name: '内部メモ', exact: true }).click()
+  await page.getByRole('tab', { name: '内部メモ', exact: true }).click()
   await expect(note).toBeEmpty()
   await page.goto(scene.origin + '/?view=approval')
   await page.locator('a.conversation-row').first().click()
@@ -138,9 +138,9 @@ test('定型文の編集中の下書きと新規作成、振り分けルール�
 }) => {
   const templates = scene.origin + '/extensions/canned'
   await page.goto(templates)
-  const existing = page
-    .locator('details')
-    .filter({ has: page.getByText('お問い合わせの受付', { exact: true }) })
+  const existing = page.locator('details').filter({
+    has: page.locator('summary').filter({ hasText: 'お問い合わせの受付' }),
+  })
   await existing.locator('summary').click()
   await existing.getByLabel('定型文の本文').fill('過去の定型文を編集中')
   await page.getByLabel('定型文の表示名').last().fill('新しい文面')
@@ -161,4 +161,22 @@ test('定型文の編集中の下書きと新規作成、振り分けルール�
   await expect(rule.getByLabel('件名に含む言葉')).toHaveValue('請求')
   await rule.getByRole('button', { name: 'ルールを保存' }).click()
   await expect(rule.getByLabel('件名に含む言葉')).toBeEmpty()
+})
+
+test('フォームの取り消しは、そのフォームの下書きだけを破棄する', async ({
+  page,
+  scene,
+}) => {
+  const path = scene.origin + '/settings/mailboxes'
+  await page.goto(path)
+  const add = page
+    .locator('form')
+    .filter({ has: page.getByRole('button', { name: '窓口を登録' }) })
+  const sender = page.locator('form[action="/settings/senders/slide"]')
+  await add.getByLabel('プロダクト名').fill('残す窓口')
+  await sender.getByLabel('差出人名').fill('取り消す差出人')
+  await sender.getByRole('link', { name: '取り消し', exact: true }).click()
+  await page.goto(path)
+  await expect(sender.getByLabel('差出人名')).toHaveValue('Slide')
+  await expect(add.getByLabel('プロダクト名')).toHaveValue('残す窓口')
 })

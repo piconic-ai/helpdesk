@@ -80,7 +80,7 @@ test('一覧は最後の受信からの待ち時間で並び、種別と添付�
   await expect(page).toHaveURL(location)
   await expect(first.locator('.row-subject')).toHaveText(title)
   await first.click()
-  const back = page.locator('.thread-header .back-link')
+  const back = page.locator('.thread-header > a')
   await expect(back).toHaveAttribute(
     'href',
     new URL(location).pathname + new URL(location).search,

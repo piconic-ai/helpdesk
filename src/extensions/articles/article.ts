@@ -10,6 +10,7 @@ export const article = z.object({
   title: z.string().trim().min(1).max(200),
   body: z.string().min(1).max(100000),
   status: z.enum(['draft', 'published']),
+  updatedAt: z.number().int().nonnegative().optional(),
 })
 export const config = z.object({
   helpdeskOrigin: z

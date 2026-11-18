@@ -32,6 +32,11 @@ async function section(page, scene, before) {
   if (!before) {
     const panel = target.first().locator('details:not([open])').first()
     if (await panel.count()) await panel.locator(':scope > summary').click()
+    const trigger = target
+      .first()
+      .locator('[data-slot=popover-trigger]')
+      .first()
+    if (await trigger.count()) await trigger.click()
   }
 }
 
@@ -48,14 +53,14 @@ async function compose(page, mode, before) {
       await previous.locator('textarea').fill(note)
     } else {
       await form.locator('textarea:visible').fill(draft)
-      const memoTab = form.getByRole('button', {
+      const memoTab = form.getByRole('tab', {
         name: '内部メモ',
         exact: true,
       })
       await memoTab.click()
       assert.equal(await form.locator('textarea:visible').inputValue(), '')
       await form.locator('textarea:visible').fill(note)
-      await form.getByRole('button', { name: '返信', exact: true }).click()
+      await form.getByRole('tab', { name: '返信', exact: true }).click()
       assert.equal(await form.locator('textarea:visible').inputValue(), draft)
       await memoTab.click()
       assert.equal(await form.locator('textarea:visible').inputValue(), note)
@@ -205,7 +210,45 @@ async function invalidMailbox(page, before) {
   await form.locator('button').click()
   if (!before) assert.equal(await address.getAttribute('aria-invalid'), 'true')
 }
+async function operationDocument(page, action) {
+  const command =
+    action === 'issue-preview' ? 'issues.preview' : 'metrics.report'
+  const fields =
+    action === 'issue-preview'
+      ? {
+          number: '1',
+          summary: '請求書の宛名を変更すると確認画面が開きません。',
+        }
+      : { product: 'slide', from: '1792281600000', to: '1794960000000' }
+  const response = page.waitForResponse(
+    (r) =>
+      r.url().endsWith('/actions/' + command) &&
+      r.request().method() === 'POST',
+  )
+  await page.evaluate(
+    ({ command, fields }) => {
+      const form = document.createElement('form')
+      form.method = 'post'
+      form.action = '/actions/' + command
+      for (const [name, value] of Object.entries(fields)) {
+        const field = document.createElement('input')
+        Object.assign(field, { type: 'hidden', name, value })
+        form.append(field)
+      }
+      document.body.append(form)
+      form.submit()
+    },
+    { command, fields },
+  )
+  assert.equal((await response).status(), 200)
+  await page.waitForURL('**/actions/' + command)
+}
+
 async function takeAction(page, action, before) {
+  if (action === 'issue-preview' || action === 'operation-result')
+    await operationDocument(page, action)
+  if (action === 'article-preview')
+    await page.getByRole('button', { name: 'プレビュー', exact: true }).click()
   if (action === 'invalid') await invalidMailbox(page, before)
   if (action === 'forget') await prepareForget(page, before)
   if (action === 'vote' || action === 'survey')
@@ -217,7 +260,13 @@ async function takeAction(page, action, before) {
         : 'form[action="/metrics"]',
     )
     await reveal(form)
-    await form.locator('button').click()
+    if (before) await form.locator('button').click()
+    else {
+      await form.locator('select[name=period]').selectOption('7')
+      await page.waitForURL((url) => url.searchParams.get('period') === '7')
+      await form.locator('select[name=period]').selectOption('30')
+      await page.waitForURL((url) => url.searchParams.get('period') !== '7')
+    }
   }
 }
 
@@ -243,7 +292,6 @@ async function observeLoading(page) {
 }
 
 async function pendingSearch(page, before) {
-  await page.locator('input[name=query]').fill('領収書')
   const held = Promise.withResolvers()
   const intercepted = Promise.withResolvers()
   await page.route('**/?*', async (route) => {
@@ -252,10 +300,14 @@ async function pendingSearch(page, before) {
     await route.continue()
   })
   const seen = before ? undefined : await observeLoading(page)
-  const click = page
-    .locator('form.filters')
-    .getByRole('button', { name: '検索', exact: true })
-    .click({ noWaitAfter: true })
+  const field = page.locator('input[name=query]')
+  await field.fill('領収書')
+  const click = before
+    ? page
+        .locator('form.filters')
+        .getByRole('button', { name: '検索', exact: true })
+        .click({ noWaitAfter: true })
+    : Promise.resolve()
   await intercepted.promise
   if (seen)
     assertAudit(

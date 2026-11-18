@@ -1,3 +1,7 @@
+import { listRows, type ListWindow } from '../ui/listing'
+import { PanelForm } from '../ui/admin'
+import { FormSection } from '../ui/patterns'
+import { Button, NativeSelect } from '../ui/controls'
 import {
   readExtensionSettings,
   editExtensionSetting,
@@ -24,7 +28,10 @@ import { extensionContext } from '../core/extensions/context-usecase'
 import { invoke } from '../core/operations/runtime-usecase'
 import { panels } from '../core/extensions/registry-usecase'
 import { extensionPanels } from '../core/extensions/extensions-page'
-import { publicGuides } from '../core/extensions/extension-guides'
+import {
+  publicGuides,
+  permissionText,
+} from '../core/extensions/extension-guides'
 import { library } from '../extensions/articles/articles-usecase'
 import { article, articleKey, publicPath } from '../extensions/articles/article'
 import { repository } from '../extensions/issues/issues'
@@ -59,14 +66,21 @@ function active(c: RequestContext, id: string) {
   return item && extensionContext(context(c), item)
 }
 const frame = (c: RequestContext) =>
-  consoleFrame(c.env, c.get('operator'), c.req.path)
+  consoleFrame(c.env, c.get('operator'), c.req.path, {
+    q: c.req.query('q') ?? '',
+    filter: c.req.query('filter') ?? '',
+    sort: c.req.query('sort') ?? '',
+    page: c.req.query('page') ?? '',
+  })
 const key = (product: string, id: string) =>
   '/articles/edit?' + new URLSearchParams({ product, id })
 app.get('/articles', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
   const data = await library(api)
-  return c.render(libraryPage(await frame(c), data.articles, data.candidates))
+  return c.render(
+    libraryPage(await frame(c), data.articles, data.candidates, c.req.query()),
+  )
 })
 app.get('/articles/new', async (c) =>
   active(c, 'articles')
@@ -293,29 +307,47 @@ app.get('/extensions/:id', async (c) => {
   const ctx = context(c)
   authorize(ctx, 'admin', scopes)
   const id = c.req.param('id')
-  const api = active(c, id)
-  if (!api) return c.notFound()
+  const installed = c.env.EXTENSIONS?.active.find(
+    (item) => item.extension.id === id,
+  )
+  if (!installed) return c.notFound()
+  const api = extensionContext(ctx, installed)
   const state = await frame(c)
   const portals = await guidePortals(c, id, api, state.products)
   const sections =
     id === 'export'
       ? (await panels(ctx, scopes, 'settings')).filter((p) => p.id === id)
       : []
+  let list: ListWindow | undefined
   let content = extensionPanels(sections)
   if (id === 'canned' || id === 'rules') {
     const { rows, versions } = await readExtensionSettings(c.env.DB, id)
-    content =
-      id === 'canned'
-        ? cannedSettings(templatesFromSettings(api.config, rows), versions)
-        : rulesSettings(
-            state,
-            rulesFromSettings(
-              api.config,
-              rows,
-              rows.find((row) => row.key === 'order')?.value,
-            ),
-            versions,
-          )
+    if (id === 'canned') {
+      const templates = templatesFromSettings(api.config, rows)
+      const window = listRows([...templates], state.query, ([, t]) => ({
+        text: t.name + ' ' + t.body,
+      }))
+      list = window
+      content = cannedSettings(
+        new Map(window.rows),
+        versions,
+        templates.size > 0,
+      )
+    } else {
+      const rules = rulesFromSettings(
+        api.config,
+        rows,
+        rows.find((row) => row.key === 'order')?.value,
+      )
+      const ordered = rules.map((item, index) => ({ ...item, index }))
+      const window = listRows(ordered, state.query, ({ rule }) => ({
+        text: [rule.subjectContains, rule.label, rule.assignee, rule.product]
+          .filter(Boolean)
+          .join(' '),
+      }))
+      list = window
+      content = rulesSettings(state, window.rows, versions, rules.length)
+    }
   }
   return c.render(
     guidePage(
@@ -326,6 +358,8 @@ app.get('/extensions/:id', async (c) => {
       guideNotice(id, c.req.query()),
       z.uuid().safeParse(c.req.query('undo')).data,
       ['conflict', 'outdated'].includes(c.req.query('publicSettings') ?? ''),
+      permissionText(installed.extension.permissions),
+      list,
     ),
   )
 })
@@ -479,26 +513,27 @@ app.get('/extensions/issues/link/:number', async (c) => {
   const { repo, origin } = await issueDestination(api, product)
   const choices = await issueChoices(api, repo)
   const view = choices.length ? (
-    <form
-      className="settings-card"
-      method="post"
-      action="/actions/issues.link"
-      data-repo={repo}
-      data-backlink={origin + '/conversation/' + number}
-    >
-      <input type="hidden" name="number" value={number} />
-      <label>
-        Issue
-        <select name="issue">
-          {choices.map((i) => (
-            <option value={i.number}>
-              {i.title} (#{i.number})
-            </option>
-          ))}
-        </select>
-      </label>
-      <button>既存の Issue と紐づける</button>
-    </form>
+    <FormSection title="Issue の選択">
+      <PanelForm
+        method="post"
+        action="/actions/issues.link"
+        data-repo={repo}
+        data-backlink={origin + '/conversation/' + number}
+      >
+        <input type="hidden" name="number" value={number} />
+        <label>
+          Issue
+          <NativeSelect name="issue">
+            {choices.map((i) => (
+              <option value={i.number}>
+                {i.title} (#{i.number})
+              </option>
+            ))}
+          </NativeSelect>
+        </label>
+        <Button>既存の Issue と紐づける</Button>
+      </PanelForm>
+    </FormSection>
   ) : (
     <p>このリポジトリには Issue がありません。</p>
   )

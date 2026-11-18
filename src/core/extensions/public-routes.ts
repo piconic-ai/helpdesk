@@ -65,10 +65,16 @@ app.all('/help/:id/:product/:path{.*}?', async (c) => {
     new URL(c.req.url).origin,
     info?.mailbox,
   )
-  c.header('Content-Security-Policy', publicPolicy(origins))
+  const search =
+    id === 'articles' && method === 'GET' && !path?.replaceAll('/', '')
+  c.header(
+    'Content-Security-Policy',
+    publicPolicy(origins) + (search ? "; script-src 'self'" : ''),
+  )
   return c.html(
     publicDocument(info ?? { name: product, mailbox: null }, page, {
       contact,
+      search,
     }),
     page.status ?? 200,
   )

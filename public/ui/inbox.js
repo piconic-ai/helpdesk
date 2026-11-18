@@ -3,7 +3,7 @@
   if (!operator) return
   const key = 'inbox-change:' + operator
   const pageKey = location.pathname + location.search
-  const inbox = document.querySelector('.inbox-view')
+  const inbox = document.querySelector('[data-inbox-view]')
   const bar = inbox?.querySelector('.inbox-bulk')
   const boxes = [...document.querySelectorAll('.row-select input')]
   const selected = () =>
@@ -144,12 +144,6 @@
   restoreReceipt()
   if (!inbox) return
   for (const box of boxes) box.addEventListener('change', refresh)
-  inbox.querySelector('[data-sort]').addEventListener('change', (event) => {
-    const url = new URL(location.href)
-    url.searchParams.set('sort', event.target.value)
-    url.searchParams.delete('page')
-    location.assign(url)
-  })
   function quick(button) {
     const id = Number(button.closest('[data-number]').dataset.number)
     perform(fieldChange(button.dataset.quick, [id], operator))
@@ -157,9 +151,8 @@
   function chooseFilter(button) {
     const form = button.form
     form.elements.assignee.value = button.dataset.filterAssignee
-    form.querySelector('[data-filter-name]').textContent =
-      button.dataset.label ?? button.textContent.trim()
     button.closest('[popover]').hidePopover()
+    form.elements.assignee.dispatchEvent(new Event('change', { bubbles: true }))
   }
   inbox.addEventListener('click', (event) => {
     const button = event.target.closest('button')
@@ -175,27 +168,6 @@
         fieldChange(button.dataset.change, selected(), button.dataset.value),
       )
   })
-  for (const trigger of inbox.querySelectorAll('[popovertarget]')) {
-    const panel = trigger.popoverTargetElement
-    panel?.addEventListener('toggle', () => {
-      if (!panel.matches(':popover-open')) return
-      const r = trigger.getBoundingClientRect()
-      const gap =
-        parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue(
-            '--spacing-xxs',
-          ),
-        ) || 4
-      panel.style.left =
-        Math.max(gap, Math.min(r.left, innerWidth - panel.offsetWidth - gap)) +
-        'px'
-      const below = r.bottom + gap
-      panel.style.top =
-        (below + panel.offsetHeight < innerHeight
-          ? below
-          : Math.max(gap, r.top - panel.offsetHeight - gap)) + 'px'
-    })
-  }
   const links = [...inbox.querySelectorAll('a.conversation-row')]
   function isListShortcut(event) {
     return (

@@ -107,10 +107,9 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
     page.getByRole('combobox', { name: '期間', exact: true }),
   ).toHaveValue('30')
   const closed = page
-    .locator('dt')
-    .filter({ hasText: '完了件数' })
+    .getByText('完了件数', { exact: true })
     .locator('..')
-    .locator('dd.metric-number')
+    .locator('strong')
   await expect(closed).toHaveText('1')
   await capture(page, 'J10', '01-month', '過去30日の集計')
   await page
@@ -119,17 +118,11 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
   await page
     .getByRole('combobox', { name: '期間', exact: true })
     .selectOption({ label: '過去7日' })
-  await page.getByRole('button', { name: '集計する' }).click()
+  await expect(page.getByRole('button', { name: '集計する' })).toHaveCount(0)
   await expect(
     page.getByRole('combobox', { name: '期間', exact: true }),
   ).toHaveValue('7')
-  await expect(
-    page
-      .locator('dt')
-      .filter({ hasText: '完了件数' })
-      .locator('..')
-      .locator('dd.metric-number'),
-  ).toHaveText('0')
+  await expect(closed).toHaveText('0')
   await capture(page, 'J10', '02-product', '選択したプロダクトの過去7日間')
   await page
     .getByRole('combobox', { name: '期間', exact: true })
@@ -137,9 +130,10 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
   await page
     .getByRole('combobox', { name: 'プロダクト', exact: true })
     .selectOption({ label: 'Slide' })
+  await page.getByRole('button', { name: '日付の範囲' }).click()
   await page.getByLabel('開始日').fill('2026-11-01')
   await page.getByLabel('終了日').fill('2026-11-15')
-  await page.getByRole('button', { name: '集計する' }).click()
+  await expect(page).toHaveURL(/end=2026-11-15/)
   await expect(page.getByLabel('開始日')).toHaveValue('2026-11-01')
   await expect(page.getByLabel('終了日')).toHaveValue('2026-11-15')
   await expect(closed).toHaveText('1')

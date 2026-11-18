@@ -1,3 +1,4 @@
+import { listTokens } from '../operators/tokens-usecase'
 import {
   undoExtensionSetting,
   activationNamespace,
@@ -30,7 +31,7 @@ import {
   sendingDomains,
 } from '../settings/console-settings-usecase'
 import { enableHostedIntake } from '../intakes/hosted-policy-usecase'
-import { returnInbox } from '../conversations/inbox-location'
+import { inboxStatus, returnInbox } from '../conversations/inbox-location'
 import { operatorErrorPage } from '../conversations/console-page'
 import { readHtml, download } from '../conversations/media-usecase'
 import { recordView } from '../extensions/view-usecase'
@@ -94,8 +95,7 @@ app.get('/', async (c) => {
     query = c.req.query()
   const isFeedback = query.view === 'feedback'
   const isApproval = query.view === 'approval'
-  const status =
-    query.status || (isFeedback ? 'received' : isApproval ? 'all' : 'open')
+  const status = inboxStatus(query)
   const [listed, failures, frame] = await Promise.all([
     run(ctx, 'list', { ...query, status }),
     run(ctx, 'failures', {}),
@@ -133,12 +133,15 @@ app.post('/inbox/:command{change|undo}', async (c) => {
 app.get('/settings', async (c) => {
   const ctx = context(c)
   authorize(ctx, 'admin', scopes)
-  return c.render(
-    settingsPage(
-      (await run(ctx, 'doctor', {})).issues,
-      await consoleFrame(c.env, ctx.operator, c.req.path),
-    ),
-  )
+  const [doctor, frame, settings, tokens] = await Promise.all([
+    run(ctx, 'doctor', {}),
+    consoleFrame(c.env, ctx.operator, c.req.path, {
+      q: c.req.query('q') ?? '',
+    }),
+    run(ctx, 'settings', {}),
+    listTokens(c.env, ctx.operator.email),
+  ])
+  return c.render(settingsPage(doctor.issues, frame, settings, tokens.length))
 })
 app.get(
   '/settings/:section{mailboxes|operators|retention|deletion}',
@@ -152,7 +155,7 @@ app.get(
         data,
         sendingDomains(c.env.SENDING_DOMAINS),
         section === 'deletion' ? await settingsContacts(ctx) : [],
-        await consoleFrame(c.env, ctx.operator, c.req.path),
+        await consoleFrame(c.env, ctx.operator, c.req.path, c.req.query()),
         c.req.query('saved'),
       ),
     )
@@ -247,7 +250,10 @@ app.get('/extensions', async (c) => {
   return c.render(
     managementPage(
       await management(ctx),
-      await consoleFrame(c.env, ctx.operator, c.req.path),
+      await consoleFrame(c.env, ctx.operator, c.req.path, {
+        q: c.req.query('q') ?? '',
+        filter: c.req.query('filter') ?? '',
+      }),
       c.req.query('changed'),
       z.uuid().safeParse(c.req.query('undo')).data,
       c.req.query('restored'),

@@ -124,9 +124,7 @@ test('J9 窓口を作成し、拡張の案内から新プロダクトの公開�
 }) => {
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  await page
-    .getByRole('link', { name: 'プロダクトと窓口', exact: true })
-    .click()
+  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
   await page.getByLabel('プロダクト名', { exact: true }).fill('Catalog')
   await page.getByLabel('窓口アドレスの先頭').first().fill('catalog')
   await page
@@ -138,8 +136,10 @@ test('J9 窓口を作成し、拡張の案内から新プロダクトの公開�
   await capture(page, 'J9', '01-mailbox', 'プロダクトと送信窓口を登録')
   await page.getByRole('link', { name: '拡張の管理', exact: true }).click()
   const card = page.locator('[data-extension=form]')
-  await card.getByRole('button', { name: /有効にする/ }).click()
-  await card.getByRole('link', { name: /設定・使い始め方/ }).click()
+  await card.getByRole('switch', { name: /有効にする/ }).click()
+  await expect(page.getByRole('dialog')).toContainText('使用する権限')
+  await confirmSubmission(page)
+  await card.getByRole('link', { name: '設定' }).click()
   const product = page
     .locator('section')
     .filter({
@@ -174,9 +174,7 @@ test('J11 候補から相手を選び、確認して会話を削除する', asyn
 }) => {
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  await page
-    .getByRole('link', { name: '連絡先のデータ削除', exact: true })
-    .click()
+  await page.getByRole('link', { name: /^連絡先のデータ削除/ }).click()
   const contacts = page.getByRole('combobox', { name: '削除する相手' })
   const label = await contacts
     .getByRole('option', { name: /customer7@example.net/ })
@@ -210,17 +208,28 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
 }) => {
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  await page.getByRole('link', { name: '運営者', exact: true }).click()
+  await page.getByRole('link', { name: /^運営者/ }).click()
+  await page
+    .locator('details')
+    .filter({ has: page.locator('section[aria-label="sato@example.com"]') })
+    .locator('summary')
+    .click()
   const owner = page.getByRole('region', { name: 'sato@example.com' })
   await expect(owner).toContainText('最後の管理者です。')
   await expect(owner.getByRole('combobox', { name: '権限' })).toHaveCount(0)
+  const editor = page
+    .locator('details')
+    .filter({ has: page.locator('section[aria-label="mori@example.com"]') })
+  await editor.locator('summary').click()
   const operator = page.getByRole('region', { name: 'mori@example.com' })
   await operator.getByLabel('表示名').fill('森 直子')
   await operator.getByLabel('権限').selectOption({ label: '管理者' })
   await operator.getByRole('button', { name: '運営者を保存' }).click()
+  await editor.locator('summary').click()
   await expect(operator.getByRole('heading')).toHaveText('森 直子')
   await expect(operator.getByLabel('権限')).toHaveValue('admin')
   await page.reload()
+  await editor.locator('summary').click()
   await expect(operator.getByRole('heading')).toHaveText('森 直子')
   await capture(
     page,
@@ -229,9 +238,7 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
     '運営者の表示名と権限を変更して再読み込みで確認',
   )
   await page.getByRole('link', { name: '設定に戻る' }).click()
-  await page
-    .getByRole('link', { name: 'プロダクトと窓口', exact: true })
-    .click()
+  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
   const form = page
     .locator('form')
     .filter({ has: page.getByRole('button', { name: '窓口を登録' }) })

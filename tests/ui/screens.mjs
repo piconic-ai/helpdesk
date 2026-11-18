@@ -203,7 +203,7 @@ export const screens = [
     beforeUrl: '/settings',
     before: 'section',
     beforeHeading: 'Operators',
-    after: '#operators',
+    after: null,
   }),
   screen(
     '設定',

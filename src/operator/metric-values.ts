@@ -27,7 +27,12 @@ export function difference(
   current: number | null,
   previous: number | null,
 ) {
-  if (current === null || previous === null) return '比較データなし'
+  if (current === null && previous === null)
+    return '両期間にこの指標の対象データがありません。'
+  if (current === null)
+    return '選択した期間にこの指標の対象データがありません。'
+  if (previous === null)
+    return '直前の同じ期間にこの指標の対象データがありません。'
   const delta = current - previous
   if (!delta) return '変化なし'
   const magnitude =

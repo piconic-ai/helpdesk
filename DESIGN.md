@@ -105,6 +105,8 @@ layout:
   confirmation-duration: 5s
 
 components:
+  switch:
+    padding: 2px
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
@@ -376,7 +378,7 @@ Nothing else casts a shadow. No gradients, no glass, no dark surfaces.
 **`conversation-row`** — Two lines, 64px, hairline below.
 
 - Line 1: sender name (`body-strong` if unread, else `body`), then subject truncated with an ellipsis, then right-aligned time in `caption` `{colors.muted}`.
-- Line 2: `#123` in `code` `{colors.muted}`, a one-line body preview in `{colors.muted}`, then right-aligned: label chips (max 2, then "+n"), status badge, assignee avatar.
+- Line 2: `#123` in `code` `{colors.muted}`, a one-line body preview in `{colors.muted}`, then label chips (max 2, then "+n") and indicators; the assignee avatar is right-aligned. Show the status only in mixed-status views.
 - The two-line content is one link; selection and quick-action buttons are adjacent controls. Hover fills `{colors.surface-soft}`. Selected uses `conversation-row-selected`.
 - A row with a failed send shows `delivery-failed` in place of the preview's trailing space. This is the one place a red element may appear in the list.
 
@@ -480,3 +482,13 @@ Touch targets are at least 44px on <768px. Every interactive element has a visib
 - Use a native modal dialog for an irreversible action or an outbound submission. Name the recipient, object or quantity, focus the first safe action, and restore focus on dismissal. Never nest dialogs. Use an inline result with an undo action for reversible triage.
 - Keep context in a labelled side panel alongside the timeline. On small screens provide the same content in reading order. Keep assignment, status and labels with the conversation heading, and insert dated changes next to the messages they affected.
 - List shortcuts are j, k, Enter, e and a. In a conversation use r for reply, n for note, Cmd/Ctrl+Enter to submit, and u for the inbox. The ? dialog lists the shortcuts. Ignore character shortcuts while editing and during IME composition.
+
+## Page composition
+
+Every operator and public screen uses a list, detail, edit, or overview template. A page supplies its title, actions and content to the template. The heading and content share a left edge. A list places its search and removable filters above its rows. A detail keeps the reading column within 760px and moves the context panel below the body when space is limited. An edit uses a single form column of at most 560px with save and cancel together. An overview places a compact filter strip above a grid of cards.
+
+Use the BarefootJS button, input, native select, popover, dialog, menu, tabs and tooltip conventions for controls. Shared components own presentation. Setting rows are full-width links with a title, explanation, current value and directional indicator. Each metric card keeps the value with its period change and definition. Extension cards put the availability switch opposite the title, with settings below. The confirmation and settings views explain access permissions. Cards share the settings-card inset. The component gallery at `/dev/ui` is available in local development.
+
+Align the inbox checkbox with the middle of the row. Place the sender before the subject and use a subdued chip for the product. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation beside the heading.
+
+Use the focus ring on keyboard focus and a distinct hover, pressed and disabled appearance on controls. Fade the screen and popovers over 150ms without translating the content. Respect reduced motion. In the operator console, use navigation rows or buttons for destinations; reserve underlined links for running text. Group secondary commands in a menu.

@@ -1,3 +1,16 @@
+import type { Permission } from './extension'
+const permissionLabels: Record<Permission, string> = {
+  read_body: '問い合わせ本文の閲覧',
+  send: 'メール送信',
+  external_fetch: '外部サービスへの接続',
+}
+export function permissionText(permissions: Permission[]) {
+  return (
+    permissions.map((p) => permissionLabels[p]).join('、') ||
+    '追加の権限はありません'
+  )
+}
+
 export const guides: Record<string, { description: string; start: string }> = {
   articles: {
     description: '回答をヘルプ記事にまとめ、公開・検索できます。',

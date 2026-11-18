@@ -32,9 +32,10 @@ test('J14 表示名とアイコンを保存し、担当・メモ・記録から�
     '保存した表示名と正方形の画像を確認する',
   )
   await page.goto(scene.origin + '/conversation/1')
-  await page.getByRole('button', { name: '自分が担当する' }).click()
-  await expect(page.locator('.thread-meta img')).toBeVisible()
-  await page.getByRole('button', { name: '内部メモ', exact: true }).click()
+  await page.getByRole('button', { name: /担当: 担当なし/ }).click()
+  await page.getByRole('button', { name: '青木 ゆり', exact: true }).click()
+  await expect(page.locator('[data-ui=attributes] img')).toBeVisible()
+  await page.getByRole('tab', { name: '内部メモ', exact: true }).click()
   await page.getByRole('textbox', { name: '内部メモ' }).fill('確認中です。')
   await page.getByRole('button', { name: 'メモを残す' }).click()
   const note = page.locator('.message-note').filter({ hasText: '確認中です。' })
@@ -58,7 +59,7 @@ test('J14 表示名とアイコンを保存し、担当・メモ・記録から�
     .filter({ hasText: '領収書の宛名' })
   await expect(row.getByRole('img', { name: /青木 ゆり/ })).toBeVisible()
   await capture(page, 'J14', '03-inbox', '一覧でも同じ担当者の画像を確認する')
-  await page.locator('.filters summary').click()
+  await page.getByRole('button', { name: '絞り込み', exact: true }).click()
   await page.getByRole('button', { name: /^担当者 すべて$/ }).click()
   const candidate = page
     .locator('#filter-assignee')

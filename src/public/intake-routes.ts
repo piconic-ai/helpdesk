@@ -14,6 +14,7 @@ import {
 } from '../extensions/chat/extension'
 import {
   intakePage,
+  intakeUnavailable,
   matchingArticles,
   receiptPage,
   type Fields,
@@ -137,14 +138,7 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
     'Content-Security-Policy',
     await intakeCsp(c.env.DB, product, kind, policy),
   )
-  if (!acceptsHostedSubmissions(policy))
-    return render(
-      {
-        title: '受付を一時停止しています',
-        html: '<h1>受付を一時停止しています</h1><p>しばらくしてから、もう一度お試しください。</p>',
-      },
-      503,
-    )
+  if (!acceptsHostedSubmissions(policy)) return render(intakeUnavailable(), 503)
   if (c.req.method === 'GET') return render(intakePage(kind, policy))
   if (c.req.header('origin') !== origin)
     return render(

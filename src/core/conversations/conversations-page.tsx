@@ -2,7 +2,26 @@ import { threadUrl } from './inbox-location'
 import { timelineChange } from './timeline'
 import { ReplyComposer } from '@/components/ReplyComposer'
 import type { Child } from 'hono/jsx'
-import { html, raw } from 'hono/html'
+import { ActionMenu, Popover, ActionLink, Input } from '../../ui/controls'
+import {
+  DetailPage,
+  FormSection,
+  AttributeRow,
+  ActionBar,
+  Message,
+  Notice,
+} from '../../ui/patterns'
+import {
+  AttachmentList,
+  MessageAuthor,
+  MessageText,
+  StepLink,
+  ThreadPanel,
+  ThreadTimeline,
+  TimelineEntry,
+} from '../../ui/thread-parts'
+import { Delivery } from '../../ui/inbox-parts'
+import { adjacentOpen } from './inbox-location'
 import { actorIdentity } from '../operators/identity-page'
 import { actorSchema } from './state'
 import type {
@@ -48,29 +67,29 @@ function message(
   const label =
     m.kind === 'inbound' ? name : m.kind === 'note' ? noteLabel : '返信'
   return (
-    <article className={'message-' + m.kind}>
-      <header className="message-header">
-        <h2>{label}</h2>
-        {stamp(m.created_at, now)}
-      </header>
-      <div className="message-author">
+    <Message
+      kind={m.kind}
+      header={
+        <>
+          <h2>{label}</h2>
+          {stamp(m.created_at, now)}
+        </>
+      }
+    >
+      <MessageAuthor>
         {m.kind === 'inbound' ? (
           <code>{c.contact}</code>
         ) : (
           <span>{actorIdentity(m.actor, names)}</span>
         )}
         {m.delivery && (
-          <span className={'delivery-' + m.delivery.replaceAll('_', '-')}>
-            {deliveries[m.delivery]}
-          </span>
+          <Delivery state={m.delivery}>{deliveries[m.delivery]}</Delivery>
         )}
-      </div>
-      {m.body && (!draft || !canSend) && (
-        <p className="message-body">{m.body}</p>
-      )}
+      </MessageAuthor>
+      {m.body && (!draft || !canSend) && <MessageText>{m.body}</MessageText>}
       {m.html && (
         <>
-          <p className="mail-privacy">外部の画像は非表示です。</p>
+          <p>外部の画像は非表示です。</p>
           <iframe
             sandbox=""
             title="HTML メール"
@@ -79,24 +98,24 @@ function message(
         </>
       )}
       {attachmentList(files)}
-      {m.reason && <p className="banner-error">{m.reason}</p>}
+      {m.reason && <Notice kind="error">{m.reason}</Notice>}
       {canSend &&
         m.delivery === 'failed' &&
         !data.uncertain.includes(m.id) &&
         action(
           'retry',
           '再送',
-          <input type="hidden" name="id" value={m.id} />,
+          <Input type="hidden" name="id" value={m.id} />,
           c.number,
         )}
       {draft && draftReview(m.id, c.number, m.body || '', canSend)}
-    </article>
+    </Message>
   )
 }
 function attachmentList(files: Files) {
   if (!files.length) return null
   return (
-    <ul className="attachments">
+    <AttachmentList>
       {files.map((f) => (
         <li>
           <a
@@ -108,7 +127,7 @@ function attachmentList(files: Files) {
           {f.size !== undefined && <small>{fileSize(f.size)}</small>}
         </li>
       ))}
-    </ul>
+    </AttachmentList>
   )
 }
 function fileSize(bytes: number) {
@@ -120,7 +139,7 @@ function changeStatus(number: number, event: string, label: string) {
   return action(
     'status',
     label,
-    <input type="hidden" name="event" value={event} />,
+    <Input type="hidden" name="event" value={event} />,
     number,
   )
 }
@@ -128,24 +147,39 @@ function threadActions(c: Details['conversation']) {
   if (c.kind !== 'inquiry') return null
   const state = c.status.kind
   return (
-    <div className="page-actions">
+    <>
       {(state === 'open' || state === 'pending') &&
         changeStatus(c.number, 'closed', '完了にする')}
       {state === 'closed' && changeStatus(c.number, 'reopened', '再開する')}
       {state === 'spam' &&
         changeStatus(c.number, 'unmarked_spam', '迷惑メールを解除')}
-      <details className="action-menu">
-        <summary className="button-secondary">その他の操作</summary>
-        <div>
-          <div data-extension-commands=""></div>
-          <a href="#related-info">会話の関連情報</a>
-          {state === 'pending' &&
-            changeStatus(c.number, 'reopened', '未対応に戻す')}
-          {state !== 'spam' &&
-            changeStatus(c.number, 'marked_spam', '迷惑メールにする')}
-        </div>
-      </details>
-    </div>
+      <ActionMenu id="thread-actions" label="その他の操作">
+        <div data-extension-commands=""></div>
+        <ActionLink variant="ghost" href="#related-info">
+          会話の関連情報
+        </ActionLink>
+        {state === 'pending' &&
+          changeStatus(c.number, 'reopened', '未対応に戻す')}
+        {state !== 'spam' &&
+          changeStatus(c.number, 'marked_spam', '迷惑メールにする')}
+      </ActionMenu>
+    </>
+  )
+}
+function statusPicker(c: Details['conversation']) {
+  const current = c.status.kind
+  if (c.kind !== 'inquiry') return badge(current)
+  return (
+    <Popover id="thread-status" label={badge(current)}>
+      <p>現在の状態 · {badge(current)}</p>
+      {(current === 'open' || current === 'pending') &&
+        changeStatus(c.number, 'closed', '完了にする')}
+      {(current === 'closed' || current === 'pending') &&
+        changeStatus(c.number, 'reopened', '未対応に戻す')}
+      {current === 'spam'
+        ? changeStatus(c.number, 'unmarked_spam', '迷惑メールを解除')
+        : changeStatus(c.number, 'marked_spam', '迷惑メールにする')}
+    </Popover>
   )
 }
 const eventLabels: Record<string, string> = {
@@ -180,43 +214,36 @@ function threadContext(
   names: Names,
 ) {
   return (
-    <aside
-      className="context-panel"
-      id="related-info"
-      aria-label="会話の関連情報"
-    >
-      <div className="context-cards">
-        {panels}
-        <section className="settings-card">
-          <h2>この相手の問い合わせ</h2>
-          {data.history.length ? (
-            data.history.map((r) => (
-              <p>
-                <a href={'/conversation/' + r.number}>
-                  <code>#{r.number}</code> {r.subject}
-                </a>
-              </p>
-            ))
-          ) : (
-            <p>ほかの問い合わせはありません。</p>
-          )}
-        </section>
-        <details className="settings-card">
-          <summary>操作履歴</summary>
-          <ul>
-            {data.events.map((e) => (
-              <li>
-                {stamp(e.at, now)}
-                <span>
-                  {' '}
-                  {eventLabels[e.kind] ?? e.kind} · {eventActor(e.actor, names)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      </div>
-    </aside>
+    <ThreadPanel>
+      {panels}
+      <FormSection title="この相手の問い合わせ">
+        {data.history.length ? (
+          data.history.map((r) => (
+            <p>
+              <ActionLink variant="ghost" href={'/conversation/' + r.number}>
+                <code>#{r.number}</code> {r.subject}
+              </ActionLink>
+            </p>
+          ))
+        ) : (
+          <p>ほかの問い合わせはありません。</p>
+        )}
+      </FormSection>
+      <details>
+        <summary>操作履歴</summary>
+        <ul>
+          {data.events.map((e) => (
+            <li>
+              {stamp(e.at, now)}
+              <span>
+                {' '}
+                {eventLabels[e.kind] ?? e.kind} · {eventActor(e.actor, names)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </ThreadPanel>
   )
 }
 export function conversationPage(
@@ -239,98 +266,79 @@ export function conversationPage(
   const names = frame.operators
   const info = metadata.get(c.number)
   const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
-  const position = frame.openNumbers.indexOf(c.number)
-  const candidate = frame.openNumbers[position + 1] ?? frame.openNumbers[0]
-  const next = candidate === c.number ? undefined : candidate
+  const { next, previous } = adjacentOpen(frame.openNumbers, c.number)
+  const search = frame.query.inbox ?? ''
   const main = (
-    <div className="thread-layout">
-      <div className="thread-main">
-        <header className="thread-header" data-contact={c.contact}>
-          <a
-            className="back-link"
-            href={frame.query.inbox ? '/?' + frame.query.inbox : '/'}
-          >
-            &larr; 受信箱
-          </a>
-          {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
-          <div className="page-header">
-            <h1 className="page-title">{c.subject}</h1>
-          </div>
-          <div className="thread-meta">
-            <code>#{c.number}</code>
-            <span>{info?.productName ?? c.product}</span>
-            {badge(c.status.kind)}
-            {c.kind === 'inquiry' && assignment(c, frame)}
-            {labelPicker(c.number, data.labels, frame.labels)}
-          </div>
-          <nav className="thread-navigation" aria-label="会話の操作">
-            {threadActions(c)}
-            {next && (
-              <a href={threadUrl(next, frame.query.inbox ?? '')}>
-                次の未対応へ
-              </a>
-            )}
-          </nav>
-        </header>
-        <section className="message-list" aria-label="メッセージ">
-          {[
-            ...data.messages.map((m) => ({
-              at: m.created_at,
-              view: message(
-                m,
-                data,
-                files.filter((f) => f.message === m.id),
-                info?.name || c.contact,
-                names,
-                frame.now,
-              ),
-            })),
-            ...data.events.flatMap((e) => {
-              const label = timelineChange(e, names)
-              return label
-                ? [
-                    {
-                      at: e.at,
-                      view: (
-                        <p className="timeline-entry">
-                          {eventActor(e.actor, names)} <span>{label}</span>{' '}
-                          {stamp(e.at, frame.now)}
-                        </p>
-                      ),
-                    },
-                  ]
-                : []
-            }),
-          ]
-            .sort((a, b) => a.at - b.at)
-            .map((entry) => entry.view)}
-        </section>
-        <ReplyComposer
-          number={c.number}
-          mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
-          contact={c.contact}
-          noteOnly={!reply}
-          closed={c.status.kind === 'closed'}
-          subject={replySubject(c.subject, c.number)}
-          articles={articles}
-        />
-      </div>
-      {threadContext(data, panels, frame.now, names)}
-    </div>
+    <DetailPage
+      title={c.subject}
+      contact={c.contact}
+      back={{ label: '受信箱', href: search ? '/?' + search : '/' }}
+      action={
+        <ActionBar>
+          {threadActions(c)}
+          <StepLink
+            previous
+            href={previous ? threadUrl(previous, search) : undefined}
+          />
+          <StepLink href={next ? threadUrl(next, search) : undefined} />
+        </ActionBar>
+      }
+      attributes={
+        <AttributeRow>
+          <code>#{c.number}</code>
+          <span>{info?.productName ?? c.product}</span>
+          {statusPicker(c)}
+          {c.kind === 'inquiry' && assignment(c, frame)}
+          {labelPicker(c.number, data.labels, frame.labels)}
+        </AttributeRow>
+      }
+      aside={threadContext(data, panels, frame.now, names)}
+    >
+      {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
+      <ThreadTimeline>
+        {[
+          ...data.messages.map((m) => ({
+            at: m.created_at,
+            view: message(
+              m,
+              data,
+              files.filter((f) => f.message === m.id),
+              info?.name || c.contact,
+              names,
+              frame.now,
+            ),
+          })),
+          ...data.events.flatMap((e) => {
+            const label = timelineChange(e, names)
+            return label
+              ? [
+                  {
+                    at: e.at,
+                    view: (
+                      <TimelineEntry>
+                        {eventActor(e.actor, names)} <span>{label}</span>{' '}
+                        {stamp(e.at, frame.now)}
+                      </TimelineEntry>
+                    ),
+                  },
+                ]
+              : []
+          }),
+        ]
+          .sort((a, b) => a.at - b.at)
+          .map((entry) => entry.view)}
+      </ThreadTimeline>
+      <ReplyComposer
+        number={c.number}
+        mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
+        contact={c.contact}
+        noteOnly={!reply}
+        closed={c.status.kind === 'closed'}
+        subject={replySubject(c.subject, c.number)}
+        articles={articles}
+      />
+    </DetailPage>
   )
   return shell(c.subject, main, frame)
 }
-// Only sanitized mail from readHtml may enter this isolated document.
-export function htmlMailPage(body: string) {
-  return html`<!doctype html>
-    <html lang="ja">
-      <head>
-        <meta charset="utf-8" />
-        <title>HTML メール</title>
-        <link rel="stylesheet" href="/styles.css" />
-      </head>
-      <body className="mail-document">
-        <main>${raw(body)}</main>
-      </body>
-    </html>`
-}
+export { mailDocument as htmlMailPage } from '../../ui/mail-page'

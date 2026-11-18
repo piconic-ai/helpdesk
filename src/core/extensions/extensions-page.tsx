@@ -1,3 +1,29 @@
+import {
+  DetailPage,
+  OverviewPage,
+  EmptyState,
+  MetricGrid,
+  Notice,
+  FormSection,
+  ExtensionCard,
+} from '../../ui/patterns'
+import {
+  ActionLink,
+  Popover,
+  Button,
+  Input,
+  NativeSelect,
+  Textarea,
+} from '../../ui/controls'
+import {
+  BodyText,
+  ContextPanel,
+  PanelSummary,
+  PanelForm,
+  Definitions,
+} from '../../ui/admin'
+import { matchesSearch, ListFilters } from '../../ui/listing'
+import { permissionText } from './extension-guides'
 import type { Child } from 'hono/jsx'
 import type { panels, management } from './registry-usecase'
 import { shell } from '../conversations/conversations-page'
@@ -12,11 +38,90 @@ const groups: Record<string, string[]> = {
   直す: ['issues', 'merge'],
   整える: ['rules', 'notify', 'metrics', 'survey', 'export'],
 }
-const permissions = {
-  read_body: '問い合わせ本文の閲覧',
-  send: 'メール送信',
-  external_fetch: '外部サービスへの接続',
+function extensionSettings(entry: ExtensionEntry) {
+  const label = extensionLabel(entry.id)
+  const required = [...entry.missing, ...(entry.needsAI ? ['AI'] : [])]
+  const toggle = (
+    <form
+      method="post"
+      action={'/extensions/' + entry.id}
+      data-permissions={permissionText(entry.permissions)}
+    >
+      <input
+        type="hidden"
+        name="enabled"
+        value={entry.enabled ? 'no' : 'yes'}
+      />
+      <Button
+        role="switch"
+        aria-checked={entry.enabled}
+        variant="ghost"
+        aria-label={label + (entry.enabled ? 'を無効にする' : 'を有効にする')}
+      >
+        {entry.enabled ? '有効' : '無効'}
+      </Button>
+    </form>
+  )
+  return (
+    <ExtensionCard
+      title={label}
+      description={guides[entry.id]?.description ?? label}
+      toggle={toggle}
+      id={'extension-' + entry.id}
+      extension={entry.id}
+      settings={
+        <>
+          {required.length > 0 && (
+            <small>設定が必要：{required.join('、')}</small>
+          )}
+          {entry.enabled && (
+            <ActionLink variant="outline" href={'/extensions/' + entry.id}>
+              設定
+            </ActionLink>
+          )}
+        </>
+      }
+    />
+  )
 }
+type ExtensionEntry = Awaited<ReturnType<typeof management>>['entries'][number]
+
+function extensionGroups(
+  entries: ExtensionEntry[],
+  query: Record<string, string>,
+) {
+  const known = new Set(Object.values(groups).flat())
+  return Object.entries(groups).flatMap(([group, ids]) => {
+    const matches = entries.filter((entry) => {
+      if (
+        !ids.includes(entry.id) &&
+        (group !== '整える' || known.has(entry.id))
+      )
+        return false
+      if (
+        query.filter &&
+        query.filter !== (entry.enabled ? 'enabled' : 'disabled')
+      )
+        return false
+      const text = [
+        group,
+        entry.id,
+        extensionLabel(entry.id),
+        guides[entry.id]?.description,
+      ].join(' ')
+      return matchesSearch(text, query.q)
+    })
+    return matches.length
+      ? [
+          <section>
+            <h2>{group}</h2>
+            <MetricGrid>{matches.map(extensionSettings)}</MetricGrid>
+          </section>,
+        ]
+      : []
+  })
+}
+
 export function managementPage(
   data: Awaited<ReturnType<typeof management>>,
   frame?: ConsoleFrame,
@@ -25,111 +130,67 @@ export function managementPage(
   restored?: string,
 ) {
   const updated = data.entries.find((e) => e.id === changed)
+  const query = frame?.query ?? {}
+  const sections = extensionGroups(data.entries, query)
   return shell(
     '拡張機能',
-    <>
-      <header className="page-header">
-        <h1>拡張機能</h1>
-      </header>
+    <OverviewPage
+      title="拡張機能"
+      filters={
+        <ListFilters
+          title="拡張機能"
+          path="/extensions"
+          query={query}
+          sortable={false}
+          filterLabel="有効状態"
+          options={[
+            { value: 'enabled', label: '有効' },
+            { value: 'disabled', label: '無効' },
+          ]}
+        />
+      }
+      description={
+        '有効 ' + data.entries.filter((e) => e.enabled).length + '件'
+      }
+    >
       {restored && (
-        <p
-          role="status"
-          className={restored === 'yes' ? 'banner-success' : 'banner-error'}
-        >
+        <Notice kind={restored === 'yes' ? 'success' : 'error'}>
           {restored === 'yes'
             ? '設定を元に戻しました。'
             : '設定が更新されたため、元に戻せません。'}
-        </p>
+        </Notice>
       )}
       {updated && (
-        <div role="status" className="banner-success">
+        <Notice kind="success">
           {extensionLabel(updated.id)}を{updated.enabled ? '有効' : '無効'}
           にしました。
           {undo && (
             <form action="/extensions/undo-activation" method="post">
               <input type="hidden" name="changeId" value={undo} />
-              <button>元に戻す</button>
+              <Button variant="ghost">元に戻す</Button>
             </form>
           )}
-        </div>
+        </Notice>
       )}
       {data.failures.length > 0 && (
-        <section className="banner-error" role="alert">
-          <h2>拡張への配信に失敗しました</h2>
+        <Notice kind="error">
+          <strong>拡張への配信に失敗しました</strong>
           {data.failures.map((f) => (
             <p>
               {extensionLabel(String(f.extension))} · イベント {String(f.event)}{' '}
               · {String(f.error)}
             </p>
           ))}
-        </section>
+        </Notice>
       )}
-      <div className="settings-groups">
-        {Object.entries(groups).map(([group, ids]) => (
-          <section>
-            <h2>{group}</h2>
-            {data.entries
-              .filter(
-                (e) =>
-                  ids.includes(e.id) ||
-                  (group === '整える' &&
-                    !Object.values(groups).flat().includes(e.id)),
-              )
-              .map((e) => (
-                <section
-                  className="settings-card"
-                  id={'extension-' + e.id}
-                  data-extension={e.id}
-                >
-                  <div className="card-heading">
-                    <h3>{extensionLabel(e.id)}</h3>
-                    {(e.missing?.length > 0 || e.needsAI) && (
-                      <span className="delivery-awaiting-approval">
-                        設定が必要
-                      </span>
-                    )}
-                    <span className="label-chip">
-                      {e.enabled ? '有効' : '無効'}
-                    </span>
-                  </div>
-                  <p>{guides[e.id]?.description ?? e.id}</p>
-                  {e.enabled && (
-                    <a href={'/extensions/' + e.id}>設定・使い始め方</a>
-                  )}
-                  <p>
-                    使用する権限　
-                    {e.permissions.map((p) => permissions[p]).join('、') ||
-                      '追加の権限はありません'}
-                  </p>
-                  {!!e.secrets.length && (
-                    <p>
-                      必要なシークレット　<code>{e.secrets.join('、')}</code>
-                      {!!e.missing?.length &&
-                        '（未設定: ' + e.missing.join('、') + '）'}
-                    </p>
-                  )}
-                  <form method="post" action={'/extensions/' + e.id}>
-                    <input
-                      type="hidden"
-                      name="enabled"
-                      value={e.enabled ? 'no' : 'yes'}
-                    />
-                    <button
-                      className="button-secondary"
-                      aria-label={
-                        extensionLabel(e.id) +
-                        (e.enabled ? 'を無効にする' : 'を有効にする')
-                      }
-                    >
-                      {e.enabled ? '無効にする' : '有効にする'}
-                    </button>
-                  </form>
-                </section>
-              ))}
-          </section>
-        ))}
-      </div>
-    </>,
+      {sections.length ? (
+        sections
+      ) : (
+        <EmptyState>
+          条件に合う拡張機能はありません。検索条件や有効状態を変更してください。
+        </EmptyState>
+      )}
+    </OverviewPage>,
     frame,
   )
 }
@@ -153,36 +214,36 @@ function operationField(
     return (
       <label>
         {label}
-        <select name={key}>
+        <NativeSelect name={key}>
           {options.map((value) => (
             <option value={value}>
               {panel.choiceLabels[key]?.[value] ?? statuses[value] ?? value}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
     )
   if (['body', 'markdown', 'summary'].includes(key))
     return (
       <label>
         {label}
-        <textarea name={key} rows={3} required={required} />
+        <Textarea name={key} rows={3} required={required} />
       </label>
     )
   if (key === 'unmask')
     return (
       <label>
         {label}
-        <select name={key}>
+        <NativeSelect name={key}>
           <option value="">伏せて書き出す</option>
           <option value="true">含めて書き出す</option>
-        </select>
+        </NativeSelect>
       </label>
     )
   return (
     <label>
       {label}
-      <input name={key} required={required} />
+      <Input name={key} required={required} />
     </label>
   )
 }
@@ -240,64 +301,60 @@ function formField(
     return (
       <label>
         統合先の問い合わせ
-        <select name="target" required>
+        <NativeSelect name="target" required>
           {mergeTargets(data).map((t) => (
             <option value={t.number}>
               {t.subject} (#{t.number})
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
     )
   if (key === 'issue')
     return (
       <label>
         Issue
-        <select name="issue">
+        <NativeSelect name="issue">
           {p.links
             .filter((l) => l.href.startsWith('https://github.com/'))
             .map((l) => (
               <option value={l.href.split('/').at(-1)}>{l.label}</option>
             ))}
-        </select>
+        </NativeSelect>
       </label>
     )
   if (key === 'days')
     return (
       <label>
         期間
-        <select name="days">
+        <NativeSelect name="days">
           <option value="7">7日間</option>
           <option value="30" selected>
             30日間
           </option>
           <option value="90">90日間</option>
-        </select>
+        </NativeSelect>
       </label>
     )
   if (key === 'until')
     return (
       <label>
         再表示日時（日本時間）
-        <input required type="datetime-local" name="untilLocal" />
+        <Input required type="datetime-local" name="untilLocal" />
       </label>
     )
   return operationField(op, key, p, number)
 }
 function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
   return (
-    <form
-      method="post"
-      className="extension-form"
-      action={'/actions/' + op.name}
-    >
+    <PanelForm method="post" action={'/actions/' + op.name}>
       {Object.keys(op.inputSchema.properties ?? {}).map((key) =>
         formField(op, key, p, number, data),
       )}
-      <button className="button-secondary">
+      <Button variant="outline">
         {operationLabel(op.name, op.description)}
-      </button>
-    </form>
+      </Button>
+    </PanelForm>
   )
 }
 function summaryFor(p: Panel, data?: Details) {
@@ -337,18 +394,12 @@ function panel(p: Panel, number?: number, data?: Details) {
   const summary = summaryFor(p, data)
   const title = extensionLabel(p.id) === p.id ? p.title : extensionLabel(p.id)
   return (
-    <section
-      className="settings-card extension-panel"
-      data-number={number}
-      data-extension={p.id}
-      id={'extension-' + p.id}
-    >
-      <h2>{title}</h2>
+    <ContextPanel title={title} number={number} extension={p.id}>
       {p.script && <script defer src={p.script}></script>}
-      {summary && <p className="extension-content">{summary}</p>}
+      {summary && <PanelSummary>{summary}</PanelSummary>}
       {p.links.map((l) => (
         <p>
-          <a href={l.href}>{l.label}</a>
+          <ActionLink href={l.href}>{l.label}</ActionLink>
         </p>
       ))}
       {ops.map((op) => {
@@ -363,16 +414,17 @@ function panel(p: Panel, number?: number, data?: Details) {
             ? 'Issue を起票する'
             : operationLabel(op.name, op.description)
         return (
-          <details className="choice-popover">
-            <summary>{label}</summary>
+          <Popover id={'operation-' + p.id + '-' + op.name} label={label}>
             {actionForm(op, p, number, data)}
-          </details>
+          </Popover>
         )
       })}
       {ops.some((op) => op.name === 'issues.preview') && (
-        <a href={'/extensions/issues/link/' + number}>既存の Issue を選ぶ</a>
+        <ActionLink href={'/extensions/issues/link/' + number}>
+          既存の Issue を選ぶ
+        </ActionLink>
       )}
-    </section>
+    </ContextPanel>
   )
 }
 export function extensionPanels(
@@ -395,24 +447,24 @@ export function issuePreview(
 ) {
   return shell(
     '起票内容を確認',
-    <>
-      <h1>起票内容を確認</h1>
-      <section className="settings-card">
+    <DetailPage
+      title="起票内容を確認"
+      back={{ href: '/conversation/' + result.number, label: '会話に戻る' }}
+    >
+      <FormSection title={result.title}>
         <p>{result.repository}</p>
-        <h2>{result.title}</h2>
-        <pre className="message-body">{result.body}</pre>
+        <BodyText>{result.body}</BodyText>
         <form action="/actions/issues.create" method="post">
-          <input
+          <Input
             name="confirmation"
             type="hidden"
             value={result.confirmation}
           />
-          <input name="number" type="hidden" value={result.number} />
-          <button className="button-primary">確認した内容で起票</button>
+          <Input name="number" type="hidden" value={result.number} />
+          <Button variant="default">確認した内容で起票</Button>
         </form>
-        <a href={'/conversation/' + result.number}>会話に戻る</a>
-      </section>
-    </>,
+      </FormSection>
+    </DetailPage>,
     frame,
   )
 }
@@ -448,14 +500,14 @@ function resultValue(key: string, value: unknown): Child {
     )
   if (value && typeof value === 'object')
     return (
-      <dl className="result-fields">
+      <Definitions>
         {Object.entries(value).map(([k, v]) => (
           <div>
             <dt>{fieldLabel(k)}</dt>
             <dd>{resultValue(k, v)}</dd>
           </div>
         ))}
-      </dl>
+      </Definitions>
     )
   return <span>{resultText(key, value)}</span>
 }
@@ -468,28 +520,23 @@ export function operationResult(
   const title = operationLabel(name)
   return shell(
     title,
-    <>
-      <header className="page-header">
-        <h1>{title}</h1>
-      </header>
-      <section className="settings-card">
+    <DetailPage
+      title={title}
+      back={{
+        href: number ? '/conversation/' + number : '/',
+        label: number ? '会話に戻る' : '受信箱に戻る',
+      }}
+    >
+      <FormSection title="結果">
         {name === 'export.jsonl' ? (
           <pre>{String(result)}</pre>
         ) : result === null ? (
-          <p role="status" className="banner-success">
-            操作が完了しました。
-          </p>
+          <Notice kind="success">操作が完了しました。</Notice>
         ) : (
           resultValue('', result)
         )}
-      </section>
-      <a
-        className="button-quiet"
-        href={number ? '/conversation/' + number : '/'}
-      >
-        {number ? '会話に戻る' : '受信箱に戻る'}
-      </a>
-    </>,
+      </FormSection>
+    </DetailPage>,
     frame,
   )
 }

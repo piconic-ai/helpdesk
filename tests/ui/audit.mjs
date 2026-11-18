@@ -1,10 +1,14 @@
+import { inspectComposition } from './composition-audit.mjs'
 import { inspectDesign } from './design-audit.mjs'
 import { expect } from '@playwright/test'
 import axe from 'axe-core'
 
 export async function installAudit(page) {
   await page.evaluate(axe.source)
-  const design = await page.evaluate(inspectDesign)
+  const design = [
+    ...(await page.evaluate(inspectDesign)),
+    ...(await page.evaluate(inspectComposition)),
+  ]
   await page.evaluate((result) => {
     window.helpdeskDesignFindings = result
   }, design)
