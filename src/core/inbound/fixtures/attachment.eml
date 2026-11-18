@@ -1,0 +1,16 @@
+From: reader@example.org
+To: contact@example.org
+Message-ID: <attachment@example.org>
+Subject: Screenshot
+Content-Type: multipart/mixed; boundary=parts
+
+--parts
+Content-Type: text/plain
+
+See attached.
+--parts
+Content-Type: text/plain; name=details.txt
+Content-Disposition: attachment; filename=details.txt
+
+File contents.
+--parts--

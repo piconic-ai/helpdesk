@@ -1,0 +1,7 @@
+From: reader@example.org
+To: contact@example.org
+Message-ID: <html@example.org>
+Subject: View in browser
+Content-Type: text/html
+
+<p>My question</p><script>window.mailRan = true</script><img src="https://tracker.example/pixel">
