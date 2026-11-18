@@ -1,12 +1,9 @@
 import { html, raw } from 'hono/html'
 import { marked } from 'marked'
 import sanitize from 'sanitize-html'
-import { publicPath, type Article } from './article'
+import { publicPath, searchArticles, type Article } from './article'
 export function articleIndex(product: string, articles: Article[], q: string) {
-  const query = q.toLocaleLowerCase()
-  const results = articles.filter((a) =>
-    (a.title + ' ' + a.body).toLocaleLowerCase().includes(query),
-  )
+  const results = searchArticles(articles, q)
   return {
     title: 'ヘルプ記事',
     html: String(
@@ -82,6 +79,35 @@ export function articleDetail(a: Article, token: string) {
               </button>
             </div>
           </fieldset>
+        </form>`,
+    ),
+  }
+}
+
+export function retryArticleVote(
+  a: Article,
+  token: string,
+  helpful: 'yes' | 'no',
+) {
+  const choice = helpful === 'yes' ? 'はい' : 'いいえ'
+  return {
+    title: a.title,
+    status: 409 as const,
+    html: String(
+      html`<h1>${a.title}</h1>
+        <p class="banner-error" role="alert">
+          記事の評価の受付期限が過ぎました。選択した回答をもう一度お送りください。
+        </p>
+        <form
+          class="public-actions"
+          method="post"
+          action="${publicPath(a.product, a.id)}"
+        >
+          <input type="hidden" name="visit" value="${token}" />
+          <button name="helpful" value="${helpful}">
+            「${choice}」で送り直す
+          </button>
+          <a href="${publicPath(a.product, a.id)}">記事に戻る</a>
         </form>`,
     ),
   }

@@ -97,6 +97,7 @@ async function compose(page, mode, before) {
     await route.fulfill({ response: rejected }).catch(() => {})
   })
   const click = submit.click({ noWaitAfter: true }).catch(() => {})
+  if (!before) await page.locator('#action-confirmation [data-commit]').click()
   await pending
   if (mode === 'sending') {
     if (!before) {
@@ -251,7 +252,10 @@ async function pendingSearch(page, before) {
     await route.continue()
   })
   const seen = before ? undefined : await observeLoading(page)
-  const click = page.locator('form.filters button').click({ noWaitAfter: true })
+  const click = page
+    .locator('form.filters')
+    .getByRole('button', { name: '検索', exact: true })
+    .click({ noWaitAfter: true })
   await intercepted.promise
   if (seen)
     assertAudit(
@@ -280,7 +284,7 @@ export async function prepare(page, scene, origin, before) {
   )
   assert.equal(
     response.status(),
-    before && scene.beforeMissing ? 404 : 200,
+    before && scene.beforeMissing ? 404 : (scene.status ?? 200),
     `Unexpected status at ${scene.url}`,
   )
   await page.evaluate(() => document.fonts.ready)
@@ -326,6 +330,8 @@ export async function keyboardFlow(page, origin) {
       .locator('.composer')
       .getByRole('button', { name: '送信', exact: true }),
   )
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Tab')
   await page.keyboard.press('Enter')
   await page
     .locator('.message-outbound')

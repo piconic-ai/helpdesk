@@ -1,3 +1,4 @@
+import { operatorAvatar } from '../operators/identity-page'
 import { action } from './console-page'
 import type { ConsoleFrame } from './console-usecase'
 import type { Result } from './inbox-page'
@@ -18,7 +19,8 @@ export function assignment(c: Inquiry, frame: ConsoleFrame) {
     <>
       <details className="action-menu thread-picker">
         <summary className="button-secondary" title="担当者を選ぶ">
-          担当: {assigned?.displayName || email || '担当なし'}
+          {operatorAvatar(assigned, email)} 担当:{' '}
+          {assigned?.displayName || email || '担当なし'}
         </summary>
         <div>
           {frame.operators
@@ -116,8 +118,10 @@ const notices: Record<string, string> = {
   reply: '返信を送信待ちに追加しました。',
   replyAndClose: '返信を送信待ちに追加し、会話を完了しました。',
   'feedback.review': 'フィードバックを確認済みにしました。',
+  'feedback.unreview': '未確認に戻しました。',
   'feedback.convert': 'フィードバックを問い合わせに変更しました。',
   'snooze.defer': '指定した日時まで会話を保留しました。',
+  'snooze.undo': '保留の設定を元に戻しました。',
   'snooze.resume': '保留を解除して受信箱に戻しました。',
   'canned.apply': '定型文から返信の下書きを作成しました。',
   'merge.combine': '会話を統合しました。',
@@ -135,7 +139,7 @@ const notices: Record<string, string> = {
   retry: '再送を受け付けました。',
   discard: '下書きを破棄しました。',
 }
-export function threadNotice(code?: string) {
+export function threadNotice(code?: string, number?: number, undoId?: string) {
   const text =
     code && Object.hasOwn(notices, code)
       ? notices[code]
@@ -143,8 +147,31 @@ export function threadNotice(code?: string) {
         ? '操作を完了しました。'
         : ''
   return text ? (
-    <p className="banner-success" role="status">
+    <div className="banner-success" role="status">
       {text}
-    </p>
+      {number &&
+        undoId &&
+        (code === 'snooze.defer' || code === 'snooze.resume') &&
+        action(
+          'snooze.undo',
+          '元に戻す',
+          <input type="hidden" name="changeId" value={undoId} />,
+          number,
+          'quiet',
+        )}
+      {number &&
+        undoId &&
+        code === 'canned.apply' &&
+        action(
+          'discard',
+          '元に戻す',
+          <input type="hidden" name="id" value={undoId} />,
+          number,
+          'quiet',
+        )}
+      {number &&
+        code === 'feedback.review' &&
+        action('feedback.unreview', '元に戻す', null, number, 'quiet')}
+    </div>
   ) : null
 }

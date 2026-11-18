@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import type { ExtensionEvent } from './extension'
 
-export function extensionStorage(db: D1Database, id: string) {
-  const table =
+export function extensionTable(id: string) {
+  return (
     '"' +
     z
       .string()
@@ -10,6 +10,10 @@ export function extensionStorage(db: D1Database, id: string) {
       .parse(id)
       .replaceAll('-', '_') +
     '_data"'
+  )
+}
+export function extensionStorage(db: D1Database, id: string) {
+  const table = extensionTable(id)
   const put = async (key: string, value: unknown, replace: boolean) => {
     const verb = replace ? 'INSERT OR REPLACE' : 'INSERT OR IGNORE'
     const result = await db
@@ -38,12 +42,13 @@ export function extensionStorage(db: D1Database, id: string) {
         .first<string>('value')
       return row === null ? null : JSON.parse(row)
     },
-    list: async (prefix: string) => {
+    list: async (prefix: string, order: 'key' | 'created' = 'key') => {
       const rows = await db
         .prepare(
           'SELECT key,value FROM ' +
             table +
-            ' WHERE substr(key,1,length(?))=? ORDER BY key',
+            ' WHERE substr(key,1,length(?))=? ORDER BY ' +
+            (order === 'created' ? 'rowid' : 'key'),
         )
         .bind(prefix, prefix)
         .all()
@@ -76,40 +81,6 @@ export async function readOverrides(db: D1Database) {
       .parse(rows.results)
       .map((row) => [row.id, { enabled: !!row.enabled, by: row.enabled_by }]),
   )
-}
-export async function setEnabled(
-  db: D1Database,
-  id: string,
-  enabled: boolean,
-  by: string,
-  now: number,
-) {
-  await db.batch([
-    db
-      .prepare(
-        'INSERT INTO extension_settings VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,enabled_by=excluded.enabled_by',
-      )
-      .bind(id, Number(enabled), by),
-    db
-      .prepare(
-        'INSERT INTO extension_cursor VALUES(?,(SELECT coalesce(max(id),0) FROM events)) ON CONFLICT(id) DO UPDATE SET last_event=excluded.last_event',
-      )
-      .bind(id),
-    db
-      .prepare(
-        "DELETE FROM extension_deliveries WHERE extension=? AND phase<>'done'",
-      )
-      .bind(id),
-    db
-      .prepare(
-        "INSERT INTO events(kind,actor,payload,at) VALUES('extension_configured',?,?,?)",
-      )
-      .bind(
-        JSON.stringify({ kind: 'operator', id: by }),
-        JSON.stringify({ id, enabled }),
-        now,
-      ),
-  ])
 }
 export async function scan(db: D1Database, id: string, kinds: string[]) {
   await db.batch([

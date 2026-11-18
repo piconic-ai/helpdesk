@@ -1,8 +1,12 @@
 import { migrateExtensions } from './migrations-store'
 import { z } from 'zod'
+import {
+  changeExtensionSetting,
+  activationNamespace,
+} from './admin-settings-store'
 import type { Bindings } from '../settings/bindings'
 import { registry, type Registration } from './registry'
-import { readOverrides, setEnabled, deliveryFailures } from './extension-store'
+import { readOverrides, deliveryFailures } from './extension-store'
 import { describe } from '../operations/runtime-usecase'
 import type { Context, Scope } from '../operations/catalog-usecase'
 import type { Panel } from './extension'
@@ -42,7 +46,23 @@ export async function toggle(ctx: Context, id: string, enabled: boolean) {
     registry([{ ...target, enabled }])
     requireExtensionBindings(ctx.env, target.extension)
   }
-  await setEnabled(ctx.env.DB, id, enabled, ctx.operator.email, ctx.now)
+  if (target.enabled === enabled && target.enabledBy === ctx.operator.email)
+    return null
+  const token = ctx.uuid()
+  const prior = target.enabledBy
+    ? JSON.stringify([Number(target.enabled), target.enabledBy])
+    : null
+  const changed = await changeExtensionSetting(ctx.env.DB, {
+    namespace: activationNamespace,
+    key: id,
+    next: JSON.stringify([Number(enabled), ctx.operator.email]),
+    expected: prior,
+    operator: ctx.operator.email,
+    now: ctx.now,
+    token,
+  })
+  if (changed === 'conflict') throw new Error('Extension setting changed')
+  return changed === 'changed' && enabled && !target.enabled ? token : null
 }
 export async function management(ctx: Context) {
   if (ctx.operator.role !== 'admin') throw new Error('Administrator required')
@@ -52,6 +72,10 @@ export async function management(ctx: Context) {
       enabled: i.enabled,
       permissions: i.extension.permissions,
       secrets: i.extension.secrets ?? [],
+      missing: (i.extension.secrets ?? []).filter(
+        (name) => !Reflect.get(ctx.env, name),
+      ),
+      needsAI: Boolean(i.extension.requiresAI && !ctx.env.AI),
     })),
     failures: await deliveryFailures(ctx.env.DB),
   }
@@ -80,6 +104,7 @@ export async function panels(
         content: await panel.content?.(api, number),
         links: (await panel.links?.(api, number)) ?? [],
         choices: (await panel.choices?.(api)) ?? {},
+        choiceLabels: (await panel.choiceLabels?.(api)) ?? {},
         operations: operations.filter((o) => names.includes(o.name)),
       })
     }

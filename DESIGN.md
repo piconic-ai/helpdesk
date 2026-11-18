@@ -377,14 +377,14 @@ Nothing else casts a shadow. No gradients, no glass, no dark surfaces.
 
 - Line 1: sender name (`body-strong` if unread, else `body`), then subject truncated with an ellipsis, then right-aligned time in `caption` `{colors.muted}`.
 - Line 2: `#123` in `code` `{colors.muted}`, a one-line body preview in `{colors.muted}`, then right-aligned: label chips (max 2, then "+n"), status badge, assignee avatar.
-- The whole row is one link. Hover fills `{colors.surface-soft}`. Selected uses `conversation-row-selected`.
+- The two-line content is one link; selection and quick-action buttons are adjacent controls. Hover fills `{colors.surface-soft}`. Selected uses `conversation-row-selected`.
 - A row with a failed send shows `delivery-failed` in place of the preview's trailing space. This is the one place a red element may appear in the list.
 
 **Status badges** — `status-open` is the only filled dark badge: it marks the operator's turn. `status-pending` is gray, `status-closed` is plain muted text, `status-spam` uses the warning pair. Labels: 未対応 / 返信待ち / 完了 / 迷惑メール.
 
 **`label-chip`** — Gray, squared, never colored. Labels classify; they do not signal urgency.
 
-**`avatar`** — 24px circle with initials. Unassigned shows a dashed 1px hairline circle, not a blank space.
+**`avatar`** — 24px circle with a cropped account image or one initial. Unassigned shows a dashed 1px hairline circle, not a blank space.
 
 ### Conversation view
 
@@ -422,9 +422,9 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 
 **`help-article`** — 680px column, `title-lg` heading, `reading` body, `{colors.link}` links. Header shows the product name only. Footer has one line: 解決しませんでしたか？ and a link to contact.
 
-**`chat-widget`** — 360px, raised. One text area and one button. The result is either a short list of article links, or the confirmation 問い合わせを受け付けました（#123）. It never shows generated prose, a typing indicator, or a human name or avatar.
+**`chat-widget`** — 360px, raised. One text area and one button. The result includes the original question. An article list offers a handoff to the contact form. A submitted inquiry shows the confirmation 問い合わせを受け付けました（#123）. It never shows generated prose, a typing indicator, or a human name or avatar.
 
-**Feedback form** — One text area, an optional email field, one button. The confirmation states plainly that no reply will be sent unless requested.
+**Feedback form** — One text area, an optional email field, one button. The confirmation states plainly that the feedback inbox does not send replies.
 
 ## Do's and Don'ts
 
@@ -451,7 +451,7 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 | Width | Behavior |
 |---|---|
 | ≥1200px | Sidebar + thread + context panel |
-| 768–1199px | Sidebar + thread; context panel moves below the header as a collapsible section |
+| 768–1199px | Sidebar + thread; context panel follows the conversation as a labelled region |
 | <768px | Sidebar becomes a drawer; rows keep two lines; composer sticks to the bottom |
 
 Touch targets are at least 44px on <768px. Every interactive element has a visible `{colors.focus-ring}` 2px outline with 2px offset on keyboard focus. The console is fully operable by keyboard.
@@ -469,3 +469,14 @@ Touch targets are at least 44px on <768px. Every interactive element has a visib
 - Motion is not defined beyond "fades are 150ms; nothing moves position".
 - The metrics screen's charts are not specified; use `{colors.ink}` for the main series and `{colors.muted}` for comparison until they are.
 - Colors and scales were adapted from an analysis of a public marketing site, not from an official design system.
+
+## Daily operator workflows
+
+- Use five text roles across the application. Page titles use title-lg (22px), section titles title-sm (16px), controls body (14px), prose reading (16px), and supporting text caption (13px). A single screen uses at most four distinct sizes. Code and buttons use the matching caption and body sizes.
+- A list row shares two lines between the subject and the latest relevant excerpt. Put a labelled message-kind icon before the excerpt. Show the product in a multi-product list, elapsed customer waiting time on open inquiries, attachment and message-count indicators when applicable, and one assignee avatar. Emphasize waits over 24 hours with weight. Preserve full text in the title of a truncated item.
+- Place checkboxes and quick actions beside the row link. Pointer hover and keyboard focus reveal the actions. The selection toolbar states the selected count and offers assignment, labels, closure and spam handling. Sorting and pagination preserve the URL.
+- A human avatar is a cropped square image inside a 24px circle or one grapheme from the display name. Show separate labelled agent and extension glyphs. The account entry at the foot of navigation identifies the signed-in operator.
+- Use an anchored popover for a short choice in context. Its trigger shows expanded state. Escape and an outside click dismiss it. Use the action menu for secondary commands. Put related controls one spacing-sm apart and allow them to wrap on narrow screens.
+- Use a native modal dialog for an irreversible action or an outbound submission. Name the recipient, object or quantity, focus the first safe action, and restore focus on dismissal. Never nest dialogs. Use an inline result with an undo action for reversible triage.
+- Keep context in a labelled side panel alongside the timeline. On small screens provide the same content in reading order. Keep assignment, status and labels with the conversation heading, and insert dated changes next to the messages they affected.
+- List shortcuts are j, k, Enter, e and a. In a conversation use r for reply, n for note, Cmd/Ctrl+Enter to submit, and u for the inbox. The ? dialog lists the shortcuts. Ignore character shortcuts while editing and during IME composition.

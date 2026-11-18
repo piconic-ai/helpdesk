@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 import type { Bindings } from './src/core/settings/bindings'
 import type { AppEnv } from './src/core/operators/middleware'
+import { accountRoutes } from './src/core/operators/account-routes'
 import { extensionConsoleRoutes } from './src/operator/extension-console-routes'
 import { operatorRoutes } from './src/core/operations/operations-routes'
 import { receiveEmail } from './src/core/inbound/inbound-email'
@@ -24,7 +25,8 @@ import { publicRoutes } from './src/core/extensions/public-routes'
 import { machineRoutes } from './src/core/operations/machine-routes'
 
 import { missingPublicPage, helpLanding } from './src/public/not-found-pages'
-import { publicProduct, helpDestinations } from './src/public/product-usecase'
+import { publicProduct } from './src/public/product-usecase'
+import { helpDestinations } from './src/public/directory-usecase'
 import { operatorErrorPage } from './src/core/conversations/console-page'
 
 async function renderMissingPage(c: Context<AppEnv>) {
@@ -41,7 +43,7 @@ async function renderMissingPage(c: Context<AppEnv>) {
         (item) => item.extension.id === 'articles',
       )
       const back =
-        product && hasArticles
+        product && product.mailbox && hasArticles
           ? '/help/articles/' + encodeURIComponent(id) + '/'
           : '/help/'
       c.res = await c.html(
@@ -76,7 +78,8 @@ app.use('*', async (c, next) => {
   if (!c.res.headers.has('Content-Security-Policy'))
     c.header(
       'Content-Security-Policy',
-      "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      (c.get('operator') ? "img-src 'self'; " : '') +
+        "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     )
   c.header('X-Content-Type-Options', 'nosniff')
   c.header('Referrer-Policy', 'same-origin')
@@ -95,12 +98,19 @@ for (const asset of [
   app.get(asset, (c) => c.env.ASSETS.fetch(c.req.raw))
 app.route('/', hostedIntakeRoutes)
 app.route('/', publicRoutes)
-app.on('GET', ['/help', '/help/'], async (c) =>
-  c.html(helpLanding(await helpDestinations(c.env, new URL(c.req.url).origin))),
-)
+app.on('GET', ['/help', '/help/'], async (c) => {
+  const query = (c.req.query('q') ?? '').trim().slice(0, 200)
+  return c.html(
+    helpLanding(
+      await helpDestinations(c.env, new URL(c.req.url).origin, query),
+      query,
+    ),
+  )
+})
 app.get('/help/*', (c) => c.notFound())
 app.route('/', intakeRoutes)
 app.route('/', machineRoutes)
+operatorRoutes.route('/', accountRoutes)
 operatorRoutes.route('/', extensionConsoleRoutes)
 app.route('/', operatorRoutes)
 export default {

@@ -1,7 +1,10 @@
+import { threadUrl } from './inbox-location'
+import { timelineChange } from './timeline'
 import { ReplyComposer } from '@/components/ReplyComposer'
 import type { Child } from 'hono/jsx'
 import { html, raw } from 'hono/html'
-import { actorSchema, type Actor } from './state'
+import { actorIdentity } from '../operators/identity-page'
+import { actorSchema } from './state'
 import type {
   ConsoleFrame,
   inboxMetadata,
@@ -9,7 +12,7 @@ import type {
 } from './console-usecase'
 import { shell, action, badge, noteLabel, stamp } from './console-page'
 import type { Result } from './inbox-page'
-import { replySubject } from '../outbound/compose'
+import { replySubject, senderLabel } from '../outbound/compose'
 import {
   assignment,
   labelPicker,
@@ -26,25 +29,7 @@ const deliveries: Record<string, string> = {
   sent: '送信済み',
   failed: '送信失敗',
 }
-type Names = ReadonlyMap<string, string>
-function actorName(a: Actor, names: Names) {
-  switch (a.kind) {
-    case 'operator':
-      return names.get(a.id) ?? a.id
-    case 'agent':
-      return (
-        'エージェント ' +
-        a.id +
-        '（' +
-        (names.get(a.onBehalfOf) ?? a.onBehalfOf) +
-        ' の代理）'
-      )
-    case 'extension':
-      return '拡張 ' + a.id
-    case 'system':
-      return 'システム'
-  }
-}
+type Names = ConsoleFrame['operators']
 type Details = Result<'get'>
 type Files = Awaited<ReturnType<typeof threadFiles>>
 function message(
@@ -72,7 +57,7 @@ function message(
         {m.kind === 'inbound' ? (
           <code>{c.contact}</code>
         ) : (
-          <span>{actorName(m.actor, names)}</span>
+          <span>{actorIdentity(m.actor, names)}</span>
         )}
         {m.delivery && (
           <span className={'delivery-' + m.delivery.replaceAll('_', '-')}>
@@ -152,6 +137,8 @@ function threadActions(c: Details['conversation']) {
       <details className="action-menu">
         <summary className="button-secondary">その他の操作</summary>
         <div>
+          <div data-extension-commands=""></div>
+          <a href="#related-info">会話の関連情報</a>
           {state === 'pending' &&
             changeStatus(c.number, 'reopened', '未対応に戻す')}
           {state !== 'spam' &&
@@ -181,7 +168,7 @@ const eventLabels: Record<string, string> = {
 function eventActor(actor: string, names: Names) {
   try {
     const result = actorSchema.safeParse(JSON.parse(actor))
-    return result.success ? actorName(result.data, names) : '記録なし'
+    return result.success ? actorIdentity(result.data, names) : '記録なし'
   } catch {
     return '記録なし'
   }
@@ -192,10 +179,12 @@ function threadContext(
   now: number,
   names: Names,
 ) {
-  const c = data.conversation
   return (
-    <details className="context-panel" data-context-panel="" open>
-      <summary>会話の詳細</summary>
+    <aside
+      className="context-panel"
+      id="related-info"
+      aria-label="会話の関連情報"
+    >
       <div className="context-cards">
         {panels}
         <section className="settings-card">
@@ -227,7 +216,7 @@ function threadContext(
           </ul>
         </details>
       </div>
-    </details>
+    </aside>
   )
 }
 export function conversationPage(
@@ -239,7 +228,15 @@ export function conversationPage(
   articles: { title: string; url: string }[] = [],
 ) {
   const c = data.conversation
-  const names = new Map(frame.operators.map((o) => [o.email, o.displayName]))
+  const product = frame.products.find((p) => p.id === c.product)
+  const sender = senderLabel(
+    product?.senderName,
+    product?.showOperator
+      ? frame.operators.find((p) => p.email === frame.operator.email)
+          ?.displayName
+      : null,
+  )
+  const names = frame.operators
   const info = metadata.get(c.number)
   const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
   const position = frame.openNumbers.indexOf(c.number)
@@ -248,14 +245,16 @@ export function conversationPage(
   const main = (
     <div className="thread-layout">
       <div className="thread-main">
-        <header className="thread-header">
-          <a className="back-link" href="/">
+        <header className="thread-header" data-contact={c.contact}>
+          <a
+            className="back-link"
+            href={frame.query.inbox ? '/?' + frame.query.inbox : '/'}
+          >
             &larr; 受信箱
           </a>
-          {threadNotice(frame.query.notice)}
+          {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
           <div className="page-header">
             <h1 className="page-title">{c.subject}</h1>
-            {threadActions(c)}
           </div>
           <div className="thread-meta">
             <code>#{c.number}</code>
@@ -263,24 +262,52 @@ export function conversationPage(
             {badge(c.status.kind)}
             {c.kind === 'inquiry' && assignment(c, frame)}
             {labelPicker(c.number, data.labels, frame.labels)}
-            {next && <a href={'/conversation/' + next}>次の未対応へ</a>}
           </div>
+          <nav className="thread-navigation" aria-label="会話の操作">
+            {threadActions(c)}
+            {next && (
+              <a href={threadUrl(next, frame.query.inbox ?? '')}>
+                次の未対応へ
+              </a>
+            )}
+          </nav>
         </header>
         <section className="message-list" aria-label="メッセージ">
-          {data.messages.map((m) =>
-            message(
-              m,
-              data,
-              files.filter((f) => f.message === m.id),
-              info?.name || c.contact,
-              names,
-              frame.now,
-            ),
-          )}
+          {[
+            ...data.messages.map((m) => ({
+              at: m.created_at,
+              view: message(
+                m,
+                data,
+                files.filter((f) => f.message === m.id),
+                info?.name || c.contact,
+                names,
+                frame.now,
+              ),
+            })),
+            ...data.events.flatMap((e) => {
+              const label = timelineChange(e, names)
+              return label
+                ? [
+                    {
+                      at: e.at,
+                      view: (
+                        <p className="timeline-entry">
+                          {eventActor(e.actor, names)} <span>{label}</span>{' '}
+                          {stamp(e.at, frame.now)}
+                        </p>
+                      ),
+                    },
+                  ]
+                : []
+            }),
+          ]
+            .sort((a, b) => a.at - b.at)
+            .map((entry) => entry.view)}
         </section>
         <ReplyComposer
           number={c.number}
-          mailbox={c.mailbox}
+          mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
           contact={c.contact}
           noteOnly={!reply}
           closed={c.status.kind === 'closed'}

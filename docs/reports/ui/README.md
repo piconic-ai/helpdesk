@@ -30,7 +30,7 @@ pnpm build
 pnpm test:ui
 ```
 
-通常の比較では画像を更新しません。意図した変更を反映する場合は `pnpm test:ui --update-snapshots=all`、一覧ページを再生成する場合は `node tests/ui/report.mjs` を実行してください。変更前は `0787488ea5b0121d2f3a83c801befe97d8038e6b` を別ディレクトリに展開してビルドし、現在の作業ディレクトリから `HELPDESK_UI_BEFORE=/path/to/checkout pnpm test:ui` で撮影できます。
+このページは初回の画面レビュー記録です。現在の回帰画像と3幅での変更前後の比較は [運営画面の操作レビュー](../ux-2/index.html) にあります。通常の比較では画像を更新しません。意図した変更を反映する場合は `pnpm test:ui --update-snapshots=all`、一覧ページを再生成する場合は `node tests/ui/report.mjs` を実行してください。変更前は `0787488ea5b0121d2f3a83c801befe97d8038e6b` を別ディレクトリに展開してビルドし、現在の作業ディレクトリから `HELPDESK_UI_BEFORE=/path/to/checkout pnpm test:ui` で撮影できます。
 
 ## 部品と判断
 

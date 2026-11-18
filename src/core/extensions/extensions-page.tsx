@@ -6,6 +6,12 @@ import { guides } from './extension-guides'
 import type { coreOperations } from '../operations/catalog-usecase'
 import { extensionLabel, fieldLabel, operationLabel } from './extension-labels'
 
+const groups: Record<string, string[]> = {
+  受け付ける: ['form', 'chat', 'feedback', 'auto-ack', 'spam'],
+  答える: ['articles', 'canned', 'presence', 'snooze'],
+  直す: ['issues', 'merge'],
+  整える: ['rules', 'notify', 'metrics', 'survey', 'export'],
+}
 const permissions = {
   read_body: '問い合わせ本文の閲覧',
   send: 'メール送信',
@@ -15,6 +21,8 @@ export function managementPage(
   data: Awaited<ReturnType<typeof management>>,
   frame?: ConsoleFrame,
   changed?: string,
+  undo?: string,
+  restored?: string,
 ) {
   const updated = data.entries.find((e) => e.id === changed)
   return shell(
@@ -23,11 +31,27 @@ export function managementPage(
       <header className="page-header">
         <h1>拡張機能</h1>
       </header>
+      {restored && (
+        <p
+          role="status"
+          className={restored === 'yes' ? 'banner-success' : 'banner-error'}
+        >
+          {restored === 'yes'
+            ? '設定を元に戻しました。'
+            : '設定が更新されたため、元に戻せません。'}
+        </p>
+      )}
       {updated && (
-        <p role="status" className="banner-success">
+        <div role="status" className="banner-success">
           {extensionLabel(updated.id)}を{updated.enabled ? '有効' : '無効'}
           にしました。
-        </p>
+          {undo && (
+            <form action="/extensions/undo-activation" method="post">
+              <input type="hidden" name="changeId" value={undo} />
+              <button>元に戻す</button>
+            </form>
+          )}
+        </div>
       )}
       {data.failures.length > 0 && (
         <section className="banner-error" role="alert">
@@ -41,11 +65,16 @@ export function managementPage(
         </section>
       )}
       <div className="settings-groups">
-        {[true, false].map((enabled) => (
+        {Object.entries(groups).map(([group, ids]) => (
           <section>
-            <h2>{enabled ? '有効な拡張' : '無効な拡張'}</h2>
+            <h2>{group}</h2>
             {data.entries
-              .filter((e) => e.enabled === enabled)
+              .filter(
+                (e) =>
+                  ids.includes(e.id) ||
+                  (group === '整える' &&
+                    !Object.values(groups).flat().includes(e.id)),
+              )
               .map((e) => (
                 <section
                   className="settings-card"
@@ -54,6 +83,11 @@ export function managementPage(
                 >
                   <div className="card-heading">
                     <h3>{extensionLabel(e.id)}</h3>
+                    {(e.missing?.length > 0 || e.needsAI) && (
+                      <span className="delivery-awaiting-approval">
+                        設定が必要
+                      </span>
+                    )}
                     <span className="label-chip">
                       {e.enabled ? '有効' : '無効'}
                     </span>
@@ -70,6 +104,8 @@ export function managementPage(
                   {!!e.secrets.length && (
                     <p>
                       必要なシークレット　<code>{e.secrets.join('、')}</code>
+                      {!!e.missing?.length &&
+                        '（未設定: ' + e.missing.join('、') + '）'}
                     </p>
                   )}
                   <form method="post" action={'/extensions/' + e.id}>
@@ -107,6 +143,7 @@ function operationField(
   panel: Panel,
   number?: number,
 ) {
+  if (key === 'changeId' && op.name.startsWith('snooze.')) return null
   if (key === 'number' && number)
     return <input type="hidden" name={key} value={number} />
   const required = op.inputSchema.required?.includes(key)
@@ -118,7 +155,9 @@ function operationField(
         {label}
         <select name={key}>
           {options.map((value) => (
-            <option value={value}>{statuses[value] ?? value}</option>
+            <option value={value}>
+              {panel.choiceLabels[key]?.[value] ?? statuses[value] ?? value}
+            </option>
           ))}
         </select>
       </label>
@@ -313,14 +352,18 @@ function panel(p: Panel, number?: number, data?: Details) {
         </p>
       ))}
       {ops.map((op) => {
-        if (op.name.startsWith('feedback.') || p.slot === 'settings')
+        if (
+          op.name.startsWith('feedback.') ||
+          op.name === 'snooze.resume' ||
+          p.slot === 'settings'
+        )
           return actionForm(op, p, number, data)
         const label =
           op.name === 'issues.preview'
             ? 'Issue を起票する'
             : operationLabel(op.name, op.description)
         return (
-          <details>
+          <details className="choice-popover">
             <summary>{label}</summary>
             {actionForm(op, p, number, data)}
           </details>

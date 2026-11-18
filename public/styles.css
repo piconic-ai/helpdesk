@@ -27,7 +27,8 @@ dl,
 dd,
 pre,
 blockquote,
-fieldset {
+fieldset,
+form {
   margin: 0;
 }
 h1,
@@ -42,7 +43,7 @@ h1,
   font: var(--typography-title-lg);
 }
 h2 {
-  font: var(--typography-title-md);
+  font: var(--typography-title-sm);
 }
 h3,
 h4 {
@@ -306,7 +307,7 @@ dialog > * + * {
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  font: var(--typography-title-md);
+  font: var(--typography-title-sm);
   color: var(--colors-ink);
   text-decoration: none;
 }
@@ -450,7 +451,6 @@ dialog > * + * {
 }
 .row-top time {
   margin-inline-start: auto;
-  flex: none;
   white-space: nowrap;
 }
 .row-bottom {
@@ -527,7 +527,9 @@ dialog > * + * {
   color: var(--colors-ink);
   background: var(--colors-surface-strong);
 }
-.avatar:empty,
+.avatar-letter::before {
+  content: attr(data-initial);
+}
 .avatar-unassigned {
   background: transparent;
   border: var(--layout-hairline-width) dashed var(--colors-hairline);
@@ -1173,4 +1175,215 @@ details.filter-tab[open] {
 }
 .extension-workspace .help-article {
   margin-block: 0;
+}
+
+.actor-identity,
+.sidebar-account {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.avatar {
+  white-space: nowrap;
+  overflow: hidden;
+  object-fit: cover;
+}
+
+/* Operator workflows and shared reading measures. */
+h2,
+.brand {
+  font: var(--typography-title-sm);
+}
+body {
+  line-break: strict;
+}
+kbd,
+small {
+  font: var(--typography-caption);
+}
+time,
+.metric-number,
+.metric-comparison {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.metric-number,
+.metric-comparison {
+  text-align: end;
+}
+.metric-description,
+.metric-comparison,
+.timeline-entry {
+  font: var(--typography-caption);
+  color: var(--colors-muted);
+}
+.result-fields .metric-description {
+  grid-column: 1 / -1;
+}
+.message-body,
+.confirmation-detail {
+  max-inline-size: var(--components-help-article-width);
+}
+.confirmation-detail {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 50vh;
+  overflow: auto;
+}
+.confirm-dialog {
+  max-inline-size: min(
+    var(--components-help-article-width),
+    calc(100vw - 2 * var(--spacing-md))
+  );
+}
+.confirm-dialog dl {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+.confirm-dialog dt {
+  font: var(--typography-body-strong);
+}
+.confirm-dialog .page-actions,
+.confirm-dialog > button {
+  margin-block-start: var(--spacing-lg);
+}
+.confirm-dialog button {
+  min-width: 0;
+}
+.thread-navigation,
+.timeline-entry {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.thread-navigation {
+  justify-content: space-between;
+}
+.timeline-entry {
+  margin-inline: var(--spacing-md);
+}
+.thread-navigation .action-menu a {
+  display: block;
+  padding: var(--spacing-xs);
+}
+section.extension-panel .choice-popover {
+  position: relative;
+}
+.choice-popover[open] > .extension-form,
+.article-popover:popover-open {
+  position: absolute;
+  z-index: 4;
+  inline-size: min(24rem, 100%);
+  padding: var(--spacing-md);
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-md);
+  background: var(--colors-canvas);
+  box-shadow: var(--layout-raised-shadow);
+}
+.composer > div:has(.article-popover) {
+  position: relative;
+}
+button[popovertarget='reply-articles'] {
+  anchor-name: --article-trigger;
+}
+.article-popover:popover-open {
+  position: fixed;
+  inset: auto;
+  position-anchor: --article-trigger;
+  position-area: top span-right;
+  position-try-fallbacks: flip-block;
+  margin: 0;
+  max-height: 50vh;
+  max-width: calc(100vw - var(--spacing-lg));
+  overflow: auto;
+}
+.article-popover:not(:popover-open) {
+  display: none;
+}
+.rule-list {
+  padding-inline-start: var(--spacing-lg);
+}
+.rule-list li + li,
+.settings-card h3:not(:first-child) {
+  margin-block-start: var(--spacing-lg);
+}
+.settings-card
+  input:is(
+    [type='number'],
+    [type='date'],
+    [type='time'],
+    [type='datetime-local']
+  ) {
+  width: auto;
+  max-width: 100%;
+}
+@media (max-width: 1199px) {
+  .thread-layout .context-panel {
+    order: 1;
+  }
+}
+
+legend,
+input[type='checkbox'] {
+  padding: 0;
+  margin: 0;
+}
+ul,
+ol {
+  padding-inline-start: var(--spacing-lg);
+}
+.article-list,
+.conversation-list {
+  padding-inline-start: 0;
+}
+[data-extension-commands] {
+  display: grid;
+  justify-items: start;
+}
+
+main
+  p:not(
+    [role='status'],
+    [role='alert'],
+    .banner-success,
+    .banner-error,
+    .empty-state,
+    .timeline-entry
+  ),
+main textarea,
+main .settings-card textarea {
+  max-inline-size: min(100%, var(--components-help-article-width));
+}
+main select {
+  justify-self: start;
+  inline-size: fit-content;
+  max-inline-size: min(100%, var(--components-help-article-width));
+}
+main select:is([name='role'], [name='status'], [name='period']),
+main
+  input:is(
+    [type='number'],
+    [type='time'],
+    [type='date'],
+    [type='datetime-local']
+  ) {
+  justify-self: start;
+  max-inline-size: min(100%, var(--layout-context-width));
+}
+main input[type='number'] {
+  inline-size: 12ch;
+}
+main input:is([type='time'], [type='date'], [type='datetime-local']) {
+  inline-size: fit-content;
+}
+main
+  input:is(
+    [name='displayName'],
+    [name='senderName'],
+    [name='name'],
+    [name='local']
+  ) {
+  justify-self: start;
+  inline-size: min(100%, 32ch);
 }

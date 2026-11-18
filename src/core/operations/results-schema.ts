@@ -21,6 +21,8 @@ const message = createSelectSchema(messages).extend({
 })
 const receipt = z.object({ id: z.string() })
 export const results = {
+  bulk: z.object({ token: z.uuid(), count: z.number().int() }),
+  undoBulk: z.object({ token: z.uuid(), count: z.number().int() }),
   doctor: z.object({
     ready: z.boolean(),
     issues: z.string().array(),

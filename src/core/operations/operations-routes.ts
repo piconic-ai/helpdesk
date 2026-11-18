@@ -1,3 +1,7 @@
+import {
+  undoExtensionSetting,
+  activationNamespace,
+} from '../extensions/admin-settings-usecase'
 import { Hono, type Context as HttpContext } from 'hono'
 import { jsxRenderer } from 'hono/jsx-renderer'
 import { z } from 'zod'
@@ -13,6 +17,7 @@ import {
 import {
   consoleFrame,
   inboxMetadata,
+  inboxOrder,
   threadFiles,
 } from '../conversations/console-usecase'
 import {
@@ -25,6 +30,7 @@ import {
   sendingDomains,
 } from '../settings/console-settings-usecase'
 import { enableHostedIntake } from '../intakes/hosted-policy-usecase'
+import { returnInbox } from '../conversations/inbox-location'
 import { operatorErrorPage } from '../conversations/console-page'
 import { readHtml, download } from '../conversations/media-usecase'
 import { recordView } from '../extensions/view-usecase'
@@ -71,6 +77,17 @@ function run<K extends keyof typeof coreOperations>(
   >
 }
 app.use('*', authenticate)
+app.use('*', async (c, next) => {
+  await next()
+  if (c.req.method !== 'POST' || c.res.status !== 303) return
+  const id = z.uuid().safeParse(c.req.query('_draftSubmission'))
+  const redirect = c.res.headers.get('location')
+  if (!id.success || !redirect) return
+  const target = new URL(redirect, c.req.url)
+  if (target.origin !== new URL(c.req.url).origin) return
+  target.searchParams.set('_draftSaved', id.data)
+  c.header('Location', target.pathname + target.search + target.hash)
+})
 app.use('*', jsxRenderer(undefined, { docType: true }))
 app.get('/', async (c) => {
   const ctx = context(c),
@@ -90,19 +107,28 @@ app.get('/', async (c) => {
       : row.kind === 'inquiry' &&
         (!isApproval || frame.approvalNumbers.has(row.number)),
   )
+  const byNumber = new Map<number, (typeof rows)[number]>(
+    rows.map((row) => [row.number, row]),
+  )
+  const page = await inboxOrder(
+    c.env,
+    rows.map((row) => row.number),
+    query,
+  )
   return c.render(
     inboxPage(
-      rows,
+      page.numbers.map((n) => byNumber.get(n)!),
       failures,
       query,
       frame,
-      await inboxMetadata(
-        c.env,
-        rows.map((r) => r.number),
-        ctx.operator,
-      ),
+      await inboxMetadata(c.env, page.numbers, ctx.operator),
+      page,
     ),
   )
+})
+app.post('/inbox/:command{change|undo}', async (c) => {
+  const name = c.req.param('command') === 'undo' ? 'undoBulk' : 'bulk'
+  return c.json(await run(context(c), name, await c.req.json()))
 })
 app.get('/settings', async (c) => {
   const ctx = context(c)
@@ -127,7 +153,7 @@ app.get(
         sendingDomains(c.env.SENDING_DOMAINS),
         section === 'deletion' ? await settingsContacts(ctx) : [],
         await consoleFrame(c.env, ctx.operator, c.req.path),
-        c.req.query('saved') === 'yes',
+        c.req.query('saved'),
       ),
     )
   },
@@ -152,6 +178,12 @@ app.post('/settings/public-intakes/:product', async (c) => {
   return c.redirect(destination + '?started=yes', 303)
 })
 app.get('/conversation/:number', async (c) => {
+  const inbox = returnInbox(c.req.url, c.req.header('referer'))
+  if (inbox && c.req.query('inbox') === undefined) {
+    const url = new URL(c.req.url)
+    url.searchParams.set('inbox', inbox)
+    return c.redirect(url.pathname + url.search, 302)
+  }
   const ctx = context(c)
   const data = await run(ctx, 'get', { number: c.req.param('number') })
   const number = data.conversation.number
@@ -171,6 +203,8 @@ app.get('/conversation/:number', async (c) => {
         {
           product: data.conversation.product,
           notice: c.req.query('notice') ?? '',
+          undoId: z.uuid().safeParse(c.req.query('undoId')).data ?? '',
+          inbox,
         },
         ctx.now,
       ),
@@ -215,16 +249,32 @@ app.get('/extensions', async (c) => {
       await management(ctx),
       await consoleFrame(c.env, ctx.operator, c.req.path),
       c.req.query('changed'),
+      z.uuid().safeParse(c.req.query('undo')).data,
+      c.req.query('restored'),
     ),
+  )
+})
+app.post('/extensions/undo-activation', async (c) => {
+  const ctx = context(c)
+  const restored = await undoExtensionSetting(
+    ctx,
+    activationNamespace,
+    (await c.req.parseBody()).changeId,
+  )
+  return c.redirect(
+    '/extensions?restored=' + (restored ? 'yes' : 'outdated'),
+    303,
   )
 })
 app.post('/extensions/:id', async (c) => {
   const ctx = context(c)
   authorize(ctx, 'admin', scopes)
   const value = z.enum(['yes', 'no']).parse((await c.req.parseBody()).enabled)
-  await toggle(ctx, c.req.param('id'), value === 'yes')
+  const token = await toggle(ctx, c.req.param('id'), value === 'yes')
   return c.redirect(
-    '/extensions?changed=' + encodeURIComponent(c.req.param('id')),
+    '/extensions?changed=' +
+      encodeURIComponent(c.req.param('id')) +
+      (token ? '&undo=' + token : ''),
     303,
   )
 })
@@ -283,8 +333,19 @@ async function extensionResponse(
       name === 'merge.combine'
         ? z.object({ number: z.number() }).parse(result).number
         : number
+    const changeId =
+      name === 'canned.apply'
+        ? z.object({ id: z.string() }).parse(result).id
+        : name.startsWith('snooze.')
+          ? input.changeId
+          : undefined
+    const undo = z.uuid().safeParse(changeId)
     return c.redirect(
-      '/conversation/' + target + '?notice=' + encodeURIComponent(name),
+      '/conversation/' +
+        target +
+        '?notice=' +
+        encodeURIComponent(name) +
+        (undo.success && name !== 'snooze.undo' ? '&undoId=' + undo.data : ''),
       303,
     )
   }
@@ -313,13 +374,26 @@ app.post('/actions/:name', async (c) => {
   const args = name.includes('.')
     ? extensionFormFields(ctx, name, input)
     : input
+  if (
+    (name === 'snooze.defer' || name === 'snooze.resume') &&
+    c.req.header('accept')?.includes('text/html')
+  ) {
+    args.changeId = ctx.uuid()
+  }
   if (name === 'snooze.defer' && typeof args.untilLocal === 'string') {
     args.until = new Date(args.untilLocal + ':00+09:00').toISOString()
     delete args.untilLocal
   }
   const result = await invoke(ctx, scopes, name, args)
   if (c.req.header('accept') === 'application/json') return c.json(result)
-  if (name.includes('.')) return extensionResponse(c, ctx, name, input, result)
+  if (name.includes('.'))
+    return extensionResponse(
+      c,
+      ctx,
+      name,
+      { ...input, changeId: String(args.changeId ?? '') },
+      result,
+    )
   const settingsLocations: Record<string, string> = {
     role: 'operators',
     retention: 'retention',

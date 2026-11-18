@@ -18,10 +18,13 @@ export const intakeSchema = submissionSchema.extend({
   origin: z.enum(['form', 'chat']),
   kind: z.enum(['inquiry', 'feedback']).default('inquiry'),
 })
-const exactOrigin = z
+export const exactOrigin = z
   .url({ protocol: /^https?$/ })
   .refine(
-    (v) => new URL(v).origin === v,
+    (v) =>
+      URL.canParse(v) &&
+      new URL(v).origin === v &&
+      /^https?:\/\/(?:[a-z0-9.-]+|\[[0-9a-f:]+\])(?::[0-9]+)?$/i.test(v),
     'Expected a complete origin without a path',
   )
 export const intakePolicySchema = z.object({

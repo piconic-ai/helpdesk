@@ -42,6 +42,7 @@ export type ExtensionContext = {
     messages: Record<string, unknown>[]
     events: Record<string, unknown>[]
   }>
+  unreviewFeedback: (number: number) => Promise<{ number: number }>
   reviewFeedback: (number: number) => Promise<{ number: number }>
   convertFeedback: (number: number) => Promise<{ number: number }>
   resource: (id: string, name: string, input: unknown) => Promise<unknown>
@@ -63,7 +64,10 @@ export type ExtensionContext = {
   create: (key: string, value: unknown) => Promise<boolean>
   get: (key: string) => Promise<unknown>
   put: (key: string, value: unknown) => Promise<void>
-  list: (prefix: string) => Promise<{ key: string; value: unknown }[]>
+  list: (
+    prefix: string,
+    order?: 'key' | 'created',
+  ) => Promise<{ key: string; value: unknown }[]>
   remove: (key: string) => Promise<void>
   open: (input: IntakeInput) => Promise<{ number: number }>
   addInboundMessage: (number: number, body: string) => Promise<{ id: string }>
@@ -102,6 +106,9 @@ export type Panel = {
   slot: 'conversation' | 'settings' | 'list'
   title: string
   operations: string[]
+  choiceLabels?: (
+    ctx: ExtensionContext,
+  ) => Promise<Record<string, Record<string, string>>>
   choices?: (ctx: ExtensionContext) => Promise<Record<string, string[]>>
   links?: (
     ctx: ExtensionContext,
@@ -138,13 +145,13 @@ export type Extension = {
     product: string,
     path: string,
     query: URLSearchParams,
-  ) => Promise<{ title: string; html: string } | null>
+  ) => Promise<{ title: string; html: string; status?: 409 } | null>
   publicAction?: (
     ctx: ExtensionContext,
     product: string,
     path: string,
     request: Request,
-  ) => Promise<{ title: string; html: string } | null>
+  ) => Promise<{ title: string; html: string; status?: 409 } | null>
   resources?: {
     name: string
     run: (ctx: ExtensionContext, input: unknown) => Promise<unknown>

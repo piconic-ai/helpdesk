@@ -20,10 +20,22 @@ export const config = z.object({
     }, 'Expected a public helpdesk origin')
     .optional(),
 })
-export const visit = z.object({ at: z.number(), product: productId, id: slug })
+export const visit = z.object({
+  at: z.number(),
+  product: productId,
+  id: slug,
+  answered: z.boolean().optional(),
+})
 export const lifetime = 24 * 60 * 60 * 1000
 export const articleKey = (product: string, id: string) =>
   'article/' + encodeURIComponent(product) + '/' + id
 export const publicPath = (product: string, id?: string) =>
   '/help/articles/' + encodeURIComponent(product) + '/' + (id ?? '')
 export type Article = z.output<typeof article>
+
+export function searchArticles(articles: Article[], query: string) {
+  const text = query.trim().toLocaleLowerCase()
+  return articles.filter((a) =>
+    (a.title + ' ' + a.body).toLocaleLowerCase().includes(text),
+  )
+}

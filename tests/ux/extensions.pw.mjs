@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
 import { startScene } from '../ui/seed.mjs'
-import { test, expect, capture } from './harness.mjs'
+import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
 test.use({ extensions: ['articles', 'issues', 'metrics'] })
 
@@ -22,6 +22,7 @@ test('J5 記事をプレビューし公開してから返信に添える', async
   await expect(page.locator('article')).toContainText(body)
   await capture(page, 'J5', '01-preview', '公開される本文を確認')
   await page.getByRole('button', { name: '公開する' }).click()
+  await confirmSubmission(page)
   await page.getByRole('link', { name: '公開記事を読む' }).click()
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
   await expect(page.getByText(body, { exact: true })).toBeVisible()
@@ -39,6 +40,7 @@ test('J5 記事をプレビューし公開してから返信に添える', async
   await expect(page.getByText(publicUrl, { exact: false }).last()).toBeVisible()
   await capture(page, 'J5', '03-composer', '返信プレビューで記事のリンクを確認')
   await page.getByRole('button', { name: '送信', exact: true }).click()
+  await confirmSubmission(page)
   await expect(page.locator('article.message-outbound')).toContainText(
     publicUrl,
   )
@@ -78,6 +80,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
   }).toPass({ timeout: 15000 })
   await capture(page, 'J8', '03-draft', 'Issue のクローズ通知を下書きで確認')
   await page.getByRole('button', { name: '承認して送信' }).click()
+  await confirmSubmission(page)
   await expect(async () => {
     await page.reload()
     await expect(
@@ -107,7 +110,7 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
     .locator('dt')
     .filter({ hasText: '完了件数' })
     .locator('..')
-    .locator('dd')
+    .locator('dd.metric-number')
   await expect(closed).toHaveText('1')
   await capture(page, 'J10', '01-month', '過去30日の集計')
   await page
@@ -125,7 +128,7 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
       .locator('dt')
       .filter({ hasText: '完了件数' })
       .locator('..')
-      .locator('dd'),
+      .locator('dd.metric-number'),
   ).toHaveText('0')
   await capture(page, 'J10', '02-product', '選択したプロダクトの過去7日間')
   await page

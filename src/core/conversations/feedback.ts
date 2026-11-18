@@ -1,9 +1,9 @@
 import type { Conversation } from './state'
 
-export type FeedbackEvent = 'review' | 'convert'
+export type FeedbackEvent = 'review' | 'convert' | 'unreview'
 type Decision =
   | { ok: true; kind: 'inquiry'; status: 'open' }
-  | { ok: true; kind: 'feedback'; status: 'reviewed' }
+  | { ok: true; kind: 'feedback'; status: 'reviewed' | 'received' }
   | { ok: false; reason: string }
 
 export function decideFeedback(
@@ -18,6 +18,10 @@ export function decideFeedback(
       reason: 'Quarantined feedback cannot be reviewed or converted',
     }
   switch (event) {
+    case 'unreview':
+      return current.status.kind === 'reviewed'
+        ? { ok: true, kind: 'feedback', status: 'received' }
+        : { ok: false, reason: 'Feedback has not been reviewed' }
     case 'convert':
       return { ok: true, kind: 'inquiry', status: 'open' }
     case 'review':

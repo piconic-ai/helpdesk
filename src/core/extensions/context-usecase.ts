@@ -58,6 +58,8 @@ export function extensionContext(
     },
     convertFeedback: (number) =>
       changeFeedback(c.env, number, c.actor, c.now, 'convert'),
+    unreviewFeedback: (number) =>
+      changeFeedback(c.env, number, c.actor, c.now, 'unreview'),
     reviewFeedback: (number) =>
       changeFeedback(c.env, number, c.actor, c.now, 'review'),
     resource: async (id, name, input) => {

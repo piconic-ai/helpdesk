@@ -147,12 +147,16 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
     await page.getByLabel('返信', { exact: true }).fill(reply)
     await page.getByRole('button', { name: 'プレビュー' }).click()
     await page.locator('pre').filter({ hasText: reply }).waitFor()
+    await page.getByRole('button', { name: '送信', exact: true }).click()
     await Promise.all([
       page.waitForEvent(
         'framenavigated',
         (frame) => frame === page.mainFrame(),
       ),
-      page.getByRole('button', { name: '送信', exact: true }).click(),
+      page
+        .getByRole('dialog')
+        .getByRole('button', { name: '送信', exact: true })
+        .click(),
     ])
     await expect
       .poll(
@@ -187,6 +191,7 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
       )
       .toMatch(/未対応[\s\S]*I found the receipt/)
     await page.getByRole('button', { name: '完了にする' }).click()
+    await page.locator('.thread-meta .status-closed').waitFor()
     await page.goto(origin)
     expect(
       await page.getByRole('link', { name: /Receipt download/ }).count(),

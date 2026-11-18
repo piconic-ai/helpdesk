@@ -1,4 +1,4 @@
-import { test, expect, capture } from './harness.mjs'
+import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
 test.use({ extensions: ['canned', 'snooze', 'merge'] })
 test('C 会話で定型文を下書きにし、スヌーズを設定・解除して同じ相手の会話に統合する', async ({
@@ -42,7 +42,6 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     await inbox.goto(scene.origin)
     const row = inbox.getByRole('link', { name: new RegExp(inquiry) })
     await expect(row).toHaveCount(0)
-    await expand('snooze', '保留を解除')
     await panel('snooze').getByRole('button', { name: '保留を解除' }).click()
     await inbox.reload()
     await expect(row).toBeVisible()
@@ -69,6 +68,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     '同じ窓口・連絡先の会話を件名で選ぶ',
   )
   await panel('merge').getByRole('button', { name: '会話を統合' }).click()
+  await confirmSubmission(page)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(target)
   const messages = page.locator('article')
   await expect(
@@ -87,7 +87,10 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   await expect(page.getByRole('button', { name: '経理を外す' })).toBeVisible()
   await page.getByRole('link', { name: /^返信待ち/ }).click()
   const combined = page.getByRole('link', { name: new RegExp(target) })
-  await expect.soft(combined).toContainText('下書き: Hello 山田 花')
+  await expect.soft(combined).toContainText('Hello 山田 花')
+  await expect
+    .soft(combined.getByRole('img', { name: '承認待ち', exact: true }))
+    .toBeVisible()
   await expect.soft(combined).toContainText('承認待ち')
   const approvals = page.getByRole('link', { name: /^承認待ち/ })
   await expect.soft(approvals).toHaveText(/承認待ち\s*2/)
@@ -99,4 +102,23 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     '06-approval',
     '統合元のラベルを外した後も、未承認の定型返信を承認待ち一覧で探せる',
   )
+})
+
+test('保留の設定と解除は直前の状態へ戻せる', async ({ page, scene }) => {
+  await page.goto(scene.origin + '/conversation/1')
+  const panel = page.locator('[data-extension=snooze]')
+  const defer = async () => {
+    await panel.locator('summary').click()
+    await panel.getByLabel('再表示日時（日本時間）').fill('2026-11-24T09:30')
+    await panel.getByRole('button', { name: '指定日時まで保留' }).click()
+  }
+  const undo = () =>
+    page.getByRole('button', { name: '元に戻す', exact: true }).click()
+  await defer()
+  await undo()
+  await expect(panel).toContainText('保留されていません')
+  await defer()
+  await panel.getByRole('button', { name: '保留を解除' }).click()
+  await undo()
+  await expect(panel).toContainText('2026年11月24日')
 })

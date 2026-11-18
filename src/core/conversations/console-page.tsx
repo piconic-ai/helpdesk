@@ -1,3 +1,4 @@
+import { operatorAvatar } from '../operators/identity-page'
 import type { Child } from 'hono/jsx'
 import { BfScripts } from '@barefootjs/hono/scripts'
 import type { ConsoleFrame } from './console-usecase'
@@ -130,6 +131,7 @@ function navigation(frame: ConsoleFrame) {
   const active =
     frame.path === '/' ? selectedView(frame.query, frame.operator.email) : ''
   const product = frame.query.product ?? ''
+  const person = frame.operators.find((o) => o.email === frame.operator.email)
   return (
     <>
       <div className="sidebar-heading">
@@ -153,11 +155,13 @@ function navigation(frame: ConsoleFrame) {
             'すべてのプロダクト'}
         </summary>
         <div>
-          <a href={inboxUrl({ ...frame.query, product: '' })}>
+          <a href={inboxUrl({ ...frame.query, page: '', product: '' })}>
             すべてのプロダクト
           </a>
           {frame.products.map((p) => (
-            <a href={inboxUrl({ ...frame.query, product: p.id })}>{p.name}</a>
+            <a href={inboxUrl({ ...frame.query, page: '', product: p.id })}>
+              {p.name}
+            </a>
           ))}
         </div>
       </details>
@@ -203,7 +207,24 @@ function navigation(frame: ConsoleFrame) {
           )}
         {frame.operator.role === 'admin' &&
           navItem('/settings', '設定', 'settings', frame.path === '/settings')}
+        <button type="button" className="button-quiet" data-keyboard-help="">
+          キーボード操作 <kbd>?</kbd>
+        </button>
         {navItem('/tokens', 'API トークン', 'tokens', frame.path === '/tokens')}
+        <a
+          className="sidebar-item sidebar-account"
+          href="/account"
+          aria-current={frame.path === '/account' ? 'page' : undefined}
+          title="アカウント"
+        >
+          <span aria-hidden="true">
+            {operatorAvatar(person, frame.operator.email)}
+          </span>
+          <span>
+            {person?.displayName}
+            <span className="sr-only"> のアカウント</span>
+          </span>
+        </a>
       </nav>
     </>
   )
@@ -217,8 +238,12 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="stylesheet" href="/styles.css" />
         <script defer src="/ui/console.js"></script>
+        <script defer src="/ui/inbox.js"></script>
+        {frame?.path === '/' && <link rel="stylesheet" href="/ui/inbox.css" />}
+        <script defer src="/ui/workflows.js"></script>
       </head>
-      <body className="app-shell">
+      <body className="app-shell" data-operator={frame?.operator.email}>
+        <script src="/ui/form-drafts.js"></script>
         <a href="#main" className="skip-link">
           本文へ移動
         </a>
@@ -251,6 +276,44 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <main id="main" className="main-column" tabindex={-1}>
           {content}
         </main>
+        <dialog
+          className="confirm-dialog"
+          id="action-confirmation"
+          aria-labelledby="action-title"
+        >
+          <h2 id="action-title">操作を確認</h2>
+          <p className="confirmation-detail"></p>
+          <div className="page-actions">
+            <button data-close-modal="" autofocus>
+              キャンセル
+            </button>
+            <button data-commit="" className="button-secondary">
+              実行する
+            </button>
+          </div>
+        </dialog>
+        <dialog
+          className="confirm-dialog"
+          id="keyboard-help"
+          aria-labelledby="shortcut-title"
+        >
+          <h2 id="shortcut-title">キーボード操作</h2>
+          <dl>
+            <dt>受信箱</dt>
+            <dd>
+              j / k で次・前の行へ、Enter で開く、e で完了、a で自分が担当
+            </dd>
+            <dt>会話</dt>
+            <dd>
+              r で返信、n で内部メモ、Cmd / Ctrl + Enter で送信、u で一覧へ
+            </dd>
+            <dt>共通</dt>
+            <dd>? でこの一覧、Esc で閉じる</dd>
+          </dl>
+          <button data-close-modal="" autofocus>
+            閉じる
+          </button>
+        </dialog>
         <BfScripts />
       </body>
     </html>

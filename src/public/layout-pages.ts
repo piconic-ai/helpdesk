@@ -14,7 +14,7 @@ export function publicPolicy(origins?: string[]) {
 export function publicDocument(
   product: Product,
   page: { title: string; html: string },
-  options: { contact?: boolean; chat?: boolean; turnstile?: boolean } = {},
+  options: { contact?: string; chat?: boolean; turnstile?: boolean } = {},
 ) {
   return html`<!doctype html>
     <html lang="ja">
@@ -31,7 +31,7 @@ export function publicDocument(
         <main class="${options.chat ? 'chat-widget' : 'help-article'}">
           ${raw(page.html)}
         </main>
-        ${options.contact && product.mailbox ? html`<footer class="public-footer">解決しませんでしたか？ <a href="mailto:${product.mailbox}">お問い合わせ</a></footer>` : ''}
+        ${options.contact ? html`<footer class="public-footer">解決しませんでしたか？ <a href="${options.contact}">お問い合わせ</a></footer>` : ''}
       </body>
     </html>`
 }

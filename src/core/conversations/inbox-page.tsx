@@ -1,96 +1,13 @@
 import type { coreOperations } from '../operations/catalog-usecase'
 import type { ConsoleFrame, inboxMetadata } from './console-usecase'
-import {
-  shell,
-  selectedView,
-  statuses,
-  select,
-  badge,
-  stamp,
-} from './console-page'
+import { shell, selectedView, statuses, select, inboxUrl } from './console-page'
 
+import { conversationRow } from './inbox-row-page'
+import { operatorAvatar } from '../operators/identity-page'
 export type Result<K extends keyof typeof coreOperations> = Awaited<
   ReturnType<(typeof coreOperations)[K]['execute']>
 >
 type Metadata = Awaited<ReturnType<typeof inboxMetadata>>
-function avatar(name?: string) {
-  const words = name
-    ?.split('@')[0]
-    ?.split(/[._\s-]+/)
-    .filter(Boolean)
-  const initials = words
-    ?.slice(0, 2)
-    .map((part) => Array.from(part)[0])
-    .join('')
-    .toUpperCase()
-  return (
-    <span
-      role="img"
-      className={'avatar' + (name ? '' : ' avatar-unassigned')}
-      aria-label={name ? '担当者 ' + name : '担当なし'}
-      title={name ?? '担当なし'}
-    >
-      {initials}
-    </span>
-  )
-}
-function previewPrefix(kind: string | null, delivery: string | null) {
-  if (kind === 'note') return 'メモ: '
-  if (kind === 'outbound')
-    return delivery === 'awaiting_approval' || delivery === 'draft'
-      ? '下書き: '
-      : '返信: '
-  return '受信: '
-}
-function conversationRow(
-  row: Result<'list'>[number],
-  meta: Metadata,
-  frame: ConsoleFrame,
-) {
-  const m = meta.get(row.number)
-  const assignee =
-    row.kind === 'inquiry' && row.assignment.kind === 'assigned'
-      ? row.assignment.to
-      : undefined
-  const labels = m?.labels ?? []
-  return (
-    <li>
-      <a
-        className={'conversation-row' + (m?.unread ? ' unread' : '')}
-        href={'/conversation/' + row.number}
-      >
-        <span className="row-top">
-          <span className="row-sender">{m?.name || row.contact}</span>
-          <span className="row-subject">{row.subject}</span>
-          {stamp(m?.at ?? row.createdAt, frame.now)}
-        </span>
-        <span className="row-bottom">
-          <code className="row-number">#{row.number}</code>
-          <span className="row-preview">
-            {' '}
-            {m && m.preview && previewPrefix(m.previewKind, m.previewDelivery)}
-            {m?.preview}
-          </span>
-          {frame.approvalNumbers.has(row.number) && (
-            <span className="delivery-awaiting-approval">承認待ち</span>
-          )}
-          {!!m?.failed && <span className="delivery-failed">送信失敗</span>}
-          <span className="row-labels">
-            {labels.slice(0, 2).map((label) => (
-              <span className="label-chip">{label}</span>
-            ))}
-            {labels.length > 2 && <span>+{labels.length - 2}</span>}
-          </span>
-          {badge(row.status.kind)}
-          {avatar(
-            frame.operators.find((op) => op.email === assignee)?.displayName ??
-              assignee,
-          )}
-        </span>
-      </a>
-    </li>
-  )
-}
 function filters(
   q: Record<string, string>,
   frame: ConsoleFrame,
@@ -98,6 +15,7 @@ function filters(
 ) {
   return (
     <form method="get" className="filters" role="search">
+      {q.sort && <input type="hidden" name="sort" value={q.sort} />}
       {q.view && <input type="hidden" name="view" value={q.view} />}
       <label className="search-field">
         <span className="sr-only">問い合わせを検索</span>
@@ -128,18 +46,47 @@ function filters(
             },
             q.product ?? '',
           )}
-          {q.view !== 'feedback' &&
-            select(
-              'assignee',
-              '担当者',
-              {
-                '': 'すべて',
-                ...Object.fromEntries(
-                  frame.operators.map((o) => [o.email, o.displayName]),
-                ),
-              },
-              q.assignee ?? '',
-            )}
+          {q.view !== 'feedback' && (
+            <div className="field">
+              <span id="filter-assignee-label">担当者</span>
+              <input type="hidden" name="assignee" value={q.assignee ?? ''} />
+              <button
+                type="button"
+                popovertarget="filter-assignee"
+                className="button-secondary"
+                id="filter-assignee-value"
+                aria-labelledby="filter-assignee-label filter-assignee-value"
+                data-filter-name=""
+              >
+                {frame.operators.find((o) => o.email === q.assignee)
+                  ?.displayName ?? 'すべて'}
+              </button>
+              <div
+                popover="auto"
+                id="filter-assignee"
+                className="inbox-popover"
+              >
+                <button
+                  type="button"
+                  data-filter-assignee=""
+                  className="button-quiet"
+                >
+                  すべて
+                </button>
+                {frame.operators.map((o) => (
+                  <button
+                    type="button"
+                    data-filter-assignee={o.email}
+                    data-label={o.displayName}
+                    className="button-quiet"
+                  >
+                    {operatorAvatar(o)}
+                    <span>{o.displayName}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {select(
             'label',
             'ラベル',
@@ -164,6 +111,7 @@ export function inboxPage(
 
   frame: ConsoleFrame,
   meta: Metadata,
+  page: { page: number; pages: number; total: number },
 ) {
   const view = selectedView(q, frame.operator.email)
   const title = statuses[view] ?? '受信箱'
@@ -173,7 +121,18 @@ export function inboxPage(
     <div className="inbox-view">
       <header className="page-header">
         <h1 className="page-title">{title}</h1>
-        <span className="view-count">{rows.length} 件</span>
+        <span className="view-count">{page.total} 件</span>
+        <label className="inbox-sort">
+          <span className="sr-only">並び順</span>
+          <select className="text-input" name="sort" data-sort="">
+            <option value="waiting" selected={q.sort !== 'newest'}>
+              待たせている順
+            </option>
+            <option value="newest" selected={q.sort === 'newest'}>
+              新しい順
+            </option>
+          </select>
+        </label>
       </header>
       {failures.length > 0 && (
         <section className="banner-error" aria-label="受信エラー">
@@ -189,16 +148,41 @@ export function inboxPage(
       <div data-inbox-results="" aria-live="polite">
         <div data-inbox-content="">
           {rows.length > 0 ? (
-            <ul className="conversation-list">
-              {rows.map((row) => conversationRow(row, meta, frame))}
-            </ul>
+            <>
+              {bulkBar(frame, view)}
+              <ul className="conversation-list">
+                {rows.map((row) => conversationRow(row, meta, frame))}
+              </ul>
+              {page.pages > 1 && (
+                <nav className="inbox-pagination" aria-label="ページ送り">
+                  {page.page > 1 && (
+                    <a
+                      className="button-secondary"
+                      href={inboxUrl({ ...q, page: String(page.page - 1) })}
+                    >
+                      前のページ
+                    </a>
+                  )}
+                  <span>
+                    {page.page} / {page.pages} ページ
+                  </span>
+                  {page.page < page.pages && (
+                    <a
+                      className="button-secondary"
+                      href={inboxUrl({ ...q, page: String(page.page + 1) })}
+                    >
+                      次のページ
+                    </a>
+                  )}
+                </nav>
+              )}
+            </>
           ) : (
             <p className="empty-state">
-              {isFiltered
+              {isFiltered &&
+              !(view === 'mine' && !q.product && !q.query && !q.label)
                 ? '条件に一致する問い合わせはありません。'
-                : view === 'open'
-                  ? '未対応の問い合わせはありません。'
-                  : 'この状態の問い合わせはありません。'}
+                : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
             </p>
           )}
         </div>
@@ -220,6 +204,85 @@ export function inboxPage(
     </div>,
     frame,
   )
+}
+function bulkBar(frame: ConsoleFrame, view: string) {
+  return (
+    <section aria-label="まとめて操作" className="inbox-bulk" hidden>
+      <strong data-selected-count=""></strong>
+      {view !== 'feedback' && (
+        <>
+          <button
+            type="button"
+            className="button-secondary"
+            popovertarget="bulk-assignee"
+          >
+            担当者を選ぶ
+          </button>
+          <div popover="auto" id="bulk-assignee" className="inbox-popover">
+            {frame.operators.map((o) => (
+              <button
+                className="button-quiet"
+                type="button"
+                data-change="assign"
+                data-value={o.email}
+                aria-label={o.displayName}
+              >
+                {operatorAvatar(o)}
+                {o.displayName}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        type="button"
+        className="button-secondary"
+        popovertarget="bulk-label"
+      >
+        ラベルを付ける
+      </button>
+      <div popover="auto" id="bulk-label" className="inbox-popover">
+        {frame.labels.length ? (
+          frame.labels.map((l) => (
+            <button
+              className="button-quiet"
+              type="button"
+              data-change="add"
+              data-value={l}
+            >
+              {l}
+            </button>
+          ))
+        ) : (
+          <p>選べるラベルはまだありません。</p>
+        )}
+      </div>
+      {view !== 'feedback' && (
+        <button type="button" className="button-secondary" data-change="closed">
+          完了にする
+        </button>
+      )}
+      <button
+        type="button"
+        className="button-secondary"
+        data-change="marked_spam"
+      >
+        迷惑メールにする
+      </button>
+      <button type="button" className="button-quiet" data-clear-selection="">
+        選択を解除
+      </button>
+    </section>
+  )
+}
+const emptyView: Record<string, string> = {
+  open: '未対応の問い合わせはありません。',
+  pending: '相手からの返信を待っている問い合わせはありません。',
+  closed: '完了した問い合わせはありません。',
+  spam: '迷惑メールに分類された問い合わせはありません。',
+  approval: '承認を待っている下書きはありません。',
+  feedback: 'この状態のフィードバックはありません。',
+  mine: '自分が担当している問い合わせはありません。',
 }
 const inquiryStatuses = {
   open: statuses.open,

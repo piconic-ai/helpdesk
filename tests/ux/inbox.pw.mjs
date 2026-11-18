@@ -34,14 +34,20 @@ test('受信箱で承認待ち、相手の文、内部メモ、返信を見分�
   await approval.click()
   await expect(page.locator('a.conversation-row')).toHaveCount(1)
   await page.goto(scene.origin + '/?status=pending')
-  await expect(page.locator('a.conversation-row')).toContainText('返信:')
+  await expect(
+    page
+      .locator('a.conversation-row')
+      .getByRole('img', { name: '返信', exact: true }),
+  ).toBeVisible()
   await scene.db
     .prepare("UPDATE conversations SET status='pending' WHERE number=3")
     .run()
   await page.reload()
   await expect(
-    page.locator('[href="/conversation/3"].conversation-row'),
-  ).toContainText('メモ:')
+    page
+      .locator('.inbox-item[data-number="3"] a.conversation-row')
+      .getByRole('img', { name: 'メモ', exact: true }),
+  ).toBeVisible()
   await page.getByRole('link', { name: /フィードバック.*1/ }).click()
   await expect(page.locator('a.conversation-row')).toHaveCount(1)
   await page.getByText('絞り込み', { exact: true }).click()
@@ -50,8 +56,8 @@ test('受信箱で承認待ち、相手の文、内部メモ、返信を見分�
   await page.getByText('絞り込み', { exact: true }).click()
   await expect(page.getByLabel('状態')).not.toContainText('受付済み')
   await expect(
-    page.getByRole('combobox', { name: '担当者', exact: true }),
-  ).toHaveJSProperty('tagName', 'SELECT')
+    page.getByRole('button', { name: '担当者 すべて', exact: true }),
+  ).toHaveAttribute('popovertarget', 'filter-assignee')
   await expect(page.getByLabel('ラベル')).toHaveJSProperty('tagName', 'SELECT')
 })
 

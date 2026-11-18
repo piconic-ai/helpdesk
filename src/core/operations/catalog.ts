@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { bulkInput } from '../conversations/inbox-changes'
 import { filterSchema } from '../conversations/filters'
 import type { Context, Scope, handlers as usecases } from './catalog-usecase'
 export class PermissionDenied extends Error {}
@@ -40,6 +41,12 @@ const status = z.object({
 
 export function makeCatalog(handlers: typeof usecases) {
   return {
+    bulk: operation('write', bulkInput, handlers.bulk),
+    undoBulk: operation(
+      'write',
+      z.object({ token: z.uuid() }),
+      handlers.undoBulk,
+    ),
     doctor: operation('read', empty, handlers.doctor),
     list: operation('read', filterSchema, (c, i) => handlers.list(c, i)),
     get: operation('read', address, (c, i) => handlers.get(c, i.number)),

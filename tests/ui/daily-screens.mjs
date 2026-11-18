@@ -1,0 +1,58 @@
+const guides = [
+  'articles',
+  'auto-ack',
+  'canned',
+  'chat',
+  'export',
+  'feedback',
+  'form',
+  'issues',
+  'merge',
+  'metrics',
+  'notify',
+  'presence',
+  'rules',
+  'snooze',
+  'spam',
+  'survey',
+]
+const pages = [
+  [
+    'link-issue',
+    '既存の Issue を選ぶ',
+    '/extensions/issues/link/1',
+    ['issues'],
+  ],
+  ['account', 'アカウント', '/account'],
+  ['settings-home', '設定の入口', '/settings'],
+  ['retention', '保存期間', '/settings/retention'],
+  ['article-new', '新しい記事', '/articles/new', ['articles']],
+  [
+    'article-edit',
+    '記事の編集',
+    '/articles/edit?product=slide&id=receipt',
+    ['articles'],
+  ],
+  ['help-home', '公開ヘルプの入口', '/help/', ['form', 'articles']],
+  [
+    'public-404',
+    '公開ヘルプのエラー',
+    '/help/articles/slide/missing',
+    ['articles'],
+  ],
+  ['console-404', '運営画面のエラー', '/missing'],
+  ...guides.map((id) => [
+    'guide-' + id,
+    '拡張の設定 · ' + id,
+    '/extensions/' + id,
+    [id],
+  ]),
+]
+export const dailyScreens = pages.map(([id, label, url, extensions]) => ({
+  id,
+  label,
+  url,
+  group: '運用画面',
+  extensions,
+  status: id.endsWith('404') ? 404 : 200,
+}))

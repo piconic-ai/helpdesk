@@ -64,7 +64,9 @@ function conversationRows(query, i, subject) {
       isDesk ? 'desk' : 'slide',
       isDesk ? 'desk@example.com' : 'support@example.com',
       'customer' + n + '@example.net',
-      customer[i % customer.length],
+      n === 11
+        ? '株式会社サンプル経理部門 カスタマーサポート窓口担当 山田 花'
+        : customer[i % customer.length],
       subject,
       n === 10 ? 'feedback' : 'inquiry',
       statuses[i],
@@ -175,6 +177,25 @@ async function seed(db, raw, extensions) {
       'text/plain',
     ),
   )
+  statements.push(
+    query(
+      "INSERT INTO messages(id,number,kind,body,actor,created_at) VALUES('note-11-a',11,'note','再発行の方法を確認中です。',?,?)",
+      json({ kind: 'operator', id: operator }),
+      fixedTime - 4 * 3600000,
+    ),
+    query(
+      "INSERT INTO messages(id,number,kind,body,actor,created_at) VALUES('note-11-b',11,'note','経理窓口へ確認しました。',?,?)",
+      json({ kind: 'operator', id: operator }),
+      fixedTime - 3 * 3600000,
+    ),
+  )
+  for (const label of [
+    '経理',
+    '長期契約の更新手続きについて',
+    '社内確認',
+    '再発行',
+  ])
+    statements.push(query('INSERT INTO labels VALUES(?,?)', 11, label))
   for (const label of ['領収書', '請求', '経理'])
     statements.push(query('INSERT INTO labels VALUES(?,?)', 1, label))
   statements.push(query('INSERT INTO labels VALUES(?,?)', 4, '請求'))
@@ -254,9 +275,10 @@ async function extensionData(db, extensions, origin) {
 export async function startScene(
   extensions = [],
   source = '.',
-  { port = 0, emptyInbox = false, embedOrigin } = {},
+  { port = 0, emptyInbox = false, embedOrigin, secondAdmin = false } = {},
 ) {
   const simulationKey = crypto.randomUUID()
+  const peerCookie = secondAdmin ? crypto.randomUUID() : undefined
   const github = createGithub()
   const notifications = []
   const runtime = new Miniflare(
@@ -306,6 +328,7 @@ export async function startScene(
         LOCAL_OPERATOR: operator,
         SENDING_DOMAINS: 'example.com',
         SIMULATION_KEY: simulationKey,
+        ...(peerCookie && { TEST_ADMIN_COOKIE: peerCookie }),
         ...(embedOrigin && { TEST_EMBED_ORIGIN: embedOrigin }),
         GITHUB_TOKEN: 'local-test-only',
         ...(extensions.includes('notify') && {
@@ -319,6 +342,10 @@ export async function startScene(
     const { DB, RAW } = await runtime.getBindings()
     await applyMigrations(DB)
     await seed(DB, RAW, extensions)
+    if (secondAdmin)
+      await DB.prepare(
+        "UPDATE operators SET role='admin' WHERE email='mori@example.com'",
+      ).run()
     if (emptyInbox)
       await DB.prepare(
         "UPDATE conversations SET status = 'closed', closed_at = ? WHERE status = 'open'",
@@ -380,6 +407,7 @@ export async function startScene(
     return {
       origin,
       db: DB,
+      peerCookie,
       receive,
       github,
       notifications,

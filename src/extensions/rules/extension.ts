@@ -1,27 +1,7 @@
-import { z } from 'zod'
-import type {
-  Extension,
-  ExtensionContext,
-} from '../../core/extensions/extension'
-export const ruleSchema = z
-  .object({
-    product: z.string().min(1).optional(),
-    subjectContains: z.string().min(1).optional(),
-    label: z.string().trim().min(1).max(200).optional(),
-    assignee: z.email().optional(),
-  })
-  .strict()
-  .refine(
-    (r) => Boolean(r.label || r.assignee),
-    'A label or assignee is required',
-  )
-export async function storedRules(ctx: ExtensionContext) {
-  return (await ctx.list('rule/')).map(({ key, value }) => ({
-    key,
-    rule: ruleSchema.parse(value),
-  }))
-}
-const config = z.object({ rules: z.array(ruleSchema).default([]) }).strict()
+import type { z } from 'zod'
+import type { Extension } from '../../core/extensions/extension'
+import { ruleSchema, config, storedRules } from './rule-list'
+export { ruleSchema, storedRules } from './rule-list'
 export function matches(
   rule: z.infer<typeof ruleSchema>,
   mail: { product: string; subject: string },
@@ -42,15 +22,24 @@ export const rules: Extension = {
       async run(ctx, event) {
         const n = event.number
         if (!n) return
-        const list = [
-          ...config.parse(ctx.config).rules,
-          ...(await storedRules(ctx)).map((entry) => entry.rule),
-        ]
+        const list = await storedRules(ctx)
         if (!list.length) return
         const mail = await ctx.contact(n)
-        for (const rule of list.filter((rule) => matches(rule, mail))) {
+        for (const { key, rule } of list.filter((entry) =>
+          matches(entry.rule, mail),
+        )) {
           if (rule.label) await ctx.label(n, rule.label)
           if (rule.assignee) await ctx.assign(n, rule.assignee)
+          await ctx.emit(
+            'applied',
+            n,
+            {
+              condition: rule.subjectContains ?? 'すべての件名',
+              label: rule.label,
+              assignee: rule.assignee,
+            },
+            String(event.id) + '/' + key,
+          )
         }
       },
     },

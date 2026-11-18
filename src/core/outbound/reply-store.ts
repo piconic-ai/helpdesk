@@ -45,12 +45,21 @@ function event(
 }
 
 const hasAttempt = 'EXISTS (SELECT 1 FROM outbox WHERE attempt=?)'
+function queueEntry(db: D1Database, id: string, attempt: string, now: number) {
+  return db
+    .prepare(`INSERT INTO outbox(message,attempt,phase,queued_at,sender_name,operator_name)
+    SELECT m.id,?,'ready',?,s.name,
+      CASE WHEN s.show_operator=1 THEN coalesce(nullif(p.display_name,''),substr(o.email,1,instr(o.email,'@')-1)) END
+    FROM messages m JOIN conversations c ON c.number=m.number
+    LEFT JOIN product_senders s ON s.product=c.product
+    LEFT JOIN operators o ON o.email=json_extract(m.approval,'$.by')
+    LEFT JOIN operator_profiles p ON p.email=o.email
+    WHERE m.id=? AND changes()=1`)
+    .bind(attempt, now, id)
+}
 function queueWrites(db: D1Database, input: Enqueue, attempt: string) {
   return [
-    db
-      .prepare(`INSERT INTO outbox(message,attempt,phase,queued_at)
-      SELECT id,?,'ready',? FROM messages WHERE id=? AND changes()=1`)
-      .bind(attempt, input.now, input.id),
+    queueEntry(db, input.id, attempt, input.now),
     event(db, 'reply_queued', input, hasAttempt, attempt),
     ...statusWrites(db, input, attempt),
   ]
@@ -190,7 +199,7 @@ export async function claim(db: D1Database, id: string, now: number) {
       (SELECT id FROM messages WHERE id=? AND kind='outbound' AND delivery='queued' AND approval IS NOT NULL)`)
       .bind(now, id, id),
     db
-      .prepare(`SELECT c.mailbox,coalesce(s.operator_recipient,c.contact) AS contact,c.number,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic
+      .prepare(`SELECT c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic
       FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id LEFT JOIN standing_messages s ON s.message=m.id WHERE m.id=?`)
       .bind(id),
   ])
@@ -294,11 +303,7 @@ export async function insertStanding(
     db
       .prepare('INSERT INTO standing_messages SELECT ?,? WHERE changes()=1')
       .bind(input.id, target),
-    db
-      .prepare(
-        "INSERT INTO outbox(message,attempt,phase,queued_at) SELECT ?,?,'ready',? WHERE changes()=1",
-      )
-      .bind(input.id, attempt, input.now),
+    queueEntry(db, input.id, attempt, input.now),
     db
       .prepare('SELECT message FROM standing_messages WHERE message=?')
       .bind(input.id),

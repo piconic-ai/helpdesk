@@ -98,6 +98,7 @@ export async function recordVote(
     ctx.now - data.data.at > lifetime
   )
     return false
+  if (data.data.answered) return true
   await ctx.emit(
     'helpful',
     null,
@@ -109,7 +110,7 @@ export async function recordVote(
     },
     vote.visit,
   )
-  await ctx.remove('visit/' + vote.visit)
+  await ctx.put('visit/' + vote.visit, { ...data.data, answered: true })
   return true
 }
 export async function expireVisits(ctx: ExtensionContext) {

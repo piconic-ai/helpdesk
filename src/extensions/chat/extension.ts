@@ -28,6 +28,22 @@ export async function recommendArticles(
     }
   })
 }
+export async function handOffQuestion(
+  ctx: ExtensionContext,
+  product: string,
+  input: unknown,
+) {
+  const data = question.parse(input)
+  const receipt = await ctx.open({
+    email: data.email,
+    name: data.name,
+    origin: 'chat',
+    product,
+    body: data.question,
+    subject: data.question.trim().slice(0, 96),
+  })
+  return { kind: 'hand_off', ...receipt }
+}
 export const chat: Extension = {
   id: 'chat',
   requiresAI: true,
@@ -40,15 +56,7 @@ export const chat: Extension = {
         const data = question.parse(input)
         const articles = await recommendArticles(ctx, product, data.question)
         if (articles.length) return { kind: 'show_articles', articles }
-        const receipt = await ctx.open({
-          email: data.email,
-          name: data.name,
-          origin: 'chat',
-          product,
-          body: data.question,
-          subject: data.question.trim().slice(0, 96),
-        })
-        return { kind: 'hand_off', ...receipt }
+        return handOffQuestion(ctx, product, data)
       },
     },
   ],

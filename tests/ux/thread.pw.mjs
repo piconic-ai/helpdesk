@@ -1,4 +1,4 @@
-import { test, expect, capture } from './harness.mjs'
+import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
 const compose = (page) =>
   page.getByRole('textbox', { name: '返信', exact: true })
@@ -56,6 +56,7 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
     '相手に届く差出人・宛先・件名と本文を確認する',
   )
   await page.getByRole('button', { name: '送信', exact: true }).click()
+  await confirmSubmission(page)
   await expect(notice(page)).toContainText('送信')
   await seeDelivery(page, answer)
   const current = new URL(page.url()).pathname
@@ -95,6 +96,7 @@ test('J2 受信で再開し、返信して完了した後も相手の返信が�
   const answer = '招待メールをもう一度お送りしました。'
   await compose(page).fill(answer)
   await page.getByRole('button', { name: '送信して完了' }).click()
+  await confirmSubmission(page)
   await expect(notice(page)).toContainText('完了')
   await expect(status(page)).toContainText('完了')
   await seeDelivery(page, answer)
@@ -133,6 +135,7 @@ test('J3 失敗の理由を読んで再送する', async ({ page, scene }) => {
   ).toBeVisible()
   await capture(page, 'J3', '02-reason', '失敗した理由を確認する')
   await page.getByRole('button', { name: '再送', exact: true }).click()
+  await confirmSubmission(page)
   await expect(notice(page)).toContainText('再送')
   await seeDelivery(page, '明細を確認してご案内いたします。')
   await capture(page, 'J3', '03-delivered', '再送した返信が送信済みになる')
@@ -163,11 +166,13 @@ test('J4 エージェントの下書きを直して承認し、別の下書き�
   await review.getByRole('textbox', { name: '下書きの本文' }).fill(edited)
   await capture(page, 'J4', '02-edit', '送信前に下書きの文面を修正する')
   await review.getByRole('button', { name: '承認して送信' }).click()
+  await confirmSubmission(page)
   await seeDelivery(page, edited)
   const unwanted = page
     .locator('article')
     .filter({ hasText: '破棄する予定の下書き' })
   await unwanted.getByRole('button', { name: '下書きを破棄' }).click()
+  await confirmSubmission(page)
   await expect(notice(page)).toContainText('破棄')
   await expect(unwanted).toHaveCount(0)
   expect(

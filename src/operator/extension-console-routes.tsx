@@ -1,3 +1,19 @@
+import {
+  readExtensionSettings,
+  editExtensionSetting,
+  undoExtensionSetting,
+} from '../core/extensions/admin-settings-usecase'
+import {
+  moveRule,
+  ruleKey,
+  rulesFromSettings,
+} from '../extensions/rules/rule-list'
+import {
+  savedTemplates,
+  template,
+  templatesFromSettings,
+} from '../extensions/canned/templates'
+import { cannedSettings } from './canned-settings-page'
 import { Hono, type Context as HttpContext } from 'hono'
 import { z } from 'zod'
 import type { AppEnv } from '../core/operators/middleware'
@@ -17,6 +33,14 @@ import {
   issueDestination,
   issueChoices,
 } from '../extensions/issues/issues-usecase'
+import {
+  editPublicSetting,
+  undoPublicSetting,
+  embedSites,
+} from '../core/intakes/public-settings-usecase'
+import { publicProduct } from '../public/product-usecase'
+import type { ExtensionContext } from '../core/extensions/extension'
+import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { hostedPolicy } from '../core/intakes/hosted-policy-usecase'
 import {
   libraryPage,
@@ -128,11 +152,22 @@ app.get('/metrics', async (c) => {
     period === 'custom'
       ? Date.parse(date.parse(query.start)) - japanOffset
       : to - Number(period) * day
-  const result = z
-    .record(z.string(), z.number().nullable())
-    .parse(
-      await invoke(context(c), scopes, 'metrics.report', { product, from, to }),
+  if (from < 0 || from >= to)
+    return c.text('開始日と終了日を確認してください。', 400)
+  const report = async (start: number, end: number) =>
+    z.record(z.string(), z.number().nullable()).parse(
+      await invoke(context(c), scopes, 'metrics.report', {
+        product,
+        from: start,
+        to: end,
+      }),
     )
+  const [result, previous] = await Promise.all([
+    report(from, to),
+    from > 0
+      ? report(Math.max(0, from - (to - from)), from)
+      : Object.fromEntries([]),
+  ])
   const iso = (time: number) =>
     new Date(time + japanOffset).toISOString().slice(0, 10)
   return c.render(
@@ -140,9 +175,120 @@ app.get('/metrics', async (c) => {
       state,
       { product, period, start: iso(from), end: iso(to - day) },
       result,
+      previous,
     ),
   )
 })
+const publicSettingNotices: Record<string, string> = {
+  restored: '設定を元に戻しました。',
+  outdated: 'この変更は元に戻せません。現在の設定を確認してください。',
+  conflict:
+    '設定が更新されたため、保存できませんでした。現在の内容を確認してからもう一度編集してください。',
+  saved: '公開受付の設定を保存しました。',
+}
+app.post(
+  '/extensions/:id{chat|form}/:setting{embed-sites|public-settings}',
+  async (c) => {
+    const id = c.req.param('id')
+    if (
+      !active(c, id) ||
+      (c.req.param('setting') === 'embed-sites' && id !== 'chat')
+    )
+      return c.notFound()
+    const fields = await c.req.parseBody()
+    const setting =
+      c.req.param('setting') === 'embed-sites'
+        ? {
+            site: String(fields.site ?? '').trim(),
+            remove: fields.intent === 'remove',
+          }
+        : { responseTime: String(fields.responseTime ?? '').trim() }
+    const token = await editPublicSetting(
+      context(c),
+      String(fields.product ?? ''),
+      setting,
+    )
+    if (token === null)
+      return c.text(
+        '入力内容を確認してください。埋め込み先にはパスを含まないサイトのアドレスを入力してください。',
+        400,
+      )
+    return c.redirect(
+      '/extensions/' +
+        id +
+        '?publicSettings=saved' +
+        (token ? '&undo=' + token : ''),
+      303,
+    )
+  },
+)
+app.post('/extensions/:id{form|chat}/undo-setting', async (c) => {
+  const id = c.req.param('id')
+  if (!active(c, id)) return c.notFound()
+  const restored = await undoPublicSetting(
+    context(c),
+    String((await c.req.parseBody()).changeId),
+  )
+  return c.redirect(
+    '/extensions/' +
+      id +
+      '?publicSettings=' +
+      (restored ? 'restored' : 'outdated'),
+    303,
+  )
+})
+async function guidePortals(
+  c: RequestContext,
+  id: string,
+  api: ExtensionContext,
+  products: ConsoleFrame['products'],
+) {
+  const origin = new URL(c.req.url).origin
+  const applicable =
+    Object.hasOwn(publicGuides, id) || id === 'issues' ? products : []
+  return Promise.all(
+    applicable.map(async (p) => {
+      const policy =
+        id === 'issues' ? undefined : await hostedPolicy(c.env, p.id, origin)
+      return {
+        ...p,
+        ready: id === 'articles' || !!policy,
+        publicSettings:
+          id === 'chat' || id === 'form'
+            ? {
+                responseTime:
+                  (await publicProduct(c.env, p.id))?.responseTime ?? '',
+                inheritedSites:
+                  policy?.origins.filter((site) => site !== origin) ?? [],
+                sites: id === 'chat' ? await embedSites(c.env.DB, p.id) : [],
+              }
+            : undefined,
+        configured: !!c.env.PUBLIC_INTAKES?.[p.id],
+        url:
+          origin +
+          (id === 'articles'
+            ? publicPath(p.id)
+            : '/help/' + id + '/' + encodeURIComponent(p.id)),
+        repository:
+          id === 'issues' ? await configuredRepository(api, p.id) : undefined,
+      }
+    }),
+  )
+}
+function guideNotice(id: string, query: Record<string, string>) {
+  if (Object.hasOwn(publicSettingNotices, query.publicSettings))
+    return publicSettingNotices[query.publicSettings]
+  if (id === 'rules' && query.removed === 'yes')
+    return '振り分けルールを削除しました。'
+  if (query.started === 'yes') return 'このサイトで受付を開始しました。'
+  if (query.saved !== '1') return
+  const messages: Record<string, string> = {
+    canned: '定型文を保存しました。',
+    rules: '振り分けルールを保存しました。',
+    issues: 'リポジトリを登録しました。',
+  }
+  return Object.hasOwn(messages, id) ? messages[id] : undefined
+}
 app.get('/extensions/:id', async (c) => {
   const ctx = context(c)
   authorize(ctx, 'admin', scopes)
@@ -150,46 +296,85 @@ app.get('/extensions/:id', async (c) => {
   const api = active(c, id)
   if (!api) return c.notFound()
   const state = await frame(c)
-  const origin = new URL(c.req.url).origin
-  const applicable =
-    Object.hasOwn(publicGuides, id) || id === 'issues' ? state.products : []
-  const portals = await Promise.all(
-    applicable.map(async (p) => ({
-      ...p,
-      ready: id === 'articles' || !!(await hostedPolicy(c.env, p.id, origin)),
-      configured: !!c.env.PUBLIC_INTAKES?.[p.id],
-      url:
-        origin +
-        (id === 'articles'
-          ? publicPath(p.id)
-          : '/help/' + id + '/' + encodeURIComponent(p.id)),
-      repository:
-        id === 'issues' ? await configuredRepository(api, p.id) : undefined,
-    })),
-  )
+  const portals = await guidePortals(c, id, api, state.products)
   const sections =
     id === 'export'
       ? (await panels(ctx, scopes, 'settings')).filter((p) => p.id === id)
       : []
-  const content =
-    id === 'rules'
-      ? rulesSettings(
-          state,
-          await storedRules(api),
-          c.req.query('saved') === '1',
-        )
-      : extensionPanels(sections)
+  let content = extensionPanels(sections)
+  if (id === 'canned' || id === 'rules') {
+    const { rows, versions } = await readExtensionSettings(c.env.DB, id)
+    content =
+      id === 'canned'
+        ? cannedSettings(templatesFromSettings(api.config, rows), versions)
+        : rulesSettings(
+            state,
+            rulesFromSettings(
+              api.config,
+              rows,
+              rows.find((row) => row.key === 'order')?.value,
+            ),
+            versions,
+          )
+  }
   return c.render(
     guidePage(
       id,
       state,
       portals,
       content,
-      c.req.query('started') === 'yes'
-        ? 'このサイトで受付を開始しました。'
-        : id === 'issues' && c.req.query('saved') === '1'
-          ? 'リポジトリを登録しました。'
-          : undefined,
+      guideNotice(id, c.req.query()),
+      z.uuid().safeParse(c.req.query('undo')).data,
+      ['conflict', 'outdated'].includes(c.req.query('publicSettings') ?? ''),
+    ),
+  )
+})
+function settingResult(
+  c: RequestContext,
+  id: 'canned' | 'rules',
+  token: string | null,
+) {
+  if (token === null)
+    return c.redirect('/extensions/' + id + '?publicSettings=conflict', 303)
+  return c.redirect(
+    '/extensions/' + id + '?saved=1' + (token ? '&undo=' + token : ''),
+    303,
+  )
+}
+app.post('/extensions/:id{canned|rules}/undo-setting', async (c) => {
+  const id = c.req.param('id') as 'canned' | 'rules'
+  if (!active(c, id)) return c.notFound()
+  const restored = await undoExtensionSetting(
+    context(c),
+    id,
+    (await c.req.parseBody()).changeId,
+  )
+  return c.redirect(
+    '/extensions/' +
+      id +
+      '?publicSettings=' +
+      (restored ? 'restored' : 'outdated'),
+    303,
+  )
+})
+app.post('/extensions/canned/save', async (c) => {
+  const ctx = context(c)
+  authorize(ctx, 'admin', scopes)
+  const api = active(c, 'canned')
+  if (!api) return c.notFound()
+  const form = await c.req.parseBody()
+  const item = template.parse(form)
+  const id = z.string().max(100).parse(form.id)
+  if (id && !(await savedTemplates(api)).has(id)) return c.notFound()
+  return settingResult(
+    c,
+    'canned',
+    await editExtensionSetting(
+      ctx,
+      'canned',
+      'template/' + (id || ctx.uuid()),
+      item,
+      form.revision,
     ),
   )
 })
@@ -198,9 +383,14 @@ app.post('/extensions/rules/add', async (c) => {
   authorize(ctx, 'admin', scopes)
   const api = active(c, 'rules')
   if (!api) return c.notFound()
+  const { revision, ...submitted } = await c.req.parseBody()
   const fields = Object.fromEntries(
-    Object.entries(await c.req.parseBody()).filter(([, v]) => v !== ''),
+    Object.entries(submitted).filter(([, v]) => v !== ''),
   )
+  const key = fields.key ? ruleKey.parse(fields.key) : undefined
+  delete fields.key
+  if (key && !(await storedRules(api)).some((item) => item.key === key))
+    return c.notFound()
   const rule = ruleSchema.parse(fields)
   const state = await frame(c)
   if (
@@ -210,19 +400,60 @@ app.post('/extensions/rules/add', async (c) => {
     (rule.label && !state.labels.includes(rule.label))
   )
     return c.text('選択した項目が見つかりません。', 400)
-  await api.put('rule/' + ctx.uuid(), rule)
-  return c.redirect('/extensions/rules?saved=1', 303)
+  return settingResult(
+    c,
+    'rules',
+    await editExtensionSetting(
+      ctx,
+      'rules',
+      key ?? 'rule/new-' + ctx.uuid(),
+      rule,
+      revision,
+    ),
+  )
 })
 app.post('/extensions/rules/remove', async (c) => {
   authorize(context(c), 'admin', scopes)
   const api = active(c, 'rules')
   if (!api) return c.notFound()
-  const key = z
-    .string()
-    .regex(/^rule\/[a-f0-9-]{36}$/)
-    .parse((await c.req.parseBody()).key)
-  await api.remove(key)
-  return c.redirect('/extensions/rules?saved=1', 303)
+  const form = await c.req.parseBody()
+  const key = ruleKey.parse(form.key)
+  if (!(await storedRules(api)).some((item) => item.key === key))
+    return c.notFound()
+  const token = await editExtensionSetting(
+    context(c),
+    'rules',
+    key,
+    null,
+    form.revision,
+  )
+  return token === null
+    ? settingResult(c, 'rules', null)
+    : c.redirect('/extensions/rules?removed=yes', 303)
+})
+app.post('/extensions/rules/move', async (c) => {
+  authorize(context(c), 'admin', scopes)
+  const api = active(c, 'rules')
+  if (!api) return c.notFound()
+  const fields = await c.req.parseBody()
+  const done = await moveRule(
+    api,
+    ruleKey.parse(fields.key),
+    z.enum(['up', 'down']).parse(fields.direction) === 'up' ? -1 : 1,
+  )
+  if (!done) return c.text('一覧を更新してから並べ替えてください。', 409)
+  return settingResult(
+    c,
+    'rules',
+    await editExtensionSetting(
+      context(c),
+      'rules',
+      'order',
+      done.keys,
+      fields.revision,
+      done.expected,
+    ),
+  )
 })
 app.post('/extensions/issues/repository', async (c) => {
   const ctx = context(c)
@@ -245,10 +476,16 @@ app.get('/extensions/issues/link/:number', async (c) => {
   if (!api) return c.notFound()
   const number = z.coerce.number().int().positive().parse(c.req.param('number'))
   const { product } = await api.contact(number)
-  const { repo } = await issueDestination(api, product)
+  const { repo, origin } = await issueDestination(api, product)
   const choices = await issueChoices(api, repo)
   const view = choices.length ? (
-    <form className="settings-card" method="post" action="/actions/issues.link">
+    <form
+      className="settings-card"
+      method="post"
+      action="/actions/issues.link"
+      data-repo={repo}
+      data-backlink={origin + '/conversation/' + number}
+    >
       <input type="hidden" name="number" value={number} />
       <label>
         Issue

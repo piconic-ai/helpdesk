@@ -28,6 +28,16 @@ export const feedback: Extension = {
   ],
   operations: [
     {
+      name: 'unreview',
+      description: 'Mark feedback as unreviewed',
+      humanOnly: true,
+      permission: 'write',
+      input: numberInput,
+      output: numberInput,
+      run: (ctx, input) =>
+        ctx.unreviewFeedback(numberInput.parse(input).number),
+    },
+    {
       name: 'review',
       description: 'Mark feedback as reviewed',
       humanOnly: true,

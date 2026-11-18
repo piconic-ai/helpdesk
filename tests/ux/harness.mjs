@@ -40,7 +40,22 @@ async function trackActions(page) {
     document.addEventListener(
       'keydown',
       (event) => {
-        if (['Enter', 'Escape', 'Tab'].includes(event.key))
+        if (
+          [
+            'Enter',
+            'Escape',
+            'Tab',
+            '?',
+            'j',
+            'k',
+            'r',
+            'n',
+            'e',
+            'a',
+            'u',
+          ].includes(event.key) &&
+          (!event.target.matches('input, textarea') || event.key.length > 1)
+        )
           void window.recordHelpdeskAction('keys')
       },
       true,
@@ -67,7 +82,10 @@ export const test = base.extend({
     await use(page)
     const id = testInfo.title.match(/^J\d+/)?.[0]
     if (count && id && testInfo.status === 'passed') {
-      const path = resolve('docs/reports/ux/steps', id)
+      const path = resolve(
+        process.env.HELPDESK_UX_STEPS ?? 'docs/reports/ux/steps',
+        id,
+      )
       await mkdir(path, { recursive: true })
       await writeFile(
         resolve(path, 'walk.json'),
@@ -79,7 +97,10 @@ export const test = base.extend({
 
 export async function capture(page, journey, step, caption) {
   if (!process.env.HELPDESK_UX_REPORT) return
-  const dir = resolve('docs/reports/ux/steps', journey)
+  const dir = resolve(
+    process.env.HELPDESK_UX_STEPS ?? 'docs/reports/ux/steps',
+    journey,
+  )
   await mkdir(dir, { recursive: true })
   const name = step + '.png'
   await page.screenshot({ path: resolve(dir, name), animations: 'disabled' })
@@ -88,4 +109,10 @@ export async function capture(page, journey, step, caption) {
     JSON.stringify({ name, caption, path: new URL(page.url()).pathname }) +
       '\n',
   )
+}
+
+export async function confirmSubmission(page) {
+  const dialog = page.locator('#action-confirmation')
+  await expect(dialog).toBeVisible()
+  await dialog.locator('[data-commit]').click()
 }

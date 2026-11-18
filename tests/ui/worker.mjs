@@ -54,11 +54,16 @@ export default {
       } else return new Response(null, { status: 404 })
       return new Response(null, { status: 204 })
     }
-    return worker.fetch(
-      request,
-      localEnv(env, new URL(request.url).origin),
-      ctx,
+    const local = localEnv(env, url.origin)
+    if (
+      env.TEST_ADMIN_COOKIE &&
+      request.headers
+        .get('Cookie')
+        ?.split(/;\s*/)
+        .includes('peer-admin=' + env.TEST_ADMIN_COOKIE)
     )
+      local.LOCAL_OPERATOR = 'mori@example.com'
+    return worker.fetch(request, local, ctx)
   },
   email(message, env) {
     return worker.email(message, localEnv(env, 'http://localhost'))

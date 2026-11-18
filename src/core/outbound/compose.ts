@@ -3,6 +3,8 @@ import { addressSchema, numberSchema } from '../conversations/state'
 
 export const replyEnvelopeSchema = z.object({
   mailbox: addressSchema,
+  senderName: z.string().nullish(),
+  operatorName: z.string().nullish(),
   contact: addressSchema,
   number: numberSchema,
   subject: z.string(),
@@ -20,6 +22,17 @@ export function replySubject(subject: string, number: number) {
     .replace(/^re:\s*/i, '')
     .trim()
   return `Re: ${clean} [#${number}]`
+}
+
+export function senderLabel(
+  productName?: string | null,
+  operatorName?: string | null,
+) {
+  return [productName, operatorName]
+    .filter(Boolean)
+    .join(' · ')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .trim()
 }
 
 export function composeReply(reply: ReplyEnvelope) {
@@ -44,8 +57,9 @@ export function composeReply(reply: ReplyEnvelope) {
     }
     headers.References = references
   }
+  const name = senderLabel(reply.senderName, reply.operatorName)
   return {
-    from: reply.mailbox,
+    from: name ? { name, email: reply.mailbox } : reply.mailbox,
     to: reply.contact,
     subject: replySubject(reply.subject, reply.number),
     text: reply.body,

@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
-  snapshotPathTemplate: '{testDir}/../../docs/reports/ui/after/{arg}{ext}',
+  snapshotPathTemplate: '{testDir}/../../docs/reports/ux-2/after/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
   timeout: 100_000,

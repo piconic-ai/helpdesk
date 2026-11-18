@@ -1,33 +1,9 @@
-import { test, expect, capture } from './harness.mjs'
+import { customerContact } from './customer.mjs'
+import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
 // Chromium's full browser includes the address autofill service.
 test.use({ channel: 'chromium' })
 
-// Fill the customer's contact field with Chromium's saved-address autofill.
-async function customerContact(page) {
-  const cdp = await page.context().newCDPSession(page)
-  try {
-    const { root } = await cdp.send('DOM.getDocument')
-    const { nodeId } = await cdp.send('DOM.querySelector', {
-      nodeId: root.nodeId,
-      selector: 'input[autocomplete=email]',
-    })
-    const { node } = await cdp.send('DOM.describeNode', { nodeId })
-    const { frameTree } = await cdp.send('Page.getFrameTree')
-    await cdp.send('Autofill.trigger', {
-      fieldId: node.backendNodeId,
-      frameId: frameTree.frame.id,
-      address: {
-        fields: [{ name: 'EMAIL_ADDRESS', value: 'reader@example.net' }],
-      },
-    })
-    await expect(page.getByLabel('連絡先メールアドレス')).toHaveValue(
-      'reader@example.net',
-    )
-  } finally {
-    await cdp.detach()
-  }
-}
 async function inbox(page, scene) {
   await page.goto(scene.origin)
 }
@@ -123,10 +99,12 @@ test.describe('公開受付', () => {
     await openFeedback(page)
     await page.getByRole('link', { name: new RegExp(other) }).click()
     await page.getByRole('button', { name: '問い合わせに変更' }).click()
+    await confirmSubmission(page)
     await page
       .getByRole('textbox', { name: '返信', exact: true })
       .fill('詳しい状況を教えていただけますか。')
     await page.getByRole('button', { name: '送信', exact: true }).click()
+    await confirmSubmission(page)
     await expect(page.getByRole('main')).toContainText('返信待ち')
     await expect(
       page.locator('article').filter({ hasText: '詳しい状況' }),

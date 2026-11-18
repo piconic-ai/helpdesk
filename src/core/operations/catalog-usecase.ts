@@ -1,3 +1,4 @@
+import { changeInbox, undoInbox } from '../conversations/inbox-change-usecase'
 import { makeCatalog } from './catalog'
 import type { filterSchema } from '../conversations/filters'
 import {
@@ -38,6 +39,8 @@ function audit(ctx: Context) {
 type Ticket = { number: number }
 type Reply = Ticket & { body: string }
 export const handlers = {
+  bulk: changeInbox,
+  undoBulk: undoInbox,
   doctor: (c: Context) => diagnose(c.env),
   list: (c: Context, i: z.infer<typeof filterSchema>) =>
     visibleConversations(c.env, i, c.now),

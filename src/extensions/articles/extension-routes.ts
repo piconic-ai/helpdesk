@@ -14,7 +14,7 @@ import {
   recordVote,
   expireVisits,
 } from './articles-usecase'
-import { articleDetail, articleIndex } from './articles-pages'
+import { articleDetail, articleIndex, retryArticleVote } from './articles-pages'
 export const articles: Extension = {
   id: 'articles',
   permissions: [],
@@ -98,10 +98,24 @@ export const articles: Extension = {
     if (!slug.safeParse(id).success) return null
     const data = article.safeParse(await ctx.get(articleKey(product, id)))
     if (!data.success || data.data.status !== 'published') return null
-    if (!(await recordVote(ctx, product, id, await req.formData()))) return null
+    const form = await req.formData()
+    const helpful = z.enum(['yes', 'no']).safeParse(form.get('helpful'))
+    if (!helpful.success || !z.uuid().safeParse(form.get('visit')).success)
+      return null
+    if (!(await recordVote(ctx, product, id, form))) {
+      return retryArticleVote(
+        data.data,
+        await startVisit(ctx, product, id),
+        helpful.data,
+      )
+    }
     return {
       title: 'ご回答ありがとうございます',
-      html: '<h1>ご回答ありがとうございます</h1><p class="banner-success" role="status">記事への評価を受け付けました。</p>',
+      html:
+        '<h1>ご回答ありがとうございます</h1><p class="banner-success" role="status">記事への評価を受け付けました。</p>' +
+        (form.get('helpful') === 'no'
+          ? '<p>記事で解決できなかった内容を、担当者にご相談いただけます。</p>'
+          : ''),
     }
   },
 }

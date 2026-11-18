@@ -1,3 +1,4 @@
+import { metricValue, metricDefinition, difference } from './metric-values'
 import { raw } from 'hono/html'
 import { shell } from '../core/conversations/console-page'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
@@ -5,6 +6,10 @@ import type { Article } from '../extensions/articles/article'
 import { publicPath } from '../extensions/articles/article'
 import { articleMarkup } from '../extensions/articles/articles-pages'
 import { fieldLabel, extensionLabel } from '../core/extensions/extension-labels'
+import {
+  publicSettingsFields,
+  type PublicSettings,
+} from './public-settings-page'
 import { guides, publicGuides } from '../core/extensions/extension-guides'
 import type { Child } from 'hono/jsx'
 
@@ -164,6 +169,7 @@ type Portal = {
   ready: boolean
   configured: boolean
   repository?: string
+  publicSettings?: PublicSettings
 }
 export function guidePage(
   id: string,
@@ -171,15 +177,26 @@ export function guidePage(
   items: Portal[],
   contents?: Child,
   notice?: string,
+  undoId?: string,
+  hasError = false,
 ) {
   return adminPage(
     extensionLabel(id),
     frame,
     <>
       {notice && (
-        <p role="status" className="banner-success">
+        <div
+          role={hasError ? 'alert' : 'status'}
+          className={hasError ? 'banner-error' : 'banner-success'}
+        >
           {notice}
-        </p>
+          {undoId && (
+            <form method="post" action={'/extensions/' + id + '/undo-setting'}>
+              <input type="hidden" name="changeId" value={undoId} />
+              <button>元に戻す</button>
+            </form>
+          )}
+        </div>
       )}
       <p>
         {guides[id]?.start ?? '設定後、対象の画面で動作を確認してください。'}
@@ -209,10 +226,9 @@ export function guidePage(
               <p>
                 <code>{p.url}</code>
               </p>
-              <p>
-                サイトに埋め込む場合は、表示先のオリジンをこのプロダクトの
-                publicIntakes.origins に登録してください。
-              </p>
+              {id !== 'chat' && (
+                <p>登録済みのサイトに次のコードを貼り付けてください。</p>
+              )}
               <label>
                 埋め込みコード
                 <textarea readonly rows={3}>
@@ -241,6 +257,9 @@ export function guidePage(
               <button>このサイトで受付を開始</button>
             </form>
           )}
+          {p.ready &&
+            p.publicSettings &&
+            publicSettingsFields(id, p.id, p.publicSettings)}
         </section>
       ))}
       {contents}
@@ -258,6 +277,7 @@ export function metricsPage(
   frame: ConsoleFrame,
   filter: MetricFilter,
   result: Record<string, number | null>,
+  previous: Record<string, number | null>,
 ) {
   return adminPage(
     '対応状況の集計',
@@ -295,26 +315,24 @@ export function metricsPage(
       </form>
       <section className="settings-card">
         <h2>集計結果</h2>
+        <p>
+          直前の同じ日数と比較しています。
+          {(result.resolved ?? 0) < 5 &&
+            '解決件数が5件未満のため、値は目安です。'}
+        </p>
         <dl className="result-fields">
           {Object.entries(result).map(([key, value]) => (
             <div>
               <dt>{fieldLabel(key)}</dt>
-              <dd>{metricValue(key, value)}</dd>
+              <dd className="metric-number">{metricValue(key, value)}</dd>
+              <dd className="metric-description">{metricDefinition[key]}</dd>
+              <dd className="metric-comparison">
+                前期比 {difference(key, value, previous[key])}
+              </dd>
             </div>
           ))}
         </dl>
       </section>
     </>,
   )
-}
-function metricValue(key: string, value: number | null) {
-  if (value === null) return 'データなし'
-  if (key.endsWith('Ms'))
-    return Math.round(value / 60000).toLocaleString('ja-JP') + '分'
-  if (key === 'firstContactRate')
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'percent',
-      maximumFractionDigits: 1,
-    }).format(value)
-  return String(value)
 }

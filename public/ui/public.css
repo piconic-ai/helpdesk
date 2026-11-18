@@ -123,3 +123,27 @@
     min-height: var(--layout-touch-target);
   }
 }
+
+.chat-question,
+.receipt-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.receipt-details {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+.receipt-details dt {
+  font: var(--typography-caption);
+  color: var(--colors-muted);
+}
+.receipt-details dd + dt,
+.chat-handoff[open] .public-form {
+  margin-block-start: var(--spacing-sm);
+}
+.chat-handoff summary {
+  cursor: pointer;
+  font: var(--typography-body-strong);
+  padding-block: var(--spacing-xs);
+}

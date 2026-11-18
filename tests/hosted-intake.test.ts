@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { app } from '../worker'
 import { registry } from '../src/core/extensions/registry'
 import type { Bindings } from '../src/core/settings/bindings'
+import { articles } from '../src/extensions/articles/extension-routes'
 import { chat } from '../src/extensions/chat/extension'
 import { feedback } from '../src/extensions/feedback/extension'
 import { form } from '../src/extensions/form/extension'
@@ -203,4 +204,211 @@ it('opens only an explicitly enabled hosted origin and gives deployment policy p
       )
     ).status,
   ).not.toBe(201)
+})
+
+it('uses per-product reply guidance on receipts and lets the visitor correct a refused delivery', async () => {
+  const endpoint = origin + '/extensions/form/public-settings'
+  const body = new URLSearchParams({
+    product: 'shop',
+    responseTime: '2営業日以内',
+  })
+  expect(
+    (
+      await app.request(
+        endpoint,
+        { method: 'POST', headers: { origin }, body },
+        env,
+      )
+    ).status,
+  ).toBe(303)
+  const fields = {
+    subject: '見積もり',
+    body: '見積書を発行できますか？',
+    email: 'buyer@example.org',
+  }
+  const failed = await post('form', { ...fields, publicKey: 'old-key' })
+  expect(failed.status).toBe(403)
+  const retry = await failed.text()
+  for (const value of Object.values(fields)) expect(retry).toContain(value)
+  expect(retry).toContain('name="publicKey" value="published-key"')
+  const receipt = await (await post('form', fields)).text()
+  for (const value of ['#', fields.email, '2営業日以内'])
+    expect(receipt).toContain(value)
+  const response = await post('feedback', {
+    body: '希望します',
+    email: fields.email,
+  })
+  expect(await response.text()).toContain('フィードバックへの返信はありません')
+})
+
+it('registers chat embedding sites without expanding the intake API or changing other public surfaces', async () => {
+  const trusted = 'https://portal.example.com'
+  const endpoint = origin + '/extensions/chat/embed-sites'
+  const register = (site: string, bindings = env) =>
+    app.request(
+      endpoint,
+      {
+        method: 'POST',
+        headers: { origin },
+        body: new URLSearchParams({ product: 'shop', site }),
+      },
+      bindings,
+    )
+  expect(
+    (await register(trusted, { ...env, LOCAL_OPERATOR: 'staff@example.org' }))
+      .status,
+  ).toBe(403)
+  expect((await register(trusted + '/path')).status).toBe(400)
+  expect((await register(trusted)).status).toBe(303)
+  const chatPage = await app.request(origin + '/help/chat/shop', {}, env)
+  expect(chatPage.headers.get('Content-Security-Policy')).toContain(trusted)
+  const formPage = await app.request(origin + '/help/form/shop', {}, env)
+  expect(formPage.headers.get('Content-Security-Policy')).not.toContain(trusted)
+  const api = await app.request(
+    origin + '/public/chat/shop/ask',
+    {
+      method: 'OPTIONS',
+      headers: { origin: trusted },
+    },
+    env,
+  )
+  expect(api.status).toBe(403)
+  expect((await app.request(trusted + '/help/chat/shop', {}, env)).status).toBe(
+    404,
+  )
+})
+
+it('restores only the latest change made by the requesting administrator, once', async () => {
+  const change = async (value: string) => {
+    const response = await app.request(
+      origin + '/extensions/form/public-settings',
+      {
+        method: 'POST',
+        headers: { origin },
+        body: new URLSearchParams({ product: 'shop', responseTime: value }),
+      },
+      env,
+    )
+    return new URL(response.headers.get('location')!, origin).searchParams.get(
+      'undo',
+    )!
+  }
+  const undo = async (id: string) => {
+    const response = await app.request(
+      origin + '/extensions/form/undo-setting',
+      {
+        method: 'POST',
+        headers: { origin },
+        body: new URLSearchParams({ changeId: id }),
+      },
+      env,
+    )
+    return response.headers.get('location')
+  }
+  const earlier = await change('明日まで')
+  const later = await change('翌営業日まで')
+  expect(await undo(earlier)).toContain('outdated')
+  expect(await undo(later)).toContain('restored')
+  expect(await undo(later)).toContain('outdated')
+  expect(
+    await platform.DB.prepare(
+      "SELECT value FROM public_help_settings WHERE product='shop' AND setting='response_time'",
+    ).first('value'),
+  ).toBe('明日まで')
+})
+
+it('preserves the chosen chat handoff and contact when a fresh Turnstile verification is required', async () => {
+  const locked = {
+    ...env,
+    PUBLIC_INTAKES: {
+      shop: {
+        ...policy,
+        turnstileSecretBinding: 'TURNSTILE_SECRET',
+        turnstileSiteKey: 'public-widget-key',
+      },
+    },
+  }
+  const address = 'verify@example.org'
+  const question = '返信方法を教えてください'
+  const denied = await post(
+    'chat',
+    { question, email: address, handoff: 'yes' },
+    origin,
+    locked,
+  )
+  expect(denied.status).toBe(403)
+  const page = await denied.text()
+  for (const value of [
+    address,
+    question,
+    'name="handoff" value="yes"',
+    'data-sitekey="public-widget-key"',
+    'role="alert"',
+  ])
+    expect(page).toContain(value)
+  expect(
+    await platform.DB.prepare(
+      'SELECT count(*) n FROM conversations WHERE contact=?',
+    )
+      .bind(address)
+      .first('n'),
+  ).toBe(0)
+})
+
+it('keeps a direct mailbox available when the contact form is disabled or paused', async () => {
+  const withExtensions = (
+    includeForm: boolean,
+    configuredPolicy: Record<string, unknown>,
+  ) => ({
+    ...env,
+    EXTENSIONS: registry(
+      (includeForm ? [articles, form] : [articles]).map((extension) => ({
+        extension,
+        enabled: true,
+        settings: {},
+      })),
+    ),
+    PUBLIC_INTAKES: { shop: configuredPolicy },
+  })
+  const stoppedPolicy = {
+    ...policy,
+    turnstileSecretBinding: 'TURNSTILE_SECRET',
+  }
+  for (const binding of [
+    withExtensions(false, policy),
+    withExtensions(true, stoppedPolicy),
+  ]) {
+    for (const path of ['/help/?q=missing', '/help/articles/shop/?q=missing']) {
+      const response = await app.request(origin + path, {}, binding)
+      expect(response.status).toBe(200)
+      const page = await response.text()
+      expect(page).toContain('href="mailto:help@example.org"')
+      expect(page).not.toContain('href="/help/form/shop"')
+    }
+  }
+  const publicOnly = withExtensions(false, policy)
+  const orphan = await app.request(
+    origin + '/help/articles/unregistered/',
+    { headers: { accept: 'text/html' } },
+    publicOnly,
+  )
+  expect(orphan.status).toBe(404)
+  expect(await orphan.text()).toContain('href="/help/"')
+  const forbidden = await post(
+    'form',
+    { body: 'wrong-origin-text', email: 'attacker@example.org' },
+    'https://other.example.org',
+  )
+  const recovery = await forbidden.text()
+  expect(forbidden.status).toBe(403)
+  expect(recovery).toContain('href="mailto:help@example.org"')
+  expect(recovery).toContain('送信元を確認できませんでした')
+  expect(recovery).not.toContain('wrong-origin-text')
+  const paused = await app.request(
+    origin + '/help/form/shop',
+    {},
+    withExtensions(true, stoppedPolicy),
+  )
+  expect(paused.status).toBe(503)
+  expect(await paused.text()).toContain('href="mailto:help@example.org"')
 })

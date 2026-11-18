@@ -152,13 +152,19 @@ export async function setLabel(
 export async function listContacts(db: D1Database) {
   const rows = await db
     .prepare(`
-    SELECT email, max(name) AS name FROM (
-      SELECT contact AS email, contact_name AS name FROM conversations
-      UNION ALL SELECT sender AS email, NULL AS name FROM inbound_failures
-      UNION ALL SELECT sender AS email, NULL AS name FROM inbound_jobs
+    SELECT email, max(name) AS name, sum(conversation) AS conversations FROM (
+      SELECT contact AS email, contact_name AS name, 1 AS conversation FROM conversations
+      UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_failures
+      UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_jobs
     ) WHERE email IS NOT NULL GROUP BY email ORDER BY coalesce(max(name),email),email`)
     .all()
   return z
-    .array(z.object({ email: z.string(), name: z.string().nullable() }))
+    .array(
+      z.object({
+        email: z.string(),
+        name: z.string().nullable(),
+        conversations: z.number(),
+      }),
+    )
     .parse(rows.results)
 }

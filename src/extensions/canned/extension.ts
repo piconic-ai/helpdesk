@@ -1,16 +1,6 @@
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
-const templates = z.record(
-  z.string().trim().min(1).max(100),
-  z.string().trim().min(1).max(4000),
-)
-const config = z
-  .object({
-    templates: templates.default({
-      acknowledge: 'Hello {{name}}, thank you for contacting {{product}}.',
-    }),
-  })
-  .strict()
+import { savedTemplates, templateConfig } from './templates'
 const input = z.object({
   number: z.coerce.number().int().positive(),
   template: z.string().min(1),
@@ -18,7 +8,7 @@ const input = z.object({
 export const canned = {
   id: 'canned',
   permissions: [],
-  config,
+  config: templateConfig,
   operations: [
     {
       name: 'apply',
@@ -28,13 +18,11 @@ export const canned = {
       output: z.object({ id: z.string() }),
       async run(ctx, value) {
         const { number, template } = input.parse(value)
-        const { templates } = config.parse(ctx.config)
-        if (!Object.hasOwn(templates, template))
-          throw new Error('Unknown reply template')
+        const item = (await savedTemplates(ctx)).get(template)
+        if (!item) throw new Error('Unknown reply template')
         const contact = await ctx.contact(number)
-        const body = templates[template].replace(
-          /\{\{(name|product)\}\}/g,
-          (_, field) => (field === 'name' ? contact.name : contact.productName),
+        const body = item.body.replace(/\{\{(name|product)\}\}/g, (_, field) =>
+          field === 'name' ? contact.name : contact.productName,
         )
         return ctx.draft(number, body)
       },
@@ -45,8 +33,18 @@ export const canned = {
       slot: 'conversation',
       title: 'Saved replies',
       operations: ['apply'],
+      async choiceLabels(ctx) {
+        return {
+          template: Object.fromEntries(
+            [...(await savedTemplates(ctx))].map(([id, item]) => [
+              id,
+              item.name,
+            ]),
+          ),
+        }
+      },
       async choices(ctx) {
-        return { template: Object.keys(config.parse(ctx.config).templates) }
+        return { template: [...(await savedTemplates(ctx)).keys()] }
       },
     },
   ],

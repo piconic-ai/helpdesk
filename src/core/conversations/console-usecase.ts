@@ -8,6 +8,7 @@ import { canonical } from '../extensions/aliases'
 import { filterSchema } from './filters'
 import {
   products,
+  pageNumbers,
   rowDetails,
   fileMessages,
   labelChoices,
@@ -84,6 +85,38 @@ export async function consoleFrame(
   }
 }
 export type ConsoleFrame = Awaited<ReturnType<typeof consoleFrame>>
+export async function inboxOrder(
+  env: Bindings,
+  numbers: number[],
+  query: Record<string, string>,
+) {
+  const limit = 20
+  const pages = Math.max(1, Math.ceil(numbers.length / limit))
+  const page = Math.min(
+    pages,
+    Math.max(
+      1,
+      Number.isSafeInteger(Number(query.page)) ? Number(query.page) : 1,
+    ),
+  )
+  const aliases = await conversationAliases(env)
+  const groups = Object.fromEntries(
+    Object.keys(aliases).map((n) => [n, canonical(aliases, Number(n))]),
+  )
+  return {
+    page,
+    pages,
+    total: numbers.length,
+    numbers: await pageNumbers(
+      env.DB,
+      numbers,
+      groups,
+      query.sort === 'newest',
+      (page - 1) * limit,
+      limit,
+    ),
+  }
+}
 export async function inboxMetadata(
   env: Bindings,
   numbers: number[],

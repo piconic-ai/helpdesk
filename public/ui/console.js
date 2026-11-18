@@ -9,6 +9,7 @@ if (drawer && sidebar && openDrawer) {
   openDrawer.addEventListener('click', () => {
     drawer.append(sidebar)
     drawer.showModal()
+    sidebar.querySelector('[data-close-drawer]')?.focus()
     openDrawer.setAttribute('aria-expanded', 'true')
   })
   sidebar
@@ -22,15 +23,6 @@ if (drawer && sidebar && openDrawer) {
   matchMedia('(min-width: 768px)').addEventListener('change', (event) => {
     if (event.matches && drawer.open) closeDrawer()
   })
-}
-const context = document.querySelector('[data-context-panel]')
-if (context) {
-  const desktop = matchMedia('(min-width: 1200px)')
-  const update = () => {
-    context.open = desktop.matches
-  }
-  update()
-  desktop.addEventListener('change', update)
 }
 for (const form of document.querySelectorAll('.settings-view form')) {
   const feedback = new Map()
@@ -75,6 +67,8 @@ if (forget) {
     if (!forget.reportValidity()) return
     forget.querySelector('[data-delete-contact]').textContent =
       forget.elements.contact.selectedOptions[0]?.textContent ?? ''
+    forget.querySelector('[data-delete-count]').textContent =
+      forget.elements.contact.selectedOptions[0]?.dataset.conversations ?? '0'
     dialog.showModal()
   }
   forget

@@ -17,7 +17,7 @@ export const settingsSections = z.enum([
 ])
 type Section = z.infer<typeof settingsSections>
 type Data = Result<'settings'>
-type Contact = { email: string; name: string | null }
+type Contact = { email: string; name: string | null; conversations: number }
 
 function setupIssue(issue: string) {
   if (issue.startsWith('Register the first mailbox'))
@@ -108,7 +108,7 @@ function addressFields(domains: string[]) {
     </>
   )
 }
-function mailboxes(data: Data, domains: string[]) {
+function mailboxes(data: Data, domains: string[], frame: ConsoleFrame) {
   return (
     <>
       {data.mailboxes.length > 0 && (
@@ -123,6 +123,32 @@ function mailboxes(data: Data, domains: string[]) {
           </ul>
         </section>
       )}
+      {frame.products.map((p) => (
+        <section className="settings-card">
+          <h2>{p.name} のメール差出人</h2>
+          <form
+            method="post"
+            action={'/settings/senders/' + encodeURIComponent(p.id)}
+          >
+            {field(
+              'senderName',
+              '差出人名',
+              p.senderName ?? p.name,
+              'text',
+              true,
+            )}
+            <label>
+              <input
+                type="checkbox"
+                name="showOperator"
+                checked={p.showOperator}
+              />{' '}
+              返信した運営者の表示名を差出人に含める
+            </label>
+            <button className="button-secondary">差出人を保存</button>
+          </form>
+        </section>
+      ))}
       <section className="settings-card" id="mailboxes">
         <h2>新しいプロダクトと窓口</h2>
         <form action="/settings/mailboxes" method="post">
@@ -237,7 +263,7 @@ function deletion(contacts: Contact[]) {
             <select name="contact" required>
               <option value="">相手を選んでください</option>
               {contacts.map((c) => (
-                <option value={c.email}>
+                <option value={c.email} data-conversations={c.conversations}>
                   {c.name ? c.name + ' · ' : ''}
                   {c.email}
                 </option>
@@ -254,8 +280,9 @@ function deletion(contacts: Contact[]) {
           <dialog className="confirm-dialog" aria-labelledby="delete-title">
             <h2 id="delete-title">連絡先のデータを削除しますか？</h2>
             <p>
-              <strong data-delete-contact=""></strong>{' '}
-              のすべての会話、メール原文、添付ファイルが削除されます。この操作は取り消せません。
+              <strong data-delete-contact=""></strong> の会話{' '}
+              <strong data-delete-count=""></strong>{' '}
+              件と、保存されたメール原文・添付ファイルが削除されます。この操作は取り消せません。
             </p>
             <div className="page-actions">
               <button
@@ -288,10 +315,10 @@ export function settingsSectionPage(
   domains: string[],
   contacts: Contact[],
   frame: ConsoleFrame,
-  saved: boolean,
+  saved: string | undefined,
 ) {
   const content = {
-    mailboxes: () => mailboxes(data, domains),
+    mailboxes: () => mailboxes(data, domains, frame),
     operators: () => operators(data),
     retention: () => retention(data),
     deletion: () => deletion(contacts),
@@ -305,9 +332,11 @@ export function settingsSectionPage(
       <header className="page-header">
         <h1 className="page-title">{titles[section]}</h1>
       </header>
-      {saved && (
+      {(saved === 'yes' || (section === 'mailboxes' && saved === 'sender')) && (
         <p role="status" className="banner-success">
-          {notices[section]}
+          {saved === 'sender'
+            ? 'メールの差出人を保存しました。'
+            : notices[section]}
         </p>
       )}
       {content[section]()}

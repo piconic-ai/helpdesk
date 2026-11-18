@@ -20,7 +20,6 @@ export function ReplyComposer(props: ReplyComposerProps) {
 
   const [closed, setClosed] = createSignal(props.closed ?? false)
   const [reopenFailed, setReopenFailed] = createSignal(false)
-  const [picking, setPicking] = createSignal(false)
   const [query, setQuery] = createSignal('')
   let reopening: Promise<boolean> | undefined
 
@@ -56,9 +55,17 @@ export function ReplyComposer(props: ReplyComposerProps) {
       reopening = undefined
     }
   }
-  function writeReply(value: string) {
+  function writeReply(value: string, restoring: boolean) {
     setReplyBody(value)
-    if (value.trim() && closed() && !reopening) reopening = reopen()
+    if (!restoring && value.trim() && closed() && !reopening)
+      reopening = reopen()
+  }
+  function togglePreview(event: MouseEvent) {
+    const form =
+      event.target instanceof Element ? event.target.closest('form') : null
+    const field = form?.querySelector('textarea[data-draft-slot="reply"]')
+    if (field instanceof HTMLTextAreaElement) setReplyBody(field.value)
+    setPreview(!preview())
   }
   function attachArticle(event: MouseEvent) {
     const button =
@@ -76,7 +83,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
       .filter(Boolean)
       .join('\n\n')
     area.dispatchEvent(new Event('input', { bubbles: true }))
-    setPicking(false)
+    button.closest<HTMLElement>('[popover]')?.hidePopover()
     setQuery('')
     area.focus()
   }
@@ -112,6 +119,11 @@ export function ReplyComposer(props: ReplyComposerProps) {
         body: fields,
       })
       if (!response.ok) throw new Error('Submission failed')
+      const submitted = form.querySelector('textarea:not(:disabled)')
+      if (submitted instanceof HTMLTextAreaElement) {
+        submitted.value = ''
+        submitted.dispatchEvent(new Event('input', { bubbles: true }))
+      }
       location.assign('/conversation/' + props.number + '?notice=' + operation)
     } catch {
       setFailed(true)
@@ -125,6 +137,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
       method="post"
       onSubmit={submit}
       aria-busy={sending()}
+      data-contact={props.contact}
       aria-label="メッセージの作成"
     >
       <input type="hidden" name="number" value={props.number} />
@@ -177,8 +190,14 @@ export function ReplyComposer(props: ReplyComposerProps) {
           maxlength={100000}
           disabled={note()}
           readonly={sending()}
+          data-draft-slot="reply"
           placeholder="返信を入力"
-          onInput={(event) => writeReply(event.target.value)}
+          onInput={(event) =>
+            writeReply(
+              event.target.value,
+              event.target.hasAttribute('data-restoring-draft'),
+            )
+          }
         />
       </label>
       <label className="composer-field" hidden={!note()}>
@@ -190,6 +209,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
           maxlength={100000}
           disabled={!note()}
           readonly={sending()}
+          data-draft-slot="note"
           placeholder="チームに残すメモを入力"
         />
       </label>
@@ -197,17 +217,22 @@ export function ReplyComposer(props: ReplyComposerProps) {
         <button
           type="button"
           className="button-quiet"
-          onClick={() => setPicking(!picking())}
+          {...{ popovertarget: 'reply-articles' }}
           disabled={sending()}
-          aria-expanded={picking()}
+          aria-controls="reply-articles"
         >
           記事を添える
         </button>
-        <section className="settings-card" hidden={!picking()}>
+        <section
+          id="reply-articles"
+          className="settings-card article-popover"
+          {...{ popover: 'auto' }}
+        >
           <label>
             記事の題名で検索
             <input
               type="search"
+              autofocus
               value={query()}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') event.preventDefault()
@@ -276,7 +301,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
             className="button-quiet"
             hidden={note()}
             aria-expanded={preview()}
-            onClick={() => setPreview(!preview())}
+            onClick={togglePreview}
           >
             プレビュー
           </button>
