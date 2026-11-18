@@ -1,4 +1,7 @@
 import { defineConfig } from '@playwright/test'
+
+const pixelComparison = { threshold: 0.1, maxDiffPixelRatio: 0.001 }
+
 export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
@@ -9,11 +12,16 @@ export default defineConfig({
   reporter: 'list',
   use: {
     browserName: 'chromium',
+    // Software compositing also works on virtual runners without a display.
+    launchOptions: { args: ['--disable-gpu'] },
     locale: 'ja-JP',
     timezoneId: 'Asia/Tokyo',
     deviceScaleFactor: 1,
     colorScheme: 'light',
     reducedMotion: 'reduce',
   },
-  expect: { toMatchSnapshot: { threshold: 0.1, maxDiffPixelRatio: 0.001 } },
+  expect: {
+    toMatchSnapshot: pixelComparison,
+    toHaveScreenshot: { ...pixelComparison, timeout: 10_000 },
+  },
 })

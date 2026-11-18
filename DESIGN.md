@@ -65,7 +65,7 @@ typography:
     fontWeight: 500
     lineHeight: 1.4
   code:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontFamily: "'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace"
     fontSize: 13px
     fontWeight: 400
     lineHeight: 1.5

@@ -81,11 +81,11 @@
   --typography-caption-fontWeight: 500;
   --typography-caption-lineHeight: 1.4;
   --typography-caption: 500 13px/1.4 Inter, 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
-  --typography-code-fontFamily: JetBrains Mono, ui-monospace, monospace;
+  --typography-code-fontFamily: 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   --typography-code-fontSize: 13px;
   --typography-code-fontWeight: 400;
   --typography-code-lineHeight: 1.5;
-  --typography-code: 400 13px/1.5 JetBrains Mono, ui-monospace, monospace;
+  --typography-code: 400 13px/1.5 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   --typography-button-fontFamily: Inter, 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   --typography-button-fontSize: 14px;
   --typography-button-fontWeight: 600;

@@ -15,6 +15,11 @@ async function capture(page, scene, width) {
   const name = scene.id + '-' + width + '.png'
   const nativePending =
     scene.action === 'loading' || (before && scene.id === 'composer-sending')
+  const daily = process.env.HELPDESK_DAILY_CAPTURE
+  if (!daily && !before && !nativePending) {
+    await expect.soft(page).toHaveScreenshot(name)
+    return
+  }
   let pixels
   if (nativePending) {
     // Native form navigations block Playwright's screenshot preparation.
@@ -26,7 +31,6 @@ async function capture(page, scene, width) {
   } else {
     pixels = await page.screenshot({ animations: 'disabled', caret: 'hide' })
   }
-  const daily = process.env.HELPDESK_DAILY_CAPTURE
   if (daily) {
     await mkdir(daily, { recursive: true })
     await writeFile(resolve(daily, name), pixels)
