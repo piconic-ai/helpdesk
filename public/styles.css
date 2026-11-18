@@ -1,0 +1,110 @@
+:root {
+  font:
+    16px/1.55 system-ui,
+    sans-serif;
+  color: #202d32;
+  background: #f6f7f5;
+}
+body {
+  margin: 0;
+}
+body > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #173d3b;
+  padding: 1rem max(5vw, 1rem);
+}
+header a {
+  color: #fff;
+  text-decoration: none;
+  margin-right: 1rem;
+}
+header > a {
+  font-size: 1.35rem;
+  font-weight: bold;
+}
+main {
+  max-width: 64rem;
+  margin: auto;
+  padding: 2rem 1rem;
+}
+h1 {
+  font-size: 2rem;
+}
+section,
+article,
+details,
+.filters,
+.conversations {
+  background: white;
+  border: 1px solid #ced8d4;
+  border-radius: 0.55rem;
+  padding: 1.2rem;
+  margin-block: 1rem;
+}
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: end;
+  margin: 0.8rem 0;
+}
+label,
+small {
+  display: block;
+}
+label {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #9eada8;
+  border-radius: 0.3rem;
+  box-sizing: border-box;
+}
+input,
+textarea,
+select {
+  display: block;
+  max-width: 100%;
+}
+textarea {
+  min-width: min(25rem, 80vw);
+  min-height: 6rem;
+}
+button {
+  background: #21665a;
+  color: white;
+  cursor: pointer;
+}
+a {
+  color: #155c52;
+}
+.conversations {
+  list-style: none;
+}
+.conversations li + li {
+  border-top: 1px solid #d8dedb;
+}
+.conversations a {
+  display: block;
+  padding: 0.8rem;
+  text-decoration: none;
+}
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+small {
+  color: #4a5757;
+}
+iframe {
+  width: 100%;
+  border: 0;
+}

@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
+      thresholds: { statements: 71, branches: 66, functions: 71, lines: 74 },
       include: [
         'src/**/*.{ts,tsx}',
         'cli/**/*.{ts,mjs}',
