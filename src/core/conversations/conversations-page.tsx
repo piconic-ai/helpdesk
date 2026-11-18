@@ -5,7 +5,7 @@ import type { Child } from 'hono/jsx'
 type Result<K extends keyof typeof coreOperations> = Awaited<
   ReturnType<(typeof coreOperations)[K]['execute']>
 >
-function shell(title: string, content: Child) {
+export function shell(title: string, content: Child) {
   return (
     <html lang="en">
       <head>
@@ -19,7 +19,9 @@ function shell(title: string, content: Child) {
           <a href="/">Helpdesk</a>
           <nav>
             <a href="/">Inbox</a>
-            <a href="/settings">Settings</a>
+            <a href="/settings">Settings</a>{' '}
+            <a href="/extensions">Extensions</a>{' '}
+            <a href="/tokens">API tokens</a>
           </nav>
         </header>
         <main>{content}</main>
@@ -63,11 +65,13 @@ export function inboxPage(
   rows: Result<'list'>,
   failures: Result<'failures'>,
   q: Record<string, string>,
+  panels?: Child,
 ) {
   return shell(
     'Inbox',
     <>
       <h1>Inbox</h1>
+      {panels}
       <form method="get" className="filters">
         {field('query', 'Search', q.query)}
         {select(
@@ -135,7 +139,7 @@ function messages(data: Result<'get'>) {
           <input type="hidden" name="id" value={m.id} />,
           m.number,
         )}
-      {m.delivery === 'awaiting_approval' &&
+      {(m.delivery === 'awaiting_approval' || m.delivery === 'draft') &&
         action(
           'approve',
           'Approve and send',
@@ -145,7 +149,7 @@ function messages(data: Result<'get'>) {
     </article>
   ))
 }
-export function conversationPage(data: Result<'get'>) {
+export function conversationPage(data: Result<'get'>, panels?: Child) {
   const c = data.conversation
   return shell(
     c.subject,
@@ -158,6 +162,7 @@ export function conversationPage(data: Result<'get'>) {
         {c.product} · {c.mailbox} · {c.status.kind}
       </p>
       {messages(data)}
+      {panels}
       {data.attachments.map((a) => (
         <p>
           <a
@@ -241,11 +246,12 @@ export function conversationPage(data: Result<'get'>) {
     </>,
   )
 }
-export function settingsPage(data: Result<'settings'>) {
+export function settingsPage(data: Result<'settings'>, panels?: Child) {
   return shell(
     'Settings',
     <>
       <h1>Settings</h1>
+      {panels}
       <section>
         <h2>Mailboxes</h2>
         {data.mailboxes.map((m) => (

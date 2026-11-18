@@ -7,3 +7,6 @@
 - Workers 上で postal-mime の解析と mimetext の MIME 組み立てを確認した。本番の送信は構造化 binding に本文を渡し、サービスに MIME の生成を委ねる。受信は先に原文を非公開の R2 に置き、キューで解析する。[受信ハンドラー](https://developers.cloudflare.com/email-service/api/route-emails/email-handler/)・[R2 の API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/)・[キューの再配送](https://developers.cloudflare.com/queues/configuration/batching-retries/)・[D1 の batch](https://developers.cloudflare.com/d1/worker-api/d1-database/)
 - 保存期間は既定で無期限とし、検索は件名・相手・本文の部分一致を採用した。本文と添付を削除する際は R2 のキーを D1 に一時記録し、中断後は定期処理から削除を再開する。
 - ローカル開発者は環境名とアドレスの両方を指定する。非ローカル環境で開発用アドレスを検出した場合は要求を拒否する。
+
+- MCP は公式 TypeScript SDK の stateless Streamable HTTP を採用した。CLI と MCP は同じトークンと操作の定義を使う。発行した秘密は一度だけ表示し、D1 にはダイジェストを保存する。[MCP transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)・[Cloudflare の transport](https://developers.cloudflare.com/agents/model-context-protocol/transport/)
+- 段階2で受付、操作、出口を各1種類実装した。権限を実行時に検査する context、各拡張のストレージ、パネルの選択肢とリンクを共通の口に追加した。issue を閉じた後に作る下書きには安定したキーを付け、定期処理の再実行による重複を防ぐ。

@@ -87,6 +87,38 @@ export async function insertReply(db: D1Database, input: Submission) {
     throw new Error('Reply requires an open or pending inquiry')
 }
 
+export async function insertDraft(
+  db: D1Database,
+  input: Omit<Submission, 'approval'>,
+) {
+  const parent = threadSchema
+    .nullable()
+    .parse(await db.prepare(threadSql).bind(input.number).first())
+  const [, , persisted] = await db.batch([
+    db
+      .prepare(`INSERT INTO messages(id,number,kind,body,actor,created_at,delivery,in_reply_to,refs)
+      SELECT ?,number,'outbound',?,?,?,'draft',?,? FROM conversations WHERE number=? AND kind='inquiry' AND status!='spam'
+      ON CONFLICT(id) DO NOTHING`)
+      .bind(
+        input.id,
+        input.body,
+        JSON.stringify(input.actor),
+        input.now,
+        parent?.message_id ?? null,
+        parent?.refs ?? null,
+        input.number,
+      ),
+    event(db, 'reply_drafted', input, 'changes()=1'),
+    db
+      .prepare(
+        "SELECT id FROM messages WHERE id=? AND number=? AND kind='outbound'",
+      )
+      .bind(input.id, input.number),
+  ])
+  if (!persisted.results.length)
+    throw new Error('Cannot draft a reply to this conversation')
+}
+
 export async function requeueReply(
   db: D1Database,
   input: Enqueue,
@@ -94,9 +126,9 @@ export async function requeueReply(
 ) {
   const update = db
     .prepare(`UPDATE messages SET delivery='queued',approval=?,reason=NULL,provider_id=NULL,sent_at=NULL WHERE id=? AND kind='outbound'
-    AND delivery=? AND number IN (SELECT number FROM conversations WHERE kind='inquiry' AND status IN ('open','pending'))
+    AND (delivery=? OR (delivery='draft' AND ?='awaiting_approval')) AND number IN (SELECT number FROM conversations WHERE kind='inquiry' AND status IN ('open','pending'))
     AND NOT EXISTS (SELECT 1 FROM outbox WHERE message=messages.id)`)
-    .bind(JSON.stringify(input.approval), input.id, from)
+    .bind(JSON.stringify(input.approval), input.id, from, from)
   const [result] = await db.batch([
     update,
     ...queueWrites(db, input, crypto.randomUUID()),

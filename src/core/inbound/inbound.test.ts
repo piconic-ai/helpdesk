@@ -38,7 +38,7 @@ beforeAll(async () => {
     }),
   )
   env = await runtime.getBindings<InboundEnv>()
-  for (const name of ['0001_core', '0002_inbound']) {
+  for (const name of ['0001_core', '0002_inbound', '0005_intakes']) {
     const sql = await readFile('migrations/' + name + '.sql', 'utf8')
     await env.DB.batch(
       sql

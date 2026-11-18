@@ -15,6 +15,7 @@
     "@barefootjs/hono": "^0.40.2",
     "@barefootjs/jsx": "^0.40.2",
     "@barefootjs/shared": "^0.40.2",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "drizzle-orm": "^0.45.4",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.6.0",
@@ -47,5 +48,8 @@
   "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": "24.x"
+  },
+  "bin": {
+    "helpdesk": "./cli/helpdesk.mjs"
   }
 }

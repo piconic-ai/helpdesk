@@ -10,7 +10,14 @@ import {
   settingsPage,
 } from '../conversations/conversations-page'
 import { readHtml, download } from '../conversations/media-usecase'
-const scopes = new Set<Scope>(['read', 'write', 'send', 'admin'])
+import { invoke } from './runtime-usecase'
+import { panels, management, toggle } from '../extensions/registry-usecase'
+import {
+  extensionPanels,
+  managementPage,
+  operationResult,
+} from '../extensions/extensions-page'
+const scopes = new Set<Scope>(['read', 'draft', 'write', 'send', 'admin'])
 const app = new Hono<AppEnv>()
 function context(c: HttpContext<AppEnv>): Context {
   const operator = c.get('operator')
@@ -42,15 +49,36 @@ app.get('/', async (c) => {
     run(ctx, 'list', query),
     run(ctx, 'failures', {}),
   ])
-  return c.render(inboxPage(rows, failures, query))
+  return c.render(
+    inboxPage(
+      rows,
+      failures,
+      query,
+      extensionPanels(await panels(ctx, scopes, 'list')),
+    ),
+  )
 })
 app.get('/settings', async (c) =>
-  c.render(settingsPage(await run(context(c), 'settings', {}))),
+  c.render(
+    settingsPage(
+      await run(context(c), 'settings', {}),
+      extensionPanels(await panels(context(c), scopes, 'settings')),
+    ),
+  ),
 )
 app.get('/conversation/:number', async (c) =>
   c.render(
     conversationPage(
       await run(context(c), 'get', { number: c.req.param('number') }),
+      extensionPanels(
+        await panels(
+          context(c),
+          scopes,
+          'conversation',
+          Number(c.req.param('number')),
+        ),
+        Number(c.req.param('number')),
+      ),
     ),
   ),
 )
@@ -77,11 +105,35 @@ app.get('/attachment', async (c) => {
     },
   })
 })
+app.get('/extensions', async (c) =>
+  c.get('operator').role === 'admin'
+    ? c.render(managementPage(await management(context(c))))
+    : c.text('Permission denied', 403),
+)
+app.post('/extensions/:id', async (c) => {
+  if (c.get('operator').role !== 'admin')
+    return c.text('Permission denied', 403)
+  const value = z.enum(['yes', 'no']).parse((await c.req.parseBody()).enabled)
+  await toggle(context(c), c.req.param('id'), value === 'yes')
+  return c.redirect('/extensions', 303)
+})
 app.post('/actions/:name', async (c) => {
   const name = c.req.param('name')
-  if (!Object.hasOwn(coreOperations, name)) return c.notFound()
   const input = await c.req.parseBody()
-  await run(context(c), name as keyof typeof coreOperations, input)
+  if (
+    !Object.hasOwn(coreOperations, name) &&
+    !c.env.EXTENSIONS?.active.some((e) =>
+      e.extension.operations?.some(
+        (o) => e.extension.id + '.' + o.name === name,
+      ),
+    )
+  )
+    return c.notFound()
+  const result = await invoke(context(c), scopes, name, input)
+  if (name.includes('.'))
+    return c.render(
+      operationResult(name, result, Number(input.number) || undefined),
+    )
   const number = z.coerce.number().int().positive().safeParse(input.number)
   return c.redirect(
     number.success ? '/conversation/' + number.data : '/settings',

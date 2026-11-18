@@ -118,12 +118,13 @@ export async function saveMail(
     sql.push(
       db
         .prepare(
-          'INSERT INTO conversations(product,mailbox,contact,subject,status,created_at) VALUES(?,?,?,?,?,?)',
+          'INSERT INTO conversations(product,mailbox,contact,contact_name,subject,status,created_at) VALUES(?,?,?,?,?,?,?)',
         )
         .bind(
           product,
           job.to,
           mail.sender,
+          mail.name,
           mail.subject,
           'open',
           job.receivedAt,

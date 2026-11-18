@@ -14,7 +14,7 @@ import { deleteContent, drainDeleted } from '../retention/retention-store'
 import { queueReply, approveReply, retryReply } from '../outbound/reply-usecase'
 import * as store from './operator-store'
 
-export type Scope = 'read' | 'write' | 'send' | 'admin'
+export type Scope = 'read' | 'draft' | 'write' | 'send' | 'admin'
 export type Context = {
   env: Bindings
   operator: Operator
@@ -86,7 +86,7 @@ export const coreOperations = {
     address.extend({ label: text, action: z.enum(['add', 'remove']) }),
     (c, i) => store.setLabel(c.env.DB, audit(c), i),
   ),
-  reply: operation('write', address.extend({ body }), (c, i) =>
+  reply: operation('draft', address.extend({ body }), (c, i) =>
     queueReply(c.env, { ...i, actor: c.actor, now: c.now }),
   ),
   approve: operation('send', message, (c, i) =>

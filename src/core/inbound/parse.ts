@@ -16,6 +16,7 @@ export async function parseMail(raw: ArrayBuffer, envelopeFrom: string) {
   const category = classify(parsed, envelopeFrom)
   return {
     sender,
+    name: cleanHeader(parsed.from?.name ?? '').slice(0, 200) || null,
     category,
     subject: cleanHeader(parsed.subject ?? ''),
     text: parsed.text ?? '',
