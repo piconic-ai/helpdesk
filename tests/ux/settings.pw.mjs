@@ -243,6 +243,10 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
     .locator('form')
     .filter({ has: page.getByRole('button', { name: '窓口を登録' }) })
   await form.getByRole('button', { name: '窓口を登録' }).click()
+  await expect(form.getByLabel('プロダクト名')).toBeFocused()
+  await expect(form.getByLabel('プロダクト名')).toHaveAccessibleDescription(
+    'この項目を入力してください。',
+  )
   await expect(form.getByLabel('プロダクト名')).toHaveAttribute(
     'aria-invalid',
     'true',

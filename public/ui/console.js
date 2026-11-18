@@ -39,6 +39,7 @@ for (const form of document.querySelectorAll(
     (event) => {
       const field = event.target
       if (!(field instanceof HTMLInputElement)) return
+      event.preventDefault()
       clear(field)
       const error = document.createElement('small')
       error.className = 'field-error'
@@ -54,6 +55,12 @@ for (const form of document.querySelectorAll(
       field.setAttribute('aria-describedby', error.id)
       field.after(error)
       feedback.set(field, error)
+      if (
+        form.querySelector(
+          'input:invalid, select:invalid, textarea:invalid',
+        ) === field
+      )
+        field.focus()
     },
     true,
   )
