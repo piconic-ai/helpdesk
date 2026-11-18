@@ -5,7 +5,9 @@ import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import { startScene } from './seed.mjs'
 
-const output = resolve('docs/reports/ux-3/gallery')
+const output = resolve(
+  process.env.HELPDESK_GALLERY_CAPTURE ?? 'docs/reports/ux-3/gallery',
+)
 await mkdir(output, { recursive: true })
 const scene = await startScene()
 const browser = await chromium.launch({ args: ['--disable-gpu'] })

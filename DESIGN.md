@@ -320,7 +320,7 @@ The UI text is mostly Japanese. Every type decision below is made for mixed Japa
 
 ## Colors
 
-- **Action layer is monochrome.** `{colors.primary}` is used for the one primary action of a view (send, save) and for the `open` state. There is at most one primary button per view.
+- **Action layer is monochrome.** `{colors.primary}` is used for the one primary action of a view (send, save) and for the `open` state. Use one primary action per independent task. A draft approval and a modal confirmation each have their own action group.
 - **Color means state, never decoration.** `{colors.error}` = something failed and needs the operator. `{colors.warning}` = waiting for a human decision (approval, quarantine). `{colors.success}` = a confirmation that just happened. `{colors.note}` = internal, never sent to the customer.
 - **Semantic colors come in pairs.** Text in `{colors.error}` sits on `{colors.error-soft}`, and so on. Never put semantic text on `{colors.surface-card}`. All pairs meet WCAG AA for 13px text.
 - **Blue is for focus, links, and selection only.** `{colors.focus-ring}` outlines the focused element, `{colors.link}` marks links inside message bodies and articles, `{colors.selected}` fills the selected row.
@@ -431,7 +431,7 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 ## Do's and Don'ts
 
 ### Do
-- Keep exactly one primary button per view.
+- Use one primary button in each independent action group.
 - Let `status-open` be the darkest thing in a list.
 - Give every state a text label.
 - Use `reading` type wherever a person reads prose.
@@ -480,12 +480,12 @@ Touch targets are at least 44px on <768px. Every interactive element has a visib
 - A human avatar is a cropped square image inside a 24px circle or one grapheme from the display name. Show separate labelled agent and extension glyphs. The account entry at the foot of navigation identifies the signed-in operator.
 - Use an anchored popover for a short choice in context. Its trigger shows expanded state. Escape and an outside click dismiss it. Use the action menu for secondary commands. Put related controls one spacing-sm apart and allow them to wrap on narrow screens.
 - Use a native modal dialog for an irreversible action or an outbound submission. Name the recipient, object or quantity, focus the first safe action, and restore focus on dismissal. Never nest dialogs. Use an inline result with an undo action for reversible triage.
-- Keep context in a labelled side panel alongside the timeline. On small screens provide the same content in reading order. Keep assignment, status and labels with the conversation heading, and insert dated changes next to the messages they affected.
+- Keep context in a labelled side panel alongside the timeline. On smaller screens open the same panel from the heading. Keep assignment, status and labels with the conversation heading, and insert dated changes next to the messages they affected.
 - List shortcuts are j, k, Enter, e and a. In a conversation use r for reply, n for note, Cmd/Ctrl+Enter to submit, and u for the inbox. The ? dialog lists the shortcuts. Ignore character shortcuts while editing and during IME composition.
 
 ## Page composition
 
-Every operator and public screen uses a list, detail, edit, or overview template. A page supplies its title, actions and content to the template. The heading and content share a left edge. A list places its search and removable filters above its rows. A detail keeps the reading column within 760px and moves the context panel below the body when space is limited. An edit uses a single form column of at most 560px with save and cancel together. An overview places a compact filter strip above a grid of cards.
+Every operator and public screen uses a list, detail, edit, or overview template. A page supplies its title, actions and content to the template. The heading and content share a left edge. A list places its search and removable filters above its rows. A detail keeps the reading column within 760px and keeps context visible on the right from 1200px and offers a heading button to open the same panel below that width. An edit uses a single form column of at most 560px with save and cancel together. An overview places a compact filter strip above a grid of cards.
 
 Use the BarefootJS button, input, native select, popover, dialog, menu, tabs and tooltip conventions for controls. Shared components own presentation. Setting rows are full-width links with a title, explanation, current value and directional indicator. Each metric card keeps the value with its period change and definition. Extension cards put the availability switch opposite the title, with settings below. The confirmation and settings views explain access permissions. Cards share the settings-card inset. The component gallery at `/dev/ui` is available in local development.
 

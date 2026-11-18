@@ -1,3 +1,4 @@
+import { rememberIssue, synchronizeIssue } from './board-usecase'
 import { z } from 'zod'
 import type { ExtensionContext } from '../../core/extensions/extension'
 import {
@@ -72,11 +73,13 @@ export async function previewIssue(ctx: ExtensionContext, input: unknown) {
 }
 async function saveLink(ctx: ExtensionContext, link: Linked) {
   const key = linkPrefix(link.repository, link.issue) + link.number
-  if (await ctx.create(key, link))
-    await ctx.emit('linked', link.number, {
-      repository: link.repository,
-      issue: link.issue,
-    })
+  await ctx.create(key, link)
+  await ctx.emit(
+    'linked',
+    link.number,
+    { repository: link.repository, issue: link.issue },
+    key,
+  )
   return { ...link, url: issueUrl(link.repository, link.issue) }
 }
 export async function createIssue(ctx: ExtensionContext, input: unknown) {
@@ -104,6 +107,7 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
   const remote = await githubIssue(ctx, repo, {
     create: { title: proposal.title, body: proposal.body },
   })
+  await rememberIssue(ctx, repo, remote, proposal.title)
   const saved = await saveLink(ctx, {
     number,
     repository: repo,
@@ -123,7 +127,8 @@ export async function linkIssue(ctx: ExtensionContext, input: unknown) {
   if (!(await ctx.get(key))) {
     if (!ctx.secret('GITHUB_TOKEN'))
       throw new Error('Configure GITHUB_TOKEN for the issues extension')
-    await githubIssue(ctx, repo, { read: issue })
+    const remote = await githubIssue(ctx, repo, { read: issue })
+    await rememberIssue(ctx, repo, remote)
     const body = '[#' + number + '](' + origin + '/conversation/' + number + ')'
     if (await ctx.create('backlink/' + key, true)) {
       await linkComment(ctx, repo, issue, body)
@@ -169,44 +174,27 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
   }
   return Array.from(addresses, ([href, label]) => ({ href, label }))
 }
-async function checkIssue(ctx: ExtensionContext, links: Linked[]) {
-  const { repository, issue } = links[0]
-  const remote = await githubIssue(ctx, repository, { read: issue })
-  if (remote.state !== 'closed') return
-  if (remote.closed_at)
-    await ctx.emit(
-      'closed',
-      links[0].number,
-      { repository, issue, closedAt: Date.parse(remote.closed_at) },
-      repository + '/' + issue + '/' + remote.closed_at,
-    )
-
-  for (const link of links) {
-    const key = linkPrefix(repository, issue) + link.number
-    await ctx.draft(
-      link.number,
-      'The issue associated with your report has been closed. Thank you for letting us know.',
-      key,
-    )
-    await ctx.put('notified/' + key, true)
-  }
-}
-export async function pollIssues(ctx: ExtensionContext) {
+async function expirePreviews(ctx: ExtensionContext) {
   for (const { key, value } of await ctx.list('preview/')) {
     const proposal = storedPreview.parse(value)
     if (proposal.expiresAt < ctx.now) {
       await ctx.remove(key)
     }
   }
-  const links = await loadLinks(ctx, 'link/')
   for (const { key, value } of await ctx.list('claimed/')) {
     if (typeof value === 'number' && value < ctx.now) await ctx.remove(key)
   }
-  const notified = new Set((await ctx.list('notified/')).map((row) => row.key))
+}
+export async function pollIssues(ctx: ExtensionContext) {
+  await expirePreviews(ctx)
+  if (!ctx.secret('GITHUB_TOKEN')) return
+  const links = await loadLinks(ctx, 'link/')
+  if (!links.length) return
+  const voices = new Map((await ctx.voices()).map((v) => [v.number, v]))
   const groups = new Map<string, Linked[]>()
   for (const link of links) {
     const key = linkPrefix(link.repository, link.issue)
-    if (notified.has('notified/' + key + link.number)) continue
+    if (!voices.has(link.number)) continue
     const group = groups.get(key) ?? []
     group.push(link)
     groups.set(key, group)
@@ -214,7 +202,7 @@ export async function pollIssues(ctx: ExtensionContext) {
   const failures = []
   for (const group of groups.values()) {
     try {
-      await checkIssue(ctx, group)
+      await synchronizeIssue(ctx, group, voices)
     } catch (error) {
       failures.push(error)
     }

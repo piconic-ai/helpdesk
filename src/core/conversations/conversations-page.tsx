@@ -17,6 +17,8 @@ import {
   MessageText,
   StepLink,
   ThreadPanel,
+  ThreadPanelTrigger,
+  ReplyArea,
   ThreadTimeline,
   TimelineEntry,
 } from '../../ui/thread-parts'
@@ -143,7 +145,7 @@ function changeStatus(number: number, event: string, label: string) {
     number,
   )
 }
-function threadActions(c: Details['conversation']) {
+function threadActions(c: Details['conversation'], snooze: Child) {
   if (c.kind !== 'inquiry') return null
   const state = c.status.kind
   return (
@@ -154,10 +156,7 @@ function threadActions(c: Details['conversation']) {
       {state === 'spam' &&
         changeStatus(c.number, 'unmarked_spam', '迷惑メールを解除')}
       <ActionMenu id="thread-actions" label="その他の操作">
-        <div data-extension-commands=""></div>
-        <ActionLink variant="ghost" href="#related-info">
-          会話の関連情報
-        </ActionLink>
+        {snooze}
         {state === 'pending' &&
           changeStatus(c.number, 'reopened', '未対応に戻す')}
         {state !== 'spam' &&
@@ -248,7 +247,7 @@ function threadContext(
 }
 export function conversationPage(
   data: Details,
-  panels: Child,
+  panels: { related: Child; snooze: Child; canned: Child },
   frame: ConsoleFrame,
   metadata: Awaited<ReturnType<typeof inboxMetadata>>,
   files: Files,
@@ -275,7 +274,8 @@ export function conversationPage(
       back={{ label: '受信箱', href: search ? '/?' + search : '/' }}
       action={
         <ActionBar>
-          {threadActions(c)}
+          <ThreadPanelTrigger />
+          {threadActions(c, panels.snooze)}
           <StepLink
             previous
             href={previous ? threadUrl(previous, search) : undefined}
@@ -292,7 +292,7 @@ export function conversationPage(
           {labelPicker(c.number, data.labels, frame.labels)}
         </AttributeRow>
       }
-      aside={threadContext(data, panels, frame.now, names)}
+      aside={threadContext(data, panels.related, frame.now, names)}
     >
       {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
       <ThreadTimeline>
@@ -328,15 +328,17 @@ export function conversationPage(
           .sort((a, b) => a.at - b.at)
           .map((entry) => entry.view)}
       </ThreadTimeline>
-      <ReplyComposer
-        number={c.number}
-        mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
-        contact={c.contact}
-        noteOnly={!reply}
-        closed={c.status.kind === 'closed'}
-        subject={replySubject(c.subject, c.number)}
-        articles={articles}
-      />
+      <ReplyArea templates={panels.canned}>
+        <ReplyComposer
+          number={c.number}
+          mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
+          contact={c.contact}
+          noteOnly={!reply}
+          closed={c.status.kind === 'closed'}
+          subject={replySubject(c.subject, c.number)}
+          articles={articles}
+        />
+      </ReplyArea>
     </DetailPage>
   )
   return shell(c.subject, main, frame)

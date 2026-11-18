@@ -1,5 +1,7 @@
 const percent = new Intl.NumberFormat('ja-JP', { maximumFractionDigits: 1 })
 export const metricDefinition: Record<string, string> = {
+  improvementRate:
+    '期間中に受け付けた声のうち、課題の修正後、期間末までに承認済みの知らせを送信できた会話の割合。問い合わせとフィードバックを各1件と数え、迷惑メールは除きます。',
   resolutionMs:
     '受付から完了まで、または記事を開いてから解決するまでの平均時間。',
   firstContactRate:
@@ -19,7 +21,7 @@ export function duration(ms: number) {
 export function metricValue(key: string, value: number | null) {
   if (value === null) return 'データなし'
   if (key.endsWith('Ms')) return duration(value)
-  if (key === 'firstContactRate') return percent.format(value * 100) + '%'
+  if (key.endsWith('Rate')) return percent.format(value * 100) + '%'
   return value.toLocaleString('ja-JP')
 }
 export function difference(
@@ -35,9 +37,18 @@ export function difference(
     return '直前の同じ期間にこの指標の対象データがありません。'
   const delta = current - previous
   if (!delta) return '変化なし'
-  const magnitude =
-    key === 'firstContactRate'
-      ? percent.format(Math.abs(delta) * 100) + 'ポイント'
-      : metricValue(key, Math.abs(delta))
+  const magnitude = key.endsWith('Rate')
+    ? percent.format(Math.abs(delta) * 100) + 'ポイント'
+    : metricValue(key, Math.abs(delta))
   return (delta > 0 ? '+' : '−') + magnitude
+}
+
+export const metricSummary: Record<string, string> = {
+  resolutionMs: '受付から解決まで',
+  firstContactRate: '再開せずに一度で解決',
+  operatorMs: '閲覧から返信まで',
+  improvementRate: '修正後に知らせが届いた声',
+  resolved: '会話と記事での解決',
+  closed: '期間中に完了した会話',
+  measured: '作業時間を計測した会話',
 }

@@ -45,7 +45,7 @@ export const guides: Record<string, { description: string; start: string }> = {
   snooze: {
     description: '指定した日時まで会話を受信箱から保留します。',
     start:
-      '会話の関連情報で再表示日時を選び、期限が来ると受信箱に戻ることを確認してください。',
+      '会話の「その他の操作」で再表示日時を選び、期限が来ると受信箱に戻ることを確認してください。',
   },
   merge: {
     description: '同じ相手・窓口の問い合わせを一つにまとめます。',

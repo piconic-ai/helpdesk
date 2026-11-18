@@ -1,3 +1,4 @@
+import { products } from '../conversations/console-store'
 import { migrateExtensions } from './migrations-store'
 import { z } from 'zod'
 import {
@@ -66,17 +67,26 @@ export async function toggle(ctx: Context, id: string, enabled: boolean) {
 }
 export async function management(ctx: Context) {
   if (ctx.operator.role !== 'admin') throw new Error('Administrator required')
+  const choices = await products(ctx.env.DB)
   return {
-    entries: (ctx.env.EXTENSIONS?.all ?? []).map((i) => ({
-      id: i.extension.id,
-      enabled: i.enabled,
-      permissions: i.extension.permissions,
-      secrets: i.extension.secrets ?? [],
-      missing: (i.extension.secrets ?? []).filter(
-        (name) => !Reflect.get(ctx.env, name),
-      ),
-      needsAI: Boolean(i.extension.requiresAI && !ctx.env.AI),
-    })),
+    entries: await Promise.all(
+      (ctx.env.EXTENSIONS?.all ?? []).map(async (i) => ({
+        configurationGaps: i.enabled
+          ? ((await i.extension.configurationGaps?.(
+              extensionContext(ctx, i),
+              choices,
+            )) ?? [])
+          : [],
+        id: i.extension.id,
+        enabled: i.enabled,
+        permissions: i.extension.permissions,
+        secrets: i.extension.secrets ?? [],
+        missing: (i.extension.secrets ?? []).filter(
+          (name) => !Reflect.get(ctx.env, name),
+        ),
+        needsAI: Boolean(i.extension.requiresAI && !ctx.env.AI),
+      })),
+    ),
     failures: await deliveryFailures(ctx.env.DB),
   }
 }

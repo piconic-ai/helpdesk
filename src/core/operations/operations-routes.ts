@@ -43,7 +43,7 @@ import {
   replyLinks,
 } from '../extensions/registry-usecase'
 import {
-  extensionPanels,
+  conversationPanels,
   managementPage,
   operationResult,
   issuePreview,
@@ -194,7 +194,7 @@ app.get('/conversation/:number', async (c) => {
   return c.render(
     conversationPage(
       data,
-      extensionPanels(
+      conversationPanels(
         await panels(ctx, scopes, 'conversation', number),
         number,
         data,

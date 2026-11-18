@@ -1,0 +1,62 @@
+[data-ui-page='overview'] [aria-label='集計結果'] > [data-ui='metrics'] {
+  grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
+}
+[data-ui-page='overview'] [aria-label='集計結果'] [data-ui='metric-card'] {
+  align-content: start;
+}
+[data-ui-page='overview']
+  [aria-label='集計結果']
+  [data-ui='metric-card']
+  > strong {
+  font-size: var(--typography-title-lg-fontSize);
+}
+[data-ui-page='overview']
+  [aria-label='集計結果']
+  [data-ui='metric-card']:first-child {
+  border-inline-start: var(--spacing-xxs) solid var(--colors-primary);
+  background: var(--colors-surface-card);
+}
+[data-ui-page='overview'] [aria-label='集計の内訳'] > [data-ui='metrics'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+[data-ui-page='overview']
+  [aria-label='集計の内訳']
+  [data-ui='metric-card']
+  > strong {
+  font-size: var(--typography-title-sm-fontSize);
+}
+[data-ui='metric-card'] [data-slot='tooltip'] button {
+  min-height: var(--spacing-lg);
+  height: var(--spacing-lg);
+  padding-inline: var(--spacing-xxs);
+}
+[data-ui='metric-card'] {
+  position: relative;
+  min-width: 0;
+}
+[data-ui='metric-card'] [data-slot='tooltip'] {
+  position: static;
+}
+[data-ui='metric-card'] [role='tooltip'] {
+  white-space: normal;
+  width: max-content;
+  max-width: min(16em, calc(100% - 2 * var(--spacing-md)));
+  bottom: var(--spacing-xl);
+  inset-inline-start: var(--spacing-md);
+  visibility: hidden;
+}
+[data-ui='metric-card']
+  [data-slot='tooltip']:is(:focus-within, :hover)
+  [role='tooltip'] {
+  visibility: visible;
+}
+@media (max-width: 900px) {
+  [data-ui-page='overview'] [aria-label='集計の内訳'] > [data-ui='metrics'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  [data-ui-page='overview'] [aria-label='集計結果'] > [data-ui='metrics'] {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,8 +1,10 @@
 import { startScene } from './seed.mjs'
+import { seedReviewExamples } from './review-screens.mjs'
 
 const demo = await startScene(
   [
     'articles',
+    'auto-ack',
     'chat',
     'form',
     'feedback',
@@ -19,6 +21,7 @@ const demo = await startScene(
   '.',
   { port: Number(process.env.HELPDESK_DEMO_PORT ?? 8788) },
 )
+await seedReviewExamples(demo.db, ['issues', 'articles'])
 await demo.db.batch([
   demo.db
     .prepare('INSERT INTO operator_profiles(email,display_name) VALUES(?,?)')

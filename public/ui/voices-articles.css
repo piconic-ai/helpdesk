@@ -1,0 +1,86 @@
+[data-ui='article-list-row'] {
+  list-style: none;
+  border-bottom: 1px solid var(--colors-hairline);
+}
+[data-ui='article-list-row'] > a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4em minmax(5em, 0.4fr) 9em 11em;
+  gap: var(--spacing-sm);
+  align-items: baseline;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  color: var(--colors-ink);
+  text-decoration: none;
+}
+[data-ui='article-list-row'] > a:hover {
+  background: var(--colors-surface-soft);
+}
+[data-ui='article-list-row'] strong {
+  overflow-wrap: anywhere;
+  font: var(--typography-body-strong);
+}
+[data-ui='article-list-row'] span {
+  text-align: right;
+  overflow-wrap: anywhere;
+  color: var(--colors-muted);
+  font: var(--typography-caption);
+}
+@media (max-width: 1050px) {
+  [data-ui='article-list-row'] > a {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-xxs) var(--spacing-xs);
+  }
+  [data-ui='article-list-row'] strong {
+    grid-column: span 2;
+  }
+  [data-ui='article-list-row'] span:nth-child(3) {
+    text-align: left;
+  }
+}
+
+[aria-label='声の内訳'] {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+[aria-label='声の内訳'] [data-ui='list-row'] {
+  position: relative;
+}
+[aria-label='声の内訳'] [data-ui='list-row'] a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+@media (max-width: 640px) {
+  [data-ui='filter-line']
+    form:is(
+      [action='/voices'],
+      [action='/articles'],
+      [action='/articles/candidates']
+    ) {
+    display: grid;
+    align-items: end;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-xs);
+  }
+  [data-ui='filter-line']
+    form:is(
+      [action='/voices'],
+      [action='/articles'],
+      [action='/articles/candidates']
+    )
+    > :first-child {
+    grid-column: 1 / -1;
+  }
+  [data-ui='filter-line'] form[action='/voices'] > button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  [data-ui='filter-line']
+    form:is(
+      [action='/voices'],
+      [action='/articles'],
+      [action='/articles/candidates']
+    )
+    :is(input, select) {
+    width: 100%;
+  }
+}

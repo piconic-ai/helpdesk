@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { addressSchema } from '../conversations/state'
 
+export function keyedDraftId(number: number, key: string) {
+  return (
+    'draft/' + JSON.stringify([number, z.string().min(1).max(1024).parse(key)])
+  )
+}
+
 export const submissionSchema = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),

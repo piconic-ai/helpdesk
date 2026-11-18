@@ -9,6 +9,7 @@ import type { Context, Scope } from '../../core/operations/catalog-usecase'
 import { issues } from './extension-usecase'
 import { preview } from './issues'
 import { panelLinks } from './issues-usecase'
+import { issueBoard, synchronizeIssue } from './board-usecase'
 
 const repo = 'acme/desktop',
   origin = 'https://helpdesk.example'
@@ -24,6 +25,7 @@ let runtime: Awaited<ReturnType<typeof testPlatform>>
 let ctx: Context
 const posted: { url: string; data: unknown }[] = []
 let closed = false
+let closedTime = 2000
 const mockGithub = vi.fn(async (url: string, init?: RequestInit) => {
   expect(url).toMatch(/^https:\/\/api.github.com\/repos\/acme\/desktop\/issues/)
   expect(init?.redirect).toBe('manual')
@@ -32,7 +34,11 @@ const mockGithub = vi.fn(async (url: string, init?: RequestInit) => {
   )
   if (init?.method === 'POST')
     posted.push({ url, data: JSON.parse(String(init.body)) })
-  return Response.json({ number: 42, state: closed ? 'closed' : 'open' })
+  return Response.json({
+    number: 42,
+    state: closed ? 'closed' : 'open',
+    closed_at: closed ? new Date(closedTime).toISOString() : null,
+  })
 })
 beforeAll(async () => {
   runtime = await testPlatform()
@@ -178,15 +184,10 @@ test('F06-AC4 compares issue-linked inquiries with all voices in equal windows a
   await ctx.env.DB.batch(
     [1, 2].map((n, i) =>
       ctx.env.DB.prepare(
-        "INSERT INTO events(number,kind,actor,at) VALUES(?,'conversation_opened','{}',?)",
-      ).bind(n, 1000 + i * 2000),
+        'UPDATE conversations SET created_at=? WHERE number=?',
+      ).bind(1000 + i * 2000, n),
     ),
   )
-  await ctx.env.DB.prepare(
-    "INSERT INTO events(number,kind,payload,actor,at) VALUES(1,'issues.closed',?,'{}',2000)",
-  )
-    .bind(JSON.stringify({ repository: repo, issue: 42, closedAt: 2000 }))
-    .run()
   const impact = await invoke({ ...ctx, now: 10000 }, scopes, 'issues.impact', {
     product: 'app',
     issue: 42,
@@ -199,6 +200,68 @@ test('F06-AC4 compares issue-linked inquiries with all voices in equal windows a
   })
 })
 
+test('backfills a legacy title, recreates discarded drafts only on request, and prepares one new draft for a later closure', async () => {
+  const api = extensionContext({ ...ctx, now: 9000 }, enabled.active[0])
+  await api.remove('issue/acme/desktop/42')
+  const old = await issueBoard(api)
+  expect(old[0]).toMatchObject({ state: 'closed', informed: 0, remaining: 2 })
+  const fullScopes = new Set<Scope>(['read', 'draft', 'write', 'send'])
+  const input = { repository: repo, issue: 42, product: 'app' }
+  const original = await ctx.env.DB.prepare(
+    "SELECT id FROM messages WHERE number=1 AND delivery='draft'",
+  ).first<string>('id')
+  await invoke(ctx, fullScopes, 'discard', { id: original })
+  const prepare = () =>
+    invoke({ ...ctx, now: 4000 }, fullScopes, 'issues.draftNotices', input)
+  await Promise.all([prepare(), prepare()])
+  expect(
+    await ctx.env.DB.prepare(
+      "SELECT count(*) FROM messages WHERE delivery='draft'",
+    ).first('count(*)'),
+  ).toBe(2)
+  await expect(
+    invoke(ctx, fullScopes, 'issues.draftNotices', {
+      ...input,
+      repository: 'acme/unlinked',
+    }),
+  ).rejects.toThrow('関連付けられた声')
+  const links = [1, 2].map((number) => ({
+    repository: repo,
+    issue: 42,
+    number,
+  }))
+  const voices = new Map((await api.voices()).map((v) => [v.number, v]))
+  await invoke({ ...ctx, now: 6000 }, new Set<Scope>(['send']), 'approve', {
+    id: original,
+  })
+  await ctx.env.DB.batch([
+    ctx.env.DB.prepare(
+      "UPDATE messages SET delivery='sent',sent_at=6100,provider_id='delivered@example.org' WHERE id=?",
+    ).bind(original),
+    ctx.env.DB.prepare(
+      "INSERT INTO events(number,kind,actor,payload,at) VALUES(1,'reply_sent','{}',?,6100)",
+    ).bind(
+      JSON.stringify({
+        message: original,
+        approval: { kind: 'operator', by: 'op@example.com' },
+      }),
+    ),
+  ])
+  closed = false
+  await synchronizeIssue(api, links, voices)
+  await expect(prepare()).rejects.toThrow('閉じた課題')
+  closed = true
+  closedTime = 8000
+  await synchronizeIssue(api, links, voices)
+  await synchronizeIssue(api, links, voices)
+  const ids = await ctx.env.DB.prepare(
+    "SELECT id FROM messages WHERE delivery='draft'",
+  ).all<{ id: string }>()
+  expect(
+    ids.results.filter((row) => row.id.includes('/closed/8000')),
+  ).toHaveLength(1)
+  expect(ids.results).toHaveLength(2)
+})
 test('external article and issue requests reject redirects without forwarding credentials', async () => {
   const { externalRequest } =
     await import('../../core/extensions/external-client')

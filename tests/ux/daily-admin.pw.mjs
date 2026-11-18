@@ -110,8 +110,8 @@ test('集計に定義・前期差・少数件の案内があり未設定の拡�
   scene,
 }) => {
   await page.goto(scene.origin + '/metrics')
-  await expect(page.locator('[data-ui=metric-card] p')).toHaveCount(6)
-  await expect(page.locator('[data-ui=metric-card] small')).toHaveCount(6)
+  await expect(page.locator('[data-ui=metric-card] p')).toHaveCount(7)
+  await expect(page.locator('[data-ui=metric-card] small')).toHaveCount(7)
   await expect(page.getByText(/5件未満.*目安/)).toBeVisible()
   await expect(
     page.getByText('完了件数', { exact: true }).locator('..').locator('small'),

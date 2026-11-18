@@ -12,7 +12,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   const expand = async (id, label) => {
     await panel(id).getByRole('button', { name: label, exact: true }).click()
   }
-  await expand('canned', '定型文から下書きを作成')
+  await expand('canned', '定型文を選ぶ')
   const templates = panel('canned').getByRole('combobox', { name: '定型文' })
   await templates.selectOption({ index: 0 })
   await panel('canned')
@@ -28,7 +28,8 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     '01-draft',
     '相手の名前とプロダクト名が入った定型返信を下書きにする',
   )
-  await expand('snooze', '指定日時まで保留')
+  await page.getByRole('button', { name: 'その他の操作' }).click()
+  await expand('snooze', 'スヌーズ')
   await panel('snooze')
     .getByLabel('再表示日時（日本時間）')
     .fill('2026-11-24T09:30')
@@ -44,6 +45,8 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     await inbox.goto(scene.origin)
     const row = inbox.getByRole('link', { name: new RegExp(inquiry) })
     await expect(row).toHaveCount(0)
+    await page.getByRole('button', { name: 'その他の操作' }).click()
+    await expand('snooze', 'スヌーズ')
     await panel('snooze').getByRole('button', { name: '保留を解除' }).click()
     await inbox.reload()
     await expect(row).toBeVisible()
@@ -117,8 +120,12 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
 test('保留の設定と解除は直前の状態へ戻せる', async ({ page, scene }) => {
   await page.goto(scene.origin + '/conversation/1')
   const panel = page.locator('[data-extension=snooze]')
-  const defer = async () => {
+  const open = async () => {
+    await page.getByRole('button', { name: 'その他の操作' }).click()
     await panel.locator('[data-slot=popover-trigger]').click()
+  }
+  const defer = async () => {
+    await open()
     await panel.getByLabel('再表示日時（日本時間）').fill('2026-11-24T09:30')
     await panel
       .locator('form')
@@ -131,6 +138,7 @@ test('保留の設定と解除は直前の状態へ戻せる', async ({ page, sc
   await undo()
   await expect(panel).toContainText('保留されていません')
   await defer()
+  await open()
   await panel.getByRole('button', { name: '保留を解除' }).click()
   await undo()
   await expect(panel).toContainText('2026年11月24日')

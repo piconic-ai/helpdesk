@@ -75,7 +75,7 @@ test('送信・承認・破棄・再送の各確認は背後を操作できず E
       content: 'customer1@example.net',
     })
   await page.goto(scene.origin + '/conversation/5')
-  await inspectModal(page, formButton(page, '/actions/approve'), {
+  await inspectModal(page, button(page, '承認して送信'), {
     content: 'customer5@example.net',
   })
   await inspectModal(page, formButton(page, '/actions/discard'), {

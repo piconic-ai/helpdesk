@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { startScene, fixedTime } from './seed.mjs'
 import { keyboardFlow, prepare } from './drive.mjs'
 import { compositionScreens } from './composition-screens.mjs'
+import { reviewScreens, seedReviewExamples } from './review-screens.mjs'
 import { dailyScreens } from './daily-screens.mjs'
 import { screens } from './screens.mjs'
 
@@ -80,7 +81,7 @@ async function verifyViewport(browser, scene, origin, width) {
 
 const inventory = before
   ? screens
-  : [...screens, ...dailyScreens, ...compositionScreens]
+  : [...screens, ...dailyScreens, ...compositionScreens, ...reviewScreens]
 for (const [index, scene] of inventory.entries()) {
   test(scene.group + ' / ' + scene.label, async ({ browser }) => {
     const server = await startScene(scene.extensions, source, {
@@ -94,6 +95,8 @@ for (const [index, scene] of inventory.entries()) {
             : 0,
     })
     try {
+      if (reviewScreens.includes(scene))
+        await seedReviewExamples(server.db, scene.extensions ?? [])
       for (const width of [1440, 1024, 375])
         await verifyViewport(browser, scene, server.origin, width)
     } finally {

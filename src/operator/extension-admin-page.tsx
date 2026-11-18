@@ -1,3 +1,9 @@
+import { OutcomeCard } from '../ui/outcome-cards'
+import { ArticleListRow } from '../ui/article-list'
+import type {
+  ArticleCandidate,
+  CandidateSource,
+} from './article-candidates-usecase'
 import { Popover } from '../ui/controls'
 import type { ListWindow } from '../ui/listing'
 import { listRows, ListFilters, PageLinks } from '../ui/listing'
@@ -8,7 +14,6 @@ import {
   OverviewPage,
   FilterBar,
   ListRow,
-  MetricCard,
   MetricGrid,
   RowList,
   Notice,
@@ -25,7 +30,12 @@ import {
   Textarea,
 } from '../ui/controls'
 import { ArticlePreview, SaveActions } from '../ui/admin'
-import { metricValue, metricDefinition, difference } from './metric-values'
+import {
+  metricValue,
+  metricDefinition,
+  difference,
+  metricSummary,
+} from './metric-values'
 import { raw } from 'hono/html'
 import { shell } from '../core/conversations/console-page'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
@@ -87,7 +97,7 @@ const issueDate = new Intl.DateTimeFormat('ja-JP', {
 export function libraryPage(
   frame: ConsoleFrame,
   items: LibraryItem[],
-  candidates: string[],
+  candidateCount: number,
   query: Record<string, string>,
 ) {
   const list = listRows(items, query, (a) => ({
@@ -118,41 +128,46 @@ export function libraryPage(
       footer={<PageLinks path="/articles" query={query} {...list} />}
       filters={filters}
       action={
-        <ActionLink variant="default" href="/articles/new">
-          記事を書く
-        </ActionLink>
+        <ActionBar>
+          <ActionLink href="/articles/candidates">
+            候補（{candidateCount}件）
+          </ActionLink>
+          <ActionLink variant="default" href="/articles/new">
+            記事を書く
+          </ActionLink>
+        </ActionBar>
       }
     >
       {articles.length ? (
         <RowList>
           {articles.map((a) => (
-            <ListRow
+            <ArticleListRow
               title={a.title}
               href={
                 '/articles/edit?' +
                 new URLSearchParams({ product: a.product, id: a.id })
               }
-              description={
-                <>
-                  {frame.products.find((p) => p.id === a.product)?.name ??
-                    a.product}{' '}
-                  ·{' '}
-                  {a.updatedAt !== undefined ? (
-                    <time datetime={new Date(a.updatedAt).toISOString()}>
-                      更新 {issueDate.format(a.updatedAt)}
-                    </time>
-                  ) : (
-                    '更新日未記録'
-                  )}{' '}
-                  ·{' '}
-                  {a.votes
-                    ? '役に立った ' +
-                      Math.round((100 * a.helpful) / a.votes) +
-                      '%（' +
-                      a.votes +
-                      '件）'
-                    : '評価なし'}
-                </>
+              product={
+                frame.products.find((p) => p.id === a.product)?.name ??
+                a.product
+              }
+              date={
+                a.updatedAt !== undefined ? (
+                  <time datetime={new Date(a.updatedAt).toISOString()}>
+                    更新 {issueDate.format(a.updatedAt)}
+                  </time>
+                ) : (
+                  '更新日未記録'
+                )
+              }
+              rating={
+                a.votes
+                  ? '役に立った ' +
+                    Math.round((100 * a.helpful) / a.votes) +
+                    '%（' +
+                    a.votes +
+                    '件）'
+                  : '評価なし'
               }
               status={a.status === 'published' ? '公開中' : '下書き'}
             />
@@ -165,17 +180,91 @@ export function libraryPage(
             : '記事はまだありません。'}
         </EmptyState>
       )}
-      {candidates.length > 0 && (
-        <FormSection title="記事の候補">
-          <RowList>
-            {candidates.map((topic) => (
-              <ListRow title={topic} />
-            ))}
-          </RowList>
-        </FormSection>
+    </ListPage>,
+    frame,
+  )
+}
+export function candidatesPage(
+  frame: ConsoleFrame,
+  candidates: ArticleCandidate[],
+  query: Record<string, string>,
+) {
+  const list = listRows(candidates, query, (c) => ({
+    text: c.topic + ' ' + c.subject + ' ' + c.product,
+    filter: c.articleId ? 'started' : 'open',
+  }))
+  return shell(
+    '記事の候補',
+    <ListPage
+      title="記事の候補"
+      description={list.total + '件'}
+      back={{ href: '/articles', label: '記事一覧に戻る' }}
+      filters={
+        <ListFilters
+          title="候補"
+          path="/articles/candidates"
+          query={query}
+          filterLabel="記事の作成"
+          options={[
+            { value: 'open', label: '未着手' },
+            { value: 'started', label: '着手済み' },
+          ]}
+        />
+      }
+      footer={<PageLinks path="/articles/candidates" query={query} {...list} />}
+    >
+      {list.total ? (
+        <RowList>
+          {list.rows.map((c) => (
+            <ListRow
+              title={c.topic}
+              href={
+                c.articleId
+                  ? '/articles/edit?' +
+                    new URLSearchParams({ product: c.product, id: c.articleId })
+                  : '/articles/new?candidate=' + c.number
+              }
+              description={
+                frame.products.find((p) => p.id === c.product)?.name ??
+                c.product
+              }
+              status={c.articleId ? '着手済み' : '記事を書き始める'}
+              action={
+                <ActionLink
+                  variant="ghost"
+                  href={'/conversation/' + c.number}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  元の会話 #{c.number}
+                </ActionLink>
+              }
+            />
+          ))}
+        </RowList>
+      ) : (
+        <EmptyState>該当する記事の候補はありません。</EmptyState>
       )}
     </ListPage>,
     frame,
+  )
+}
+function SourceReference({ source }: { source: CandidateSource }) {
+  return (
+    <FormSection title="元の会話">
+      <p>
+        <strong>{source.subject}</strong>
+      </p>
+      {source.excerpt && <blockquote>{source.excerpt}</blockquote>}
+      <ActionLink
+        variant="ghost"
+        href={'/conversation/' + source.number}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        元の会話 #{source.number} を開く
+      </ActionLink>
+    </FormSection>
   )
 }
 export function editorPage(
@@ -183,16 +272,21 @@ export function editorPage(
   data: Partial<Article>,
   preview: boolean,
   notice?: string,
+  source?: CandidateSource | null,
 ) {
   const published = data.status === 'published'
   const title = data.id ? '記事の編集' : '記事を書く'
   const back = { href: '/articles', label: '記事一覧に戻る' }
   const form = (
     <form method="post" action="/articles/edit">
+      {source && <SourceReference source={source} />}
       <FormSection title="記事の内容">
-        {data.id ? (
+        {source && !data.id && (
+          <input type="hidden" name="number" value={source.number} />
+        )}
+        {data.id || source ? (
           <>
-            <input type="hidden" name="id" value={data.id} />
+            {data.id && <input type="hidden" name="id" value={data.id} />}
             <input type="hidden" name="product" value={data.product} />
             <p>{frame.products.find((p) => p.id === data.product)?.name}</p>
           </>
@@ -268,6 +362,7 @@ type Portal = {
   url: string
   ready: boolean
   configured: boolean
+  tokenReady?: boolean
   repository?: string
   publicSettings?: PublicSettings
 }
@@ -327,6 +422,16 @@ export function guidePage(
       <p>
         {guides[id]?.start ?? '設定後、対象の画面で動作を確認してください。'}
       </p>
+      {id === 'issues' && (
+        <p>
+          {items.some((p) => p.tokenReady)
+            ? 'GITHUB_TOKEN は設定済みです。'
+            : 'GITHUB_TOKEN は未設定です。'}
+          投稿には Worker のシークレット GITHUB_TOKEN
+          が必要です。対象リポジトリの Issues
+          に読み書きできるトークンを設定してください。
+        </p>
+      )}
       {id === 'articles' && (
         <ActionLink href="/articles">記事の管理を開く</ActionLink>
       )}
@@ -406,20 +511,42 @@ export type MetricFilter = {
   end: string
 }
 const outcomes = ['resolutionMs', 'firstContactRate', 'operatorMs']
-const counts = ['resolved', 'closed', 'measured']
+const counts = ['improvementRate', 'resolved', 'closed', 'measured']
 export function metricsPage(
   frame: ConsoleFrame,
   filter: MetricFilter,
   result: Record<string, number | null>,
   previous: Record<string, number | null>,
 ) {
+  function compactChange(key: string) {
+    if (result[key] == null || previous[key] == null) return '比較データなし'
+    return difference(key, result[key], previous[key])
+  }
   function card(key: string) {
     return (
-      <MetricCard
+      <OutcomeCard
+        id={key}
         title={fieldLabel(key)}
         value={metricValue(key, result[key])}
-        definition={metricDefinition[key]}
-        change={'前期比 ' + difference(key, result[key], previous[key])}
+        summary={
+          key === 'operatorMs' && result[key] == null
+            ? '会話を開き、返信して完了すると計測'
+            : metricSummary[key]
+        }
+        details={
+          metricDefinition[key] +
+          ' ' +
+          difference(key, result[key], previous[key])
+        }
+        change={
+          key === 'improvementRate'
+            ? result.informed +
+              '件 / ' +
+              result.voices +
+              '件・前期比 ' +
+              compactChange(key)
+            : '前期比 ' + compactChange(key)
+        }
       />
     )
   }
@@ -504,13 +631,13 @@ export function metricsPage(
   return shell(
     '対応状況の集計',
     <OverviewPage title="対応状況の集計" filters={filters}>
+      <p>
+        直前の同じ日数と比較しています。
+        {(result.resolved ?? 0) < 5 &&
+          '解決件数が5件未満のため、値は目安です。'}
+      </p>
       <section aria-label="集計結果">
         <MetricGrid>{outcomes.map(card)}</MetricGrid>
-        <p>
-          直前の同じ日数と比較しています。
-          {(result.resolved ?? 0) < 5 &&
-            '解決件数が5件未満のため、値は目安です。'}
-        </p>
       </section>
       <section aria-label="集計の内訳">
         <MetricGrid>{counts.map(card)}</MetricGrid>

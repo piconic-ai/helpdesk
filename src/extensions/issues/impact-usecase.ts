@@ -1,7 +1,7 @@
-import type {
-  ExtensionContext,
-  ExtensionEvent,
-} from '../../core/extensions/extension'
+import type { ExtensionContext } from '../../core/extensions/extension'
+import { proportions } from './outcomes'
+import { loadIssueState } from './board-usecase'
+import { linked, linkPrefix } from './issues'
 import { z } from 'zod'
 import { issueDestination } from './issues-usecase'
 const input = z.object({
@@ -20,29 +20,6 @@ export const impactOutput = z.object({
   after: counts,
   caveat: z.string(),
 })
-function compare(
-  events: ExtensionEvent[],
-  product: string,
-  numbers: Set<number>,
-  start: number,
-  end: number,
-) {
-  const voices = events.filter(
-    (e) =>
-      e.kind === 'conversation_opened' &&
-      e.payload.product === product &&
-      e.at >= start &&
-      e.at < end,
-  )
-  const linked = voices.filter(
-    (e) => e.number !== null && numbers.has(e.number),
-  ).length
-  return {
-    total: voices.length,
-    linked,
-    share: voices.length ? linked / voices.length : null,
-  }
-}
 export const impactOperation = {
   name: 'impact',
   description:
@@ -53,32 +30,22 @@ export const impactOperation = {
   async run(ctx: ExtensionContext, args: unknown) {
     const { product, issue, days } = input.parse(args)
     const { repo } = await issueDestination(ctx, product)
-    const events = await ctx.events()
-    const match = events.filter(
-      (e) => e.payload.repository === repo && e.payload.issue === issue,
-    )
-    const numbers = new Set(
-      match.flatMap((e) =>
-        e.kind === 'issues.linked' && e.number !== null ? [e.number] : [],
-      ),
-    )
-    const closedAt = z
-      .number()
-      .nullable()
-      .parse(
-        match.find((e) => e.kind === 'issues.closed')?.payload.closedAt ?? null,
-      )
-    const pivot = closedAt ?? ctx.now,
-      window = days * 86400000
+    const [voices, links, metadata] = await Promise.all([
+      ctx.voices(),
+      ctx.list(linkPrefix(repo, issue)),
+      loadIssueState(ctx, repo, issue),
+    ])
+    const numbers = new Set(links.map((row) => linked.parse(row.value).number))
+    const closedAt = metadata?.closedAt ?? null
     return {
       closedAt,
-      before: compare(events, product, numbers, pivot - window, pivot),
-      after: compare(
-        events,
-        product,
+      ...proportions(
+        voices,
         numbers,
-        pivot,
-        Math.min(ctx.now + 1, pivot + window),
+        product,
+        closedAt ?? ctx.now,
+        ctx.now,
+        days,
       ),
       caveat:
         '目安。会話数が少ない場合や修正後の観測期間が短い場合、割合は大きく変動します。',

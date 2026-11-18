@@ -1,4 +1,4 @@
-const guides = [
+export const allExtensionIds = [
   'articles',
   'auto-ack',
   'canned',
@@ -41,7 +41,7 @@ const pages = [
     ['articles'],
   ],
   ['console-404', '運営画面のエラー', '/missing'],
-  ...guides.map((id) => [
+  ...allExtensionIds.map((id) => [
     'guide-' + id,
     '拡張の設定 · ' + id,
     '/extensions/' + id,

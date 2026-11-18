@@ -34,7 +34,7 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
   await expect(incoming).toBeVisible()
   await capture(page, 'J1', '01-inbox', '受信した問い合わせを一覧で見つける')
   await incoming.click()
-  await page.getByRole('button', { name: /担当: 担当なし/ }).click()
+  await page.getByRole('button', { name: '担当者を選ぶ' }).click()
   await page.getByRole('button', { name: 'sato', exact: true }).click()
   await expect(notice(page)).toContainText('担当')
   await page.getByText('ラベルを選ぶ', { exact: true }).click()

@@ -1,5 +1,5 @@
 import type { Child } from 'hono/jsx'
-import { ActionLink } from './controls'
+import { ActionLink, Button } from './controls'
 import { Message } from './patterns'
 type Content = { children?: Child }
 export const MessageAuthor = ({ children }: Content) => (
@@ -17,6 +17,38 @@ export const ThreadPanel = ({ children }: Content) => (
     aria-label="会話の関連情報"
     className="context-cards"
   >
+    <header className="context-drawer-header">
+      <h2>会話の関連情報</h2>
+      <Button
+        type="button"
+        variant="ghost"
+        popovertarget="related-info"
+        popovertargetaction="hide"
+      >
+        閉じる
+      </Button>
+    </header>
+    {children}
+  </section>
+)
+export const ThreadPanelTrigger = () => (
+  <Button
+    className="context-drawer-trigger"
+    type="button"
+    variant="ghost"
+    popovertarget="related-info"
+    aria-controls="related-info"
+    aria-expanded="false"
+  >
+    関連情報
+  </Button>
+)
+export const ReplyArea = ({
+  templates,
+  children,
+}: Content & { templates: Child }) => (
+  <section className="reply-area" aria-label="返信欄">
+    {templates}
     {children}
   </section>
 )

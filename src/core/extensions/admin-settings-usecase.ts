@@ -45,3 +45,4 @@ export async function undoExtensionSetting(
     ctx.uuid(),
   )
 }
+export { readPolicyMessage } from './admin-settings-store'

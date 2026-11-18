@@ -46,6 +46,7 @@ test('panels are anchored in the opening frame and follow scroll and viewport ch
     for (const width of [1440, 375]) {
       await page.setViewportSize({ width, height: 812 })
       await page.goto(server.origin + '/conversation/1')
+      await page.getByRole('button', { name: 'その他の操作' }).click()
       const operation = page
         .locator('[popovertarget^="operation-snooze"]')
         .first()

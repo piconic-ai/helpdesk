@@ -4,7 +4,12 @@ import {
   instantSchema,
   numberSchema,
 } from '../conversations/state'
-import { intakeSchema, submissionSchema, type IntakePolicy } from './intake'
+import {
+  intakeSchema,
+  submissionSchema,
+  keyedDraftId,
+  type IntakePolicy,
+} from './intake'
 import { open, append, draft, contactInfo, consumeWindow } from './intake-store'
 import { verifyTurnstile } from './turnstile-client'
 
@@ -47,11 +52,7 @@ export function saveDraft(
   key?: string,
 ) {
   const a = action(actor, now)
-  const id =
-    key === undefined
-      ? a.id
-      : 'draft/' +
-        JSON.stringify([number, z.string().min(1).max(1024).parse(key)])
+  const id = key === undefined ? a.id : keyedDraftId(number, key)
   return draft(
     env.DB,
     numberSchema.parse(number),

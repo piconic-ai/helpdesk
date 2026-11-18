@@ -1,3 +1,4 @@
+import { messageKey, surveyText, wordingFor } from '../automatic-message'
 import { surveyForm, surveyReceipt } from './survey-pages'
 import { z } from 'zod'
 import type {
@@ -5,7 +6,7 @@ import type {
   ExtensionContext,
   ExtensionEvent,
 } from '../../core/extensions/extension'
-const config = z.object({
+export const surveyConfig = z.object({
   helpdeskOrigin: z
     .url()
     .refine((v) => new URL(v).origin === v && /^https?:/.test(v)),
@@ -28,16 +29,15 @@ async function invite(ctx: ExtensionContext, e: ExtensionEvent) {
     number: e.number,
     event: e.id,
   })
-  const url = new URL(
-    '/help/survey/' + encodeURIComponent(c.product) + '/' + token,
-    config.parse(ctx.config).helpdeskOrigin,
-  )
   await ctx.standing(
     e.number,
-    'Automated follow-up for [#' +
-      e.number +
-      ']. Was your inquiry resolved? ' +
-      url.href,
+    surveyText(
+      surveyConfig.parse(ctx.config).helpdeskOrigin,
+      c.product,
+      e.number,
+      token,
+      wordingFor('survey', await ctx.get(messageKey(c.product))),
+    ),
     key,
   )
 }
@@ -51,7 +51,7 @@ async function lookup(ctx: ExtensionContext, product: string, path: string) {
 export const survey: Extension = {
   id: 'survey',
   permissions: ['send'],
-  config,
+  config: surveyConfig,
   subscribers: [{ kind: 'status_changed', run: invite }],
   async publicPage(ctx, product, path) {
     const row = await lookup(ctx, product, path)

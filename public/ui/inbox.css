@@ -269,7 +269,7 @@
   justify-content: flex-start;
 }
 .product-menu [data-slot='popover-trigger']::after {
-  content: '⌄';
+  content: '⌄' / '';
   margin-inline-start: auto;
   color: var(--colors-muted);
 }

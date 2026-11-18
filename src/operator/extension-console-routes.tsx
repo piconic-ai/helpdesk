@@ -1,7 +1,9 @@
+import { issueBoardRoutes } from './issue-board-routes'
+import { automaticMailRoutes } from './automatic-mail-routes'
 import { listRows, type ListWindow } from '../ui/listing'
 import { PanelForm } from '../ui/admin'
 import { FormSection } from '../ui/patterns'
-import { Button, NativeSelect } from '../ui/controls'
+import { ActionLink, Button, NativeSelect } from '../ui/controls'
 import {
   readExtensionSettings,
   editExtensionSetting,
@@ -32,6 +34,14 @@ import {
   publicGuides,
   permissionText,
 } from '../core/extensions/extension-guides'
+import { voiceFilters } from './voice-filters'
+import { voiceBuckets, voiceList } from './voices-usecase'
+import { voicesOverview, voicesResults } from './voices-page'
+import {
+  articleCandidates,
+  articleOrigin,
+  candidateForEditor,
+} from './article-candidates-usecase'
 import { library } from '../extensions/articles/articles-usecase'
 import { article, articleKey, publicPath } from '../extensions/articles/article'
 import { repository } from '../extensions/issues/issues'
@@ -51,6 +61,7 @@ import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { hostedPolicy } from '../core/intakes/hosted-policy-usecase'
 import {
   libraryPage,
+  candidatesPage,
   editorPage,
   metricsPage,
   guidePage,
@@ -60,6 +71,8 @@ import {
 import { ruleSchema, storedRules } from '../extensions/rules/extension'
 import { rulesSettings } from './rules-console-page'
 const app = new Hono<AppEnv>()
+app.route('/', issueBoardRoutes)
+app.route('/', automaticMailRoutes)
 type RequestContext = HttpContext<AppEnv>
 function active(c: RequestContext, id: string) {
   const item = c.env.EXTENSIONS?.active.find((i) => i.extension.id === id)
@@ -77,16 +90,52 @@ const key = (product: string, id: string) =>
 app.get('/articles', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
-  const data = await library(api)
+  const [data, candidates] = await Promise.all([
+    library(api),
+    articleCandidates(c.env.DB),
+  ])
   return c.render(
-    libraryPage(await frame(c), data.articles, data.candidates, c.req.query()),
+    libraryPage(
+      await frame(c),
+      data.articles,
+      candidates.length,
+      c.req.query(),
+    ),
   )
 })
-app.get('/articles/new', async (c) =>
-  active(c, 'articles')
-    ? c.render(editorPage(await frame(c), {}, false))
-    : c.notFound(),
-)
+app.get('/articles/candidates', async (c) => {
+  if (!active(c, 'articles')) return c.notFound()
+  return c.render(
+    candidatesPage(
+      await frame(c),
+      await articleCandidates(c.env.DB),
+      c.req.query(),
+    ),
+  )
+})
+app.get('/articles/new', async (c) => {
+  if (!active(c, 'articles')) return c.notFound()
+  const number = c.req.query('candidate')
+  if (number === undefined)
+    return c.render(editorPage(await frame(c), {}, false))
+  const source = await candidateForEditor(c.env.DB, {
+    number: z.coerce.number().int().positive().parse(number),
+  })
+  if (!source) return c.notFound()
+  if (source.articleId) return c.redirect(key(source.product, source.articleId))
+  return c.render(
+    editorPage(
+      await frame(c),
+      {
+        product: source.product,
+        title: source.topic.slice(0, 200).replace(/[\uD800-\uDBFF]$/, ''),
+      },
+      false,
+      undefined,
+      source,
+    ),
+  )
+})
 app.get('/articles/edit', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
@@ -105,6 +154,7 @@ app.get('/articles/edit', async (c) => {
       current.data,
       false,
       notices[c.req.query('notice') ?? ''],
+      await candidateForEditor(c.env.DB, query),
     ),
   )
 })
@@ -115,12 +165,23 @@ app.post('/articles/edit', async (c) => {
   const intent = z.enum(['draft', 'preview', 'publish']).parse(form.intent)
   const state = await frame(c)
   if (!state.products.some((p) => p.id === form.product)) return c.notFound()
-  const previous =
-    form.id &&
-    article.safeParse(
-      await api.get(articleKey(String(form.product), String(form.id))),
-    )
-  if (previous && !previous.success) return c.notFound()
+  const params = z
+    .object({
+      product: z.string(),
+      id: z.string().optional(),
+      number: z.coerce.number().int().positive().optional(),
+    })
+    .parse(form)
+  const origin = await articleOrigin(
+    c.env.DB,
+    api,
+    params.product,
+    params.id,
+    params.number,
+  )
+  if (!origin) return c.notFound()
+  if (origin.existingId)
+    return c.redirect(key(params.product, origin.existingId), 303)
   const id = form.id || crypto.randomUUID()
   const proposed = article.parse({
     ...form,
@@ -134,15 +195,48 @@ app.post('/articles/edit', async (c) => {
         {
           ...proposed,
           id: form.id ? proposed.id : undefined,
-          status: previous ? previous.data.status : 'draft',
+          status: origin.status,
         },
         true,
+        undefined,
+        origin.source,
       ),
     )
-  await invoke(context(c), scopes, 'articles.save', proposed)
+  const saved = article.pick({ id: true, status: true }).parse(
+    await invoke(context(c), scopes, 'articles.save', {
+      ...proposed,
+      candidateNumber: form.number,
+    }),
+  )
   return c.redirect(
-    key(proposed.product, proposed.id) + '&notice=' + intent,
+    key(proposed.product, saved.id) +
+      '&notice=' +
+      (saved.status === 'published' ? 'publish' : 'draft'),
     303,
+  )
+})
+app.get('/voices', async (c) => {
+  if (!active(c, 'metrics')) return c.notFound()
+  const q = voiceFilters.safeParse(c.req.query())
+  if (!q.success) return c.text('集計条件を確認してください。', 400)
+  return c.render(
+    voicesOverview(
+      await frame(c),
+      q.data,
+      await voiceBuckets(c.env.DB, q.data),
+    ),
+  )
+})
+app.get('/voices/conversations', async (c) => {
+  if (!active(c, 'metrics')) return c.notFound()
+  const q = voiceFilters.safeParse(c.req.query())
+  if (!q.success) return c.text('集計条件を確認してください。', 400)
+  return c.render(
+    voicesResults(
+      await frame(c),
+      q.data,
+      await voiceList(c.env.DB, q.data, c.req.query('page')),
+    ),
   )
 })
 const date = z.iso.date()
@@ -283,6 +377,8 @@ async function guidePortals(
           (id === 'articles'
             ? publicPath(p.id)
             : '/help/' + id + '/' + encodeURIComponent(p.id)),
+        tokenReady:
+          id === 'issues' ? Boolean(api.secret('GITHUB_TOKEN')) : undefined,
         repository:
           id === 'issues' ? await configuredRepository(api, p.id) : undefined,
       }
@@ -510,6 +606,22 @@ app.get('/extensions/issues/link/:number', async (c) => {
   if (!api) return c.notFound()
   const number = z.coerce.number().int().positive().parse(c.req.param('number'))
   const { product } = await api.contact(number)
+  if (
+    !(await configuredRepository(api, product)) ||
+    !api.secret('GITHUB_TOKEN')
+  )
+    return c.render(
+      adminPage(
+        'GitHub Issue の設定が必要です',
+        await frame(c),
+        <p>
+          起票先リポジトリと GITHUB_TOKEN を確認してください。{' '}
+          <ActionLink href="/extensions/issues">
+            GitHub Issue の設定を開く
+          </ActionLink>
+        </p>,
+      ),
+    )
   const { repo, origin } = await issueDestination(api, product)
   const choices = await issueChoices(api, repo)
   const view = choices.length ? (

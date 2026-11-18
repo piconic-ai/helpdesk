@@ -1,5 +1,10 @@
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
+import {
+  acknowledgmentText,
+  messageKey,
+  wordingFor,
+} from '../automatic-message'
 import { shouldQuarantine } from '../spam/classify'
 
 export const autoAck: Extension = {
@@ -29,7 +34,11 @@ export const autoAck: Extension = {
           return
         await ctx.standing(
           e.number,
-          `This is an automated acknowledgment from ${contact.productName}. We received your inquiry [#${e.number}]. You can reply to this email to add details.`,
+          acknowledgmentText(
+            contact.productName,
+            e.number,
+            wordingFor('auto-ack', await ctx.get(messageKey(contact.product))),
+          ),
           'receipt',
         )
       },

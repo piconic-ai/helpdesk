@@ -32,7 +32,7 @@ test('J14 表示名とアイコンを保存し、担当・メモ・記録から�
     '保存した表示名と正方形の画像を確認する',
   )
   await page.goto(scene.origin + '/conversation/1')
-  await page.getByRole('button', { name: /担当: 担当なし/ }).click()
+  await page.getByRole('button', { name: '担当者を選ぶ' }).click()
   await page.getByRole('button', { name: '青木 ゆり', exact: true }).click()
   await expect(page.locator('[data-ui=attributes] img')).toBeVisible()
   await page.getByRole('tab', { name: '内部メモ', exact: true }).click()

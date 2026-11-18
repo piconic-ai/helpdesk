@@ -61,6 +61,8 @@ const symbols = {
   feedback: 'M3 3h14v10H9l-5 4v-4H3z',
   approval: 'M5 2h10v3l-4 5 4 5v3H5v-3l4-5-4-5z',
   articles: 'M3 3h6l1 1 1-1h6v12h-6l-1 1-1-1H3z M10 4v12',
+  issues: 'M10 2a8 8 0 1 0 .01 0z M10 6v5 M10 14v.2',
+  voices: 'M2 4h12v8H7l-4 3v-3H2z M15 8h3v8h-3v2l-3-2H9',
   metrics: 'M3 3v14h14 M6 13v-3 M10 13V7 M14 13V4',
   tokens: 'M11 8a4 4 0 1 1 3 3L7 18H3v-4z',
   menu: 'M3 5h14 M3 10h14 M3 15h14',
@@ -115,6 +117,13 @@ export function selectedView(q: Record<string, string>, email: string) {
 function extensionMenu(frame: ConsoleFrame) {
   const routes = [
     { id: 'articles' as const, path: '/articles', label: 'ヘルプ記事' },
+    { id: 'issues' as const, path: '/issues', label: '課題' },
+    {
+      id: 'metrics' as const,
+      icon: 'voices' as const,
+      path: '/voices',
+      label: '声の集計',
+    },
     { id: 'metrics' as const, path: '/metrics', label: '対応状況の集計' },
   ].filter((route) => frame.extensions.some((ext) => ext.id === route.id))
   if (!routes.length) return null
@@ -122,7 +131,12 @@ function extensionMenu(frame: ConsoleFrame) {
     <nav className="sidebar-extensions" aria-label="有効な拡張">
       <h2>拡張</h2>
       {routes.map((route) =>
-        navItem(route.path, route.label, route.id, frame.path === route.path),
+        navItem(
+          route.path,
+          route.label,
+          route.icon ?? route.id,
+          frame.path === route.path || frame.path.startsWith(route.path + '/'),
+        ),
       )}
     </nav>
   )
@@ -257,6 +271,8 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <script defer src="/ui/live-filters.js"></script>
         <link rel="stylesheet" href="/ui/inbox.css" />
         <link rel="stylesheet" href="/ui/patterns.css" />
+        <link rel="stylesheet" href="/ui/issue-metrics.css" />
+        <link rel="stylesheet" href="/ui/voices-articles.css" />
       </head>
       <body className="app-shell" data-operator={frame?.operator.email}>
         <script src="/ui/form-drafts.js"></script>
@@ -268,7 +284,9 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
           <Button data-close-modal="" autofocus>
             キャンセル
           </Button>
-          <Button data-commit="">実行する</Button>
+          <Button variant="default" data-commit="">
+            実行する
+          </Button>
         </Dialog>
         <Dialog id="keyboard-help" title="キーボード操作">
           <dl>

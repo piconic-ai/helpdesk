@@ -153,9 +153,15 @@ async function seed(db, raw, extensions) {
     query('INSERT INTO products VALUES (?,?)', 'desk', 'Desk'),
     query('INSERT INTO mailboxes VALUES (?,?)', 'support@example.com', 'slide'),
     query('INSERT INTO mailboxes VALUES (?,?)', 'desk@example.com', 'desk'),
-    ...extensions.map((id) =>
+    ...extensions.flatMap((id) => [
       query('INSERT INTO extension_settings VALUES (?,1,?)', id, operator),
-    ),
+      query(
+        "INSERT INTO events(kind,actor,payload,at) VALUES('extension_configured',?,?,?)",
+        json({ kind: 'operator', id: operator }),
+        json({ id, enabled: true }),
+        fixedTime - 14 * 86400000,
+      ),
+    ]),
   ]
   for (const [i, subject] of subjects.entries())
     statements.push(...conversationRows(query, i, subject))
@@ -276,7 +282,13 @@ async function extensionData(db, extensions, origin) {
 export async function startScene(
   extensions = [],
   source = '.',
-  { port = 0, emptyInbox = false, embedOrigin, secondAdmin = false } = {},
+  {
+    port = 0,
+    emptyInbox = false,
+    embedOrigin,
+    secondAdmin = false,
+    githubToken = true,
+  } = {},
 ) {
   const simulationKey = crypto.randomUUID()
   const peerCookie = secondAdmin ? crypto.randomUUID() : undefined
@@ -331,7 +343,7 @@ export async function startScene(
         SIMULATION_KEY: simulationKey,
         ...(peerCookie && { TEST_ADMIN_COOKIE: peerCookie }),
         ...(embedOrigin && { TEST_EMBED_ORIGIN: embedOrigin }),
-        GITHUB_TOKEN: 'local-test-only',
+        ...(githubToken && { GITHUB_TOKEN: 'local-test-only' }),
         ...(extensions.includes('notify') && {
           NOTIFY_WEBHOOK_URL: 'https://notify.example.test/webhook',
         }),
@@ -397,8 +409,7 @@ export async function startScene(
       }
       throw new Error('Local mail was not delivered: ' + messageId)
     }
-    async function closeIssue() {
-      github.close()
+    async function scheduled() {
       const response = await fetch(origin + '/__simulation/scheduled', {
         method: 'POST',
         headers: { 'X-Simulation-Key': simulationKey },
@@ -412,7 +423,11 @@ export async function startScene(
       receive,
       github,
       notifications,
-      closeIssue,
+      scheduled,
+      closeIssue: async () => {
+        github.close()
+        await scheduled()
+      },
       stop: () => runtime.dispose(),
     }
   } catch (error) {

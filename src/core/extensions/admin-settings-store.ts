@@ -181,3 +181,28 @@ export async function restoreExtensionSetting(
     })) === 'changed'
   )
 }
+
+export async function readPolicyMessage(
+  db: D1Database,
+  namespace: string,
+  key: string,
+  enabledBy: string | null,
+) {
+  const row = await db
+    .prepare(`SELECT
+    (SELECT value FROM ${extensionTable(namespace)} WHERE key=?1) AS value,
+    (SELECT token FROM extension_setting_changes WHERE namespace=?2 AND setting=?1) AS revision,
+    (SELECT at FROM events WHERE kind='extension_configured' AND json_extract(payload,'$.id')=?2
+     AND json_extract(payload,'$.enabled')=1 AND json_extract(actor,'$.id')=?3 ORDER BY id DESC LIMIT 1) AS enabledAt`)
+    .bind(key, namespace, enabledBy)
+    .first<{
+      value: string | null
+      revision: string | null
+      enabledAt: number | null
+    }>()
+  return {
+    wording: row?.value == null ? null : (JSON.parse(row.value) as unknown),
+    revision: row?.revision ?? '',
+    enabledAt: row?.enabledAt ?? null,
+  }
+}

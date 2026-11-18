@@ -32,6 +32,8 @@ export const reference: Extension = {
 
 操作に必要なトークンの範囲を `permission` に指定します。`humanOnly` は人の確認が必要な操作を機械クライアントから除きます。拡張自身の権限は `permissions` に宣言します。顧客の本文を読む `ctx.body` は `read_body`、ネットワークを使う `ctx.request` は `external_fetch` を必要とします。拡張コードは Worker に同梱するため、導入元のコードをビルド前にレビューしてください。
 
+`ctx.voices()` は受け付けた問い合わせ・フィードバックの番号、プロダクト、種類、現在の状態、受付時刻を返します。集計対象は迷惑メールを除いた会話です。プロダクトごとの設定が必要な拡張は `configurationGaps(ctx, products)` を定義すると、管理画面のカードに不足している設定を表示できます。
+
 ## 受付と配送
 
 フォームの受付は `intakes` にパスと手続きを登録し、`ctx.open` で会話を作ります。本人確認済みの利用者が継続して問い合わせる入口では、相手と窓口を照合した会話に対して `ctx.addInboundMessage(number, body)` で追記できます。公開用のキー、ブラウザの Origin、回数上限はプロダクト単位の `publicIntakes` に設定します。ブラウザは JSON を `POST /public/form/PRODUCT/submit` に送り、`X-Helpdesk-Key` を指定します。Turnstile を有効にする場合は `turnstileSecretBinding` と `CF-Turnstile-Response` を使用します。

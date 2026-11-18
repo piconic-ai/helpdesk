@@ -19,7 +19,15 @@ export type ExtensionEvent = {
   payload: Record<string, unknown>
   at: number
 }
+export type Voice = {
+  number: number
+  product: string
+  createdAt: number
+  status: string
+  kind: 'inquiry' | 'feedback'
+}
 export type ExtensionContext = {
+  voices: () => Promise<Voice[]>
   enabledBy: string | null
   standing: (
     number: number,
@@ -117,6 +125,10 @@ export type Panel = {
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
 export type Extension = {
+  configurationGaps?: (
+    ctx: ExtensionContext,
+    products: { id: string; name: string }[],
+  ) => Promise<string[]>
   replyLinks?: (
     ctx: ExtensionContext,
     product: string,

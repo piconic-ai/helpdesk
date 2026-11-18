@@ -1,3 +1,4 @@
+import { improvementRate } from '../issues/outcomes'
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
 import { calculate } from './calculate'
@@ -12,6 +13,9 @@ const result = z.object({
   resolutionMs: z.number().nullable(),
   firstContactRate: z.number().nullable(),
   operatorMs: z.number().nullable(),
+  improvementRate: z.number().nullable(),
+  voices: z.int(),
+  informed: z.int(),
   resolved: z.int(),
   closed: z.int(),
   measured: z.int(),
@@ -49,13 +53,17 @@ export const metrics: Extension = {
     {
       name: 'report',
       description:
-        'Measure resolution time, first-contact resolution and operator time. Use epoch milliseconds for from and to.',
+        'Measure resolution time, first-contact resolution operator time and improvement notifications delivered. Use epoch milliseconds for from and to.',
       permission: 'read',
       input,
       output: result,
       async run(ctx, value) {
         const { product, from, to } = input.parse(value)
-        return calculate(await ctx.events(), product, from, to)
+        const [events, voices] = await Promise.all([ctx.events(), ctx.voices()])
+        return {
+          ...calculate(events, product, from, to),
+          ...improvementRate(voices, events, product, from, to),
+        }
       },
     },
   ],

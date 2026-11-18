@@ -36,7 +36,7 @@ test('会話の前後へ移動し、候補のアイコンと印から現在の�
   await page.getByRole('link', { name: '次の未対応へ' }).click()
   await page.getByRole('link', { name: '前の未対応へ' }).click()
   await expect(page).toHaveURL(/\/conversation\/1$/)
-  await page.getByRole('button', { name: /担当: 担当なし/ }).click()
+  await page.getByRole('button', { name: '担当者を選ぶ' }).click()
   await expect(
     page.getByRole('button', { name: '担当なし', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true')

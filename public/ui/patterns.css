@@ -240,7 +240,8 @@
   top: calc(anchor(bottom) + var(--spacing-xxs));
   left: max(var(--spacing-xxs), anchor(left));
   position-try-fallbacks:
-    --helpdesk-align-end, --helpdesk-above, --helpdesk-above-end;
+    --helpdesk-align-end, --helpdesk-above, --helpdesk-above-end,
+    --helpdesk-fit-right, --helpdesk-fit-above-right;
   inline-size: max-content;
   max-width: min(320px, calc(100dvw - 2 * var(--spacing-xxs)));
   max-height: calc(100dvh - 2 * var(--spacing-xxs));
@@ -256,6 +257,16 @@
 @position-try --helpdesk-align-end {
   left: auto;
   right: max(4px, anchor(right));
+}
+@position-try --helpdesk-fit-right {
+  left: auto;
+  right: var(--spacing-xxs);
+}
+@position-try --helpdesk-fit-above-right {
+  top: auto;
+  bottom: calc(anchor(top) + 4px);
+  left: auto;
+  right: var(--spacing-xxs);
 }
 @position-try --helpdesk-above {
   top: auto;
@@ -494,25 +505,7 @@
   justify-self: end;
   background: var(--colors-on-primary);
 }
-@keyframes pattern-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  @view-transition {
-    navigation: auto;
-  }
-  ::view-transition-old(root) {
-    animation: pattern-fade-out var(--layout-fade) ease both;
-  }
-  ::view-transition-new(root) {
-    animation: pattern-fade-in var(--layout-fade) ease both;
-  }
-}
+
 @media (prefers-reduced-motion: reduce) {
   [data-slot='tooltip-content'] {
     transition: none;
@@ -540,4 +533,108 @@
   right: var(--spacing-xs);
   pointer-events: none;
   color: var(--colors-muted);
+}
+
+[data-slot='dialog-footer'] {
+  justify-content: flex-end;
+}
+dialog:modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-height: calc(100dvh - var(--spacing-md));
+  overflow-y: auto;
+}
+html:has(dialog:modal) {
+  overflow: hidden;
+}
+.draft-review > [data-ui='actions'] {
+  margin-block-start: var(--spacing-sm);
+}
+.context-drawer-trigger,
+.context-drawer-header {
+  display: none;
+}
+.reply-area > [data-extension='canned'] {
+  padding: var(--spacing-xs) var(--spacing-md) 0;
+  border: 1px solid var(--colors-hairline);
+  border-bottom: 0;
+  border-radius: var(--rounded-lg) var(--rounded-lg) 0 0;
+}
+.reply-area:has([data-extension='canned']) .composer {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.reply-area:has(.composer-note) > [data-extension='canned'] {
+  display: none;
+}
+[data-ui='extension-card'] > header h3 {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-ui='extension-card'] > header form {
+  flex: none;
+}
+[data-ui='extension-card'] [role='switch'] {
+  white-space: nowrap;
+}
+section:has(> [data-ui='metrics'] > [data-ui='extension-card']) > h2 {
+  margin-block-end: var(--spacing-lg);
+}
+section:has(> [data-ui='metrics'] > [data-ui='extension-card']) + section {
+  margin-block-start: var(--spacing-lg);
+}
+@media (min-width: 1200px) {
+  [data-ui='panel']:has(> #related-info) {
+    position: sticky;
+    top: var(--spacing-md);
+    align-self: start;
+    max-height: calc(100dvh - 2 * var(--spacing-md));
+    overflow-y: auto;
+  }
+}
+@media (max-width: 1199px) {
+  .context-drawer-trigger {
+    display: inline-flex;
+  }
+  #related-info:not(:popover-open) {
+    display: none;
+  }
+  #related-info:popover-open {
+    display: grid;
+    align-content: start;
+    position: fixed;
+    margin: 0 0 0 auto;
+    inset: 0;
+    width: min(100%, 380px);
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: var(--spacing-md);
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 0;
+    border-inline-start: 1px solid var(--colors-hairline);
+    background: var(--colors-canvas);
+    color: var(--colors-ink);
+    box-shadow: var(--layout-raised-shadow);
+  }
+  #related-info::backdrop {
+    background: var(--layout-backdrop);
+  }
+  .context-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.confirm-dialog [data-slot='dialog-footer'] .button-danger {
+  background: var(--colors-error);
+  color: var(--colors-on-primary);
+  border-color: var(--colors-error);
+}
+.confirm-dialog [data-slot='dialog-footer'] .button-danger:hover {
+  box-shadow: inset 0 0 0 1px var(--colors-on-primary);
 }

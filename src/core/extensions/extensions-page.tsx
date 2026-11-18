@@ -40,7 +40,11 @@ const groups: Record<string, string[]> = {
 }
 function extensionSettings(entry: ExtensionEntry) {
   const label = extensionLabel(entry.id)
-  const required = [...entry.missing, ...(entry.needsAI ? ['AI'] : [])]
+  const required = [
+    ...entry.configurationGaps,
+    ...entry.missing,
+    ...(entry.needsAI ? ['AI'] : []),
+  ]
   const toggle = (
     <form
       method="post"
@@ -435,6 +439,36 @@ export function extensionPanels(
   return <>{data.map((p) => panel(p, number, conversation))}</>
 }
 
+export function conversationPanels(
+  data: Panel[],
+  number: number,
+  conversation: Details,
+) {
+  const contextual = data.filter((p) => p.id !== 'snooze' && p.id !== 'canned')
+  const command = (id: string) => {
+    const p = data.find((entry) => entry.id === id)
+    if (!p || conversation.conversation.kind !== 'inquiry') return null
+    const ops = actionsFor(p, conversation)
+    if (!ops.length) return null
+    return (
+      <div data-extension={id}>
+        <Popover
+          id={'operation-' + id}
+          label={id === 'snooze' ? 'スヌーズ' : '定型文を選ぶ'}
+        >
+          <PanelSummary>{summaryFor(p, conversation)}</PanelSummary>
+          {ops.map((op) => actionForm(op, p, number, conversation))}
+        </Popover>
+      </div>
+    )
+  }
+  return {
+    related: extensionPanels(contextual, number, conversation),
+    snooze: command('snooze'),
+    canned: command('canned'),
+  }
+}
+
 export function issuePreview(
   result: {
     repository: string
@@ -479,7 +513,7 @@ function resultText(key: string, value: unknown) {
       }).format(value)
     if (['resolutionMs', 'operatorMs'].includes(key))
       return Math.round(value / 60000).toLocaleString('ja-JP') + '分'
-    if (['firstContactRate', 'ratio'].includes(key))
+    if (['firstContactRate', 'improvementRate', 'ratio'].includes(key))
       return new Intl.NumberFormat('ja-JP', {
         style: 'percent',
         maximumFractionDigits: 1,

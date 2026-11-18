@@ -15,12 +15,15 @@ function openDialog(dialog, trigger) {
         !previousPopover.matches(':popover-open')
       )
         previousPopover.showPopover()
-      trigger?.focus()
+      trigger?.focus({ preventScroll: true })
     },
     { once: true },
   )
+  const { scrollX: left, scrollY: top } = window
   dialog.showModal()
-  dialog.querySelector('button')?.focus()
+  dialog.querySelector('button')?.focus({ preventScroll: true })
+  if (scrollX !== left || scrollY !== top)
+    window.scrollTo({ left, top, behavior: 'instant' })
 }
 
 function confirmAction(trigger, title, description, verb, commit) {

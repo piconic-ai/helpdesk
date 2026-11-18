@@ -91,7 +91,8 @@
     if (!editable.length) return
     const action = actionUrl(form).pathname
     const screen =
-      action === '/articles/edit' ? '/articles/editor' : location.pathname
+      form.dataset.draftScreen ??
+      (action === '/articles/edit' ? '/articles/editor' : location.pathname)
     const object = controls
       .filter((f) => f.type === 'hidden' && objectFields.has(f.name))
       .map((f) => [f.name, f.value])

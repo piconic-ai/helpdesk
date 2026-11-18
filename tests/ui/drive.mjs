@@ -28,6 +28,25 @@ async function section(page, scene, before) {
         exact: true,
       }),
     })
+  if (
+    !before &&
+    (await target
+      .first()
+      .locator('xpath=ancestor::*[@id="related-info"]')
+      .count())
+  ) {
+    const opener = page.getByRole('button', { name: '関連情報', exact: true })
+    if (await opener.isVisible()) await opener.click()
+  }
+  if (
+    !before &&
+    (await target
+      .first()
+      .locator('xpath=ancestor::*[@id="thread-actions"]')
+      .count())
+  ) {
+    await page.getByRole('button', { name: 'その他の操作' }).click()
+  }
   await reveal(target.first())
   if (!before) {
     const panel = target.first().locator('details:not([open])').first()
@@ -244,30 +263,41 @@ async function operationDocument(page, action) {
   await page.waitForURL('**/actions/' + command)
 }
 
+async function changeMetricPeriod(page, before) {
+  const form = page.locator(
+    before
+      ? 'form[action="/actions/metrics.report"]'
+      : 'form[action="/metrics"]',
+  )
+  await reveal(form)
+  if (before) await form.locator('button').click()
+  else {
+    await form.locator('select[name=period]').selectOption('7')
+    await page.waitForURL((url) => url.searchParams.get('period') === '7')
+    await form.locator('select[name=period]').selectOption('30')
+    await page.waitForURL((url) => url.searchParams.get('period') !== '7')
+  }
+}
+
 async function takeAction(page, action, before) {
   if (action === 'issue-preview' || action === 'operation-result')
     await operationDocument(page, action)
+  if (action === 'approve-dialog')
+    await page
+      .getByRole('button', { name: '承認して送信', exact: true })
+      .click()
+  if (action === 'context') {
+    const opener = page.getByRole('button', { name: '関連情報', exact: true })
+    if (await opener.isVisible()) await opener.click()
+    await page.locator('#related-info').waitFor({ state: 'visible' })
+  }
   if (action === 'article-preview')
     await page.getByRole('button', { name: 'プレビュー', exact: true }).click()
   if (action === 'invalid') await invalidMailbox(page, before)
   if (action === 'forget') await prepareForget(page, before)
   if (action === 'vote' || action === 'survey')
     await page.locator('button[value=yes]').click()
-  if (action === 'result') {
-    const form = page.locator(
-      before
-        ? 'form[action="/actions/metrics.report"]'
-        : 'form[action="/metrics"]',
-    )
-    await reveal(form)
-    if (before) await form.locator('button').click()
-    else {
-      await form.locator('select[name=period]').selectOption('7')
-      await page.waitForURL((url) => url.searchParams.get('period') === '7')
-      await form.locator('select[name=period]').selectOption('30')
-      await page.waitForURL((url) => url.searchParams.get('period') !== '7')
-    }
-  }
+  if (action === 'result') await changeMetricPeriod(page, before)
 }
 
 async function observeLoading(page) {

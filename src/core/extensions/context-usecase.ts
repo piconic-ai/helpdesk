@@ -1,6 +1,12 @@
 import { changeGroupLabel } from './triage-usecase'
 import { setAssignment } from '../operations/operator-store'
-import { history, snapshot, inboundBody, emitOnce } from './history-store'
+import {
+  history,
+  snapshot,
+  inboundBody,
+  emitOnce,
+  receivedVoices,
+} from './history-store'
 import { queueStanding } from '../outbound/reply-usecase'
 import { changeFeedback } from '../conversations/feedback-usecase'
 import { coreOperations } from '../operations/catalog-usecase'
@@ -47,6 +53,7 @@ export function extensionContext(
   }
   return {
     enabledBy: installed.enabledBy,
+    voices: () => receivedVoices(c.env.DB),
     standing: approvedSend,
     notifyEmail: (number, to, body, key) => approvedSend(number, body, key, to),
     change: (number, event) =>

@@ -251,7 +251,7 @@ export function ExtensionCard({
   return (
     <article id={id} data-extension={extension} data-ui="extension-card">
       <header>
-        <h3>{title}</h3>
+        <h3 title={typeof title === 'string' ? title : undefined}>{title}</h3>
         {toggle}
       </header>
       <p>{description}</p>

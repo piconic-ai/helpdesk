@@ -4,6 +4,7 @@ import type { ExtensionContext } from '../../core/extensions/extension'
 
 const result = z.object({
   number: z.number().int().positive(),
+  title: z.string().optional(),
   closed_at: z.iso.datetime().nullish(),
   state: z.enum(['open', 'closed']),
   pull_request: z.undefined().optional(),

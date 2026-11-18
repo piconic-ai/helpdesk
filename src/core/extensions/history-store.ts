@@ -2,6 +2,24 @@ import { z } from 'zod'
 import type { ExtensionEvent } from './extension'
 import { eventStatement } from '../conversations/conversations-store'
 import type { Context } from '../operations/catalog-usecase'
+export async function receivedVoices(db: D1Database) {
+  const { results } = await db
+    .prepare(
+      "SELECT number,product,created_at AS createdAt,kind,status FROM conversations WHERE status!='spam' ORDER BY number",
+    )
+    .all()
+  return z
+    .array(
+      z.object({
+        number: z.number(),
+        product: z.string(),
+        createdAt: z.number(),
+        status: z.string(),
+        kind: z.enum(['inquiry', 'feedback']),
+      }),
+    )
+    .parse(results)
+}
 export async function history(
   db: D1Database,
   kind?: string,

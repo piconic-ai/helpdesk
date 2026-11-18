@@ -10,7 +10,9 @@ import {
   visit,
   lifetime,
 } from './article'
-export const edit = article.omit({ updatedAt: true })
+export const edit = article.omit({ updatedAt: true }).extend({
+  candidateNumber: z.coerce.number().int().positive().optional(),
+})
 export const attach = z.object({
   number: z.coerce.number().int().positive(),
   id: slug,
@@ -27,7 +29,28 @@ export async function published(ctx: ExtensionContext, input: unknown) {
     .filter((a) => a.status === 'published' && a.product === product)
 }
 export async function saveArticle(ctx: ExtensionContext, input: unknown) {
-  const data = edit.parse(input)
+  const { candidateNumber, ...data } = edit.parse(input)
+  if (candidateNumber !== undefined) {
+    candidate.parse(await ctx.get('candidate/' + candidateNumber))
+    const contact = await ctx.contact(candidateNumber)
+    if (contact.product !== data.product)
+      throw new Error('Candidate belongs to a different product')
+    const link = 'candidate-article/' + candidateNumber
+    const id = crypto.randomUUID()
+    await ctx.create(link, { id, key: articleKey(data.product, id) })
+    const target = z
+      .object({ id: slug, key: z.string() })
+      .parse(await ctx.get(link))
+    const created = await ctx.create(target.key, {
+      ...data,
+      id: target.id,
+      updatedAt: ctx.now,
+    })
+    const status = created
+      ? data.status
+      : article.parse(await ctx.get(target.key)).status
+    return { id: target.id, status }
+  }
   await ctx.put(articleKey(data.product, data.id), {
     ...data,
     updatedAt: ctx.now,
@@ -122,9 +145,8 @@ export async function expireVisits(ctx: ExtensionContext) {
       await ctx.remove(row.key)
 }
 export async function library(ctx: ExtensionContext) {
-  const [articles, candidates, votes] = await Promise.all([
+  const [articles, votes] = await Promise.all([
     ctx.list('article/'),
-    ctx.list('candidate/'),
     ctx.events('articles.helpful'),
   ])
   const totals = new Map<string, { helpful: number; votes: number }>()
@@ -147,6 +169,5 @@ export async function library(ctx: ExtensionContext) {
       ...article.parse(value),
       ...(totals.get(key) ?? { helpful: 0, votes: 0 }),
     })),
-    candidates: candidates.map((row) => candidate.parse(row.value).topic),
   }
 }

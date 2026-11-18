@@ -183,7 +183,9 @@ it('F12-AC1 through F12-AC5: published Markdown, search, drafts, candidate visib
     (await post('articles.suggest', { number, topic: 'Receipt on Android' }))
       .status,
   ).toBe(200)
-  expect(await (await read('/articles')).text()).toContain('Receipt on Android')
+  expect(await (await read('/articles/candidates')).text()).toContain(
+    'Receipt on Android',
+  )
 })
 it('F13-AC1 F13-AC2: ranks published passages without generating an answer and hands the original question off', async () => {
   await post('articles.save', {

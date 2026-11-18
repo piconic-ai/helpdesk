@@ -152,3 +152,21 @@ reportFilter?.addEventListener('change', (event) => {
   if (event.target.type === 'date')
     reportFilter.elements.period.value = 'custom'
 })
+
+const relatedInfo = document.getElementById('related-info')
+if (relatedInfo) {
+  const narrow = matchMedia('(max-width: 1199px)')
+  const trigger = document.querySelector('.context-drawer-trigger')
+  const adapt = () => {
+    relatedInfo.toggleAttribute('popover', narrow.matches)
+    trigger.setAttribute('aria-expanded', 'false')
+  }
+  adapt()
+  narrow.addEventListener('change', adapt)
+  relatedInfo.addEventListener('toggle', () => {
+    trigger.setAttribute(
+      'aria-expanded',
+      String(relatedInfo.matches(':popover-open')),
+    )
+  })
+}

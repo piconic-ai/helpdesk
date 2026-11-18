@@ -1,3 +1,4 @@
+import { resolvedExample } from '../ui/review-issue-seed.mjs'
 // In-process HTTP service for the test Worker's external GitHub binding.
 export function createGithub() {
   const created = []
@@ -30,8 +31,12 @@ export function createGithub() {
         }
         return Response.json(comments)
       }
+      if (/\/issues\/43$/.test(pathname)) return Response.json(resolvedExample)
+      if (/\/issues\/43\/comments$/.test(pathname))
+        return Response.json(request.method === 'POST' ? {} : [])
       if (/\/issues\/42$/.test(pathname)) return Response.json(issue())
-      if (/\/issues$/.test(pathname)) return Response.json([issue()])
+      if (/\/issues$/.test(pathname))
+        return Response.json([issue(), resolvedExample])
       return new Response('Unknown GitHub endpoint', { status: 404 })
     },
   }

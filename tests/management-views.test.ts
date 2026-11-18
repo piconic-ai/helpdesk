@@ -290,6 +290,9 @@ it('preserves legacy article dates and calculates ratings from votes on that pro
     "INSERT INTO events(kind,actor,payload,at) VALUES('articles.helpful','{}',?,1)",
   )
   await platform.DB.batch([
+    platform.DB.prepare(
+      "INSERT INTO conversations(number,product,mailbox,contact,subject,status,created_at) VALUES(1,'studio','help@example.org','user@example.com','Postage question','open',1)",
+    ),
     record.bind('article/studio/postage', JSON.stringify(article)),
     record.bind(
       'candidate/1',
@@ -305,7 +308,8 @@ it('preserves legacy article dates and calculates ratings from votes on that pro
   const contents = await page('/articles?filter=published')
   expect(contents).toContain('更新日未記録')
   expect(contents).toContain('役に立った 50%（2件）')
-  expect(contents).toContain('Shipping to islands')
+  expect(contents).toContain('/articles/candidates')
+  expect(await page('/articles/candidates')).toContain('Shipping to islands')
   const drafts = await page('/articles?filter=draft')
   expect(drafts).toContain('条件に合う記事はありません。')
   expect(drafts).not.toContain('Postage rates')
@@ -358,4 +362,114 @@ it('compares matching Japanese calendar days, formats duration and percentage ch
     (await request('/metrics?period=custom&start=2025-05-08&end=2025-05-05'))
       .status,
   ).toBe(400)
+})
+
+it('keeps a legacy article suggestion scoped to the original conversation across simultaneous starts and deletion', async () => {
+  await enable('articles')
+  await studio()
+  expect(
+    await platform.DB.prepare(
+      "SELECT name FROM sqlite_master WHERE name='articles_data'",
+    ).first('name'),
+  ).toBeNull()
+  const [empty, missing] = await Promise.all([
+    page('/articles/candidates'),
+    request('/articles/new?candidate=999'),
+  ])
+  expect(empty).toContain('該当する記事の候補はありません。')
+  expect(missing.status).toBe(404)
+  await platform.DB.batch([
+    platform.DB.prepare(
+      "INSERT INTO conversations(number,product,mailbox,contact,subject,status,created_at) VALUES(1,'studio','help@example.org','reader@example.org','Original question','open',1)",
+    ),
+    platform.DB.prepare("INSERT INTO products VALUES('second','Second')"),
+    platform.DB.prepare(
+      "INSERT INTO articles_data VALUES('candidate/1',?)",
+    ).bind(JSON.stringify({ number: 1, topic: 'Original suggestion' })),
+  ])
+  expect(await page('/articles/new?candidate=1')).toContain('Original question')
+  const fields = {
+    product: 'studio',
+    number: '1',
+    title: 'Guide',
+    body: 'First answer',
+    intent: 'draft',
+  }
+  expect(
+    (await request('/articles/edit', { ...fields, product: 'second' })).status,
+  ).toBe(404)
+  const starts = await Promise.all([
+    submit('/articles/edit', fields),
+    submit('/articles/edit', { ...fields, body: 'Second answer' }),
+  ])
+  const addresses = starts.map((path) => new URL(path, origin))
+  const id = addresses[0].searchParams.get('id')
+  expect(id).toBeTruthy()
+  expect(addresses[1].searchParams.get('id')).toBe(id)
+  const saved = await page(starts[0])
+  expect(saved).toContain('Original question')
+  expect(saved).toMatch(/First answer|Second answer/)
+  await submit('/articles/edit', { ...fields, body: 'Stale submission' })
+  expect(await page(starts[0])).not.toContain('Stale submission')
+  expect(await page('/articles/candidates?filter=started')).toContain(
+    'Original suggestion',
+  )
+  expect(await page('/articles/candidates?filter=open')).not.toContain(
+    'Original suggestion',
+  )
+  expect((await request('/articles/new?candidate=1')).status).toBe(302)
+  await platform.DB.prepare('DELETE FROM conversations WHERE number=1').run()
+  expect((await request('/articles/new?candidate=1')).status).toBe(404)
+  expect(await page('/articles/candidates')).not.toContain(
+    'Original suggestion',
+  )
+  expect(await page(starts[0])).not.toContain('Original question')
+})
+
+it('keeps an unlabelled voice cohort and its Japanese calendar month across pages, filters and extension availability', async () => {
+  await enable('metrics')
+  await studio()
+  const insert = platform.DB.prepare(
+    "INSERT INTO conversations(number,product,mailbox,contact,subject,status,created_at) VALUES(?,'studio','help@example.org','reader@example.org',?,'open',?)",
+  )
+  const midnight = Date.parse('2026-01-01T00:00:00+09:00')
+  await platform.DB.batch([
+    ...Array.from({ length: 24 }, (_, i) =>
+      insert.bind(i + 1, 'Voice ' + (i + 1), midnight + (i - 1)),
+    ),
+    platform.DB.prepare(
+      "INSERT INTO labels(number,name) VALUES(2,'ラベルなし')",
+    ),
+  ])
+  const summary = await page('/voices?start=2026-01-01&end=2026-01-31')
+  expect(summary).toContain('23件')
+  expect(summary).toContain('unlabeled=1')
+  expect(summary).toContain('label=' + encodeURIComponent('ラベルなし'))
+  const path = '/voices/conversations?unlabeled=1&month=2026-01&product=studio'
+  const first = await page(path)
+  expect(first).toContain('22件')
+  expect(first).toContain('unlabeled=1&amp;month=2026-01&amp;page=2')
+  const last = await page(path + '&page=999')
+  expect(last).toContain('Voice 3')
+  expect(last).toContain('Voice 4')
+  expect(last).not.toContain('Voice 2</strong>')
+  expect(last).not.toContain('Voice 1</strong>')
+  expect(await page('/voices/conversations?month=2025-12')).toContain(
+    'Voice 1</strong>',
+  )
+  expect(await page('/voices?end=2020-01-01')).toContain(
+    'この条件で届いた声はありません。',
+  )
+  expect((await request('/voices?start=2026-02-30')).status).toBe(400)
+  expect(
+    (await request('/voices?start=2026-11-04&end=2026-11-02')).status,
+  ).toBe(400)
+  expect(
+    (await request('/voices/conversations?unlabeled=1&label=other')).status,
+  ).toBe(400)
+  await platform.DB.prepare(
+    "UPDATE extension_settings SET enabled=0 WHERE id='metrics'",
+  ).run()
+  expect((await request('/voices')).status).toBe(404)
+  expect((await request(path)).status).toBe(404)
 })

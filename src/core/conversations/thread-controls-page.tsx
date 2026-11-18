@@ -1,5 +1,5 @@
 import { Button, Input, Popover, Textarea, Field } from '../../ui/controls'
-import { Candidate, CandidateList, Notice } from '../../ui/patterns'
+import { ActionBar, Candidate, CandidateList, Notice } from '../../ui/patterns'
 import { DraftReview } from '../../ui/thread-parts'
 import { operatorAvatar } from '../operators/identity-page'
 import { action } from './console-page'
@@ -17,8 +17,14 @@ export function assignment(c: Inquiry, frame: ConsoleFrame) {
       id="thread-assignee"
       label={
         <>
-          <span aria-hidden="true">{operatorAvatar(assigned, email)}</span>{' '}
-          担当: {name}
+          {email ? (
+            <>
+              <span aria-hidden="true">{operatorAvatar(assigned, email)}</span>{' '}
+              担当: {name}
+            </>
+          ) : (
+            '担当者を選ぶ'
+          )}
         </>
       }
     >
@@ -111,21 +117,25 @@ export function draftReview(
   const message = <Input type="hidden" name="id" value={id} />
   return (
     <DraftReview>
-      {canSend &&
-        action(
-          'approve',
-          '承認して送信',
-          <>
-            {message}
-            <Field label="下書きの本文">
-              <Textarea name="body" rows={4} required maxlength={100000}>
-                {body}
-              </Textarea>
-            </Field>
-          </>,
-          number,
+      {canSend && (
+        <form action="/actions/approve" method="post" id={'approve-' + id}>
+          {message}
+          <Input type="hidden" name="number" value={number} />
+          <Field label="下書きの本文">
+            <Textarea name="body" rows={4} required maxlength={100000}>
+              {body}
+            </Textarea>
+          </Field>
+        </form>
+      )}
+      <ActionBar>
+        {canSend && (
+          <Button variant="default" form={'approve-' + id}>
+            承認して送信
+          </Button>
         )}
-      {action('discard', '下書きを破棄', message, number, 'danger')}
+        {action('discard', '下書きを破棄', message, number, 'quiet')}
+      </ActionBar>
     </DraftReview>
   )
 }
