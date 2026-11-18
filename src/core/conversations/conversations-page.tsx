@@ -76,7 +76,7 @@ export function inboxPage(
         {field('query', 'Search', q.query)}
         {select(
           'status',
-          ['open', 'pending', 'closed', 'spam', 'all'],
+          ['open', 'pending', 'closed', 'spam', 'received', 'reviewed', 'all'],
           q.status ?? 'open',
         )}
         {field('product', 'Product', q.product)}
@@ -191,29 +191,29 @@ export function conversationPage(data: Result<'get'>, panels?: Child) {
           </label>,
           c.number,
         )}
-        {action(
-          'status',
-          'Update status',
-          select(
-            'event',
-            ['closed', 'reopened', 'marked_spam', 'unmarked_spam'],
-            'closed',
-          ),
-          c.number,
-        )}
-        {action(
-          'assign',
-          'Save assignee',
-          field(
-            'email',
-            'Assignee',
-            c.kind === 'inquiry' && c.assignment.kind === 'assigned'
-              ? c.assignment.to
-              : '',
-            'email',
-          ),
-          c.number,
-        )}
+        {c.kind === 'inquiry' &&
+          action(
+            'status',
+            'Update status',
+            select(
+              'event',
+              ['closed', 'reopened', 'marked_spam', 'unmarked_spam'],
+              'closed',
+            ),
+            c.number,
+          )}
+        {c.kind === 'inquiry' &&
+          action(
+            'assign',
+            'Save assignee',
+            field(
+              'email',
+              'Assignee',
+              c.assignment.kind === 'assigned' ? c.assignment.to : '',
+              'email',
+            ),
+            c.number,
+          )}
         <p>{data.labels.map((l) => l.name).join(', ')}</p>
         {action(
           'label',
@@ -266,6 +266,10 @@ export function settingsPage(data: Result<'settings'>, panels?: Child) {
             {field('product', 'Product ID')}
             {field('name', 'Product name')}
             {field('address', 'Mailbox address', '', 'email')}
+            <small>
+              Registering a mailbox authorizes the sending policies currently
+              enabled in Extensions.
+            </small>
           </>,
         )}
       </section>

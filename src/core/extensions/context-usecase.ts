@@ -1,5 +1,9 @@
+import { setAssignment, setLabel } from '../operations/operator-store'
+import { history, snapshot, inboundBody, emitOnce } from './history-store'
+import { queueStanding } from '../outbound/reply-usecase'
+import { changeFeedback } from '../conversations/feedback-usecase'
+import { coreOperations } from '../operations/catalog-usecase'
 import type { Context } from '../operations/catalog-usecase'
-import { eventStatement } from '../conversations/conversations-store'
 import {
   openIntake,
   saveDraft,
@@ -20,8 +24,66 @@ export function extensionContext(
     if (!ext.permissions.includes(permission))
       throw new Error(ext.id + ' requires ' + permission)
   }
+  function approvedSend(
+    number: number,
+    body: string,
+    key: string,
+    operatorRecipient?: string,
+  ) {
+    requirePermission('send')
+    if (!installed.enabledBy)
+      throw new Error('Administrator must enable this sending policy')
+    return queueStanding(c.env, {
+      number,
+      body,
+      key,
+      operatorRecipient,
+      policy: ext.id,
+      enabledBy: installed.enabledBy,
+      now: c.now,
+    })
+  }
   return {
+    enabledBy: installed.enabledBy,
+    standing: approvedSend,
+    notifyEmail: (number, to, body, key) => approvedSend(number, body, key, to),
+    change: (number, event) =>
+      coreOperations.status.execute({ ...c, actor }, { number, event }),
+    events: () => history(c.env.DB),
+    snapshot: () => {
+      requirePermission('read_body')
+      return snapshot(c.env.DB)
+    },
+    convertFeedback: (number) =>
+      changeFeedback(c.env, number, c.actor, c.now, 'convert'),
+    reviewFeedback: (number) =>
+      changeFeedback(c.env, number, c.actor, c.now, 'review'),
+    resource: async (id, name, input) => {
+      const item = c.env.EXTENSIONS?.active.find((x) => x.extension.id === id)
+      const resource = item?.extension.resources?.find((r) => r.name === name)
+      return item && resource
+        ? resource.run(extensionContext(c, item), input)
+        : undefined
+    },
+    judge: (question, articles) => {
+      requirePermission('external_fetch')
+      if (!c.env.AI || !c.env.judgeArticles)
+        throw new Error('Configure the Workers AI binding AI')
+      return c.env.judgeArticles(c.env.AI, question, articles)
+    },
     ...extensionStorage(c.env.DB, ext.id),
+    assign: (number, email) =>
+      setAssignment(
+        c.env.DB,
+        { actor: JSON.stringify(actor), now: c.now },
+        { number, email },
+      ),
+    label: (number, label) =>
+      setLabel(
+        c.env.DB,
+        { actor: JSON.stringify(actor), now: c.now },
+        { number, label, action: 'add' },
+      ),
     config: installed.settings,
     actor: c.actor,
     now: c.now,
@@ -37,6 +99,10 @@ export function extensionContext(
       )
     },
     contact: (number) => templateContact(c.env, number),
+    inboundBody: (number, id) => {
+      requirePermission('read_body')
+      return inboundBody(c.env.DB, number, id)
+    },
     body: async (number) => {
       requirePermission('read_body')
       const rows = await c.env.DB.prepare(
@@ -52,18 +118,19 @@ export function extensionContext(
     },
     secret: (name) => {
       requirePermission('external_fetch')
-      return ext.id === 'issues' && name === 'GITHUB_TOKEN'
-        ? c.env.GITHUB_TOKEN
-        : undefined
+      if (!ext.secrets?.includes(name)) return undefined
+      const binding: unknown = Reflect.get(c.env, name)
+      return typeof binding === 'string' ? binding : undefined
     },
-    emit: async (kind, number, payload) => {
-      await eventStatement(
+    emit: (kind, number, payload, key) =>
+      emitOnce(
         c.env.DB,
-        { actor: JSON.stringify(actor), now: c.now },
-        number,
+        actor,
         ext.id + '.' + kind,
+        number,
         payload,
-      ).run()
-    },
+        c.now,
+        key,
+      ),
   }
 }

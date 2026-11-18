@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   actorSchema,
+  approvalSchema,
   instantSchema,
   numberSchema,
 } from '../conversations/state'
@@ -8,6 +9,7 @@ import { replyDelivery, operatorApproval } from './approval'
 import { composeReply } from './compose'
 import {
   insertReply,
+  insertStanding,
   requeueReply,
   claim,
   finish,
@@ -79,7 +81,9 @@ export async function deliverReply(
 ) {
   const reply = await claim(env.DB, id, now)
   if (!reply) return
-  const result = await sendReply(env.EMAIL, composeReply(reply))
+  const payload = composeReply(reply)
+  if (reply.automatic) payload.headers['Auto-Submitted'] = 'auto-generated'
+  const result = await sendReply(env.EMAIL, payload)
   await finish(env.DB, id, reply.attempt, reply.actor, now, result)
 }
 export async function recoverReplies(env: QueueEnv, now = Date.now()) {
@@ -94,4 +98,38 @@ export async function recoverReplies(env: QueueEnv, now = Date.now()) {
   }
   const ids = await waiting(env.DB)
   await Promise.all(ids.map((id) => notify(env, id)))
+}
+
+const standingSchema = z.object({
+  number: numberSchema,
+  body: z.string().trim().min(1).max(131072),
+  key: z.string().min(1).max(1024),
+  policy: z.string().min(1),
+  enabledBy: z.email(),
+  now: instantSchema,
+  operatorRecipient: z.email().optional(),
+})
+export async function queueStanding(
+  env: QueueEnv,
+  raw: z.input<typeof standingSchema>,
+) {
+  const i = standingSchema.parse(raw)
+  const id = 'standing/' + JSON.stringify([i.policy, i.number, i.key])
+  const approval = approvalSchema.parse({
+    kind: 'standing',
+    policy: i.policy,
+    enabledBy: i.enabledBy,
+  })
+  const actor = actorSchema.parse({ kind: 'extension', id: i.policy })
+  if (
+    await insertStanding(env.DB, {
+      ...i,
+      id,
+      approval,
+      actor,
+      to: i.operatorRecipient ?? null,
+    })
+  )
+    await notify(env, id)
+  return { id }
 }

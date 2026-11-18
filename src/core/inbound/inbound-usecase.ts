@@ -1,6 +1,9 @@
+import { conversationAliases } from '../extensions/triage-usecase'
+import { canonical } from '../extensions/aliases'
 import type { InboundEnv } from './bindings-store'
 import type { InboundJob } from './job'
 import {
+  conversationFor,
   attachmentKey,
   mailboxProduct,
   receipt,
@@ -57,7 +60,12 @@ export async function ingest(env: InboundEnv, job: InboundJob) {
   for (const [i, a] of mail.attachments.entries())
     await env.RAW.put(keys[i], a.content)
   try {
-    await saveMail(env.DB, job, product, mail, source)
+    const matched = await conversationFor(env.DB, job, mail)
+    const number =
+      matched === null
+        ? null
+        : canonical(await conversationAliases(env), matched)
+    await saveMail(env.DB, job, product, mail, source, number)
   } catch (error) {
     const winner = await receipt(env.DB, job.to, mail.sender, source)
     if (!winner) throw error

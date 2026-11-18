@@ -9,6 +9,9 @@ export function managementPage(data: Awaited<ReturnType<typeof management>>) {
         <section>
           <h2>{e.id}</h2>
           <p>Permissions: {e.permissions.join(', ') || 'none'}</p>
+          {e.secrets.length > 0 && (
+            <p>Secret bindings: {e.secrets.join(', ')}</p>
+          )}
           <form action={'/extensions/' + e.id} method="post">
             <input
               type="hidden"
@@ -42,8 +45,9 @@ export function extensionPanels(
   return (
     <>
       {data.map((p) => (
-        <section>
+        <section data-number={number}>
           <h2>{p.title}</h2>
+          {p.script && <script defer src={p.script}></script>}
           {p.content && <p className="body">{p.content}</p>}
           {p.links.map((link) => (
             <a href={link.href}>{link.label}</a>
@@ -62,6 +66,11 @@ export function extensionPanels(
                           <option value={v}>{v}</option>
                         ))}
                       </select>
+                    ) : ['body', 'markdown', 'summary'].includes(key) ? (
+                      <textarea
+                        name={key}
+                        required={op.inputSchema.required?.includes(key)}
+                      />
                     ) : (
                       <input
                         name={key}

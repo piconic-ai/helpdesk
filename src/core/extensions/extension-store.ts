@@ -19,6 +19,14 @@ export function extensionStorage(db: D1Database, id: string) {
     return result.meta.changes === 1
   }
   return {
+    compareSwap: async (key: string, expected: unknown, value: unknown) => {
+      if (expected === null) return put(key, value, false)
+      const result = await db
+        .prepare('UPDATE ' + table + ' SET value=? WHERE key=? AND value=?')
+        .bind(JSON.stringify(value), key, JSON.stringify(expected))
+        .run()
+      return result.meta.changes === 1
+    },
     create: (key: string, value: unknown) => put(key, value, false),
     put: async (key: string, value: unknown) => {
       await put(key, value, true)
@@ -120,9 +128,11 @@ export async function scan(db: D1Database, id: string, kinds: string[]) {
 export async function due(db: D1Database, id: string, now: number) {
   const rows = await db
     .prepare(
-      "SELECT event FROM extension_deliveries WHERE extension=? AND phase<>'done' AND next_at<=? ORDER BY event LIMIT 100",
+      `UPDATE extension_deliveries SET enqueued_until=? WHERE extension=? AND event IN
+       (SELECT event FROM extension_deliveries WHERE extension=? AND phase<>'done' AND next_at<=? AND enqueued_until<=? ORDER BY event LIMIT 100)
+       RETURNING event`,
     )
-    .bind(id, now)
+    .bind(now + 300000, id, id, now, now)
     .all()
   return z
     .object({ event: z.number() })
@@ -176,7 +186,7 @@ export async function finishEvent(
 ) {
   await db
     .prepare(
-      "UPDATE extension_deliveries SET phase=?,error=?,next_at=? WHERE extension=? AND event=? AND attempt=? AND phase='processing'",
+      "UPDATE extension_deliveries SET phase=?,error=?,next_at=?,enqueued_until=0 WHERE extension=? AND event=? AND attempt=? AND phase='processing'",
     )
     .bind(
       error ? 'failed' : 'done',

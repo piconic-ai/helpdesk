@@ -139,6 +139,14 @@ async function checkIssue(ctx: ExtensionContext, links: Linked[]) {
   const { repository, issue } = links[0]
   const remote = await githubIssue(ctx, repository, { read: issue })
   if (remote.state !== 'closed') return
+  if (remote.closed_at)
+    await ctx.emit(
+      'closed',
+      links[0].number,
+      { repository, issue, closedAt: Date.parse(remote.closed_at) },
+      repository + '/' + issue + '/' + remote.closed_at,
+    )
+
   for (const link of links) {
     const key = linkPrefix(repository, issue) + link.number
     await ctx.draft(

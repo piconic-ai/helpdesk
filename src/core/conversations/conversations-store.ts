@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1'
-import { eq, asc } from 'drizzle-orm'
+import { inArray, asc } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   conversationRow,
@@ -22,14 +22,19 @@ export const filterSchema = z.object({
 export async function listConversations(
   db: D1Database,
   input: z.infer<typeof filterSchema>,
+  canonicalNumbers: Record<number, number> = {},
 ) {
   const { status, product, assignee, label, query } = input
   const result = await db
-    .prepare(`SELECT c.* FROM conversations c WHERE (?='all' OR status=?) AND (?='' OR product=?)
-    AND (?='' OR assignee=?) AND (?='' OR EXISTS(SELECT 1 FROM labels l WHERE l.number=c.number AND l.name=?))
-    AND (?='' OR instr(lower(subject),lower(?)) OR instr(lower(contact),lower(?)) OR EXISTS
-    (SELECT 1 FROM messages m WHERE m.number=c.number AND instr(lower(m.body),lower(?)))) ORDER BY number DESC`)
+    .prepare(`WITH members(source,target) AS (
+      SELECT CAST(key AS INTEGER),value FROM json_each(?)
+      UNION ALL SELECT number,number FROM conversations
+    ) SELECT c.* FROM conversations c WHERE (?='all' OR status=?) AND (?='' OR product=?)
+    AND (?='' OR assignee=?) AND (?='' OR EXISTS(SELECT 1 FROM labels l JOIN members x ON l.number=x.source WHERE x.target=c.number AND l.name=?))
+    AND (?='' OR EXISTS(SELECT 1 FROM conversations h JOIN members x ON x.source=h.number WHERE x.target=c.number AND instr(lower(h.subject),lower(?))) OR instr(lower(contact),lower(?)) OR EXISTS
+    (SELECT 1 FROM messages m JOIN members x ON m.number=x.source WHERE x.target=c.number AND instr(lower(m.body),lower(?)))) ORDER BY number DESC`)
     .bind(
+      JSON.stringify(canonicalNumbers),
       status,
       status,
       product,
@@ -54,39 +59,47 @@ export async function getConversation(db: D1Database, number: number) {
   if (!row) throw new Error('Conversation not found')
   return conversationRow.parse(row)
 }
-export async function detail(db: D1Database, number: number) {
+export async function detail(
+  db: D1Database,
+  number: number,
+  group: number[] = [number],
+) {
   const conversation = await getConversation(db, number)
   const [rows, files, history, events, labels, uncertain] = await Promise.all([
     drizzle(db)
       .select()
       .from(messages)
-      .where(eq(messages.number, number))
+      .where(inArray(messages.number, group))
       .orderBy(asc(messages.created_at)),
     db
       .prepare(
-        'SELECT a.* FROM attachments a JOIN messages m ON m.id=a.message WHERE m.number=?',
+        'SELECT a.* FROM attachments a JOIN messages m ON m.id=a.message WHERE m.number IN (SELECT value FROM json_each(?))',
       )
-      .bind(number)
+      .bind(JSON.stringify(group))
       .all(),
     db
       .prepare(
-        'SELECT * FROM conversations WHERE contact=? AND number<>? ORDER BY number DESC',
+        'SELECT * FROM conversations WHERE contact=? AND number NOT IN (SELECT value FROM json_each(?)) ORDER BY number DESC',
       )
-      .bind(conversation.contact, number)
-      .all(),
-    db
-      .prepare('SELECT * FROM events WHERE number=? ORDER BY id DESC')
-      .bind(number)
-      .all(),
-    db
-      .prepare('SELECT name FROM labels WHERE number=? ORDER BY name')
-      .bind(number)
+      .bind(conversation.contact, JSON.stringify(group))
       .all(),
     db
       .prepare(
-        "SELECT o.message FROM outbox o JOIN messages m ON o.message=m.id WHERE m.number=? AND m.delivery='failed'",
+        'SELECT * FROM events WHERE number IN (SELECT value FROM json_each(?)) ORDER BY id DESC',
       )
-      .bind(number)
+      .bind(JSON.stringify(group))
+      .all(),
+    db
+      .prepare(
+        'SELECT DISTINCT name FROM labels WHERE number IN (SELECT value FROM json_each(?)) ORDER BY name',
+      )
+      .bind(JSON.stringify(group))
+      .all(),
+    db
+      .prepare(
+        "SELECT o.message FROM outbox o JOIN messages m ON o.message=m.id WHERE m.number IN (SELECT value FROM json_each(?)) AND m.delivery='failed'",
+      )
+      .bind(JSON.stringify(group))
       .all(),
   ])
   return {

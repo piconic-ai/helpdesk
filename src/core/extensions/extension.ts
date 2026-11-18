@@ -20,6 +20,42 @@ export type ExtensionEvent = {
   at: number
 }
 export type ExtensionContext = {
+  enabledBy: string | null
+  standing: (
+    number: number,
+    body: string,
+    key: string,
+  ) => Promise<{ id: string }>
+  notifyEmail: (
+    number: number,
+    to: string,
+    body: string,
+    key: string,
+  ) => Promise<{ id: string }>
+  change: (
+    number: number,
+    event: 'marked_spam' | 'unmarked_spam',
+  ) => Promise<void>
+  events: () => Promise<ExtensionEvent[]>
+  snapshot: () => Promise<{
+    conversations: Record<string, unknown>[]
+    messages: Record<string, unknown>[]
+    events: Record<string, unknown>[]
+  }>
+  reviewFeedback: (number: number) => Promise<{ number: number }>
+  convertFeedback: (number: number) => Promise<{ number: number }>
+  resource: (id: string, name: string, input: unknown) => Promise<unknown>
+  judge: (
+    question: string,
+    articles: { id: string; title: string; body: string }[],
+  ) => Promise<{ id: string; score: number }[]>
+  assign: (number: number, email: string) => Promise<void>
+  label: (number: number, label: string) => Promise<void>
+  compareSwap: (
+    key: string,
+    expected: unknown,
+    value: unknown,
+  ) => Promise<boolean>
   config: unknown
   actor: Context['actor']
   now: number
@@ -40,12 +76,14 @@ export type ExtensionContext = {
     email: string
     status: string
   }>
+  inboundBody: (number: number, messageId?: string) => Promise<string>
   body: (number: number) => Promise<string[]>
   request: (url: string, options?: RequestInit) => Promise<Response>
   emit: (
     kind: string,
     number: number | null,
     payload: Record<string, unknown>,
+    key?: string,
   ) => Promise<void>
 }
 export type ExtensionOperation = {
@@ -58,6 +96,7 @@ export type ExtensionOperation = {
   run: (ctx: ExtensionContext, input: unknown) => Promise<unknown>
 }
 export type Panel = {
+  script?: string
   slot: 'conversation' | 'settings' | 'list'
   title: string
   operations: string[]
@@ -69,6 +108,7 @@ export type Panel = {
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
 export type Extension = {
+  secrets?: string[]
   id: string
   permissions: Permission[]
   config: z.ZodType
@@ -86,5 +126,28 @@ export type Extension = {
     kind: string
     run: (ctx: ExtensionContext, event: ExtensionEvent) => Promise<void>
   }[]
+  publicPage?: (
+    ctx: ExtensionContext,
+    product: string,
+    path: string,
+    query: URLSearchParams,
+  ) => Promise<{ title: string; html: string } | null>
+  publicAction?: (
+    ctx: ExtensionContext,
+    product: string,
+    path: string,
+    request: Request,
+  ) => Promise<{ title: string; html: string } | null>
+  resources?: {
+    name: string
+    run: (ctx: ExtensionContext, input: unknown) => Promise<unknown>
+  }[]
+  hidden?: (
+    storage: Pick<ExtensionContext, 'get' | 'list'>,
+    now: number,
+  ) => Promise<number[]>
+  aliases?: (
+    storage: Pick<ExtensionContext, 'get' | 'list'>,
+  ) => Promise<Record<number, number>>
   migrations?: string[]
 }

@@ -279,3 +279,35 @@ it('F03-AC5 only the issuer can revoke a token and the secret is shown only once
       .status,
   ).toBe(401)
 })
+it('F15-AC1/2/3 downloads the same redacted JSON Lines via CLI and MCP', async () => {
+  const { exportExtension } = await import('../src/extensions/export/extension')
+  env.EXTENSIONS = registry([
+    { extension: exportExtension, enabled: true, settings: {} },
+  ])
+  await platform.DB.prepare(
+    "UPDATE conversations SET contact_name='Aki Reader' WHERE number=1",
+  ).run()
+  await platform.DB.prepare(
+    "UPDATE messages SET body='Aki Reader person@example.org' WHERE id='received'",
+  ).run()
+  const run = await cli(read, '--json', 'export.jsonl', '{}')
+  const lines = z.string().parse(JSON.parse(run.stdout).result)
+  expect(lines).not.toMatch(/Aki Reader|person@example.org/)
+  expect(lines).toContain('[name] [address]')
+  const entries = lines
+    .trim()
+    .split('\n')
+    .map((l) => JSON.parse(l))
+  for (const type of ['messages', 'conversations', 'events'])
+    expect(entries.some((e) => e.type === type)).toBe(true)
+  const client = await connect(read)
+  try {
+    const data = await client.callTool({ name: 'export.jsonl', arguments: {} })
+    const output = z
+      .object({ result: z.string() })
+      .parse(data.structuredContent)
+    expect(output.result).toContain(lines.trim())
+  } finally {
+    await client.close()
+  }
+})

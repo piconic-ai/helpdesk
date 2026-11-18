@@ -1,3 +1,4 @@
+import { impactOperation } from './impact'
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
 import {
@@ -21,9 +22,11 @@ import {
 const withUrl = linked.extend({ url: z.url() })
 export const issues: Extension = {
   id: 'issues',
+  secrets: ['GITHUB_TOKEN'],
   permissions: ['external_fetch'],
   config: configSchema,
   operations: [
+    impactOperation,
     {
       name: 'preview',
       description:
@@ -67,7 +70,7 @@ export const issues: Extension = {
     {
       slot: 'conversation',
       title: 'GitHub issues',
-      operations: ['preview', 'create', 'link'],
+      operations: ['preview', 'create', 'link', 'impact'],
       links: panelLinks,
     },
   ],

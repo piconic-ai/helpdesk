@@ -16,6 +16,8 @@ import {
   tick,
 } from './src/core/extensions/dispatch-usecase'
 import { intakeRoutes } from './src/core/extensions/intake-routes'
+import { judgeArticles } from './src/extensions/chat/judge-client'
+import { publicRoutes } from './src/core/extensions/public-routes'
 import { machineRoutes } from './src/core/operations/machine-routes'
 
 export const app = new Hono<AppEnv>()
@@ -35,11 +37,20 @@ app.use('*', async (c, next) => {
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   c.header('Strict-Transport-Security', 'max-age=31536000')
 })
-for (const asset of ['/components/*', '/styles.css', '/uno.css'])
+for (const asset of [
+  '/extension-assets/*',
+  '/components/*',
+  '/styles.css',
+  '/uno.css',
+])
   app.get(asset, (c) => c.env.ASSETS.fetch(c.req.raw))
 app.use('*', async (c, next) => {
   try {
-    c.env = await configure(c.env, extensions, publicIntakes)
+    c.env = await configure(
+      { ...c.env, judgeArticles: c.env.judgeArticles ?? judgeArticles },
+      extensions,
+      publicIntakes,
+    )
   } catch (error) {
     return c.text(
       'Invalid helpdesk configuration: ' +
@@ -49,6 +60,7 @@ app.use('*', async (c, next) => {
   }
   await next()
 })
+app.route('/', publicRoutes)
 app.route('/', intakeRoutes)
 app.route('/', machineRoutes)
 app.route('/', operatorRoutes)

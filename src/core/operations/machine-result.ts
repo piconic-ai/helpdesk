@@ -10,7 +10,8 @@ const messages = z.object({ messages: z.array(z.unknown()) })
 
 export function machineResult(result: unknown) {
   const data = messages.safeParse(result)
-  const untrustedFields: string[] = []
+  const untrustedFields: string[] =
+    typeof result === 'string' ? ['/result'] : []
   for (const [index, row] of (data.data?.messages ?? []).entries()) {
     if (!inbound.safeParse(row).success) continue
     untrustedFields.push(

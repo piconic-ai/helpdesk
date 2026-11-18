@@ -39,6 +39,7 @@ export async function management(ctx: Context) {
       id: i.extension.id,
       enabled: i.enabled,
       permissions: i.extension.permissions,
+      secrets: i.extension.secrets ?? [],
     })),
     failures: await deliveryFailures(ctx.env.DB),
   }
@@ -60,6 +61,7 @@ export async function panels(
       )
       result.push({
         title: panel.title,
+        script: panel.script,
         content: await panel.content?.(api, number),
         links: (await panel.links?.(api, number)) ?? [],
         choices: (await panel.choices?.(api)) ?? {},

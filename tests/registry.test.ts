@@ -1,3 +1,4 @@
+import { due } from '../src/core/extensions/extension-store'
 import { z } from 'zod'
 import { test, expect } from 'vitest'
 import { app } from '../worker'
@@ -72,6 +73,7 @@ test('F02-AC1–6 registration validates config, isolates permissions and retrie
       "INSERT INTO events(kind,actor,at) VALUES('note_added','{}',10)",
     ).run()
     await enqueueEvents(env, 10)
+    expect(await due(env.DB, 'example', 10)).toEqual([])
     const id = await p.DB.prepare(
       "SELECT event FROM extension_deliveries WHERE extension='example'",
     ).first<number>('event')

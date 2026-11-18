@@ -31,16 +31,16 @@ export async function open(db: D1Database, i: Intake, a: Action) {
         "INSERT INTO events(number,kind,actor,payload,at) SELECT number,'conversation_opened',?,json_object('origin',?),? FROM messages WHERE id=?",
       )
       .bind(actor, i.origin, a.now, a.id),
-    receiveEvent(db, a),
+    receiveEvent(db, a, true),
   ])
   return z.object({ number: z.int().positive() }).parse(conversation.results[0])
 }
-function receiveEvent(db: D1Database, a: Action) {
+function receiveEvent(db: D1Database, a: Action, first = false) {
   return db
     .prepare(
-      "INSERT INTO events(number,kind,actor,payload,at) SELECT number,'message_received',?,json_object('message',id,'category','human'),? FROM messages WHERE id=?",
+      "INSERT INTO events(number,kind,actor,payload,at) SELECT number,'message_received',?,json_object('message',id,'category','human','first',json(?)),? FROM messages WHERE id=?",
     )
-    .bind(JSON.stringify(a.actor), a.now, a.id)
+    .bind(JSON.stringify(a.actor), JSON.stringify(first), a.now, a.id)
 }
 export async function append(
   db: D1Database,

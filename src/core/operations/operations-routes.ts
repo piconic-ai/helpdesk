@@ -10,6 +10,7 @@ import {
   settingsPage,
 } from '../conversations/conversations-page'
 import { readHtml, download } from '../conversations/media-usecase'
+import { recordView } from '../extensions/view-usecase'
 import { invoke } from './runtime-usecase'
 import { panels, management, toggle } from '../extensions/registry-usecase'
 import {
@@ -66,22 +67,21 @@ app.get('/settings', async (c) =>
     ),
   ),
 )
-app.get('/conversation/:number', async (c) =>
-  c.render(
+app.get('/conversation/:number', async (c) => {
+  const ctx = context(c)
+  const data = await run(ctx, 'get', { number: c.req.param('number') })
+  const number = data.conversation.number
+  await recordView(ctx, number)
+  return c.render(
     conversationPage(
-      await run(context(c), 'get', { number: c.req.param('number') }),
+      data,
       extensionPanels(
-        await panels(
-          context(c),
-          scopes,
-          'conversation',
-          Number(c.req.param('number')),
-        ),
-        Number(c.req.param('number')),
+        await panels(ctx, scopes, 'conversation', number),
+        number,
       ),
     ),
-  ),
-)
+  )
+})
 app.get('/mail/:id', async (c) => {
   const html = await readHtml(c.env, c.req.param('id'))
   if (html === null) return c.notFound()
@@ -129,7 +129,13 @@ app.post('/actions/:name', async (c) => {
     )
   )
     return c.notFound()
-  const result = await invoke(context(c), scopes, name, input)
+  const fields = name.includes('.')
+    ? Object.fromEntries(
+        Object.entries(input).filter(([, value]) => value !== ''),
+      )
+    : input
+  const result = await invoke(context(c), scopes, name, fields)
+  if (c.req.header('accept') === 'application/json') return c.json(result)
   if (name.includes('.'))
     return c.render(
       operationResult(name, result, Number(input.number) || undefined),

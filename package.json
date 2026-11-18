@@ -20,6 +20,7 @@
     "drizzle-zod": "^0.8.3",
     "hono": "^4.6.0",
     "jose": "^6.2.15",
+    "marked": "^18.2.1",
     "mimetext": "^3",
     "postal-mime": "^2",
     "sanitize-html": "^2.18.2",

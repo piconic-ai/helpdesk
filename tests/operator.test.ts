@@ -1,3 +1,4 @@
+import { extensionModeSQL } from './extension-mode'
 import { beforeAll, afterAll, expect, test } from 'vitest'
 import { app } from '../worker'
 import { testPlatform } from './platform'
@@ -24,6 +25,11 @@ function request(
 }
 beforeAll(async () => {
   platform = await testPlatform()
+  for (const sql of extensionModeSQL(
+    process.env.HELPDESK_TEST_EXTENSIONS,
+    admin,
+  ))
+    await platform.DB.prepare(sql).run()
   env = { ...platform, ENVIRONMENT: 'local' } as unknown as Bindings
   expect((await request('/settings')).status).toBe(200)
   expect(

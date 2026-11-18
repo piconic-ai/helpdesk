@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, beforeAll, afterAll, it } from 'vitest'
-import { build } from 'vite'
+import { applyMigrations } from '../../../tests/platform'
+import { extensionModeSQL } from '../../../tests/extension-mode'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import type { InboundEnv } from './bindings-store'
 
@@ -8,46 +9,35 @@ let runtime: Miniflare
 let env: InboundEnv
 const fixtures = new URL('./fixtures/', import.meta.url)
 beforeAll(async () => {
-  const bundle = await build({
-    configFile: false,
-    logLevel: 'error',
-    build: {
-      target: 'esnext',
-      minify: false,
-      write: false,
-      lib: {
-        entry: 'src/core/inbound/test-worker.ts',
-        formats: ['es'],
-        fileName: 'worker',
-      },
-    },
-  })
-  const output = Array.isArray(bundle) ? bundle[0] : bundle
-  if (!('output' in output) || output.output[0].type !== 'chunk')
-    throw new Error('Worker bundle unavailable')
   runtime = new Miniflare(
     convertV4MiniflareOptions({
-      modules: true,
-      script: output.output[0].code,
+      modules: [
+        {
+          type: 'ESModule',
+          path: 'ingress.mjs',
+          contents: await readFile('tests/mail-ingress-worker.mjs', 'utf8'),
+        },
+        {
+          type: 'ESModule',
+          path: 'worker.js',
+          contents: await readFile('dist/worker/worker.js', 'utf8'),
+        },
+      ],
       compatibilityDate: '2026-11-03',
       compatibilityFlags: ['nodejs_compat'],
       d1Databases: ['DB'],
       r2Buckets: ['RAW'],
       queueProducers: { JOBS: 'inbound' },
-      queueConsumers: { inbound: { maxBatchSize: 1, maxBatchTimeout: 0 } },
+      queueConsumers: { inbound: { maxBatchSize: 10, maxBatchTimeout: 0 } },
     }),
   )
   env = await runtime.getBindings<InboundEnv>()
-  for (const name of ['0001_core', '0002_inbound', '0005_intakes']) {
-    const sql = await readFile('migrations/' + name + '.sql', 'utf8')
-    await env.DB.batch(
-      sql
-        .split(';')
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((s) => env.DB.prepare(s)),
-    )
-  }
+  await applyMigrations(env.DB)
+  for (const sql of extensionModeSQL(
+    process.env.HELPDESK_TEST_EXTENSIONS,
+    'operator@example.com',
+  ))
+    await env.DB.prepare(sql).run()
   for (const name of ['first', 'second']) {
     await env.DB.prepare('INSERT INTO products VALUES (?,?)')
       .bind(name, name)
@@ -77,7 +67,11 @@ async function deliver(
 const fixture = (name: string) =>
   readFile(new URL(name + '.eml', fixtures), 'utf8')
 const count = async (table: string) =>
-  env.DB.prepare('SELECT count(*) AS n FROM ' + table).first<number>('n')
+  env.DB.prepare(
+    'SELECT count(*) AS n FROM ' +
+      table +
+      (table === 'messages' ? " WHERE kind='inbound'" : ''),
+  ).first<number>('n')
 const waitCount = (table: string, n: number) =>
   expect.poll(() => count(table), { timeout: 8000 }).toBe(n)
 const status = (number: number) =>
@@ -95,7 +89,7 @@ it('F01-AC1 F01-AC2 F01-AC3 F01-AC8 F01-AC10 assigns distinct numbers and decode
   ])
   await waitCount('messages', 3)
   const rows = await env.DB.prepare(
-    'SELECT product,subject,body FROM conversations JOIN messages USING(number) ORDER BY product',
+    "SELECT product,subject,body FROM conversations JOIN messages USING(number) WHERE messages.kind='inbound' ORDER BY product",
   ).all()
   expect(
     rows.results.map((r) => [r.product, r.subject, String(r.body).trim()]),
@@ -116,7 +110,9 @@ it('F01-AC4 F01-AC5 F01-AC6 F01-AC23 F01-AC26 F01-AC27 threads only the same con
     env.DB.prepare(
       "SELECT number FROM messages WHERE message_id='<question@example.org>'",
     ).first<number>('number')
-  await expect.poll(originalNumber).toEqual(expect.any(Number))
+  await expect
+    .poll(originalNumber, { timeout: 8000 })
+    .toEqual(expect.any(Number))
   const number = await originalNumber()
   if (!number) throw new Error('Missing thread')
   const send = async (
@@ -136,7 +132,7 @@ it('F01-AC4 F01-AC5 F01-AC6 F01-AC23 F01-AC26 F01-AC27 threads only the same con
       env.DB.prepare('SELECT number FROM messages WHERE message_id=?')
         .bind('<' + id + '@example.org>')
         .first('number')
-    await expect.poll(query).toEqual(expect.any(Number))
+    await expect.poll(query, { timeout: 8000 }).toEqual(expect.any(Number))
     return query()
   }
   for (const [id, hint] of [
@@ -216,4 +212,4 @@ it('F01-AC7 F01-AC9 keeps unparseable sources for operators and drops unregister
   await deliver((await fixture('unparseable')).replace('malformed', 'invalid'))
   await waitCount('inbound_failures', 2)
   expect(await count('messages')).toBe(before)
-})
+}, 30000)

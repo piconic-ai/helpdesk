@@ -17,15 +17,19 @@ export async function testPlatform() {
     RAW: R2Bucket
     JOBS: Queue
   }>()
+  await applyMigrations(env.DB)
+  return { ...env, dispose: () => runtime.dispose() }
+}
+
+export async function applyMigrations(db: D1Database) {
   const migrations = (await readdir('migrations'))
     .filter((name) => name.endsWith('.sql'))
     .sort()
   for (const file of migrations) {
     const sql = await readFile('migrations/' + file, 'utf8')
     const statements = splitMigration(sql)
-    await env.DB.batch(statements.map((s) => env.DB.prepare(s)))
+    await db.batch(statements.map((s) => db.prepare(s)))
   }
-  return { ...env, dispose: () => runtime.dispose() }
 }
 
 function splitMigration(sql: string) {

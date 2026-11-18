@@ -174,3 +174,27 @@ test('F06-AC3 closing the remote issue creates one unsent draft per linked conve
     await ctx.env.DB.prepare('SELECT count(*) n FROM outbox').first('n'),
   ).toBe(0)
 })
+test('F06-AC4 compares issue-linked inquiries with all voices in equal windows around closure', async () => {
+  await ctx.env.DB.batch(
+    [1, 2].map((n, i) =>
+      ctx.env.DB.prepare(
+        "INSERT INTO events(number,kind,actor,at) VALUES(?,'conversation_opened','{}',?)",
+      ).bind(n, 1000 + i * 2000),
+    ),
+  )
+  await ctx.env.DB.prepare(
+    "INSERT INTO events(number,kind,payload,actor,at) VALUES(1,'issues.closed',?,'{}',2000)",
+  )
+    .bind(JSON.stringify({ repository: repo, issue: 42, closedAt: 2000 }))
+    .run()
+  const impact = await invoke({ ...ctx, now: 10000 }, scopes, 'issues.impact', {
+    product: 'app',
+    issue: 42,
+    days: 1,
+  })
+  expect(impact).toMatchObject({
+    before: { total: 1, linked: 1, share: 1 },
+    after: { total: 1, linked: 1, share: 1 },
+    caveat: expect.stringContaining('目安'),
+  })
+})

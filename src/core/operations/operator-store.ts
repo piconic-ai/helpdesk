@@ -38,6 +38,8 @@ export async function setMailbox(
   db: D1Database,
   a: Audit,
   i: { product: string; name: string; address: string },
+  policies: string[],
+  by: string,
 ) {
   await db.batch([
     db
@@ -47,6 +49,13 @@ export async function setMailbox(
       .bind(i.product, i.name),
     db.prepare('INSERT INTO mailboxes VALUES(?,?)').bind(i.address, i.product),
     eventStatement(db, a, null, 'mailbox_registered', i),
+    ...policies.map((id) =>
+      db
+        .prepare(
+          'INSERT OR IGNORE INTO extension_settings(id,enabled,enabled_by) VALUES(?,1,?)',
+        )
+        .bind(id, by),
+    ),
   ])
 }
 export async function setRole(

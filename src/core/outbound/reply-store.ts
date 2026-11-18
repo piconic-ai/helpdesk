@@ -45,15 +45,26 @@ function queueWrites(db: D1Database, input: Enqueue, attempt: string) {
       SELECT id,?,'ready',? FROM messages WHERE id=? AND changes()=1`)
       .bind(attempt, input.now, input.id),
     event(db, 'reply_queued', input, hasAttempt, attempt),
+    ...statusWrites(db, input, attempt),
+  ]
+}
+function statusWrites(db: D1Database, input: Enqueue, attempt: string) {
+  return [
     db
       .prepare(`INSERT INTO events(number,kind,actor,at,payload)
       SELECT number,'status_changed',?,?,json_object('from','open','to','pending') FROM conversations
-      WHERE status='open' AND number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt}`)
-      .bind(JSON.stringify(input.actor), input.now, input.id, attempt),
+      WHERE status='open' AND number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt} AND ? NOT IN(SELECT message FROM standing_messages)`)
+      .bind(
+        JSON.stringify(input.actor),
+        input.now,
+        input.id,
+        attempt,
+        input.id,
+      ),
     db
       .prepare(`UPDATE conversations SET status='pending' WHERE status='open' AND
-      number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt}`)
-      .bind(input.id, attempt),
+      number=(SELECT number FROM messages WHERE id=?) AND ${hasAttempt} AND ? NOT IN(SELECT message FROM standing_messages)`)
+      .bind(input.id, attempt, input.id),
   ]
 }
 
@@ -143,6 +154,7 @@ const claimSchema = replyEnvelopeSchema.extend({
     .string()
     .transform((value) => approvalSchema.parse(JSON.parse(value))),
   attempt: z.string().min(1),
+  automatic: z.number().transform(Boolean),
 })
 export async function claim(db: D1Database, id: string, now: number) {
   const [changed, rows] = await db.batch([
@@ -151,8 +163,8 @@ export async function claim(db: D1Database, id: string, now: number) {
       (SELECT id FROM messages WHERE id=? AND kind='outbound' AND delivery='queued' AND approval IS NOT NULL)`)
       .bind(now, id, id),
     db
-      .prepare(`SELECT c.mailbox,c.contact,c.number,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt
-      FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id WHERE m.id=?`)
+      .prepare(`SELECT c.mailbox,coalesce(s.operator_recipient,c.contact) AS contact,c.number,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic
+      FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id LEFT JOIN standing_messages s ON s.message=m.id WHERE m.id=?`)
       .bind(id),
   ])
   if (changed.meta.changes === 0) return null
@@ -217,4 +229,55 @@ export async function interrupted(db: D1Database, cutoff: number) {
     .pick({ message: true, attempt: true })
     .array()
     .parse(rows.results)
+}
+
+export async function insertStanding(
+  db: D1Database,
+  input: Submission & { approval: Approval; to: string | null },
+) {
+  const attempt = crypto.randomUUID()
+  const target = input.to
+  const parent =
+    target === null
+      ? threadSchema
+          .nullable()
+          .parse(await db.prepare(threadSql).bind(input.number).first())
+      : null
+  const [result, , , existing] = await db.batch([
+    db
+      .prepare(`INSERT INTO messages(id,number,kind,body,actor,created_at,delivery,approval,in_reply_to,refs)
+      SELECT ?,number,'outbound',?,?,?,'queued',?,?,? FROM conversations
+      WHERE number=? AND (? IS NOT NULL OR (kind='inquiry' AND status!='spam'))
+      AND (? IS NULL OR EXISTS(SELECT 1 FROM operators WHERE email=?))
+      AND EXISTS(SELECT 1 FROM operators WHERE email=?) ON CONFLICT(id) DO NOTHING`)
+      .bind(
+        input.id,
+        input.body,
+        JSON.stringify(input.actor),
+        input.now,
+        JSON.stringify(input.approval),
+        parent?.message_id ?? null,
+        parent?.refs ?? null,
+        input.number,
+        target,
+        target,
+        target,
+        input.approval.kind === 'standing' ? input.approval.enabledBy : null,
+      ),
+    db
+      .prepare('INSERT INTO standing_messages SELECT ?,? WHERE changes()=1')
+      .bind(input.id, target),
+    db
+      .prepare(
+        "INSERT INTO outbox(message,attempt,phase,queued_at) SELECT ?,?,'ready',? WHERE changes()=1",
+      )
+      .bind(input.id, attempt, input.now),
+    db
+      .prepare('SELECT message FROM standing_messages WHERE message=?')
+      .bind(input.id),
+    event(db, 'reply_queued', input, hasAttempt, attempt),
+  ])
+  if (!existing.results.length)
+    throw new Error('Invalid recipient, conversation or standing approval')
+  return result.meta.changes === 1
 }

@@ -57,7 +57,7 @@ export async function receipt(
     )
 }
 
-async function conversationFor(
+export async function conversationFor(
   db: D1Database,
   job: InboundJob,
   mail: ParsedMail,
@@ -111,8 +111,8 @@ export async function saveMail(
   product: string,
   mail: ParsedMail,
   sourceId: string,
+  number: number | null,
 ) {
-  const number = await conversationFor(db, job, mail)
   const sql: D1PreparedStatement[] = []
   if (number === null) {
     sql.push(
@@ -167,6 +167,7 @@ export async function saveMail(
     event('message_received', {
       message: id,
       category: mail.category,
+      first: number === null,
       authentication: mail.authentication,
     }),
   )

@@ -6,7 +6,11 @@ export const submissionSchema = z
     name: z.string().trim().min(1).max(200).optional(),
     email: addressSchema,
     subject: z.string().trim().min(1).max(500),
-    body: z.string().trim().min(1).max(100000),
+    body: z
+      .string()
+      .min(1)
+      .max(100000)
+      .refine((v) => v.trim().length > 0),
   })
   .strict()
 export const intakeSchema = submissionSchema.extend({

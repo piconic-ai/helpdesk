@@ -1,3 +1,4 @@
+import { extensionModeSQL } from './extension-mode'
 import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -26,6 +27,26 @@ beforeAll(async () => {
     ],
     { env: { ...process.env, CI: 'true' } },
   )
+  const config = extensionModeSQL(
+    process.env.HELPDESK_TEST_EXTENSIONS,
+    'operator@example.com',
+  )
+  if (config.length)
+    await promisify(execFile)(
+      process.execPath,
+      [
+        resolve('node_modules/wrangler/bin/wrangler.js'),
+        'd1',
+        'execute',
+        'DB',
+        '--local',
+        '--persist-to',
+        state,
+        '--command',
+        config.join(';'),
+      ],
+      { env: { ...process.env, CI: 'true' } },
+    )
   server = await unstable_dev('worker.ts', {
     config: 'wrangler.jsonc',
     local: true,
@@ -133,7 +154,11 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
       .poll(
         async () => {
           await page.reload()
-          return page.getByText('sent', { exact: true }).count()
+          return page
+            .locator('article')
+            .filter({ hasText: reply })
+            .getByText('sent', { exact: true })
+            .count()
         },
         { timeout: 15000 },
       )

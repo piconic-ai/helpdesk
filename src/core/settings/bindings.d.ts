@@ -1,8 +1,15 @@
 import type { Registry } from '../extensions/registry'
 export interface Bindings {
   EXTENSIONS?: Registry
+  NOTIFY_WEBHOOK_URL?: string
   GITHUB_TOKEN?: string
   PUBLIC_INTAKES?: Record<string, unknown>
+  AI?: Ai
+  judgeArticles?: (
+    binding: Ai,
+    question: string,
+    articles: { id: string; title: string; body: string }[],
+  ) => Promise<{ id: string; score: number }[]>
   DB: D1Database
   RAW: R2Bucket
   JOBS: Queue

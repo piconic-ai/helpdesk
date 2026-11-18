@@ -21,12 +21,17 @@ export const conversations = sqliteTable('conversations', {
   closed_at: integer(),
   created_at: integer().notNull(),
   assignee: text(),
+  reviewed_by: text(),
 })
 export const conversationRow = createSelectSchema(conversations).transform(
   (row) => {
     const state = conversationSchema.parse({
       ...row,
-      status: { kind: row.status, closedAt: row.closed_at },
+      status: {
+        kind: row.status,
+        closedAt: row.closed_at,
+        by: row.reviewed_by,
+      },
       assignment: row.assignee
         ? { kind: 'assigned', to: row.assignee }
         : { kind: 'unassigned' },
