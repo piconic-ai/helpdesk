@@ -66,6 +66,7 @@ export type ExtensionContext = {
   list: (prefix: string) => Promise<{ key: string; value: unknown }[]>
   remove: (key: string) => Promise<void>
   open: (input: IntakeInput) => Promise<{ number: number }>
+  addInboundMessage: (number: number, body: string) => Promise<{ id: string }>
   draft: (number: number, body: string, key?: string) => Promise<{ id: string }>
   contact: (number: number) => Promise<{
     name: string

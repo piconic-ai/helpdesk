@@ -5,6 +5,7 @@ import { changeFeedback } from '../conversations/feedback-usecase'
 import { coreOperations } from '../operations/catalog-usecase'
 import type { Context } from '../operations/catalog-usecase'
 import {
+  addInboundMessage,
   openIntake,
   saveDraft,
   templateContact,
@@ -88,6 +89,8 @@ export function extensionContext(
     actor: c.actor,
     now: c.now,
     open: (input) => openIntake(c.env, input, actor, c.now),
+    addInboundMessage: (number, body) =>
+      addInboundMessage(c.env, number, body, actor, c.now),
     draft: (number, body, key) => {
       return saveDraft(
         c.env,

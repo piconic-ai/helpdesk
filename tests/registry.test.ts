@@ -101,6 +101,26 @@ test('F02-AC1–6 registration validates config, isolates permissions and retrie
         .bind(id)
         .first(),
     ).toEqual({ phase: 'done', attempt: 2 })
+    await p.DB.batch([
+      p.DB.prepare("INSERT INTO products VALUES('sample','Sample')"),
+      p.DB.prepare("INSERT INTO mailboxes VALUES('desk@example.net','sample')"),
+    ])
+    const { number } = await api.open({
+      product: 'sample',
+      email: 'reader@example.net',
+      origin: 'form',
+      subject: 'Question',
+      body: 'First message',
+    })
+    const followUp = await api.addInboundMessage(number, 'More details')
+    expect(
+      await p.DB.prepare('SELECT number,actor FROM messages WHERE id=?')
+        .bind(followUp.id)
+        .first(),
+    ).toEqual({
+      number,
+      actor: JSON.stringify({ kind: 'extension', id: 'example' }),
+    })
     await toggle(ctx, 'example', false)
     const disabled = await configure(
       { ...env, EXTENSIONS: undefined },
