@@ -7,7 +7,7 @@ pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
 pnpm exec wrangler d1 migrations apply DB --local
 pnpm build
-pnpm exec wrangler dev --local --ip 127.0.0.1 --port 8787 --var ENVIRONMENT:local --var LOCAL_OPERATOR:operator@example.com
+pnpm exec wrangler dev --local --ip 127.0.0.1 --port 8787 --var ENVIRONMENT:local --var LOCAL_OPERATOR:operator@example.com --var SENDING_DOMAINS:example.com
 ```
 
 ## 受信から完了まで

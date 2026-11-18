@@ -44,7 +44,7 @@ for path in features:
     if not re.search(r'[\u3040-\u30ff\u4e00-\u9fff]', body):
         errors.append(f'{path}: 日本語の説明がありません')
 
-for path in [ROOT / 'README.md', *DOCS.rglob('*.md')]:
+for path in [ROOT / 'README.md', ROOT / 'README.ja.md', *DOCS.rglob('*.md')]:
     body = path.read_text()
     if re.search(r'\[F\d+\]\(', body):
         errors.append(f'{path.relative_to(ROOT)}: 番号だけでなく機能名をリンクに使ってください')
@@ -58,6 +58,59 @@ for path in [ROOT / 'README.md', *DOCS.rglob('*.md')]:
         if not (path.parent / target.split('#')[0]).exists():
             errors.append(f'{path.relative_to(ROOT)}: リンク先がありません: {target}')
 
+def check_self_hosting():
+    guide = (DOCS / 'dev/self-hosting.md').read_text()
+    source = (ROOT / 'wrangler.jsonc').read_text()
+    config = json.loads(re.sub(r',\s*(?=[}\]])', '', source))
+    env = (ROOT / 'src/core/settings/bindings.d.ts').read_text()
+    d1, = config['d1_databases']
+    bucket, = config['r2_buckets']
+    producer, = config['queues']['producers']
+    consumer, = config['queues']['consumers']
+    sender, = config['send_email']
+    documented = set(re.findall(r'^\| `(\w+)` \|', guide, re.M))
+    required = {d1['binding'], bucket['binding'], producer['binding'], sender['name'],
+                config['assets']['binding'], 'AI'}
+    if documented != required:
+        errors.append(f'self-hosting.md: Wrangler binding table differs: {documented ^ required}')
+    production, = (json.loads(block) for block in re.findall(r'```json\n(.*?)\n```', guide, re.S))
+    variables = set(production['vars']) | set(re.findall(r'--var (\w+):', guide))
+    for variable in sorted(variables | documented):
+        if not re.search(r'^\s+' + variable + r'\??:', env, re.M):
+            errors.append(f'self-hosting.md: unknown Worker binding or variable: {variable}')
+    commands = [
+        f"wrangler d1 create {d1['database_name']} --no-update-config",
+        f"wrangler r2 bucket create {bucket['bucket_name']} --no-update-config",
+        f"wrangler queues create {producer['queue']}",
+        f"wrangler queues create {consumer['dead_letter_queue']}",
+        f"wrangler d1 migrations apply {d1['binding']} --local --persist-to .wrangler/self-host",
+        f"wrangler d1 migrations apply {d1['binding']} --remote",
+        'wrangler deploy',
+    ]
+    for command in commands:
+        if f'\npnpm exec {command}\n' not in guide:
+            errors.append(f'self-hosting.md: missing command for configured resource: {command}')
+    local = re.findall(r'<!-- verify:(\w+) -->\n```sh', guide)
+    if local != ['install', 'serve', 'configure', 'export']:
+        errors.append('self-hosting.md: local commands expected in installation order')
+    check_host_tools(guide)
+
+
+def check_host_tools(guide):
+    package = json.loads((ROOT / 'package.json').read_text())
+    for name in re.findall(r'^pnpm ([\w:-]+)', guide, re.M):
+        if name not in {'install', 'exec'} and name not in package['scripts']:
+            errors.append(f'self-hosting.md: unknown package script: {name}')
+    binaries = package['dependencies'] | package['devDependencies']
+    for binary in re.findall(r'^pnpm exec ([\w-]+)', guide, re.M):
+        if binary not in binaries:
+            errors.append(f'self-hosting.md: unknown package executable: {binary}')
+    for file in re.findall(r'(?:node|python3) ((?:cli|scripts)/[\w./-]+)', guide):
+        if not (ROOT / file).is_file():
+            errors.append(f'self-hosting.md: unknown script: {file}')
+
+
+check_self_hosting()
 if errors:
     raise SystemExit('\n'.join(errors))
-print(f'機能 {len(features)} 件、Markdown リンク、JSONを確認しました。')
+print(f'機能 {len(features)} 件、Markdown リンク、JSON、セルフホスト手順と設定を確認しました。')

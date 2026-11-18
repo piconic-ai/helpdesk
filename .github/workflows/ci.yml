@@ -30,6 +30,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       # Runs every test and fails when coverage falls below vitest.config.ts.
       - run: pnpm test:coverage
+      - run: node scripts/test-stage1-matrix.mjs
   cognitive-complexity:
     name: Cognitive complexity
     runs-on: ubuntu-latest

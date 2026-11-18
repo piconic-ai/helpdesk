@@ -1,5 +1,9 @@
 # helpdesk
 
-複数のプロダクトの問い合わせをひとつの受信箱で扱う、セルフホスト向けのメールヘルプデスクです。
+A self-hosted email helpdesk for developers supporting several products. Read requests in one inbox, reply from each product’s own address, and keep the conversation on the customer’s existing email thread.
 
-[プロダクト指針](docs/product.md)・[実装方針](docs/dev/architecture.md)・[開発計画](docs/plan/README.md)
+An operator can turn a conversation into a GitHub issue, publish help articles, or use the CLI and MCP server to find requests and prepare replies for approval. Install the Worker, D1, private R2 storage and Queues in your Cloudflare account.
+
+Start with the local walkthrough, then follow the self-hosting guide to connect a domain and protect the operator inbox with Cloudflare Access. The setup and development guides are in Japanese.
+
+[Local walkthrough](docs/dev/development.md) · [Self-hosting](docs/dev/self-hosting.md) · [CLI and MCP](docs/dev/machine-access.md) · [Extension development](docs/dev/extensions.md) · [日本語](README.ja.md)
