@@ -66,4 +66,11 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install chromium
       - run: pnpm test:ui
+      - name: Save screenshot differences
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: screenshot-differences
+          path: test-results/**/*.png
+          retention-days: 3
       - run: pnpm test:ux
