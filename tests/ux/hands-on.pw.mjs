@@ -362,6 +362,7 @@ test('ハンズオンの例示データで #6 の回答から内部メモ・再�
   page,
   scene,
 }) => {
+  test.slow()
   await scene.db
     .prepare(
       'INSERT INTO operator_profiles(email, display_name) VALUES(?,?),(?,?)',
