@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { testPlatform } from './platform'
 import { app } from '../worker'
 import { registry } from '../src/core/extensions/registry'
@@ -47,6 +47,7 @@ beforeAll(async () => {
   ])
 })
 afterAll(() => local?.dispose())
+afterEach(() => vi.restoreAllMocks())
 function submit(input: unknown = payload, origin = site, key = 'shop-key') {
   return app.request(
     uri,
@@ -68,6 +69,7 @@ async function count() {
   )
 }
 it('F04-AC1 F04-AC2 F04-AC3 F05-AC1: public form accepts only the configured product and the chosen reply stays a draft', async () => {
+  vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 0, 1))
   const preflight = await app.request(
     uri,
     {
