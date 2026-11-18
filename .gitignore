@@ -1,0 +1,15 @@
+node_modules/
+public/components/
+public/uno.css
+dist/
+coverage/
+.wrangler/
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+.audit/
+playwright-report/
+test-results/
+*.log
+.DS_Store
