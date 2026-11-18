@@ -1,7 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 
-export async function testPlatform() {
+export async function testPlatform(migrations?: (file: string) => boolean) {
   const runtime = new Miniflare(
     convertV4MiniflareOptions({
       modules: true,
@@ -26,7 +26,7 @@ export async function testPlatform() {
     ASSETS: Fetcher
     JOBS: Queue
   }>()
-  await applyMigrations(env.DB)
+  await applyMigrations(env.DB, migrations)
   return {
     ...env,
     AI: {
@@ -38,9 +38,13 @@ export async function testPlatform() {
   }
 }
 
-export async function applyMigrations(db: D1Database) {
+export async function applyMigrations(
+  db: D1Database,
+  include: (file: string) => boolean = () => true,
+) {
   const migrations = (await readdir('migrations'))
     .filter((name) => name.endsWith('.sql'))
+    .filter(include)
     .sort()
   for (const file of migrations) {
     const sql = await readFile('migrations/' + file, 'utf8')

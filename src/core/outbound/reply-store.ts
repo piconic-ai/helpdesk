@@ -74,7 +74,7 @@ export async function insertReply(db: D1Database, input: Submission) {
     .parse(await db.prepare(threadSql).bind(input.number).first())
   const insert = db
     .prepare(`INSERT INTO messages(id,number,kind,body,actor,created_at,delivery,approval,in_reply_to,refs)
-    SELECT ?,number,'outbound',?,?,?,?,?,?,? FROM conversations WHERE number=? AND kind='inquiry' AND status IN ('open','pending')`)
+    SELECT ?,number,'outbound',?,?,?,?,?,?,? FROM conversations WHERE number=? AND kind='inquiry' AND status IN ('open','pending') RETURNING id`)
     .bind(
       input.id,
       input.body,
@@ -94,7 +94,7 @@ export async function insertReply(db: D1Database, input: Submission) {
       )
     : [event(db, 'reply_awaiting_approval', input, 'changes()=1')]
   const [result] = await db.batch([insert, ...more])
-  if (result.meta.changes !== 1)
+  if (!result.results.length)
     throw new Error('Reply requires an open or pending inquiry')
 }
 
@@ -249,7 +249,7 @@ export async function insertStanding(
       SELECT ?,number,'outbound',?,?,?,'queued',?,?,? FROM conversations
       WHERE number=? AND (? IS NOT NULL OR (kind='inquiry' AND status!='spam'))
       AND (? IS NULL OR EXISTS(SELECT 1 FROM operators WHERE email=?))
-      AND EXISTS(SELECT 1 FROM operators WHERE email=?) ON CONFLICT(id) DO NOTHING`)
+      AND EXISTS(SELECT 1 FROM operators WHERE email=?) ON CONFLICT(id) DO NOTHING RETURNING id`)
       .bind(
         input.id,
         input.body,
@@ -279,5 +279,5 @@ export async function insertStanding(
   ])
   if (!existing.results.length)
     throw new Error('Invalid recipient, conversation or standing approval')
-  return result.meta.changes === 1
+  return result.results.length === 1
 }

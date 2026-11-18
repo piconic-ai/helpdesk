@@ -116,7 +116,7 @@ CLI・MCP を使う場合は、`/api/*` と `/mcp` にパスを限定した Acce
 
 ## 承認済みのコミットから初回デプロイ・更新する
 
-初回は自分の fork に設定をコミットします。更新時には upstream の変更・新しいマイグレーションを取り込み、変更した設定や拡張のコードもコミット対象に含めます。アップグレードの前に D1 の復旧点と R2 の保存状況を確認してください。JSONL は会話を持ち出すための書き出しです。[D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/)
+初回は自分の fork に設定をコミットします。更新時には upstream の変更・新しいマイグレーションを取り込み、変更した設定や拡張のコードもコミット対象に含めます。アップグレードの前に D1 の復旧点と R2 の保存状況を確認してください。JSONL は会話を持ち出すための書き出しです。検索に FTS5 の仮想テーブルを使うため、D1 の SQL ダンプを SQLite CLI 用に取得した場合、そのダンプを D1 に直接インポートすることはできません。D1 の復旧手順には Time Travel を使用してください。[D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/)・[仮想テーブルを含む D1 のエクスポート](https://developers.cloudflare.com/changelog/post/2026-11-12-d1-export-virtual-tables/)
 
 ```sh
 git remote get-url origin

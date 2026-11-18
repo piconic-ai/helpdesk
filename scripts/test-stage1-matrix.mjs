@@ -5,6 +5,7 @@ const files = [
   'src/core/inbound/parse.test.ts',
   'src/core/outbound/reply.test.ts',
   'tests/operator.test.ts',
+  'tests/search.test.ts',
   'tests/access.test.ts',
   'tests/message-storage.test.ts',
   'tests/mail-flow.test.ts',

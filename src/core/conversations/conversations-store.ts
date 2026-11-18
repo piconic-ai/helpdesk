@@ -10,34 +10,44 @@ import {
 } from './conversations-schema'
 
 import type { filterSchema } from './filters'
+
+function searchNumbers(query: string) {
+  if (Array.from(query).length < 3 || query.includes('\0'))
+    return {
+      sql: `SELECT number FROM conversations WHERE instr(lower(subject), lower(?2)) OR instr(lower(contact), lower(?2))
+        UNION ALL SELECT number FROM messages WHERE instr(lower(body), lower(?2))`,
+      term: query,
+    }
+  return {
+    sql: `SELECT rowid AS number FROM conversation_search WHERE conversation_search MATCH lower(?2)
+      UNION ALL SELECT m.number FROM message_search JOIN messages m ON m.search_rowid=message_search.rowid
+      WHERE message_search MATCH lower(?2)`,
+    term: '"' + query.replaceAll('"', '""') + '"',
+  }
+}
+
 export async function listConversations(
   db: D1Database,
   input: z.infer<typeof filterSchema>,
   canonicalNumbers: Record<number, number> = {},
 ) {
   const { status, product, assignee, label, query } = input
+  const search = searchNumbers(query)
   const result = await db
     .prepare(`WITH members(source,target) AS (
-      SELECT CAST(key AS INTEGER),value FROM json_each(?)
+      SELECT CAST(key AS INTEGER),value FROM json_each(?1)
       UNION ALL SELECT number,number FROM conversations
-    ) SELECT c.* FROM conversations c WHERE (?='all' OR status=?) AND (?='' OR product=?)
-    AND (?='' OR assignee=?) AND (?='' OR EXISTS(SELECT 1 FROM labels l JOIN members x ON l.number=x.source WHERE x.target=c.number AND l.name=?))
-    AND (?='' OR EXISTS(SELECT 1 FROM conversations h JOIN members x ON x.source=h.number WHERE x.target=c.number AND instr(lower(h.subject),lower(?))) OR instr(lower(contact),lower(?)) OR EXISTS
-    (SELECT 1 FROM messages m JOIN members x ON m.number=x.source WHERE x.target=c.number AND instr(lower(m.body),lower(?)))) ORDER BY number DESC`)
+    ) SELECT c.* FROM conversations c WHERE (?3='all' OR status=?3) AND (?4='' OR product=?4)
+    AND (?5='' OR assignee=?5) AND (?6='' OR EXISTS(SELECT 1 FROM labels l JOIN members x ON l.number=x.source WHERE x.target=c.number AND l.name=?6))
+    AND (?2='' OR c.number IN (SELECT x.target FROM members x JOIN (${search.sql}) hits ON hits.number=x.source))
+    ORDER BY number DESC`)
     .bind(
       JSON.stringify(canonicalNumbers),
-      status,
+      search.term,
       status,
       product,
-      product,
-      assignee,
       assignee,
       label,
-      label,
-      query,
-      query,
-      query,
-      query,
     )
     .all()
   return conversationRow.array().parse(result.results)
