@@ -1,40 +1,72 @@
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
 type Row = Record<string, unknown>
-function redact(value: unknown, names: string[]): unknown {
-  if (typeof value === 'string') {
-    let text = value.replace(
+const encoded: Record<string, string[]> = {
+  events: ['payload', 'actor', 'dedup_key'],
+  messages: ['actor', 'approval'],
+}
+
+function contactValues(rows: Row[], field: string) {
+  return [
+    ...new Set(
+      rows
+        .map((row) => row[field])
+        .filter((v): v is string => typeof v === 'string' && v.length > 0),
+    ),
+  ].sort((a, b) => b.length - a.length)
+}
+
+function redact(value: unknown, mask: (text: string) => string): unknown {
+  if (typeof value === 'string') return mask(value)
+  if (Array.isArray(value)) return value.map((v) => redact(v, mask))
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([key, v]) => [mask(key), redact(v, mask)]),
+    )
+  return value
+}
+
+function maskedRow(type: string, row: Row, mask: (text: string) => string) {
+  return Object.fromEntries(
+    Object.entries(row).map(([field, value]) => {
+      if (typeof value === 'string' && encoded[type]?.includes(field)) {
+        try {
+          return [field, JSON.stringify(redact(JSON.parse(value), mask))]
+        } catch {
+          // Older deduplication keys may be plain text.
+          return [field, mask(value)]
+        }
+      }
+      return [field, redact(value, mask)]
+    }),
+  )
+}
+
+export function jsonLines(
+  data: { conversations: Row[]; messages: Row[]; events: Row[] },
+  unmask: boolean,
+) {
+  const names = contactValues(data.conversations, 'contact_name')
+  const addresses = contactValues(data.conversations, 'contact')
+  const mask = (text: string) => {
+    for (const address of addresses)
+      text = text.replaceAll(address, '[address]')
+    text = text.replace(
       /[\w.!#$%&'*+/=?^\x60{|}~-]+@[\w.-]+\.[A-Z]{2,}/gi,
       '[address]',
     )
     for (const name of names) text = text.replaceAll(name, '[name]')
     return text
   }
-  if (Array.isArray(value)) return value.map((v) => redact(v, names))
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value).map(([key, v]) => [key, redact(v, names)]),
-    )
-  return value
-}
-export function jsonLines(
-  data: { conversations: Row[]; messages: Row[]; events: Row[] },
-  unmask: boolean,
-) {
-  const names = [
-    ...new Set(
-      data.conversations
-        .map((c) => c.contact_name)
-        .filter((n): n is string => typeof n === 'string' && n.length > 0),
-    ),
-  ].sort((a, b) => b.length - a.length)
   const lines: string[] = []
-  for (const [type, rows] of Object.entries(data)) {
+  for (const [type, rows] of Object.entries(data))
     for (const row of rows)
       lines.push(
-        JSON.stringify({ type, data: unmask ? row : redact(row, names) }),
+        JSON.stringify({
+          type,
+          data: unmask ? row : maskedRow(type, row, mask),
+        }),
       )
-  }
   return lines.join('\n') + (lines.length ? '\n' : '')
 }
 const input = z.object({ unmask: z.boolean().default(false) })
