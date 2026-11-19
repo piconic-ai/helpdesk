@@ -11,6 +11,11 @@ export async function deleteContent(
   const run = (sql: string) => db.prepare(sql).bind(value)
   const statements = [
     run(
+      remove
+        ? 'DELETE FROM suggestion_presentations WHERE contact=? COLLATE NOCASE'
+        : 'DELETE FROM suggestion_presentations WHERE at<?',
+    ),
+    run(
       `INSERT OR IGNORE INTO pending_deletions SELECT key FROM attachments WHERE message IN (${ids})`,
     ),
     run(

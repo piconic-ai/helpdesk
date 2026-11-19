@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { acknowledgmentLinks } from './acknowledgment-usecase'
+import { replyArticleChoices } from './reply-suggestions-usecase'
 import type { Extension } from '../../core/extensions/extension'
 import { config, article, articleKey, slug, publicPath } from './article'
 import {
@@ -23,15 +25,22 @@ import {
 export const articles: Extension = {
   id: 'articles',
   icon: 'articles',
-  permissions: [],
+  permissions: ['read_body'],
   config,
-  async replyLinks(ctx, product) {
-    return (await published(ctx, product)).map((a) => ({
-      title: a.title,
-      path: publicPath(product, a.id),
-    }))
-  },
-  resources: [{ name: 'published', run: published }],
+  replyLinks: replyArticleChoices,
+  resources: [
+    { name: 'acknowledgmentLinks', run: acknowledgmentLinks },
+    { name: 'published', run: published },
+    {
+      name: 'candidates',
+      async run(ctx, input) {
+        const { product, question } = z
+          .object({ product: z.string().min(1), question: z.string().min(1) })
+          .parse(input)
+        return ctx.articleCandidates(product, question)
+      },
+    },
+  ],
   operations: [
     {
       name: 'read',
@@ -98,7 +107,22 @@ export const articles: Extension = {
     if (!slug.safeParse(id).success) return null
     const data = article.safeParse(await ctx.get(articleKey(product, id)))
     if (!data.success || data.data.status !== 'published') return null
-    return articleDetail(data.data, await startVisit(ctx, product, id))
+    const claim = z.uuid().safeParse(query.get('suggestion'))
+    const presentation =
+      claim.success &&
+      (await ctx.reactToSuggestion({
+        product,
+        presentation: claim.data,
+        article: id,
+        action: 'opened',
+      }))
+        ? claim.data
+        : undefined
+    return articleDetail(
+      data.data,
+      await startVisit(ctx, product, id, presentation),
+      presentation,
+    )
   },
   async publicAction(ctx, product, path, req) {
     const id = path.replace(/^\/+|\/+$/g, '')
@@ -110,10 +134,12 @@ export const articles: Extension = {
     if (!helpful.success || !z.uuid().safeParse(form.get('visit')).success)
       return null
     if (!(await recordVote(ctx, product, id, form))) {
+      const suggestion = z.uuid().safeParse(form.get('suggestion')).data
       return retryArticleVote(
         data.data,
-        await startVisit(ctx, product, id),
+        await startVisit(ctx, product, id, suggestion),
         helpful.data,
+        suggestion,
       )
     }
     return articleVoteReceipt(helpful.data === 'yes')

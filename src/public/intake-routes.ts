@@ -9,14 +9,18 @@ import { hostedPolicy } from '../core/intakes/hosted-policy-usecase'
 import { extensionContext } from '../core/extensions/context-usecase'
 import type { ExtensionContext, Extension } from '../core/extensions/extension'
 import { question } from '../extensions/chat/chat'
+import { submissionSchema } from '../core/intakes/intake'
 import {
-  handOffQuestion,
-  recommendArticles,
-} from '../extensions/chat/extension'
+  suggestionIds,
+  presentArticles,
+} from '../extensions/article-suggestions-usecase'
+import { handOffQuestion } from '../extensions/chat/extension'
 import {
   intakePage,
   intakeUnavailable,
   matchingArticles,
+  formSuggestions,
+  chatResolvedPage,
   receiptPage,
   type Fields,
   type FormKind,
@@ -35,17 +39,44 @@ type Intake = NonNullable<Extension['intakes']>[number]
 const kinds = z.enum(['chat', 'feedback', 'form'])
 const htmlPath = '/help/:id{chat|feedback|form}/:product'
 const receipt = z.object({ number: z.int().positive() })
-const matches = z.object({
-  kind: z.literal('show_articles'),
-  articles: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      url: z.string().regex(/^\/help\/articles\//),
+async function submitForm(
+  ctx: ExtensionContext,
+  product: string,
+  intake: Intake,
+  policy: IntakePolicy,
+  fields: Fields,
+  responseTime: string | null,
+) {
+  const data = submissionSchema.parse({
+    body: fields.body,
+    subject: fields.subject,
+    email: fields.email,
+  })
+  const submissionId =
+    z.uuid().optional().parse(fields.submissionId) ?? crypto.randomUUID()
+  if (fields.send !== 'yes') {
+    const offer = await presentArticles(ctx, {
+      product,
+      surface: 'form',
+      question: data.subject + '\n' + data.body,
+      contact: data.email,
+    })
+    if (offer) fields.presentations = offer.presentation
+    if (offer?.articles.length)
+      return formSuggestions(offer.articles, policy, {
+        ...fields,
+        submissionId,
+      })
+  }
+  const result = receipt.parse(
+    await intake.run(ctx, product, {
+      ...data,
+      submissionId,
+      suggestionIds: suggestionIds(fields.presentations),
     }),
-  ),
-})
-
+  )
+  return receiptPage('form', result.number, fields, responseTime)
+}
 async function submit(
   kind: FormKind,
   ctx: ExtensionContext,
@@ -55,23 +86,47 @@ async function submit(
   fields: Fields,
   responseTime: string | null,
 ) {
-  if (kind === 'chat' && !fields.email && fields.handoff !== 'yes') {
+  if (kind === 'form')
+    return submitForm(ctx, product, intake, policy, fields, responseTime)
+  if (kind === 'feedback')
+    return receiptPage(
+      kind,
+      receipt.parse(await intake.run(ctx, product, fields)).number,
+      fields,
+      responseTime,
+    )
+  if (!fields.email && fields.handoff !== 'yes') {
     const text = question.shape.question.parse(fields.question)
-    const articles = await recommendArticles(ctx, product, text)
-    return articles.length
-      ? matchingArticles(articles, policy, text)
-      : intakePage(kind, policy, fields, true)
+    const offer = await presentArticles(ctx, {
+      product,
+      surface: 'chat',
+      question: text,
+    })
+    return offer?.articles.length
+      ? matchingArticles(
+          offer.articles,
+          policy,
+          text,
+          offer.presentation,
+          offer.needsHuman,
+        )
+      : intakePage(
+          kind,
+          policy,
+          {
+            ...fields,
+            submissionId: offer?.presentation ?? crypto.randomUUID(),
+            presentations: offer?.presentation ?? '',
+          },
+          true,
+        )
   }
-  const result =
-    kind === 'chat' && fields.handoff === 'yes'
-      ? await handOffQuestion(ctx, product, fields)
-      : await intake.run(ctx, product, fields)
-  const found = matches.safeParse(result)
-  return found.success
-    ? matchingArticles(found.data.articles, policy, fields.question)
-    : receiptPage(kind, receipt.parse(result).number, fields, responseTime)
+  const result = await handOffQuestion(ctx, product, {
+    ...fields,
+    suggestionIds: suggestionIds(fields.presentations),
+  })
+  return receiptPage(kind, result.number, fields, responseTime)
 }
-
 function validationMessage(kind: FormKind, error: z.ZodError) {
   if (kind !== 'feedback')
     return '入力内容を確認し、必要な項目を入力してください。'
@@ -91,7 +146,16 @@ function submissionRequest(request: Request, form: FormData) {
 
 function submittedFields(data: FormData) {
   const fields: Fields = {}
-  for (const key of ['email', 'question', 'body', 'subject', 'handoff']) {
+  for (const key of [
+    'email',
+    'question',
+    'body',
+    'subject',
+    'handoff',
+    'submissionId',
+    'presentations',
+    'send',
+  ]) {
     const value = data.get(key)
     if (typeof value === 'string' && value !== '') fields[key] = value
   }
@@ -194,7 +258,13 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
   if (!acceptsHostedSubmissions(policy)) return render(intakeUnavailable(), 503)
   if (c.req.method === 'GET') {
     if (kind === 'chat') return chatEntry(c, info, policy, origins)
-    return render(intakePage(kind, policy))
+    return render(
+      intakePage(
+        kind,
+        policy,
+        kind === 'form' ? { submissionId: crypto.randomUUID() } : {},
+      ),
+    )
   }
   return submitHosted(c, kind, info, installed, intake, policy, render)
 })
@@ -258,8 +328,16 @@ async function submitHosted(
         ),
         403,
       )
-    if (kind === 'chat' && c.req.header('accept') === 'application/json')
-      return c.json(await chatTurn(ctx, product, data, info.responseTime))
+    if (
+      kind === 'chat' &&
+      (c.req.header('accept') === 'application/json' ||
+        data.get('intent') === 'resolve')
+    ) {
+      const turn = await chatTurn(ctx, product, data, info.responseTime)
+      return c.req.header('accept') === 'application/json'
+        ? c.json(turn)
+        : render(chatResolvedPage())
+    }
     return render(
       await submit(
         kind,

@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test'
 export const widgetScenes = [
   ['widget-closed', '製品画面と開くボタン'],
   ['widget-open', 'チャットを開く'],
@@ -31,9 +32,10 @@ export async function exposeWidgetSettings(page, scene) {
     await card.locator('iframe').scrollIntoViewIfNeeded()
     const preview = card.frameLocator('iframe')
     await preview.getByRole('button', { name: 'ヘルプ', exact: true }).click()
-    await preview
-      .frameLocator('iframe')
-      .getByRole('textbox', { name: '質問', exact: true })
-      .waitFor()
+    await expect(
+      preview
+        .frameLocator('iframe')
+        .getByRole('textbox', { name: '質問', exact: true }),
+    ).toBeFocused()
   }
 }

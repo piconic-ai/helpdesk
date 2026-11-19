@@ -22,6 +22,8 @@ export const submissionSchema = z
 const intakeFields = submissionSchema.extend({
   product: z.string().min(1),
   origin: z.enum(['form', 'chat']),
+  submissionId: z.uuid().optional(),
+  suggestionIds: z.array(z.uuid()).optional(),
   sourcePage: z.string().max(4096).optional().catch(undefined),
 })
 export const intakeSchema = z.union([

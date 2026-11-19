@@ -3,6 +3,34 @@ import worker from './worker.js'
 let sequence = 0
 const clock = Date.now.bind(Date)
 let clockStart
+// Local models replay fixed scores so interface tests never call Workers AI.
+function modelFixture(model, input) {
+  if (model === '@cf/baai/bge-reranker-base')
+    return {
+      response: [
+        { id: 0, score: input.query.includes('領収書') ? 0.95 : 0.05 },
+      ],
+    }
+  const { question, articles } = input.state
+  const words = ['領収書', '共有リンク']
+  const answers = {
+    needs_human: {
+      type: 'noul',
+      noul: /二重請求|調査して/.test(question) ? 0.98 : 0.04,
+    },
+  }
+  for (const [index, article] of articles.entries()) {
+    const matches = words.some(
+      (word) => question.includes(word) && article.title.includes(word),
+    )
+    answers['article.' + index] = { type: 'noul', noul: matches ? 0.95 : 0.05 }
+  }
+  return {
+    model: input.model,
+    answers,
+    usage: { input_tokens: 128, output_tokens: 0 },
+  }
+}
 function localEnv(env, origin) {
   clockStart ??= clock()
   Date.now = () =>
@@ -22,11 +50,7 @@ function localEnv(env, origin) {
       },
     },
     AI: {
-      run: async (_model, input) => ({
-        response: [
-          { id: 0, score: input.query.includes('領収書') ? 0.95 : 0.05 },
-        ],
-      }),
+      run: async (model, input) => modelFixture(model, input),
     },
     EMAIL: {
       send: async () => ({

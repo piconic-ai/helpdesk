@@ -22,6 +22,7 @@ export async function configure(
   env: Bindings,
   entries: Registration[],
   publicIntakes: Record<string, unknown>,
+  bundledIndexes: Record<string, readonly string[]> = {},
 ) {
   requireBindings(env)
   const installed =
@@ -29,7 +30,7 @@ export async function configure(
   for (const { extension } of installed.active)
     requireExtensionBindings(env, extension)
   await inspectStartup(env)
-  await migrateExtensions(env.DB, installed.active)
+  await migrateExtensions(env.DB, installed.active, bundledIndexes)
   return {
     ...env,
     EXTENSIONS: installed,
@@ -128,15 +129,25 @@ export async function replyLinks(
   ctx: Context,
   product: string,
   origin: string,
+  inbound?: { number: number; id: string },
 ) {
-  const links = await Promise.all(
+  const results = await Promise.all(
     (ctx.env.EXTENSIONS?.active ?? []).map(
       async (item) =>
-        item.extension.replyLinks?.(extensionContext(ctx, item), product) ?? [],
+        item.extension.replyLinks?.(
+          extensionContext(ctx, item),
+          product,
+          inbound,
+        ) ?? [],
     ),
   )
-  return links.flat().map((link) => ({
-    title: link.title,
-    url: new URL(link.path, origin).href,
-  }))
+  return {
+    offerToWrite: results.some((r) => !Array.isArray(r) && r.offerToWrite),
+    articles: results
+      .flatMap((r) => (Array.isArray(r) ? r : r.links))
+      .map((link) => ({
+        title: link.title,
+        url: new URL(link.path, origin).href,
+      })),
+  }
 }

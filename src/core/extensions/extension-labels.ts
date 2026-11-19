@@ -63,6 +63,7 @@ const fields: Record<string, string> = {
   caveat: '集計について',
   closedAt: '完了日時',
   improvementRate: '声が改善に届いた割合',
+  selfResolutionRate: '待たずに解決できた割合',
   voices: '届いた声',
   informed: '知らせが届いた声',
   resolutionMs: '解決までの平均時間',

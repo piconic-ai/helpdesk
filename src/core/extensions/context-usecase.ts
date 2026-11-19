@@ -1,3 +1,9 @@
+import {
+  presentSuggestion,
+  previousSuggestion,
+  reactToSuggestion,
+  suggestionResolution,
+} from '../suggestions/suggestion-store'
 import { changeGroupLabel } from './triage-usecase'
 import { setAssignment } from '../operations/operator-store'
 import {
@@ -53,6 +59,11 @@ export function extensionContext(
   }
   return {
     enabledBy: installed.enabledBy,
+    previousSuggestion: (input) => previousSuggestion(c.env.DB, input),
+    presentSuggestion: (input) => presentSuggestion(c.env.DB, input, c.now),
+    reactToSuggestion: (input) => reactToSuggestion(c.env.DB, input, c.now),
+    suggestionResolution: (product, from, to) =>
+      suggestionResolution(c.env.DB, product, from, to),
     voices: () => receivedVoices(c.env.DB),
     standing: approvedSend,
     notifyEmail: (number, to, body, key) => approvedSend(number, body, key, to),
@@ -76,11 +87,15 @@ export function extensionContext(
         ? resource.run(extensionContext(c, item), input)
         : undefined
     },
-    judge: (question, articles) => {
+    articleCandidates: async (product, text) => {
+      const source = c.env.candidateSources?.[ext.id]
+      return source ? source(c.env.DB, product, text) : []
+    },
+    judge: (model, question, articles, name) => {
       requirePermission('external_fetch')
       if (!c.env.AI || !c.env.judgeArticles)
         throw new Error('Configure the Workers AI binding AI')
-      return c.env.judgeArticles(c.env.AI, question, articles)
+      return c.env.judgeArticles(c.env.AI, model, question, articles, name)
     },
     ...extensionStorage(c.env.DB, ext.id),
     assign: (number, email) =>

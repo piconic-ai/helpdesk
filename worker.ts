@@ -22,6 +22,8 @@ import {
   tick,
 } from './src/core/extensions/dispatch-usecase'
 import { intakeRoutes } from './src/core/extensions/intake-routes'
+import { articleSearchSchema } from './src/extensions/articles/search-schema'
+import { selectArticleCandidates } from './src/extensions/articles/candidates-store'
 import { judgeArticles } from './src/extensions/chat/judge-client'
 import { hostedIntakeRoutes } from './src/public/intake-routes'
 import { publicRoutes } from './src/core/extensions/public-routes'
@@ -62,14 +64,25 @@ async function renderMissingPage(c: Context<AppEnv>) {
     }
   }
 }
+function configureWorker(env: Bindings) {
+  return configure(
+    {
+      ...env,
+      judgeArticles: env.judgeArticles ?? judgeArticles,
+      candidateSources: {
+        articles: selectArticleCandidates,
+        ...env.candidateSources,
+      },
+    },
+    extensions,
+    publicIntakes,
+    { articles: articleSearchSchema },
+  )
+}
 export const app = new Hono<AppEnv>()
 app.use('*', async (c, next) => {
   try {
-    c.env = await configure(
-      { ...c.env, judgeArticles: c.env.judgeArticles ?? judgeArticles },
-      extensions,
-      publicIntakes,
-    )
+    c.env = await configureWorker(c.env)
   } catch (error) {
     return c.text(
       'Invalid helpdesk configuration: ' +
@@ -136,10 +149,10 @@ app.route('/', operatorRoutes)
 export default {
   fetch: app.fetch,
   async email(message: ForwardableEmailMessage, env: Bindings) {
-    await receiveEmail(message, await configure(env, extensions, publicIntakes))
+    await receiveEmail(message, await configureWorker(env))
   },
   async queue(batch: MessageBatch, env: Bindings) {
-    env = await configure(env, extensions, publicIntakes)
+    env = await configureWorker(env)
     for (const job of batch.messages) {
       try {
         const { kind } = z
@@ -170,7 +183,7 @@ export default {
     await enqueueEvents(env, Date.now())
   },
   async scheduled(event: ScheduledController, env: Bindings) {
-    env = await configure(env, extensions, publicIntakes)
+    env = await configureWorker(env)
     await Promise.all([
       tick(env, event.scheduledTime),
       recoverInbound(env, event.scheduledTime),

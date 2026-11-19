@@ -1,9 +1,10 @@
 import { z } from 'zod'
-import { articleCandidate, question } from '../extensions/chat/chat'
+import { question } from '../extensions/chat/chat'
+import { handOffQuestion } from '../extensions/chat/extension'
 import {
-  handOffQuestion,
-  recommendArticles,
-} from '../extensions/chat/extension'
+  presentArticles,
+  suggestionIds,
+} from '../extensions/article-suggestions-usecase'
 import type { ExtensionContext } from '../core/extensions/extension'
 
 export async function chatTurn(
@@ -12,29 +13,44 @@ export async function chatTurn(
   form: FormData,
   responseTime: string | null,
 ) {
-  const intent = z.enum(['ask', 'handoff', 'resolve']).parse(form.get('intent'))
+  const intent = z
+    .enum(['ask', 'handoff', 'resolve', 'unresolved'])
+    .parse(form.get('intent'))
   if (intent === 'ask') {
     const text = question.shape.question.parse(form.get('question'))
-    return {
-      kind: 'articles',
-      articles: await recommendArticles(ctx, product, text),
-    }
+    const result = await presentArticles(ctx, {
+      product,
+      question: text,
+      surface: 'chat',
+      key: z
+        .uuid()
+        .optional()
+        .parse(form.get('requestId') ?? undefined),
+    })
+    return { kind: 'articles', articles: [], ...result }
   }
-  if (intent === 'resolve') {
-    const id = z.string().min(1).max(200).parse(form.get('article'))
+  if (intent !== 'handoff') {
+    const article = z.string().min(1).max(200).parse(form.get('article'))
     const turn = z.uuid().parse(form.get('turn'))
-    const published = articleCandidate
-      .array()
-      .parse((await ctx.resource('articles', 'published', product)) ?? [])
-    if (!published.some((a) => a.id === id))
-      throw new Error('Article is unavailable')
-    await ctx.emit('resolved', null, { product, article: id }, turn)
-    return { kind: 'resolved' }
+    const resolved = intent === 'resolve'
+    const accepted = await ctx.reactToSuggestion({
+      product,
+      surface: 'chat',
+      presentation: turn,
+      action: resolved ? 'resolved' : 'unresolved',
+      article,
+    })
+    if (!accepted) throw new Error('Suggestion is unavailable')
+    if (resolved) await ctx.emit('resolved', null, { product, article }, turn)
+    return { kind: resolved ? 'resolved' : 'unresolved' }
   }
   const data = question.parse(
     Object.fromEntries([...form].filter(([, v]) => v !== '')),
   )
-  const result = await handOffQuestion(ctx, product, data)
+  const result = await handOffQuestion(ctx, product, {
+    ...data,
+    suggestionIds: suggestionIds(form.get('presentations')),
+  })
   return {
     kind: 'receipt',
     number: result.number,

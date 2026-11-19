@@ -1,6 +1,10 @@
 import { z } from 'zod'
 import type { Installed } from './registry'
-export async function migrateExtensions(db: D1Database, active: Installed[]) {
+export async function migrateExtensions(
+  db: D1Database,
+  active: Installed[],
+  bundledIndexes: Record<string, readonly string[]> = {},
+) {
   if (!active.length) return
   const rows = await db
     .prepare(
@@ -43,5 +47,14 @@ export async function migrateExtensions(db: D1Database, active: Installed[]) {
           .bind(extension.id, n + 1),
       ])
     }
+    const indexKey = extension.id + '/search'
+    const index = bundledIndexes[extension.id]
+    if (index && !versions.has(indexKey))
+      await db.batch([
+        ...index.map((sql) => db.prepare(sql)),
+        db
+          .prepare('INSERT OR IGNORE INTO extension_migrations VALUES(?,1)')
+          .bind(indexKey),
+      ])
   }
 }

@@ -1,3 +1,13 @@
+import {
+  articlePerformance,
+  missingArticleQuestions,
+  missingQuestion,
+} from './suggestion-insights-usecase'
+import { missingArticlesPage } from './missing-articles-page'
+import {
+  recommendationForm,
+  saveRecommendationForm,
+} from './recommendation-settings-usecase'
 import { widgetPosition, widgetLabel } from '../core/intakes/chat-widget'
 import { widgetPreviewPage } from './widget-settings-page'
 import { issueBoardRoutes } from './issue-board-routes'
@@ -85,17 +95,41 @@ const frame = (c: RequestContext) =>
   })
 const key = (product: string, id: string) =>
   '/articles/edit?' + new URLSearchParams({ product, id })
+app.post('/conversation/:number/article-selection', async (c) => {
+  const api = active(c, 'articles')
+  if (!api) return c.notFound()
+  const number = z.coerce
+    .number()
+    .int()
+    .positive()
+    .safeParse(c.req.param('number'))
+  const choice = z
+    .object({ presentation: z.uuid(), article: z.string().min(1).max(120) })
+    .safeParse(Object.fromEntries(await c.req.formData()))
+  if (!choice.success || !number.success) return c.body(null, 400)
+  const { product } = await api.contact(number.data)
+  const accepted = await api.reactToSuggestion({
+    ...choice.data,
+    product,
+    number: number.data,
+    surface: 'composer',
+    action: 'attached',
+  })
+  return c.body(null, accepted ? 204 : 404)
+})
 app.get('/articles', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
-  const [data, candidates] = await Promise.all([
+  const [data, candidates, performance] = await Promise.all([
     library(api),
     articleCandidates(c.env.DB),
+    articlePerformance(c.env.DB),
   ])
   return c.render(
     libraryPage(
       await frame(c),
       data.articles,
+      performance,
       candidates.length,
       c.req.query(),
     ),
@@ -111,8 +145,40 @@ app.get('/articles/candidates', async (c) => {
     ),
   )
 })
+app.get('/articles/questions', async (c) => {
+  if (!active(c, 'articles')) return c.notFound()
+  const product = c.req.query('product') ?? ''
+  const page = z.coerce
+    .number()
+    .int()
+    .positive()
+    .catch(1)
+    .parse(c.req.query('page'))
+  return c.render(
+    missingArticlesPage(
+      await frame(c),
+      product,
+      await missingArticleQuestions(c.env.DB, product, page),
+    ),
+  )
+})
 app.get('/articles/new', async (c) => {
   if (!active(c, 'articles')) return c.notFound()
+  const question = c.req.query('question')
+  if (question) {
+    const source = await missingQuestion(c.env.DB, question)
+    if (!source) return c.notFound()
+    return c.render(
+      editorPage(
+        await frame(c),
+        {
+          product: source.product,
+          title: source.question.slice(0, 200).replace(/[\uD800-\uDBFF]$/, ''),
+        },
+        false,
+      ),
+    )
+  }
   const number = c.req.query('candidate')
   if (number === undefined)
     return c.render(editorPage(await frame(c), {}, false))
@@ -307,6 +373,19 @@ app.get('/extensions/chat/preview/:product', async (c) => {
   )
   return c.html(widgetPreviewPage(origin, product, options.data))
 })
+app.post('/extensions/chat/recommendations', async (c) => {
+  if (!active(c, 'chat')) return c.notFound()
+  const token = await saveRecommendationForm(
+    context(c),
+    await c.req.parseBody(),
+  )
+  return c.redirect(
+    '/extensions/chat?publicSettings=' +
+      (token === null ? 'conflict' : 'recommendations') +
+      (token ? '&undo=' + token : ''),
+    303,
+  )
+})
 app.post('/extensions/chat/widget-settings', async (c) => {
   if (!active(c, 'chat')) return c.notFound()
   const fields = await c.req.parseBody()
@@ -361,10 +440,11 @@ app.post(
 app.post('/extensions/:id{form|chat}/undo-setting', async (c) => {
   const id = c.req.param('id')
   if (!active(c, id)) return c.notFound()
-  const restored = await undoPublicSetting(
-    context(c),
-    String((await c.req.parseBody()).changeId),
-  )
+  const token = String((await c.req.parseBody()).changeId)
+  const ctx = context(c)
+  const restored =
+    (await undoPublicSetting(ctx, token)) ||
+    (id === 'chat' && (await undoExtensionSetting(ctx, 'chat', token)))
   return c.redirect(
     '/extensions/' +
       id +
@@ -389,6 +469,10 @@ async function guidePortals(
       return {
         ...p,
         ready: id === 'articles' || !!policy,
+        recommendation:
+          id === 'chat'
+            ? await recommendationForm(context(c), api, p.id)
+            : undefined,
         publicSettings:
           id === 'chat' || id === 'form'
             ? {
@@ -418,6 +502,8 @@ async function guidePortals(
   )
 }
 function guideNotice(id: string, query: Record<string, string>) {
+  if (id === 'chat' && query.publicSettings === 'recommendations')
+    return '記事のおすすめ設定を保存しました。'
   if (Object.hasOwn(publicSettingNotices, query.publicSettings))
     return publicSettingNotices[query.publicSettings]
   if (id === 'rules' && query.removed === 'yes')

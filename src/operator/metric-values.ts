@@ -1,5 +1,7 @@
 const percent = new Intl.NumberFormat('ja-JP', { maximumFractionDigits: 1 })
 export const metricDefinition: Record<string, string> = {
+  selfResolutionRate:
+    '期間内にチャットまたは問い合わせフォームで記事を示した回数のうち、期間末までに利用者が「解決した」を選び、問い合わせに進まなかった割合。',
   improvementRate:
     '期間中に受け付けた声のうち、課題の修正後、期間末までに承認済みの知らせを送信できた会話の割合。問い合わせとフィードバックを各1件と数え、迷惑メールは除きます。',
   resolutionMs:
@@ -44,6 +46,7 @@ export function difference(
 }
 
 export const metricSummary: Record<string, string> = {
+  selfResolutionRate: '記事で解決した提示の割合',
   resolutionMs: '受付から解決まで',
   firstContactRate: '再開せずに一度で解決',
   operatorMs: '閲覧から返信まで',

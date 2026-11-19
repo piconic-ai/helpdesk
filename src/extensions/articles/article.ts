@@ -8,6 +8,7 @@ export const article = z.object({
   id: slug,
   product: productId,
   title: z.string().trim().min(1).max(200),
+  summary: z.string().trim().max(400).optional(),
   body: z.string().min(1).max(100000),
   status: z.enum(['draft', 'published']),
   updatedAt: z.number().int().nonnegative().optional(),
@@ -26,6 +27,7 @@ export const visit = z.object({
   product: productId,
   id: slug,
   answered: z.boolean().optional(),
+  presentation: z.uuid().optional(),
 })
 export const lifetime = 24 * 60 * 60 * 1000
 export const articleKey = (product: string, id: string) =>

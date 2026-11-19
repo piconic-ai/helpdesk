@@ -15,7 +15,19 @@ test('集計の推移は日本時間の受付・完了件数を示し、対象�
   const event = scene.db.prepare(
     "INSERT INTO events(number,kind,actor,payload,at) VALUES(?,?,'{}',?,?)",
   )
+  const presentation = scene.db.prepare(
+    `INSERT INTO suggestion_presentations(id,product,surface,question,articles,at) VALUES(?,'slide','chat','領収書の発行方法',?,?)`,
+  )
+  const article = JSON.stringify([{ id: 'receipt', score: 0.9 }])
+  const solved = crypto.randomUUID()
   await scene.db.batch([
+    presentation.bind(solved, article, monday),
+    presentation.bind(crypto.randomUUID(), article, monday + 2 * day),
+    scene.db
+      .prepare(
+        "INSERT INTO suggestion_reactions(presentation,action,article,at) VALUES(?,'resolved','receipt',?)",
+      )
+      .bind(solved, monday + 1),
     moved.bind(monday, 1),
     moved.bind(monday, 2),
     moved.bind(monday + 2 * day, 8),
@@ -36,7 +48,13 @@ test('集計の推移は日本時間の受付・完了件数を示し、対象�
       '/metrics?period=custom&start=2025-06-04&end=2025-06-04&product=slide',
   )
   const main = page.getByRole('main')
-  await expect(main.locator('article svg.trend')).toHaveCount(7)
+  await expect(main.locator('article svg.trend')).toHaveCount(8)
+  const selfResolution = main.getByRole('img', {
+    name: /^待たずに解決できた割合の推移/,
+  })
+  await expect(selfResolution).toHaveAccessibleName(
+    /2025\/6\/2 100%、2025\/6\/3 記録なし、2025\/6\/4 0%/,
+  )
   const time = main.getByRole('img', { name: /^解決までの平均時間の推移/ })
   await expect(time).toHaveAccessibleName(
     /2025\/6\/2 1時間、2025\/6\/3 記録なし、2025\/6\/4 2時間/,
@@ -51,6 +69,8 @@ test('集計の推移は日本時間の受付・完了件数を示し、対象�
   )
   await expect(time).toHaveAccessibleName(/記録がありません/)
   await expect(time.locator('circle')).toHaveCount(0)
+  await expect(selfResolution).toHaveAccessibleName(/記録がありません/)
+  await expect(selfResolution.locator('circle')).toHaveCount(0)
   await page.goto(scene.origin + '/voices?start=2025-06-02&end=2025-06-04')
   const products = main
     .getByRole('heading', { name: 'プロダクト別' })

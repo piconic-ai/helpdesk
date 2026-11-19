@@ -476,3 +476,24 @@ it('keeps an unlabelled voice cohort and its Japanese calendar month across page
   expect((await request('/voices')).status).toBe(404)
   expect((await request(path)).status).toBe(404)
 })
+
+it('keeps raw unanswered questions and the draft they can start behind operator authentication', async () => {
+  await enable('articles')
+  await studio()
+  const id = crypto.randomUUID()
+  const question = 'Only the operator should read this question'
+  await platform.DB.prepare(
+    `INSERT INTO suggestion_presentations(id,product,surface,question,articles,at) VALUES(?,'studio','chat',?,'[]',1)`,
+  )
+    .bind(id, question)
+    .run()
+  for (const route of ['/articles/questions', '/articles/new?question=' + id]) {
+    const response = await request(route, undefined, {
+      ...env,
+      LOCAL_OPERATOR: undefined,
+    })
+    expect(response.status).toBe(401)
+    expect(await response.text()).not.toContain(question)
+    expect(await page(route)).toContain(question)
+  }
+})

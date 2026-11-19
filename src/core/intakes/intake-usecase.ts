@@ -44,7 +44,28 @@ export async function openIntake(
     intake.origin === 'chat'
       ? await registeredSourcePage(env, intake.product, intake.sourcePage)
       : undefined
-  return open(env.DB, intake, action(actor, now))
+  const a: Parameters<typeof open>[2] = action(actor, now)
+  if (intake.submissionId) {
+    const payload = JSON.stringify([
+      intake.submissionId,
+      intake.product,
+      intake.origin,
+      intake.kind,
+      intake.email,
+      intake.subject,
+      intake.body,
+    ])
+    const digest = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(payload),
+    )
+    a.id =
+      'submission/' +
+      Array.from(new Uint8Array(digest), (n) =>
+        n.toString(16).padStart(2, '0'),
+      ).join('')
+  }
+  return open(env.DB, intake, a)
 }
 export function addInboundMessage(
   env: Env,

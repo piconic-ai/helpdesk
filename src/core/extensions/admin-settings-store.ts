@@ -130,6 +130,21 @@ export async function changeExtensionSetting(db: D1Database, c: Change) {
     : 'conflict'
 }
 
+export async function settingRevision(
+  db: D1Database,
+  namespace: string,
+  key: string,
+) {
+  return (
+    (await db
+      .prepare(
+        'SELECT token FROM extension_setting_changes WHERE namespace=? AND setting=?',
+      )
+      .bind(namespace, key)
+      .first<string>('token')) ?? ''
+  )
+}
+
 export async function settingSnapshot(db: D1Database, namespace: string) {
   const rows = await db
     .prepare(`SELECT s.key,s.value,r.token FROM ${extensionTable(namespace)} s

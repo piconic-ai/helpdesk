@@ -76,7 +76,7 @@ export function articleMarkup(body: string) {
     transformTags: { h1: 'h2' },
   })
 }
-export function articleDetail(a: Article, token: string) {
+export function articleDetail(a: Article, token: string, suggestion?: string) {
   return {
     title: a.title,
     html: String(
@@ -86,11 +86,18 @@ export function articleDetail(a: Article, token: string) {
       >
         <article>{raw(articleMarkup(a.body))}</article>
         <AnswerChoices
-          question="この記事は役に立ちましたか？"
+          question={
+            suggestion
+              ? 'この記事で解決しましたか？'
+              : 'この記事は役に立ちましたか？'
+          }
           action={publicPath(a.product, a.id)}
           name="helpful"
         >
           <input type="hidden" name="visit" value={token} />
+          {suggestion && (
+            <input type="hidden" name="suggestion" value={suggestion} />
+          )}
         </AnswerChoices>
       </DetailPage>,
     ),
@@ -101,6 +108,7 @@ export function retryArticleVote(
   a: Article,
   token: string,
   helpful: 'yes' | 'no',
+  suggestion?: string,
 ) {
   const choice = helpful === 'yes' ? 'はい' : 'いいえ'
   return {
@@ -113,6 +121,9 @@ export function retryArticleVote(
         </Notice>
         <PublicForm action={publicPath(a.product, a.id)}>
           <input type="hidden" name="visit" value={token} />
+          {suggestion && (
+            <input type="hidden" name="suggestion" value={suggestion} />
+          )}
           <Button name="helpful" value={helpful}>
             「{choice}」で送り直す
           </Button>

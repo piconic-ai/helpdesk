@@ -12,6 +12,9 @@ const input = z
   .refine((i) => i.from < i.to, 'End must be after start')
 const result = z.object({
   resolutionMs: z.number().nullable(),
+  shownSuggestions: z.int(),
+  solvedSuggestions: z.int(),
+  selfResolutionRate: z.number().nullable(),
   firstContactRate: z.number().nullable(),
   operatorMs: z.number().nullable(),
   improvementRate: z.number().nullable(),
@@ -67,25 +70,26 @@ export const metrics: Extension = {
       async run(ctx, value) {
         const { product, from, to, includeHistory } = input.parse(value)
         const [events, voices] = await Promise.all([ctx.events(), ctx.voices()])
-        const period = (start: number, end: number) => ({
+        const period = async (start: number, end: number) => ({
+          ...(await ctx.suggestionResolution(product, start, end)),
           ...calculate(events, product, start, end),
           ...improvementRate(voices, events, product, start, end),
         })
         const current = period(from, to)
         if (!includeHistory) return current
-        const history = []
+        const periods = []
         const duration = to - from
         for (let back = 6; back >= 0; back--) {
           const end = to - back * duration
           if (end <= 0) continue
           const start = Math.max(0, end - duration)
-          history.push({
-            from: start,
-            to: end,
-            values: back ? period(start, end) : current,
-          })
+          const values = back ? period(start, end) : current
+          periods.push(
+            values.then((values) => ({ from: start, to: end, values })),
+          )
         }
-        return { ...current, history }
+        const history = await Promise.all(periods)
+        return { ...(await current), history }
       },
     },
   ],

@@ -21,7 +21,7 @@
 
 - 自動受付は最初の人間のメールだけを対象にし、運営者が窓口の登録または設定画面で有効化した方針を承認として記録する。迷惑メールの判定を受付返信側でも適用し、出口の配送順に依存しない。
 - 作業時間 F は画面で閲覧した運営者が返信をキューに入れたときに計上する。
-- チャットは公開記事を Workers AI の reranker で採点し、既定の閾値0.6以上の記事を最大3件提示する。本文の生成は行わない。[モデルの公式仕様](https://developers.cloudflare.com/workers-ai/models/bge-reranker-base/)
+- チャットは公開記事の候補を Workers AI の Clef で採点し、製品のしきい値（既定0.6）を超えた記事を上位3件まで提示する。利用者は公開済みの記事本文を読む。[記事推薦の仕組み](dev/article-suggestions.md)
 - 配送待ちの行にキュー投入の有効期限を記録する。全拡張を動かした受信テストで、並列コンシューマーによる同じイベントの過剰な再投入を検出したため。投入後に停止した場合は期限後に再開できる。
 
 ## 既定値として実装した項目
@@ -49,3 +49,9 @@
 - 入口拡張が本人確認済みの会話に追記するため、既存の核の `addInboundMessage` を拡張のコンテキストにも公開する。同梱の公開フォームは新規の会話だけを作る。
 - 受信は D1 に処理を予約してから原文を R2 に保存する。キュー投入の応答が失われても定期処理で再投入し、受信記録を確定する batch で予約を解消する。相手単位の削除は予約中の原文と添付も対象にする。
 - D1 とローカルの workerd で FTS5 の trigram を使用できるため、日本語を含む部分一致検索の索引に採用した。既存データも migration で索引化し、削除や保存期間満了後には索引からも消す。[D1 の対応拡張](https://developers.cloudflare.com/d1/sql-api/sql-statements/)・[SQLite の trigram tokenizer](https://www.sqlite.org/fts5.html#the_trigram_tokenizer)
+
+## 記事推薦のモデル仕様（2026年11月19日確認）
+
+- 1回に送れる問いは1〜64個で、問いのキーは最大100文字です。記事のスラッグには120文字まで使えるため、候補を `article.0` などの短いキーに対応づけます。`noul` の結果は `answers[key].noul` から読みます。[入力スキーマ](https://developers.cloudflare.com/workers-ai/models/clef/schema-input.json)・[出力スキーマ](https://developers.cloudflare.com/workers-ai/models/clef/schema-output.json)
+- Flash のコンテキストは24,576トークン、Clef は65,536トークンです。日本語の検索品質は導入先の記事と質問で測定します。[Clef Flash](https://developers.cloudflare.com/workers-ai/models/clef-flash/)・[Clef](https://developers.cloudflare.com/workers-ai/models/clef/)・[評価手順](reports/suggest-eval.md)
+- 100万入力トークンあたり Flash は0.038米ドル、Clef は0.240米ドルです。料金の試算と見直し方は[運営ガイド](dev/article-suggestions.md)に記載しました。[Workers AI の料金](https://developers.cloudflare.com/workers-ai/platform/pricing/)

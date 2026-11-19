@@ -1,3 +1,4 @@
+import { suggestionScenes } from './suggestion-scenes.mjs'
 import { widgetScenes, widgetSettingsScenes } from './widget-scenes.mjs'
 import { trendScenes } from './trend-scenes.mjs'
 import { identityScenes } from './identity-scenes.mjs'
@@ -22,6 +23,7 @@ const titles = new Map(
     ...identityScenes,
     ...trendScenes,
     ...widgetScenes,
+    ...suggestionScenes,
     ...widgetSettingsScenes,
   ]
     .map((s) => [s.id, s.group + ' · ' + s.label])

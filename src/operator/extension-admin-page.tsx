@@ -1,3 +1,8 @@
+import type { SuggestionCount } from '../core/suggestions/suggestion'
+import {
+  RecommendationSettings,
+  type RecommendationForm,
+} from './recommendation-settings-page'
 import { WidgetSettings } from './widget-settings-page'
 import { ProductMark, ProductSelect } from '../ui/product-mark'
 import { OutcomeCard } from '../ui/outcome-cards'
@@ -92,6 +97,7 @@ const issueDate = new Intl.DateTimeFormat('ja-JP', {
 export function libraryPage(
   frame: ConsoleFrame,
   items: LibraryItem[],
+  performance: (SuggestionCount & { product: string; article: string })[],
   candidateCount: number,
   query: Record<string, string>,
 ) {
@@ -102,6 +108,9 @@ export function libraryPage(
       (frame.products.find((p) => p.id === a.product)?.name ?? a.product),
     filter: a.status,
   }))
+  const totals = new Map(
+    performance.map((row) => [JSON.stringify([row.product, row.article]), row]),
+  )
   const articles = list.rows
   const filters = (
     <ListFilters
@@ -124,6 +133,7 @@ export function libraryPage(
       filters={filters}
       action={
         <ActionBar>
+          <ActionLink href="/articles/questions">記事が無かった質問</ActionLink>
           <ActionLink href="/articles/candidates">
             候補（{candidateCount}件）
           </ActionLink>
@@ -138,6 +148,7 @@ export function libraryPage(
           {articles.map((a) => (
             <ArticleListRow
               title={a.title}
+              performance={totals.get(JSON.stringify([a.product, a.id]))}
               href={
                 '/articles/edit?' +
                 new URLSearchParams({ product: a.product, id: a.id })
@@ -319,6 +330,14 @@ export function editorPage(
             value={data.title ?? ''}
           />
         </Field>
+        <Field
+          label="要約（任意）"
+          description="質問に合う記事を選ぶための説明です。200文字ほどでまとめてください。"
+        >
+          <Textarea name="summary" rows={3} maxlength={400}>
+            {data.summary ?? ''}
+          </Textarea>
+        </Field>
         <Field label="本文">
           <Textarea name="body" rows={10} required maxlength={100000}>
             {data.body ?? ''}
@@ -382,6 +401,7 @@ type Portal = {
   configured: boolean
   tokenReady?: boolean
   repository?: string
+  recommendation?: RecommendationForm
   publicSettings?: PublicSettings
 }
 export function guidePage(
@@ -523,6 +543,12 @@ export function guidePage(
               <Button>このサイトで受付を開始</Button>
             </form>
           )}
+          {p.recommendation && (
+            <RecommendationSettings
+              product={p.id}
+              settings={p.recommendation}
+            />
+          )}
           {p.ready &&
             p.publicSettings &&
             publicSettingsFields(id, p.id, p.publicSettings)}
@@ -543,7 +569,13 @@ export type MetricFilter = {
   end: string
 }
 const outcomes = ['resolutionMs', 'firstContactRate', 'operatorMs']
-const counts = ['improvementRate', 'resolved', 'closed', 'measured']
+const counts = [
+  'improvementRate',
+  'selfResolutionRate',
+  'resolved',
+  'closed',
+  'measured',
+]
 type MetricWindow = {
   from: number
   to: number
@@ -590,7 +622,13 @@ export function metricsPage(
               result.voices +
               '件・前期比 ' +
               compactChange(key)
-            : '前期比 ' + compactChange(key)
+            : key === 'selfResolutionRate'
+              ? result.solvedSuggestions +
+                '件 / ' +
+                result.shownSuggestions +
+                '件・前期比 ' +
+                compactChange(key)
+              : '前期比 ' + compactChange(key)
         }
       />
     )

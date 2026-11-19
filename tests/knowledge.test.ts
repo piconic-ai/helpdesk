@@ -11,7 +11,15 @@ const host = 'https://desk.example.com'
 const site = 'https://shop.example.org'
 let p: Awaited<ReturnType<typeof testPlatform>>
 let env: Bindings
-const judge = vi.fn(async () => ({ response: [{ id: 0, score: 0.91 }] }))
+const clefResponse = (probability: number) => ({
+  model: 'clef-flash',
+  answers: {
+    'article.0': { type: 'noul', noul: probability },
+    needs_human: { type: 'noul', noul: 0.03 },
+  },
+  usage: { input_tokens: 160, output_tokens: 0 },
+})
+const judge = vi.fn(async () => clefResponse(0.91))
 beforeAll(async () => {
   p = await testPlatform()
   env = {
@@ -212,18 +220,26 @@ it('F13-AC1 F13-AC2: ranks published passages without generating an answer and h
     ],
   })
   expect(judge).toHaveBeenCalledWith(
-    '@cf/baai/bge-reranker-base',
+    '@cf/cloudflare/clef-flash',
     expect.objectContaining({
-      query: payload.question,
-      contexts: [{ text: expect.stringContaining('Printable receipt') }],
+      state: {
+        question: payload.question,
+        articles: [
+          { id: '0', title: 'Printable receipt', summary: 'Instructions' },
+        ],
+      },
+      questions: expect.objectContaining({
+        needs_human: expect.objectContaining({ type: 'noul' }),
+      }),
     }),
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
   )
   expect(
     await p.DB.prepare(
       "SELECT count(*) n FROM conversations WHERE origin='chat'",
     ).first('n'),
   ).toBe(0)
-  judge.mockResolvedValueOnce({ response: [{ id: 0, score: 0.1 }] })
+  judge.mockResolvedValueOnce(clefResponse(0.1))
   const receipt = await (
     await intake('chat', 'ask', payload)
   ).json<{ kind: string; number: number }>()
@@ -240,4 +256,30 @@ it('F13-AC1 F13-AC2: ranks published passages without generating an answer and h
       .bind(receipt.number)
       .first(),
   ).toEqual({ origin: 'chat', contact: payload.email })
+})
+
+it('accepts the original inquiry when Workers AI rejects the judgment', async () => {
+  await post('articles.save', {
+    id: 'troubleshoot',
+    product: 'shop',
+    title: '接続の確認',
+    body: '設定を確認します。',
+    status: 'published',
+  })
+  judge.mockRejectedValueOnce(new Error('Service unavailable'))
+  const payload = {
+    email: 'handoff@example.net',
+    question: 'タイムアウトで画面が開けません。',
+  }
+  const res = await intake('chat', 'ask', payload)
+  expect(res.status).toBe(201)
+  const { kind, number } = await res.json<{ kind: string; number: number }>()
+  expect(kind).toBe('hand_off')
+  expect(
+    await p.DB.prepare(
+      "SELECT body FROM messages WHERE number=? AND kind='inbound'",
+    )
+      .bind(number)
+      .first('body'),
+  ).toBe(payload.question)
 })

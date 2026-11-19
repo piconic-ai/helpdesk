@@ -305,6 +305,7 @@ export function conversationPage(
   files: Files,
   articles: { title: string; url: string }[] = [],
   holds: Awaited<ReturnType<typeof pendingReplyUndos>> = [],
+  offerToWrite = false,
 ) {
   const c = data.conversation
   const product = frame.products.find((p) => p.id === c.product)
@@ -394,6 +395,17 @@ export function conversationPage(
           .map((entry) => entry.view)}
       </ThreadTimeline>
       <ReplyArea templates={panels.canned}>
+        {offerToWrite && (
+          <form
+            id="reply-article-candidate"
+            method="post"
+            action="/actions/articles.suggest"
+            hidden
+          >
+            <input type="hidden" name="number" value={c.number} />
+            <input type="hidden" name="topic" value={c.subject} />
+          </form>
+        )}
         <ReplyComposer
           number={c.number}
           mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
@@ -402,6 +414,7 @@ export function conversationPage(
           closed={c.status.kind === 'closed'}
           subject={replySubject(c.subject, c.number)}
           articles={articles}
+          offerToWrite={offerToWrite}
         />
       </ReplyArea>
     </DetailPage>

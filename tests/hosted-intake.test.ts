@@ -446,3 +446,60 @@ it('keeps a direct mailbox available when the contact form is disabled or paused
   expect(paused.status).toBe(503)
   expect(await paused.text()).toContain('href="mailto:help@example.org"')
 })
+
+it.each(['error', 'timeout'] as const)(
+  'accepts the form after a real candidate lookup and a model %s',
+  async (failure) => {
+    const active = {
+      ...env,
+      EXTENSIONS: registry(
+        [form, chat, articles].map((extension) => ({
+          extension,
+          settings: {},
+          enabled: true,
+        })),
+      ),
+    }
+    const started = await app.request(origin + '/help/form/shop', {}, active)
+    expect(started.status).toBe(200)
+    const article = {
+      id: 'fault-' + failure,
+      product: 'shop',
+      title: 'Receipt',
+      body: 'Download your receipt.',
+      status: 'published',
+    }
+    await platform.DB.prepare(
+      'INSERT INTO articles_data(key,value) VALUES(?,?)',
+    )
+      .bind('article/shop/' + article.id, JSON.stringify(article))
+      .run()
+    let calls = 0
+    const bindings = {
+      ...active,
+      AI: {
+        run: async () => {
+          calls++
+          if (failure === 'error') throw new Error('Temporary model error')
+          return new Promise(() => {})
+        },
+      },
+    } as unknown as Bindings
+    const input = {
+      email: 'recovery@example.org',
+      subject: 'Model ' + failure,
+      body: 'I need my receipt.',
+    }
+    const response = await post('form', input, origin, bindings)
+    expect(calls).toBe(1)
+    expect(response.status).toBe(200)
+    expect(await response.text()).toMatch(/問い合わせを受け付けました（#\d+）/)
+    expect(
+      await platform.DB.prepare(
+        'SELECT highest_score,articles FROM suggestion_presentations WHERE contact=? AND question=?',
+      )
+        .bind(input.email, input.subject + '\n' + input.body)
+        .first(),
+    ).toEqual({ highest_score: null, articles: '[]' })
+  },
+)

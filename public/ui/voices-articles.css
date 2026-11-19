@@ -24,6 +24,16 @@
   color: var(--colors-muted);
   font: var(--typography-caption);
 }
+[data-ui='article-performance'] {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+[data-ui='article-performance'] > * {
+  white-space: nowrap;
+}
 @media (max-width: 1050px) {
   [data-ui='article-list-row'] > a {
     grid-template-columns: repeat(3, minmax(0, 1fr));

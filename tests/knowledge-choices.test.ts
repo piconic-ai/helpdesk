@@ -4,8 +4,8 @@ import { rankingCases } from '../src/extensions/chat/chat.examples'
 import { feedbackCases } from '../src/core/conversations/feedback.examples'
 import { decideFeedback } from '../src/core/conversations/feedback'
 import { conversationSchema } from '../src/core/conversations/state'
-it.each(rankingCases)('F13: $name', ({ scores, expected }) =>
-  expect(decideChat(scores, 0.6)).toEqual(expected),
+it.each(rankingCases)('F13: $name', ({ scores, expected, human }) =>
+  expect(decideChat(scores, 0.6, human)).toEqual(expected),
 )
 it.each(feedbackCases)(
   'F11: %s feedback + %s → %s',

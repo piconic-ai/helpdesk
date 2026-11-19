@@ -1,3 +1,8 @@
+import type {
+  CandidateSummary,
+  Judgment,
+  JudgmentModel,
+} from '../extensions/article-judgment'
 import type { Registry } from '../extensions/registry'
 export interface Bindings {
   SENDING_DOMAINS?: string
@@ -6,11 +11,21 @@ export interface Bindings {
   GITHUB_TOKEN?: string
   PUBLIC_INTAKES?: Record<string, unknown>
   AI?: Ai
+  candidateSources?: Record<
+    string,
+    (
+      db: D1Database,
+      product: string,
+      text: string,
+    ) => Promise<CandidateSummary[]>
+  >
   judgeArticles?: (
     binding: Ai,
+    model: JudgmentModel,
     question: string,
-    articles: { id: string; title: string; body: string }[],
-  ) => Promise<{ id: string; score: number }[]>
+    articles: CandidateSummary[],
+    name?: string,
+  ) => Promise<Judgment>
   DB: D1Database
   RAW: R2Bucket
   JOBS: Queue

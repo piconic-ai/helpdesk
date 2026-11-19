@@ -1,5 +1,12 @@
 import type { IntakePolicy } from '../core/intakes/intake'
-import { ActionLink, Button, Field, Input, Textarea } from '../ui/controls'
+import {
+  ActionLink,
+  Button,
+  Field,
+  Input,
+  NativeSelect,
+  Textarea,
+} from '../ui/controls'
 import { DetailPage, EditPage, ListPage, Notice } from '../ui/patterns'
 import {
   Challenge,
@@ -68,6 +75,23 @@ export function intakePage(
         {error && <Notice kind="error">{error}</Notice>}
         <PublicForm>
           <IntakeKey policy={policy} />
+          {fields.submissionId && (
+            <input
+              type="hidden"
+              name="submissionId"
+              value={fields.submissionId}
+            />
+          )}
+          {fields.presentations && (
+            <input
+              type="hidden"
+              name="presentations"
+              value={fields.presentations}
+            />
+          )}
+          {fields.send === 'yes' && (
+            <input type="hidden" name="send" value="yes" />
+          )}
           {kind === 'form' && (
             <Field label="件名">
               <Input
@@ -144,12 +168,17 @@ export function matchingArticles(
   items: { id: string; title: string; url: string }[],
   policy: IntakePolicy,
   question: string,
+  presentation?: string,
+  needsHuman = false,
 ) {
   const title = '関連する記事'
   return {
     title,
     html: String(
       <ListPage title={title} description={question}>
+        {needsHuman && (
+          <ActionLink href="#contact-answer">担当者に問い合わせる</ActionLink>
+        )}
         <PublicLinks
           newTab
           items={items.map((a) => ({
@@ -157,11 +186,41 @@ export function matchingArticles(
             path: a.url,
           }))}
         />
-        <details>
+        {presentation && (
+          <PublicForm>
+            <IntakeKey policy={policy} />
+            <input type="hidden" name="turn" value={presentation} />
+            <input type="hidden" name="intent" value="resolve" />
+            {items.length === 1 ? (
+              <input type="hidden" name="article" value={items[0].id} />
+            ) : (
+              <Field label="解決に役立った記事">
+                <NativeSelect name="article">
+                  {items.map((a) => (
+                    <option value={a.id}>{a.title}</option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            )}
+            <Verification policy={policy} />
+            <Button type="submit">解決した</Button>
+          </PublicForm>
+        )}
+        <details id="contact-answer" open={needsHuman}>
           <summary role="button">解決しなかったので問い合わせる</summary>
           <PublicForm>
             <IntakeKey policy={policy} />
             <input type="hidden" name="handoff" value="yes" />
+            {presentation && (
+              <>
+                <input
+                  type="hidden"
+                  name="presentations"
+                  value={presentation}
+                />
+                <input type="hidden" name="submissionId" value={presentation} />
+              </>
+            )}
             <input type="hidden" name="question" value={question} />
             <EmailField />
             <Verification policy={policy} />
@@ -184,6 +243,59 @@ export function intakeUnavailable() {
     html: String(
       <DetailPage title={title}>
         <p>しばらくしてから、もう一度お試しください。</p>
+      </DetailPage>,
+    ),
+  }
+}
+
+export function formSuggestions(
+  items: { title: string; url: string }[],
+  policy: IntakePolicy,
+  fields: Fields,
+) {
+  const title = 'この記事で解決しませんか'
+  return {
+    title,
+    html: String(
+      <DetailPage title={title}>
+        <PublicForm>
+          <IntakeKey policy={policy} />
+          {['subject', 'email', 'body', 'presentations', 'submissionId'].map(
+            (name) => (
+              <input type="hidden" name={name} value={fields[name]} />
+            ),
+          )}
+          <input type="hidden" name="send" value="yes" />
+          <ReceiptDetails
+            entries={[
+              ['件名', fields.subject],
+              ['返信先', fields.email],
+            ]}
+          />
+          <Verification policy={policy} />
+          <Button type="submit" variant="default">
+            このまま送る
+          </Button>
+        </PublicForm>
+        <PublicLinks
+          newTab
+          items={items.map((a) => ({
+            label: a.title + '（新しいタブ）',
+            path: a.url,
+          }))}
+        />
+      </DetailPage>,
+    ),
+  }
+}
+export function chatResolvedPage() {
+  const title = '記事で解決したことを記録しました。'
+  return {
+    title,
+    html: String(
+      <DetailPage title="ヘルプチャット">
+        <Notice kind="success">{title}</Notice>
+        <ActionLink href="">別の質問をする</ActionLink>
       </DetailPage>,
     ),
   }

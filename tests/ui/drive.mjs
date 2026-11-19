@@ -296,8 +296,12 @@ async function takeAction(page, action, before) {
     if (await opener.isVisible()) await opener.click()
     await page.locator('#related-info').waitFor({ state: 'visible' })
   }
-  if (action === 'article-preview')
+  if (action === 'article-preview') {
     await page.getByRole('button', { name: 'プレビュー', exact: true }).click()
+    await page
+      .getByRole('heading', { name: '記事のプレビュー', exact: true })
+      .waitFor()
+  }
   if (action === 'invalid') await invalidMailbox(page, before)
   if (action === 'forget') await prepareForget(page, before)
   if (action === 'vote' || action === 'survey')

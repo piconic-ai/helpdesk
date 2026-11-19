@@ -1,3 +1,8 @@
+import {
+  suggestionScenes,
+  exposeSuggestionScene,
+  seedSuggestionScene,
+} from './suggestion-scenes.mjs'
 import { widgetSettingsScenes, exposeWidgetSettings } from './widget-scenes.mjs'
 import { trendScenes, seedTrendExamples } from './trend-scenes.mjs'
 import {
@@ -76,6 +81,8 @@ async function verifyViewport(browser, scene, origin, width) {
     })
     const done = await prepare(page, scene, origin, before)
     try {
+      if (suggestionScenes.includes(scene))
+        await exposeSuggestionScene(page, scene.id)
       if (identityScenes.includes(scene))
         await exposeIdentityControls(page, scene.id)
       if (widgetSettingsScenes.includes(scene))
@@ -102,24 +109,28 @@ const inventory = before
       ...identityScenes,
       ...trendScenes,
       ...widgetSettingsScenes,
+      ...suggestionScenes,
     ]
+// Use a stable visible hostname and port wherever the installation snippet is captured.
+function scenePort(scene, index) {
+  if (scene.id === 'suggest-settings') return 23945
+  if (scene.id === 'issue-preview') return 23382
+  if (scene.id.startsWith('guide-')) return 23400 + index
+  if (widgetSettingsScenes.includes(scene))
+    return 23930 + widgetSettingsScenes.indexOf(scene)
+  return 0
+}
 for (const [index, scene] of inventory.entries()) {
   test(scene.group + ' / ' + scene.label, async ({ browser }) => {
     const server = await startScene(scene.extensions, source, {
       emptyInbox: scene.emptyInbox,
-      // The public URL is visible in installation guides and iframe snippets.
-      port:
-        scene.id === 'issue-preview'
-          ? 23382
-          : scene.id.startsWith('guide-')
-            ? 23400 + index
-            : widgetSettingsScenes.includes(scene)
-              ? 23930 + widgetSettingsScenes.indexOf(scene)
-              : 0,
+      port: scenePort(scene, index),
     })
     try {
       if (reviewScreens.includes(scene) || nextIssuesScenes.includes(scene))
         await seedReviewExamples(server.db, scene.extensions ?? [])
+      if (suggestionScenes.includes(scene))
+        await seedSuggestionScene(server.db, scene.id)
       if (trendScenes.includes(scene)) await seedTrendExamples(server.db)
       if (identityScenes.includes(scene))
         await setSceneIcon(server.origin, scene.mode)

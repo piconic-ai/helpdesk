@@ -204,6 +204,17 @@ app.get('/conversation/:number', async (c) => {
   const data = await run(ctx, 'get', { number: c.req.param('number') })
   const number = data.conversation.number
   await recordView(ctx, number)
+  const lastInbound = data.messages.findLast((m) => m.kind === 'inbound')
+  const choices = await replyLinks(
+    ctx,
+    data.conversation.product,
+    new URL(c.req.url).origin,
+    lastInbound &&
+      data.conversation.kind === 'inquiry' &&
+      data.conversation.status.kind !== 'spam'
+      ? { number, id: lastInbound.id }
+      : undefined,
+  )
   return c.render(
     conversationPage(
       data,
@@ -226,12 +237,9 @@ app.get('/conversation/:number', async (c) => {
       ),
       await inboxMetadata(c.env, [number], ctx.operator),
       await threadFiles(c.env, data.attachments),
-      await replyLinks(
-        ctx,
-        data.conversation.product,
-        new URL(c.req.url).origin,
-      ),
+      choices.articles,
       await pendingReplyUndos(c.env, number, ctx.operator.email, ctx.now),
+      choices.offerToWrite,
     ),
   )
 })

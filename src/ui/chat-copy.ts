@@ -8,6 +8,7 @@ const japanese = {
   related: '関連する記事',
   noMatch: 'ヘルプ記事を探しましたが、質問に合う記事は見つかりませんでした。',
   instructions: '担当者にこれまでの質問を送ります。返信先を入力してください。',
+  contactFirst: '担当者に問い合わせる',
   solved: '解決した',
   unresolved: '解決しなかった',
   solvedNotice: '記事で解決したことを記録しました。',
@@ -42,6 +43,7 @@ const english: typeof japanese = {
   noMatch: 'We searched the help articles and could not find a match.',
   instructions:
     'Send your questions to our team. Enter the email address where you would like a reply.',
+  contactFirst: 'Contact our team',
   solved: 'Solved',
   unresolved: 'Still need help',
   solvedNotice: 'Recorded that the article helped you resolve your question.',

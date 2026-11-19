@@ -103,9 +103,10 @@ export async function startVisit(
   ctx: ExtensionContext,
   product: string,
   id: string,
+  presentation?: string,
 ) {
   const nonce = crypto.randomUUID()
-  await ctx.put('visit/' + nonce, { product, id, at: ctx.now })
+  await ctx.put('visit/' + nonce, { product, id, at: ctx.now, presentation })
   return nonce
 }
 const voteInput = z.object({ visit: z.uuid(), helpful: z.enum(['yes', 'no']) })
@@ -136,6 +137,13 @@ export async function recordVote(
     },
     vote.visit,
   )
+  if (data.data.presentation)
+    await ctx.reactToSuggestion({
+      product,
+      presentation: data.data.presentation,
+      article: id,
+      action: vote.helpful === 'yes' ? 'resolved' : 'unresolved',
+    })
   await ctx.put('visit/' + vote.visit, { ...data.data, answered: true })
   return true
 }

@@ -1,3 +1,4 @@
+import { inquirySuggestionStatements } from '../suggestions/suggestion-store'
 import { z } from 'zod'
 import type { Intake } from './intake'
 import type { Actor } from '../conversations/state'
@@ -5,6 +6,21 @@ import { insertDraft } from '../outbound/reply-store'
 
 type Action = { id: string; actor: Actor; now: number }
 export async function open(db: D1Database, i: Intake, a: Action) {
+  try {
+    return await insertIntake(db, i, a)
+  } catch (error) {
+    // A retried submission races on its deterministic message ID. D1 rolls back the losing batch.
+    if (i.submissionId) {
+      const number = await db
+        .prepare("SELECT number FROM messages WHERE id=? AND kind='inbound'")
+        .bind(a.id)
+        .first<number>('number')
+      if (number) return { number }
+    }
+    throw error
+  }
+}
+async function insertIntake(db: D1Database, i: Intake, a: Action) {
   const actor = JSON.stringify(a.actor)
   const [conversation] = await db.batch([
     db
@@ -37,6 +53,9 @@ export async function open(db: D1Database, i: Intake, a: Action) {
         a.id,
       ),
     receiveEvent(db, a, true),
+    ...(i.kind === 'inquiry' && i.suggestionIds?.length
+      ? inquirySuggestionStatements(db, i.suggestionIds, a.id, a.now)
+      : []),
   ])
   return z.object({ number: z.int().positive() }).parse(conversation.results[0])
 }

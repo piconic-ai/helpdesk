@@ -67,3 +67,5 @@ cccc .
 ```
 
 CI は Chromium と cccc v1.8.6 を使用します。カバレッジの内訳は `coverage/coverage-summary.json` に出ます。`scripts/layers.test.mjs` は各ファイルの依存方向と核から拡張への依存を検査します。BarefootJS のコンポーネントを編集したら、再度 `pnpm build` を実行してテンプレートとブラウザ用のスクリプトを更新してください。
+
+記事の推薦を変更するときは、[モデルと費用、確率の基準](article-suggestions.md)と[日本語の評価手順](../reports/suggest-eval.md)を参照してください。

@@ -9,6 +9,7 @@ interface ReplyComposerProps {
   contact: string
   subject?: string
   articles?: { title: string; url: string }[]
+  offerToWrite?: boolean
   closed?: boolean
   noteOnly?: boolean
 }
@@ -77,6 +78,16 @@ export function ReplyComposer(props: ReplyComposerProps) {
     const area = button.form?.querySelector('textarea:not(:disabled)')
     if (!(area instanceof HTMLTextAreaElement)) return
     const url = new URL(button.dataset.url, location.origin)
+    const presentation = url.searchParams.get('suggestion')
+    if (presentation)
+      void fetch('/conversation/' + props.number + '/article-selection', {
+        method: 'POST',
+        body: new URLSearchParams({
+          presentation,
+          article: decodeURIComponent(url.pathname.split('/').at(-1) ?? ''),
+        }),
+        keepalive: true,
+      }).catch(() => undefined)
     area.value = [
       area.value.trimEnd(),
       button.textContent?.trim() + '\n' + url.href,
@@ -211,6 +222,16 @@ export function ReplyComposer(props: ReplyComposerProps) {
           placeholder="チームに残すメモを入力"
         />
       </label>
+      {props.offerToWrite && (
+        <button
+          type="submit"
+          form="reply-article-candidate"
+          className="button-secondary"
+          hidden={note()}
+        >
+          記事の候補に追加
+        </button>
+      )}
       <div hidden={note() || !props.articles?.length}>
         <button
           type="button"

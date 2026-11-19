@@ -1,3 +1,14 @@
+import type {
+  CandidateSummary,
+  Judgment,
+  JudgmentModel,
+} from './article-judgment'
+import type {
+  PreviousInput,
+  PreviousSuggestion,
+  SuggestionPresentation,
+  SuggestionReaction,
+} from '../suggestions/suggestion'
 import type { GlyphName } from '../../ui/glyph'
 import type { z } from 'zod'
 import type { Context, Scope } from '../operations/catalog-usecase'
@@ -9,6 +20,8 @@ export type IntakeInput = {
   subject: string
   body: string
   origin: 'form' | 'chat'
+  submissionId?: string
+  suggestionIds?: string[]
   sourcePage?: string
 } & ({ kind?: 'inquiry'; email: string } | { kind: 'feedback'; email?: string })
 export type ExtensionEvent = {
@@ -27,6 +40,20 @@ export type Voice = {
   kind: 'inquiry' | 'feedback'
 }
 export type ExtensionContext = {
+  previousSuggestion: (
+    input: PreviousInput,
+  ) => Promise<PreviousSuggestion | null>
+  presentSuggestion: (input: SuggestionPresentation) => Promise<string>
+  reactToSuggestion: (input: SuggestionReaction) => Promise<boolean>
+  suggestionResolution: (
+    product: string,
+    from: number,
+    to: number,
+  ) => Promise<{
+    shownSuggestions: number
+    solvedSuggestions: number
+    selfResolutionRate: number | null
+  }>
   voices: () => Promise<Voice[]>
   enabledBy: string | null
   standing: (
@@ -54,10 +81,16 @@ export type ExtensionContext = {
   reviewFeedback: (number: number) => Promise<{ number: number }>
   convertFeedback: (number: number) => Promise<{ number: number }>
   resource: (id: string, name: string, input: unknown) => Promise<unknown>
+  articleCandidates: (
+    product: string,
+    text: string,
+  ) => Promise<CandidateSummary[]>
   judge: (
+    model: JudgmentModel,
     question: string,
-    articles: { id: string; title: string; body: string }[],
-  ) => Promise<{ id: string; score: number }[]>
+    articles: CandidateSummary[],
+    name?: string,
+  ) => Promise<Judgment>
   assign: (number: number, email: string) => Promise<void>
   label: (number: number, label: string) => Promise<void>
   compareSwap: (
@@ -126,6 +159,7 @@ export type Panel = {
   >
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
+export type ReplyLink = { title: string; path: string }
 export type Extension = {
   icon?: GlyphName
   navigationCount?: (ctx: ExtensionContext) => Promise<number>
@@ -136,7 +170,8 @@ export type Extension = {
   replyLinks?: (
     ctx: ExtensionContext,
     product: string,
-  ) => Promise<{ title: string; path: string }[]>
+    inbound?: { number: number; id: string },
+  ) => Promise<ReplyLink[] | { links: ReplyLink[]; offerToWrite: boolean }>
   requiresAI?: boolean
   secrets?: string[]
   id: string

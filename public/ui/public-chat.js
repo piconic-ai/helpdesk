@@ -9,6 +9,7 @@ const question = ask.elements.question
 const error = document.querySelector('#chat-error')
 const external = document.querySelector('#chat-external')
 const questions = []
+const presentations = []
 const defaults = { email: '', name: '' }
 const edited = new Set()
 let sourcePage = ''
@@ -37,18 +38,22 @@ function showError(message) {
   error.textContent = message
   error.hidden = !message
 }
-async function submit(intent, fields, control, done) {
-  if (busy) return
-  busy = true
-  control.disabled = true
-  showError('')
+function requestBody(intent, fields, token) {
   const data = new FormData()
-  const token = document.querySelector('[name="cf-turnstile-response"]')
   data.set('intent', intent)
   data.set('publicKey', ask.elements.publicKey.value)
   if (token) data.set('cf-turnstile-response', token.value)
   for (const [key, value] of Object.entries(fields))
     if (value) data.set(key, value)
+  return data
+}
+async function submit(intent, fields, control, done) {
+  if (busy) return
+  busy = true
+  control.disabled = true
+  showError('')
+  const token = document.querySelector('[name="cf-turnstile-response"]')
+  const data = requestBody(intent, fields, token)
   try {
     const res = await fetch(location.pathname, {
       method: 'POST',
@@ -59,7 +64,8 @@ async function submit(intent, fields, control, done) {
     if (!res.ok) throw Error(res.status === 403 ? copy.rate : copy.retry)
     done(await res.json())
   } catch (e) {
-    showError(e.message === copy.rate ? copy.rate : copy.retry)
+    if (intent === 'unresolved') showContact()
+    else showError(e.message === copy.rate ? copy.rate : copy.retry)
   } finally {
     busy = false
     control.disabled = false
@@ -84,7 +90,8 @@ function appendTurn(text, response) {
   group.append(result)
   turns.append(group)
   const items = response.articles
-  if (items.length) showMatches(result, items)
+  if (response.presentation) presentations.push(response.presentation)
+  if (items.length) showMatches(result, response)
   else {
     result.append(element('p', copy.noMatch))
     showContact()
@@ -100,16 +107,19 @@ ask.addEventListener('submit', (event) => {
   }
   void submit(
     'ask',
-    { question: text },
+    { question: text, requestId: crypto.randomUUID() },
     event.submitter ?? ask.querySelector('button'),
     (response) => appendTurn(text, response),
   )
 })
-function showMatches(result, items) {
+function showMatches(
+  result,
+  { articles: items, needsHuman, presentation: turn },
+) {
   const list = element('ul', null)
   const heading = element('h2', copy.related, { tabindex: '-1' })
   result.append(heading, list)
-  const turn = crypto.randomUUID()
+  if (needsHuman) result.prepend(button(copy.contactFirst, () => showContact()))
   let selected = items[0]
   items.forEach((item) => {
     const link = element('a', item.title, { href: item.url })
@@ -137,10 +147,17 @@ function showMatches(result, items) {
   )
   choices.append(
     solved,
-    button(copy.unresolved, () => showContact()),
+    button(copy.unresolved, (event) =>
+      submit(
+        'unresolved',
+        { article: selected.id, turn },
+        event.currentTarget,
+        showContact,
+      ),
+    ),
   )
   result.append(choices)
-  focusVisible(heading)
+  focusVisible(needsHuman ? result.firstElementChild : heading)
 }
 function contactField(label, name, type) {
   const wrap = element('label', label)
@@ -163,6 +180,7 @@ function contactField(label, name, type) {
 function showContact() {
   contact?.remove()
   ask.hidden = true
+  const submissionId = crypto.randomUUID()
   const form = element('form', null, { class: 'chat-contact' })
   const send = element('button', copy.send, {
     type: 'submit',
@@ -200,6 +218,8 @@ function showContact() {
         email: form.elements.email.value,
         name: form.elements.name.value,
         question: questions.join('\n\n'),
+        presentations: presentations.join(','),
+        submissionId,
         sourcePage,
       },
       send,
