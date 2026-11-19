@@ -115,7 +115,7 @@ export async function pageNumbers(
   db: D1Database,
   numbers: number[],
   aliases: Record<number, number>,
-  newest: boolean,
+  order: 'newest' | 'waiting' | 'unreviewed',
   offset: number,
   limit: number,
 ) {
@@ -127,13 +127,14 @@ export async function pageNumbers(
     FROM members x JOIN messages m ON m.number=x.source WHERE x.target IN (SELECT value FROM json_each(?1)) GROUP BY x.target
   )
   SELECT c.number FROM json_each(?1) n JOIN conversations c ON c.number=n.value LEFT JOIN activity a ON a.target=c.number
-  ORDER BY CASE WHEN ?3=0 AND c.status='open' AND a.received IS NOT NULL THEN 0 ELSE 1 END,
-    CASE WHEN ?3=0 AND c.status='open' THEN a.received END ASC,
-    coalesce(a.latest,c.created_at) DESC,c.number DESC LIMIT ?4 OFFSET ?5`)
+  ORDER BY CASE WHEN ?3='unreviewed' AND c.status='received' THEN 0 ELSE 1 END,
+    CASE WHEN ?3='waiting' AND c.status='open' AND a.received IS NOT NULL THEN 0 ELSE 1 END,
+    CASE WHEN ?3='waiting' AND c.status='open' THEN a.received END ASC,
+    CASE WHEN c.kind='feedback' THEN c.created_at ELSE coalesce(a.latest,c.created_at) END DESC,c.number DESC LIMIT ?4 OFFSET ?5`)
     .bind(
       JSON.stringify(numbers),
       JSON.stringify(aliases),
-      newest ? 1 : 0,
+      order,
       limit,
       offset,
     )

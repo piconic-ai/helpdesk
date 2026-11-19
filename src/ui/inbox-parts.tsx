@@ -105,6 +105,9 @@ export const RowCount = ({ children }: Content) => (
 export const QuickActions = ({ children }: Content) => (
   <div className="row-actions">{children}</div>
 )
+export const FeedbackRowAction = ({ children }: Content) => (
+  <div className="feedback-row-action">{children}</div>
+)
 export const WaitingTime = ({
   overdue,
   at,

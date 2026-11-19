@@ -345,6 +345,7 @@ export function galleryPage(query: URLSearchParams) {
         <title>UI 部品見本 · Helpdesk</title>
         <link rel="stylesheet" href="/styles.css" />
         <link rel="stylesheet" href="/ui/inbox.css" />
+        <link rel="stylesheet" href="/ui/layout.css" />
         <script defer src="/ui/live-filters.js"></script>
         <script type="module" src="/ui/barefoot-overlays.js"></script>
         <script defer src="/ui/gallery.js"></script>

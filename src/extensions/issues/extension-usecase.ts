@@ -1,4 +1,4 @@
-import { draftIssueNotices } from './board-usecase'
+import { draftIssueNotices, pendingIssueCount } from './board-usecase'
 import { impactOperation } from './impact-usecase'
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
@@ -26,6 +26,7 @@ const noticesInput = issueRef.extend({ product: z.string().min(1) })
 const withUrl = linked.extend({ url: z.url() })
 export const issues: Extension = {
   id: 'issues',
+  navigationCount: pendingIssueCount,
   async configurationGaps(ctx, products) {
     const missing = await Promise.all(
       products.map(async (p) =>

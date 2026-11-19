@@ -67,7 +67,7 @@ export { expect }
 export const test = base.extend({
   extensions: [[], { option: true }],
   scene: async ({ extensions }, use) => {
-    const scene = await startScene(extensions)
+    const scene = await startScene(extensions, '.', { tickingClock: true })
     try {
       await use(scene)
     } finally {

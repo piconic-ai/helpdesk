@@ -40,7 +40,7 @@ test('J5 記事をプレビューし公開してから返信に添える', async
   await expect(page.getByText(publicUrl, { exact: false }).last()).toBeVisible()
   await capture(page, 'J5', '03-composer', '返信プレビューで記事のリンクを確認')
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await confirmSubmission(page)
+  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
   await expect(page.locator('article.message-outbound')).toContainText(
     publicUrl,
   )
@@ -56,6 +56,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
   await page.getByRole('link', { name: /領収書の宛名を変更できますか/ }).click()
   const panel = page.locator('[data-extension="issues"]')
   await panel.getByText('Issue を起票する', { exact: true }).click()
+  await panel.getByLabel('タイトル').fill('領収書を見つけやすくする')
   await panel.getByLabel('公開する要約').fill(summary)
   await panel.getByRole('button', { name: '起票内容を確認' }).click()
   await expect(page.getByText(summary, { exact: false }).last()).toBeVisible()

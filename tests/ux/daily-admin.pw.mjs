@@ -84,10 +84,10 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await expect(page.getByRole('textbox', { name: '下書きの本文' })).toHaveValue(
     '山田 花 様、入金を確認しました。',
   )
-  await page.getByRole('link', { name: '既存の Issue を選ぶ' }).click()
+  await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
   await page
-    .getByRole('combobox', { name: 'Issue', exact: true })
-    .selectOption({ label: 'Inquiry #1 (#42)' })
+    .getByRole('combobox', { name: '課題', exact: true })
+    .selectOption({ label: '領収書の一括ダウンロード (#42)' })
   await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
   await expect(page.getByRole('dialog')).toContainText('example/helpdesk')
   await confirmSubmission(page)

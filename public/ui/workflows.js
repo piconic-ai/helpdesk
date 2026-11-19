@@ -47,13 +47,6 @@ function submissionDetails(form, trigger) {
     document.querySelector('.composer')?.dataset.contact ||
     document.querySelector('.thread-header')?.dataset.contact
   const label = trigger?.textContent.trim() || '実行する'
-  if (form.matches('.composer') && !form.matches('.composer-note'))
-    return [
-      label,
-      recipient +
-        ' に次の返信を送信します。\n' +
-        form.querySelector('textarea:not(:disabled)').value,
-    ]
   if (action === '/actions/approve')
     return [
       label,
@@ -63,8 +56,6 @@ function submissionDetails(form, trigger) {
     ]
   if (action === '/actions/discard' && !form.closest('.banner-success'))
     return [label, 'この会話から下書き1件を削除します。']
-  if (action === '/actions/retry')
-    return [label, recipient + ' に送信に失敗した返信を再送します。']
   if (action === '/actions/issues.link')
     return [
       label,

@@ -1,9 +1,6 @@
 import { issueBoardRoutes } from './issue-board-routes'
 import { automaticMailRoutes } from './automatic-mail-routes'
 import { listRows, type ListWindow } from '../ui/listing'
-import { PanelForm } from '../ui/admin'
-import { FormSection } from '../ui/patterns'
-import { ActionLink, Button, NativeSelect } from '../ui/controls'
 import {
   readExtensionSettings,
   editExtensionSetting,
@@ -45,11 +42,7 @@ import {
 import { library } from '../extensions/articles/articles-usecase'
 import { article, articleKey, publicPath } from '../extensions/articles/article'
 import { repository } from '../extensions/issues/issues'
-import {
-  configuredRepository,
-  issueDestination,
-  issueChoices,
-} from '../extensions/issues/issues-usecase'
+import { configuredRepository } from '../extensions/issues/issues-usecase'
 import {
   editPublicSetting,
   undoPublicSetting,
@@ -601,54 +594,9 @@ app.post('/extensions/issues/repository', async (c) => {
   })
   return c.redirect('/extensions/issues?saved=1', 303)
 })
-app.get('/extensions/issues/link/:number', async (c) => {
-  const api = active(c, 'issues')
-  if (!api) return c.notFound()
+app.get('/extensions/issues/link/:number', (c) => {
+  if (!active(c, 'issues')) return c.notFound()
   const number = z.coerce.number().int().positive().parse(c.req.param('number'))
-  const { product } = await api.contact(number)
-  if (
-    !(await configuredRepository(api, product)) ||
-    !api.secret('GITHUB_TOKEN')
-  )
-    return c.render(
-      adminPage(
-        'GitHub Issue の設定が必要です',
-        await frame(c),
-        <p>
-          起票先リポジトリと GITHUB_TOKEN を確認してください。{' '}
-          <ActionLink href="/extensions/issues">
-            GitHub Issue の設定を開く
-          </ActionLink>
-        </p>,
-      ),
-    )
-  const { repo, origin } = await issueDestination(api, product)
-  const choices = await issueChoices(api, repo)
-  const view = choices.length ? (
-    <FormSection title="Issue の選択">
-      <PanelForm
-        method="post"
-        action="/actions/issues.link"
-        data-repo={repo}
-        data-backlink={origin + '/conversation/' + number}
-      >
-        <input type="hidden" name="number" value={number} />
-        <label>
-          Issue
-          <NativeSelect name="issue">
-            {choices.map((i) => (
-              <option value={i.number}>
-                {i.title} (#{i.number})
-              </option>
-            ))}
-          </NativeSelect>
-        </label>
-        <Button>既存の Issue と紐づける</Button>
-      </PanelForm>
-    </FormSection>
-  ) : (
-    <p>このリポジトリには Issue がありません。</p>
-  )
-  return c.render(adminPage('既存の Issue を選ぶ', await frame(c), view))
+  return c.redirect('/conversation/' + number + '?issue=link', 302)
 })
 export { app as extensionConsoleRoutes }

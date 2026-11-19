@@ -101,3 +101,21 @@ test('screens use presentation components for styling', () => {
   )
   expect(findings).toEqual([])
 })
+
+test('layout owns exterior spacing for every screen and component', async () => {
+  const { default: postcss } = await import('postcss')
+  const files = [
+    'public/styles.css',
+    ...readdirSync('public/ui')
+      .filter((n) => n.endsWith('.css') && n !== 'layout.css')
+      .map((n) => join('public/ui', n)),
+  ]
+  for (const file of files) {
+    const root = postcss.parse(readFileSync(file, 'utf8'))
+    const declarations = []
+    root.walkDecls(/^margin(?:-|$)/, (decl) =>
+      declarations.push(decl.toString()),
+    )
+    expect(declarations, file).toEqual([])
+  }
+})

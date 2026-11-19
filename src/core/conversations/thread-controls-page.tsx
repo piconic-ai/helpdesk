@@ -139,9 +139,35 @@ export function draftReview(
     </DraftReview>
   )
 }
+export function replyUndoForm(
+  number: number,
+  hold: { id: string; remaining: number; target: 'pending' | 'closed' },
+) {
+  return (
+    <form
+      action="/actions/undoReply"
+      method="post"
+      data-undo-reply={hold.remaining}
+      data-layout="cluster"
+      data-gap="sm"
+    >
+      <Input type="hidden" name="id" value={hold.id} />
+      <Input type="hidden" name="number" value={number} />
+      <span>
+        {hold.target === 'closed'
+          ? '送信後に会話を完了します。'
+          : 'まもなく返信を送信します。'}
+      </span>
+      <Button variant="outline" type="submit">
+        取り消す
+      </Button>
+    </form>
+  )
+}
 const notices: Record<string, string> = {
+  undoReply: '送信を取り消しました。返信欄で編集できます。',
   reply: '返信を送信待ちに追加しました。',
-  replyAndClose: '返信を送信待ちに追加し、会話を完了しました。',
+  replyAndClose: '返信と会話の完了を受け付けました。',
   'feedback.review': 'フィードバックを確認済みにしました。',
   'feedback.unreview': '未確認に戻しました。',
   'feedback.convert': 'フィードバックを問い合わせに変更しました。',

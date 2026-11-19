@@ -115,7 +115,24 @@ async function enterConversation(page: Page) {
 async function inspectMail(page: Page) {
   const frame = page.frameLocator('iframe[title="HTML メール"]')
   await frame.getByText('Where can I download the receipt?').waitFor()
-  expect(await page.locator('iframe').getAttribute('sandbox')).toBe('')
+  const iframe = page.locator('iframe')
+  expect(await iframe.getAttribute('sandbox')).toBe('allow-scripts')
+  expect(
+    await iframe.evaluate((el) => (el as HTMLIFrameElement).contentDocument),
+  ).toBeNull()
+  const frameResponse = await page.request.get(
+    origin + (await iframe.getAttribute('src')),
+  )
+  const policy = frameResponse.headers()['content-security-policy']
+  expect(policy).toContain("default-src 'none'")
+  expect(policy).toMatch(/script-src 'nonce-[^']+';/)
+  await expect
+    .poll(async () => {
+      const content = await frame.locator('main').boundingBox()
+      const bounds = await iframe.boundingBox()
+      return Math.abs(bounds!.height - Math.ceil(content!.height))
+    })
+    .toBeLessThan(2)
   expect(await frame.locator('body').textContent()).not.toContain(
     'Script executed',
   )
@@ -150,16 +167,8 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
     await page.getByRole('button', { name: 'プレビュー' }).click()
     await page.locator('pre').filter({ hasText: reply }).waitFor()
     await page.getByRole('button', { name: '送信', exact: true }).click()
-    await Promise.all([
-      page.waitForEvent(
-        'framenavigated',
-        (frame) => frame === page.mainFrame(),
-      ),
-      page
-        .getByRole('dialog')
-        .getByRole('button', { name: '送信', exact: true })
-        .click(),
-    ])
+    await page.getByRole('button', { name: '取り消す' }).waitFor()
+    expect(await page.getByRole('dialog').count()).toBe(0)
     await expect
       .poll(
         async () => {

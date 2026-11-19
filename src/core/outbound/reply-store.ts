@@ -7,6 +7,7 @@ import {
 } from '../conversations/state'
 import { replyEnvelopeSchema } from './compose'
 import { outboxRowSchema } from './outbound-schema'
+import { holdReply, releaseHeldStatus } from './reply-hold-store'
 import type { SendResult } from './send-client'
 
 const threadSql = `SELECT message_id,in_reply_to,refs FROM messages
@@ -22,6 +23,7 @@ type Submission = {
   actor: Actor
   now: number
   approval: Approval | null
+  holdUntil?: number
   close?: boolean
 }
 type Enqueue = {
@@ -29,6 +31,7 @@ type Enqueue = {
   actor: Actor
   now: number
   approval: Approval
+  holdUntil?: number
   close?: boolean
 }
 function event(
@@ -61,7 +64,16 @@ function queueWrites(db: D1Database, input: Enqueue, attempt: string) {
   return [
     queueEntry(db, input.id, attempt, input.now),
     event(db, 'reply_queued', input, hasAttempt, attempt),
-    ...statusWrites(db, input, attempt),
+    ...(input.holdUntil
+      ? [
+          holdReply(
+            db,
+            input.id,
+            input.holdUntil,
+            input.close ? 'closed' : 'pending',
+          ),
+        ]
+      : statusWrites(db, input, attempt)),
   ]
 }
 function statusWrites(db: D1Database, input: Enqueue, attempt: string) {
@@ -193,11 +205,12 @@ const claimSchema = replyEnvelopeSchema.extend({
   automatic: z.number().transform(Boolean),
 })
 export async function claim(db: D1Database, id: string, now: number) {
-  const [changed, rows] = await db.batch([
+  const [changed, , , rows] = await db.batch([
     db
-      .prepare(`UPDATE outbox SET phase='sending',claimed_at=? WHERE message=? AND phase='ready' AND EXISTS
+      .prepare(`UPDATE outbox SET phase='sending',claimed_at=? WHERE message=? AND phase='ready' AND NOT EXISTS (SELECT 1 FROM reply_holds WHERE message=outbox.message AND until_at>?) AND EXISTS
       (SELECT id FROM messages WHERE id=? AND kind='outbound' AND delivery='queued' AND approval IS NOT NULL)`)
-      .bind(now, id, id),
+      .bind(now, id, now, id),
+    ...releaseHeldStatus(db, id, now),
     db
       .prepare(`SELECT c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic
       FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id LEFT JOIN standing_messages s ON s.message=m.id WHERE m.id=?`)
@@ -244,10 +257,11 @@ export async function finish(
   return updated.meta.changes === 1
 }
 
-export async function waiting(db: D1Database) {
+export async function waiting(db: D1Database, now: number) {
   const rows = await db
     .prepare(`SELECT message,phase,attempt,queued_at AS queuedAt, claimed_at AS claimedAt FROM outbox
-    WHERE phase='ready' ORDER BY queued_at, message LIMIT 100`)
+    WHERE phase='ready' AND NOT EXISTS (SELECT 1 FROM reply_holds WHERE message=outbox.message AND until_at>?) ORDER BY queued_at, message LIMIT 100`)
+    .bind(now)
     .all()
   return z
     .array(outboxRowSchema)

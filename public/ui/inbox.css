@@ -35,10 +35,7 @@
 }
 .row-product {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 20%;
-  flex-shrink: 2;
+  flex: none;
 }
 .row-messages {
   display: inline-flex;
@@ -97,7 +94,6 @@
   justify-content: center;
   align-items: center;
   gap: var(--spacing-sm);
-  margin-top: var(--spacing-lg);
 }
 .row-labels {
   align-items: center;
@@ -157,7 +153,6 @@
 }
 [data-ui='conversation-row'] .row-time,
 [data-ui='conversation-row'] .row-assignee {
-  margin-inline-start: auto;
   flex: none;
   text-align: end;
 }
@@ -170,10 +165,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0;
 }
 .row-select input {
-  margin: 0;
   opacity: 0.55;
 }
 .inbox-item:is(:hover, :focus-within) .row-select input,
@@ -210,7 +203,6 @@
   align-items: center;
   gap: var(--spacing-xs);
   min-width: 0;
-  margin: 0;
 }
 .filters > input[type='search'] {
   flex: 1;
@@ -233,9 +225,6 @@
 #inbox-filters {
   width: min(18rem, calc(100vw - var(--spacing-lg)));
 }
-#inbox-filters label {
-  margin-block: var(--spacing-xs);
-}
 #product-switcher a {
   display: block;
   color: var(--colors-body);
@@ -246,7 +235,6 @@
   display: flex;
   align-items: center;
   border-top: var(--layout-hairline-width) solid var(--colors-hairline);
-  margin-top: var(--spacing-xs);
   padding-top: var(--spacing-xs);
 }
 .account-navigation .sidebar-account {
@@ -270,7 +258,6 @@
 }
 .product-menu [data-slot='popover-trigger']::after {
   content: '⌄' / '';
-  margin-inline-start: auto;
   color: var(--colors-muted);
 }
 [data-contact] > [data-ui='attributes'] {
@@ -289,9 +276,6 @@
 }
 [data-contact] .status-badge {
   border: 0;
-}
-[data-slot='popover-content'] form {
-  margin: 0;
 }
 [data-slot='popover-content'] form button {
   width: 100%;
@@ -315,7 +299,6 @@
 }
 [data-ui='message'] > header h2 {
   font: var(--typography-body-strong);
-  margin: 0;
 }
 .message-record {
   border: 0;
@@ -332,7 +315,6 @@
 }
 .composer-field {
   display: block;
-  margin: 0;
 }
 .composer-field textarea {
   display: block;
@@ -353,7 +335,6 @@
   display: inline-flex;
   justify-self: start;
   align-items: center;
-  margin: 0;
   border-radius: var(--rounded-md);
   padding: var(--spacing-xxs);
   background: var(--colors-surface-soft);
@@ -377,9 +358,6 @@
   .filters > input[type='search'] {
     width: 1px;
   }
-  .row-product {
-    max-width: 15%;
-  }
   .row-top .row-sender {
     max-width: 26%;
   }
@@ -393,8 +371,7 @@
   flex: 0 1 auto;
 }
 .inbox-item .row-product {
-  flex: 0 1 auto;
-  min-width: 3.1em;
+  flex: none;
   text-align: center;
 }
 .inbox-item .unread .row-subject {
@@ -402,4 +379,22 @@
 }
 .draft-review [data-slot='field'] > textarea {
   max-width: var(--components-help-article-width);
+}
+
+.inbox-item:has(.feedback-row-action) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.feedback-row-action {
+  align-self: center;
+  padding: var(--spacing-xs);
+}
+@media (max-width: 767px) {
+  .inbox-item:has(.feedback-row-action) {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .feedback-row-action {
+    grid-column: 2;
+    justify-self: start;
+    padding-block-start: 0;
+  }
 }

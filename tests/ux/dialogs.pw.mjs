@@ -64,26 +64,16 @@ const formButton = (page, action) =>
     )
     .first()
 
-test('送信・承認・破棄・再送の各確認は背後を操作できず Esc で元の操作に戻る', async ({
+test('承認・破棄の各確認は背後を操作できず Esc で元の操作に戻る', async ({
   page,
   scene,
 }) => {
-  await page.goto(scene.origin + '/conversation/1')
-  await page.getByLabel('返信', { exact: true }).fill('ダイアログの検証本文')
-  for (const name of ['送信', '送信して完了'])
-    await inspectModal(page, button(page, name), {
-      content: 'customer1@example.net',
-    })
   await page.goto(scene.origin + '/conversation/5')
   await inspectModal(page, button(page, '承認して送信'), {
     content: 'customer5@example.net',
   })
   await inspectModal(page, formButton(page, '/actions/discard'), {
     content: '下書き1件',
-  })
-  await page.goto(scene.origin + '/conversation/4')
-  await inspectModal(page, formButton(page, '/actions/retry'), {
-    content: 'customer4@example.net',
   })
 })
 
@@ -104,6 +94,7 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
   await page.keyboard.press('Escape')
   const issues = page.locator('[data-extension="issues"]')
   await issues.getByText('Issue を起票する', { exact: true }).click()
+  await issues.getByLabel('タイトル').fill('領収書を見つけやすくする')
   await issues.getByLabel('公開する要約').fill('検索条件が保存されません。')
   await inspectModal(
     page,

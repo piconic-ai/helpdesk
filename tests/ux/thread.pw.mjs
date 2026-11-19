@@ -57,7 +57,7 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
     '相手に届く差出人・宛先・件名と本文を確認する',
   )
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await confirmSubmission(page)
+  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
   await expect(notice(page)).toContainText('送信')
   await seeDelivery(page, answer)
   const current = new URL(page.url()).pathname
@@ -97,10 +97,10 @@ test('J2 受信で再開し、返信して完了した後も相手の返信が�
   const answer = '招待メールをもう一度お送りしました。'
   await compose(page).fill(answer)
   await page.getByRole('button', { name: '送信して完了' }).click()
-  await confirmSubmission(page)
+  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
   await expect(notice(page)).toContainText('完了')
-  await expect(status(page)).toContainText('完了')
   await seeDelivery(page, answer)
+  await expect(status(page)).toContainText('完了')
   await expect(page.getByText(/返信するには再開します/)).toBeVisible()
   await capture(
     page,
@@ -130,25 +130,13 @@ test('J3 失敗の理由を読んで再送する', async ({ page, scene }) => {
   const failed = page.getByRole('link', { name: /月額プランの明細/ })
   await expect(failed).toContainText('送信失敗')
   await capture(page, 'J3', '01-inbox', '一覧で送信失敗を見つける')
-  const consoleAsset = Promise.withResolvers()
-  await page.route('**/ui/console.js', async (route) => {
-    await consoleAsset.promise
-    await route.continue()
-  })
-  try {
-    await failed.click({ noWaitAfter: true })
-    await expect(
-      page.getByText('宛先のメールサーバーが受信を拒否しました。'),
-    ).toBeVisible()
-    await capture(page, 'J3', '02-reason', '失敗した理由を確認する')
-    await page
-      .getByRole('button', { name: '再送', exact: true })
-      .click({ noWaitAfter: true })
-    await expect(page.locator('#action-confirmation')).toBeVisible()
-  } finally {
-    consoleAsset.resolve()
-  }
-  await confirmSubmission(page)
+  await failed.click()
+  await expect(
+    page.getByText('宛先のメールサーバーが受信を拒否しました。'),
+  ).toBeVisible()
+  await capture(page, 'J3', '02-reason', '失敗した理由を確認する')
+  await page.getByRole('button', { name: '再送', exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(notice(page)).toContainText('再送')
   await seeDelivery(page, '明細を確認してご案内いたします。')
   await capture(page, 'J3', '03-delivered', '再送した返信が送信済みになる')

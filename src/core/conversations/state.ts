@@ -66,6 +66,7 @@ export const conversationSchema = z.discriminatedUnion('kind', [
   }),
   commonSchema.extend({
     kind: z.literal('feedback'),
+    contact: z.union([addressSchema, z.literal('')]),
     status: feedbackStatusSchema,
   }),
 ])

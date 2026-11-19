@@ -121,13 +121,16 @@ async function compose(page, mode, before) {
     await route.fulfill({ response: rejected }).catch(() => {})
   })
   const click = submit.click({ noWaitAfter: true }).catch(() => {})
-  if (!before) await page.locator('#action-confirmation [data-commit]').click()
   await pending
   if (mode === 'sending') {
     if (!before) {
       const sending = page.getByRole('button', { name: '送信中…', exact: true })
       await sending.waitFor()
       assert.ok(await sending.isDisabled())
+      // Chromium releases focus on the disabled submit button at the next paint.
+      await page.waitForFunction(
+        () => !document.activeElement?.matches(':disabled'),
+      )
     }
     return async () => {
       resume()
@@ -184,7 +187,8 @@ async function publicIntake(page, scene, origin, before) {
         : '設定画面の説明が分かりやすくなりました。',
     )
   const email = page.locator('input[name=email]')
-  if (await email.isVisible()) await email.fill('reader@example.net')
+  if (kind !== 'feedback' && (await email.isVisible()))
+    await email.fill('reader@example.net')
   await page
     .locator('form button[type=submit],form button:not([type])')
     .last()
@@ -236,6 +240,7 @@ async function operationDocument(page, action) {
     action === 'issue-preview'
       ? {
           number: '1',
+          title: '請求書の宛名を変更できるようにする',
           summary: '請求書の宛名を変更すると確認画面が開きません。',
         }
       : { product: 'slide', from: '1792281600000', to: '1794960000000' }
@@ -370,6 +375,8 @@ export async function prepare(page, scene, origin, before) {
     `Unexpected status at ${scene.url}`,
   )
   await page.evaluate(() => document.fonts.ready)
+  if (scene.id === 'link-issue' && !before)
+    await page.locator('[data-issue-picker] select:enabled').waitFor()
   if (scene.action === 'loading') return pendingSearch(page, before)
   if (scene.action?.startsWith('compose-'))
     return compose(page, scene.action.slice(8), before)
@@ -412,8 +419,6 @@ export async function keyboardFlow(page, origin) {
       .locator('.composer')
       .getByRole('button', { name: '送信', exact: true }),
   )
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Tab')
   await page.keyboard.press('Enter')
   await page
     .locator('.message-outbound')

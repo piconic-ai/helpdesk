@@ -65,3 +65,38 @@ export function timelineChange(
       )
   }
 }
+
+type HistoryEvent = { kind: string; at: number; payload: string; actor: string }
+function changeKey(e: HistoryEvent) {
+  if (e.kind === 'assigned' || e.kind === 'status_changed') return e.kind
+  if (e.kind !== 'label_changed') return null
+  try {
+    const change = payload.parse(JSON.parse(e.payload))
+    return 'label:' + (change.name ?? change.label)
+  } catch {
+    return null
+  }
+}
+
+// The audit log stays intact. Only consecutive edits to the same attribute collapse.
+export function displayEvents<T extends HistoryEvent>(newestFirst: T[]) {
+  const visible: T[] = []
+  let last: T | undefined
+  for (const e of newestFirst) {
+    if (e.kind === 'conversation_viewed') {
+      visible.push(e)
+      continue
+    }
+    const key = changeKey(e)
+    if (
+      !key ||
+      !last ||
+      key !== changeKey(last) ||
+      last.actor !== e.actor ||
+      last.at - e.at > 60_000
+    )
+      visible.push(e)
+    last = e
+  }
+  return visible
+}

@@ -21,14 +21,22 @@ const fieldsByKind = {
   chat: { name: 'question', label: '質問', limit: 30000 },
 }
 
-function EmailField({ value }: { value?: string }) {
+function EmailField({
+  value,
+  optional = false,
+}: {
+  value?: string
+  optional?: boolean
+}) {
   return (
-    <Field label="連絡先メールアドレス">
+    <Field
+      label={optional ? '連絡先メールアドレス（任意）' : '連絡先メールアドレス'}
+    >
       <Input
         name="email"
         type="email"
         autocomplete="email"
-        required
+        required={!optional}
         value={value ?? ''}
       />
     </Field>
@@ -86,7 +94,9 @@ export function intakePage(
               <p>担当者から返信するための連絡先を入力してください。</p>
             </>
           )}
-          {!search && <EmailField value={fields.email} />}
+          {!search && (
+            <EmailField value={fields.email} optional={kind === 'feedback'} />
+          )}
           <Verification policy={policy} />
           <Button variant="default" type="submit">
             {search ? '質問する' : '送信'}
@@ -114,7 +124,7 @@ export function receiptPage(
   if (kind === 'chat') entries.push(['質問', fields.question])
   entries.push([
     kind === 'feedback' ? '登録した連絡先' : '返信先',
-    fields.email,
+    fields.email || '登録なし',
   ])
   if (kind !== 'feedback' && responseTime)
     entries.push(['返信の目安', responseTime])

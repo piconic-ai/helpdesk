@@ -18,6 +18,7 @@ import { transition } from '../conversations/transitions'
 import { deleteContent, drainDeleted } from '../retention/retention-store'
 import {
   queueReply,
+  undoReply,
   approveReply,
   discardReply,
   retryReply,
@@ -77,11 +78,19 @@ export const handlers = {
     i: Ticket & { label: string; action: 'add' | 'remove' },
   ) => changeGroupLabel(c.env, audit(c), i),
   reply: (c: Context, i: Reply) =>
-    queueReply(c.env, { ...i, actor: c.actor, now: c.now }),
+    queueReply(c.env, { ...i, undoable: true, actor: c.actor, now: c.now }),
+  undoReply: (c: Context, i: { id: string }) =>
+    undoReply(c.env, { ...i, actor: c.actor, now: c.now }),
   retry: (c: Context, i: { id: string }) =>
     retryReply(c.env, { ...i, actor: c.actor, now: c.now }),
   replyAndClose: (c: Context, i: Reply) =>
-    queueReply(c.env, { ...i, close: true, actor: c.actor, now: c.now }),
+    queueReply(c.env, {
+      ...i,
+      undoable: true,
+      close: true,
+      actor: c.actor,
+      now: c.now,
+    }),
   discard: (c: Context, i: { id: string }) =>
     discardReply(c.env, { ...i, actor: c.actor, now: c.now }),
   approve: (c: Context, i: { id: string; body?: string }) =>

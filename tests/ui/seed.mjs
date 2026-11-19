@@ -285,6 +285,7 @@ export async function startScene(
   {
     port = 0,
     emptyInbox = false,
+    tickingClock = false,
     embedOrigin,
     secondAdmin = false,
     githubToken = true,
@@ -348,6 +349,7 @@ export async function startScene(
           NOTIFY_WEBHOOK_URL: 'https://notify.example.test/webhook',
         }),
         FIXED_NOW: fixedTime,
+        TICKING_CLOCK: tickingClock,
       },
     }),
   )

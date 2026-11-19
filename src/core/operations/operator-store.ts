@@ -161,7 +161,7 @@ export async function listContacts(db: D1Database) {
       SELECT contact AS email, contact_name AS name, 1 AS conversation FROM conversations
       UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_failures
       UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_jobs
-    ) WHERE email IS NOT NULL GROUP BY email ORDER BY coalesce(max(name),email),email`)
+    ) WHERE length(email)>0 GROUP BY email ORDER BY coalesce(max(name),email),email`)
     .all()
   return z
     .array(

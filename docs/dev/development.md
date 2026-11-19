@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm dev:demo
 ```
 
-受信箱から課題のクローズ通知や記事化まで試せます。[ハンズオン](../plan/hands-on.md)
+受信箱から課題のクローズ通知や記事化まで試せます。[ハンズオン](../hands-on.md)
 
 ## 空の窓口から始める
 

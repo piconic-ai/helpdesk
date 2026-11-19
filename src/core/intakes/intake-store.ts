@@ -13,7 +13,7 @@ export async function open(db: D1Database, i: Intake, a: Action) {
       .bind(
         i.product,
         i.product,
-        i.email,
+        i.email ?? '',
         i.name ?? null,
         i.subject,
         i.kind,
@@ -90,7 +90,7 @@ export async function contactInfo(db: D1Database, number: number) {
       name: z.string(),
       productName: z.string(),
       product: z.string(),
-      email: z.email(),
+      email: z.union([z.email(), z.literal('')]),
       mailbox: z.email(),
       subject: z.string(),
       status: z.string(),

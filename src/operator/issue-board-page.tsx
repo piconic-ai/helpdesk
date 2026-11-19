@@ -3,110 +3,65 @@ import { shell } from '../core/conversations/console-page'
 import { issueUrl } from '../extensions/issues/issues'
 import { issueKey } from '../extensions/issues/outcomes'
 import type { issueBoard } from '../extensions/issues/board-usecase'
+import { Stack } from '../ui/layout'
 import {
+  IssueImpact,
+  PendingIssues,
+  IssueTable,
+  IssueVoices,
+  NewIssueForm,
+} from '../ui/issue-board'
+import {
+  DetailPage,
   ListPage,
-  FormSection,
   EmptyState,
   Notice,
-  ActionBar,
+  FormSection,
 } from '../ui/patterns'
-import { ListFilters, listRows, PageLinks } from '../ui/listing'
+import { paginateRows } from '../ui/pagination'
+import { ListFilters, matchesSearch, PageLinks } from '../ui/listing'
 import { ActionLink, Button } from '../ui/controls'
 
 type Row = Awaited<ReturnType<typeof issueBoard>>[number]
-const states: Record<string, string> = {
-  open: '開いている',
-  closed: '閉じた',
-  unknown: '状態を同期待ち',
+type Contact = { name: string; subject: string }
+const path = (row: Pick<Row, 'repository' | 'issue'>) =>
+  '/issues/' + issueKey(row.repository, row.issue)
+function aggregate(rows: Row[], names: Map<string, string>) {
+  const groups = Map.groupBy(rows, (r) => issueKey(r.repository, r.issue))
+  return Array.from(groups.values(), (products) => {
+    const [first] = products
+    const voices = products.flatMap((p) => p.voices)
+    return {
+      ...first,
+      products,
+      count: voices.length,
+      productNames: products
+        .map((p) => names.get(p.product) ?? p.product)
+        .join('・'),
+      firstAt: voices.reduce(
+        (time, v) => Math.min(time, v.createdAt),
+        Infinity,
+      ),
+      informed: products.reduce((total, p) => total + p.informed, 0),
+      remaining: products.reduce((total, p) => total + p.remaining, 0),
+      after: products.reduce(
+        (total, p) => total + (p.impact?.after.linked ?? 0),
+        0,
+      ),
+    }
+  }).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'))
 }
-function ratio(value: { total: number; linked: number; share: number | null }) {
-  const share =
-    value.share === null
-      ? '対象の声なし'
-      : new Intl.NumberFormat('ja-JP', {
-          style: 'percent',
-          maximumFractionDigits: 1,
-        }).format(value.share)
-  return share + '（' + value.linked + ' / ' + value.total + '件）'
-}
-const deliveryLabels: Record<string, string> = {
-  reply_drafted: '承認待ち',
-  reply_queued: '送信待ち',
-  reply_failed: '送信失敗',
-  reply_sent: '送信済み',
-  reply_discarded: '下書きを破棄',
-}
-function productDetails(row: Row, product: string, showRepository: boolean) {
-  return (
-    <>
-      <p>
-        {product} · {states[row.state]} · 紐づく声 {row.voices.length}件 ·
-        知らせた声 {row.informed}件
-      </p>
-      <ActionBar>
-        {showRepository && (
-          <ActionLink href={issueUrl(row.repository, row.issue)}>
-            {row.repository} #{row.issue}
-          </ActionLink>
-        )}
-        {row.voices.map((v) => (
-          <ActionLink variant="ghost" href={'/conversation/' + v.number}>
-            会話 #{v.number}
-            {v.delivery ? ' · ' + (deliveryLabels[v.delivery] ?? '未送信') : ''}
-            {v.status === 'closed' && v.delivery === 'reply_drafted'
-              ? '（再開して承認）'
-              : ''}
-          </ActionLink>
-        ))}
-      </ActionBar>
-      {row.impact && (
-        <>
-          <p>プロダクトの声に占める割合（目安）</p>
-          <p>
-            修正前30日 {ratio(row.impact.before)} ／ 修正後30日{' '}
-            {ratio(row.impact.after)}
-          </p>
-          <small>
-            修正後は今日までを集計します。件数が少ない間は割合が大きく変動します。
-          </small>
-          {row.remaining > 0 && (
-            <form action="/issues/drafts" method="post">
-              <input type="hidden" name="product" value={row.product} />
-              <input type="hidden" name="repository" value={row.repository} />
-              <input type="hidden" name="issue" value={row.issue} />
-              <Button>知らせる下書きを作る</Button>
-            </form>
-          )}
-        </>
-      )}
-    </>
-  )
-}
+type Issue = ReturnType<typeof aggregate>[number]
+const productNames = (frame: ConsoleFrame) =>
+  new Map(frame.products.map((p) => [p.id, p.name]))
 
-function entry(products: Row[], names: Map<string, string>) {
-  const [first] = products
-  const total = products.reduce((n, p) => n + p.voices.length, 0)
-  const informed = products.reduce((n, p) => n + p.informed, 0)
+function DraftButton({ issue, primary }: { issue: Issue; primary: boolean }) {
   return (
-    <FormSection title={first.title}>
-      {products.length > 1 && (
-        <>
-          <p>
-            {states[first.state]} · 紐づく声 {total}件 · 知らせた声 {informed}件
-          </p>
-          <ActionLink href={issueUrl(first.repository, first.issue)}>
-            {first.repository} #{first.issue}
-          </ActionLink>
-        </>
-      )}
-      {products.map((p) =>
-        productDetails(
-          p,
-          names.get(p.product) ?? p.product,
-          products.length === 1,
-        ),
-      )}
-    </FormSection>
+    <form action="/issues/drafts" method="post">
+      <input type="hidden" name="repository" value={issue.repository} />
+      <input type="hidden" name="issue" value={issue.issue} />
+      <Button variant={primary ? 'default' : 'outline'}>下書きを作る</Button>
+    </form>
   )
 }
 
@@ -115,54 +70,179 @@ export function issueBoardPage(
   rows: Row[],
   query: Record<string, string>,
 ) {
-  const names = new Map(frame.products.map((p) => [p.id, p.name]))
-  const issues = Map.groupBy(rows, (r) => issueKey(r.repository, r.issue))
-  const list = listRows([...issues.values()], query, (group) => ({
-    text: [
-      group[0].title,
-      group[0].repository,
-      ...group.map((r) => names.get(r.product)),
-    ].join(' '),
-    filter: group[0].state,
-  }))
+  const all = aggregate(rows, productNames(frame))
+  const showFilters = all.length > 20
+  const issues = showFilters
+    ? all.filter(
+        (r) =>
+          matchesSearch(r.title + ' ' + r.productNames, query.q) &&
+          (!query.filter || r.state === query.filter),
+      )
+    : all
+  const closed = issues
+    .filter((r) => r.state === 'closed')
+    .sort((a, b) => (b.closedAt ?? 0) - (a.closedAt ?? 0))
+  const openPage = paginateRows(
+    issues.filter((r) => r.state !== 'closed'),
+    query.page,
+  )
+  const closedPage = paginateRows(closed, query.page)
+  const page = openPage.pages >= closedPage.pages ? openPage : closedPage
+  const tableRow = (issue: Issue) => ({
+    ...issue,
+    href: path(issue),
+    awaitingSync: issue.state === 'unknown',
+  })
   return shell(
     '課題',
     <ListPage
       title="課題"
-      description={list.total + '件'}
+      description="声をもとに直すことを決め、直したら声の主に知らせます。"
+      action={<ActionLink href="/issues/new">課題を追加</ActionLink>}
+      footer={<PageLinks path="/issues" query={query} {...page} />}
       filters={
-        <ListFilters
-          title="課題"
-          path="/issues"
-          query={query}
-          options={[
-            { value: 'open', label: states.open },
-            { value: 'closed', label: states.closed },
-          ]}
-          filterLabel="状態"
-        />
+        showFilters && (
+          <ListFilters
+            title="課題"
+            path="/issues"
+            query={query}
+            sortable={false}
+            filterLabel="状態"
+            options={[
+              { value: 'open', label: '開いている' },
+              { value: 'closed', label: '直した' },
+            ]}
+          />
+        )
       }
-      footer={<PageLinks path="/issues" query={query} {...list} />}
     >
-      {query.drafts === 'unchanged' && (
-        <Notice kind="info">
-          新しい下書きの対象はありません。各会話で配送状況を確認できます。
-        </Notice>
-      )}
-      {query.drafts === 'ready' && (
-        <Notice kind="success">
-          知らせの下書きを用意しました。対象の会話から宛先と本文を確認し、承認して送信してください。
-        </Notice>
-      )}
-      {list.rows.length ? (
-        list.rows.map((r) => entry(r, names))
-      ) : (
-        <EmptyState>
-          該当する課題はありません。会話の「GitHub
-          Issue」で起票するか、既存の課題と紐づけてください。
-        </EmptyState>
-      )}
+      <Stack gap="lg">
+        <PendingIssues
+          issues={closed
+            .filter((r) => r.remaining > 0)
+            .map((issue, index) => ({
+              ...issue,
+              href: path(issue),
+              action: <DraftButton issue={issue} primary={index === 0} />,
+            }))}
+        />
+        <IssueTable
+          issues={openPage.rows.map(tableRow)}
+          now={frame.now}
+          total={openPage.total}
+          closed={false}
+        />
+        <IssueTable
+          issues={closedPage.rows.map(tableRow)}
+          now={frame.now}
+          total={closedPage.total}
+          closed
+        />
+      </Stack>
     </ListPage>,
+    frame,
+  )
+}
+const labels: Record<string, string> = {
+  reply_drafted: '承認待ち',
+  reply_queued: '送信待ち',
+  reply_failed: '送信失敗',
+  reply_discarded: '下書きを破棄',
+}
+function delivery(v: Row['voices'][number]) {
+  if (v.informed) return '知らせた'
+  if (v.kind === 'feedback') return '返信不要'
+  if (v.status === 'closed' && v.delivery === 'reply_drafted')
+    return '再開して承認'
+  return labels[v.delivery ?? ''] ?? '未通知'
+}
+export function issueDetailPage(
+  frame: ConsoleFrame,
+  rows: Row[],
+  contacts: Map<number, Contact>,
+  drafts?: string,
+) {
+  const names = productNames(frame)
+  const [issue] = aggregate(rows, names)
+  return shell(
+    issue.title,
+    <DetailPage
+      title={issue.title}
+      back={{ href: '/issues', label: '課題の一覧に戻る' }}
+      description={
+        issue.productNames +
+        ' · ' +
+        { closed: '直した', open: '開いている', unknown: '状態を同期待ち' }[
+          issue.state
+        ]
+      }
+      action={
+        <ActionLink href={issueUrl(issue.repository, issue.issue)}>
+          GitHub で開く
+        </ActionLink>
+      }
+    >
+      <Stack gap="lg">
+        {drafts === 'ready' && (
+          <Notice kind="success">
+            知らせの下書きを用意しました。下の会話を開いて内容を確認し、承認して送信してください。
+          </Notice>
+        )}
+        {drafts === 'unchanged' && (
+          <Notice kind="info">
+            新しい下書きの対象はありません。下の会話で配送状況を確認できます。
+          </Notice>
+        )}
+        <IssueVoices
+          voices={rows.flatMap((r) =>
+            r.voices.map((v) => ({
+              number: v.number,
+              href: '/conversation/' + v.number,
+              ...contacts.get(v.number),
+              delivery: delivery(v),
+            })),
+          )}
+        />
+        {rows.map(
+          (r) =>
+            r.impact &&
+            r.closedAt !== null && (
+              <IssueImpact
+                name={names.get(r.product) ?? r.product}
+                before={r.impact.before}
+                after={r.impact.after}
+                days={Math.max(
+                  1,
+                  Math.min(30, Math.ceil((frame.now - r.closedAt) / 86400000)),
+                )}
+              />
+            ),
+        )}
+      </Stack>
+    </DetailPage>,
+    frame,
+  )
+}
+export function issueNewPage(
+  frame: ConsoleFrame,
+  choices: { number: number; subject: string; productName: string }[],
+) {
+  return shell(
+    '課題を追加',
+    <DetailPage
+      title="課題を追加"
+      back={{ href: '/issues', label: '課題の一覧に戻る' }}
+    >
+      <FormSection title="起票する内容">
+        {choices.length ? (
+          <NewIssueForm action="/actions/issues.preview" choices={choices} />
+        ) : (
+          <EmptyState>
+            起票できる会話はありません。起票先とトークンを設定したプロダクトの会話から追加できます。
+          </EmptyState>
+        )}
+      </FormSection>
+    </DetailPage>,
     frame,
   )
 }

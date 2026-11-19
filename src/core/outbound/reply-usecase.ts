@@ -17,6 +17,7 @@ import {
   waiting,
   interrupted,
 } from './reply-store'
+import { undoHeldReply, replyHolds, holdDelay } from './reply-hold-store'
 import { sendReply, type EmailBinding } from './send-client'
 
 type QueueEnv = {
@@ -35,10 +36,14 @@ const submitSchema = mutationSchema.omit({ id: true }).extend({
   number: numberSchema,
   body: z.string().trim().min(1).max(131072),
   close: z.boolean().optional(),
+  undoable: z.boolean().optional(),
 })
-async function notify(env: QueueEnv, id: string) {
+const undoSeconds = 5
+async function notify(env: QueueEnv, id: string, delaySeconds = 0) {
   // Cron also polls the durable outbox if the queue is unavailable after commit.
-  await env.JOBS.send({ kind: 'outbound', id }).catch(() => undefined)
+  await env.JOBS.send({ kind: 'outbound', id }, { delaySeconds }).catch(
+    () => undefined,
+  )
 }
 
 export async function queueReply(
@@ -49,13 +54,33 @@ export async function queueReply(
   if (reply.close) operatorApproval(reply.actor)
   const delivery = replyDelivery(reply.actor)
   const id = crypto.randomUUID()
+  const delay = reply.undoable && delivery.kind === 'queued' ? undoSeconds : 0
   await insertReply(env.DB, {
+    holdUntil: delay ? reply.now + delay * 1000 : undefined,
     ...reply,
     id,
     approval: delivery.kind === 'queued' ? delivery.approval : null,
   })
-  if (delivery.kind === 'queued') await notify(env, id)
+  if (delivery.kind === 'queued') await notify(env, id, delay)
   return { id }
+}
+
+export function undoReply(
+  env: QueueEnv,
+  input: z.input<typeof mutationSchema>,
+) {
+  const command = mutationSchema.parse(input)
+  operatorApproval(command.actor)
+  return undoHeldReply(env.DB, command.id, command.actor, command.now)
+}
+
+export function pendingReplyUndos(
+  env: QueueEnv,
+  number: number,
+  operator: string,
+  now: number,
+) {
+  return replyHolds(env.DB, number, operator, now)
 }
 
 async function queueExisting(
@@ -95,7 +120,7 @@ export async function deliverReply(
   now: number,
 ) {
   const reply = await claim(env.DB, id, now)
-  if (!reply) return
+  if (!reply) return holdDelay(env.DB, id, now)
   const payload = composeReply(reply)
   if (reply.automatic) payload.headers['Auto-Submitted'] = 'auto-generated'
   const result = await sendReply(env.EMAIL, payload)
@@ -111,7 +136,7 @@ export async function recoverReplies(env: QueueEnv, now = Date.now()) {
       reason: 'Delivery interrupted; verify the provider activity log',
     })
   }
-  const ids = await waiting(env.DB)
+  const ids = await waiting(env.DB, now)
   await Promise.all(ids.map((id) => notify(env, id)))
 }
 

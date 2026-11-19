@@ -60,7 +60,7 @@ export async function loadIssueState(
 ) {
   const key = issueKey(repo, issue)
   const cached = remoteState.nullish().parse(await ctx.get('issue/' + key))
-  if (cached) return cached
+  if (cached && !/^Inquiry #\d+$/i.test(cached.title)) return cached
   // Older installations stored links and closure events without caching the GitHub title.
   if (ctx.secret('GITHUB_TOKEN')) {
     const remote = await githubIssue(ctx, repo, { read: issue }).catch(
@@ -68,6 +68,7 @@ export async function loadIssueState(
     )
     if (remote) return rememberIssue(ctx, repo, remote)
   }
+  if (cached) return cached
   const closure = (await ctx.events('issues.closed')).findLast(
     (e) =>
       typeof e.payload.repository === 'string' &&
@@ -237,7 +238,12 @@ export async function issueBoard(ctx: ExtensionContext) {
   for (const row of links) {
     const link = linked.parse(row.value)
     const key = issueKey(link.repository, link.issue)
-    if (!states.has(key) && byNumber.has(link.number)) absent.set(key, link)
+    const known = states.get(key)
+    if (
+      (!known || /^Inquiry #\d+$/i.test(known.title)) &&
+      byNumber.has(link.number)
+    )
+      absent.set(key, link)
   }
   await Promise.all(
     [...absent].map(async ([key, link]) => {
@@ -270,20 +276,24 @@ export async function issueBoard(ctx: ExtensionContext) {
         const delivery = deliveries.get(
           keyedDraftId(voice.number, 'issues:' + attempt.key),
         )
-        return { ...voice, delivery }
+        return {
+          ...voice,
+          delivery,
+          informed: (sent?.get(voice.number) ?? -1) >= (closedAt ?? 0),
+        }
       })
       return {
         ...group,
         voices: members,
-        title: state?.title ?? group.repository + ' #' + group.issue,
+        title:
+          state?.title && !/^Inquiry #\d+$/i.test(state.title)
+            ? state.title
+            : '題を同期待ちの課題 #' + group.issue,
         state: state?.state ?? 'unknown',
+        closedAt,
         informed,
-        remaining: members.filter(
-          (v) =>
-            v.kind === 'inquiry' &&
-            (!v.delivery ||
-              ['reply_discarded', 'reply_drafted'].includes(v.delivery)),
-        ).length,
+        remaining: members.filter((v) => v.kind === 'inquiry' && !v.informed)
+          .length,
         impact:
           closedAt === null
             ? null
@@ -295,4 +305,36 @@ export async function issueBoard(ctx: ExtensionContext) {
         b.voices.length - a.voices.length ||
         a.title.localeCompare(b.title, 'ja'),
     )
+}
+
+export async function pendingIssueCount(ctx: ExtensionContext) {
+  const states = new Map<string, number>()
+  for (const row of await ctx.list('issue/')) {
+    const remote = remoteState.parse(row.value)
+    if (remote.closedAt !== null)
+      states.set(row.key.slice('issue/'.length), remote.closedAt)
+  }
+  if (!states.size) return 0
+  const [stored, voices, events] = await Promise.all([
+    ctx.list('link/'),
+    ctx.voices(),
+    ctx.events(),
+  ])
+  const inquiries = new Set(
+    voices.filter((v) => v.kind === 'inquiry').map((v) => v.number),
+  )
+  const notices = sentNotices(events)
+  const pending = new Set<string>()
+  for (const row of stored) {
+    const link = linked.parse(row.value)
+    const key = issueKey(link.repository, link.issue)
+    const closure = states.get(key)
+    if (
+      closure !== undefined &&
+      inquiries.has(link.number) &&
+      (notices.get(key)?.get(link.number) ?? -1) < closure
+    )
+      pending.add(key)
+  }
+  return pending.size
 }

@@ -11,7 +11,13 @@ const inboxFilters = new Set([
 export function inboxStatus(query: Record<string, string>) {
   if (query.status) return query.status
   if (query.view === 'approval' || query.query || query.assignee) return 'all'
-  return query.view === 'feedback' ? 'received' : 'open'
+  return query.view === 'feedback' ? 'all' : 'open'
+}
+
+export function inboxSort(query: Record<string, string>) {
+  if (query.view === 'feedback')
+    return query.sort === 'unreviewed' ? 'unreviewed' : 'newest'
+  return query.sort === 'newest' ? 'newest' : 'waiting'
 }
 
 export function adjacentOpen(numbers: number[], current: number) {
@@ -29,6 +35,19 @@ export function inboxSearch(entries: URLSearchParams | Record<string, string>) {
   for (const key of Array.from(params.keys()))
     if (!inboxFilters.has(key) || !params.get(key)) params.delete(key)
   return params.toString()
+}
+export function feedbackReceipt(name: string, inbox: unknown, number?: number) {
+  if (
+    !number ||
+    typeof inbox !== 'string' ||
+    !['feedback.review', 'feedback.unreview'].includes(name)
+  )
+    return
+  const params = new URLSearchParams(inboxSearch(new URLSearchParams(inbox)))
+  params.set('view', 'feedback')
+  params.set('notice', name)
+  params.set('changed', String(number))
+  return '/?' + params
 }
 export function threadUrl(number: number, search: string) {
   const path = '/conversation/' + number

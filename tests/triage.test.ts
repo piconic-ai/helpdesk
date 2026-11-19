@@ -8,6 +8,7 @@ import { snooze } from '../src/extensions/snooze/extension'
 import { merge } from '../src/extensions/merge/extension'
 import { presence } from '../src/extensions/presence/extension'
 import { rules, matches } from '../src/extensions/rules/extension'
+import { deliverReply } from '../src/core/outbound/reply-usecase'
 import { inboundJob } from '../src/core/inbound/job'
 import { ingest } from '../src/core/inbound/inbound-usecase'
 import {
@@ -237,10 +238,17 @@ it('F16-AC1..3 matches the receive, reply, close, reopen, merge and snooze model
     },
     async run(m, r) {
       switch (op) {
-        case 'reply':
-          await run('reply', { number: r.number, body: 'Reply' })
+        case 'reply': {
+          const { id } = (await run('reply', {
+            number: r.number,
+            body: 'Reply',
+          })) as { id: string }
+          expect(await deliverReply(local, id, ctx.now)).toBe(5)
+          ctx.now += 5000
+          await deliverReply(local, id, ctx.now)
           m.status = 'pending'
           break
+        }
         case 'close':
           await run('status', { number: r.number, event: 'closed' })
           m.status = 'closed'

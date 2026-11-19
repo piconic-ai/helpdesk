@@ -24,7 +24,7 @@ export function OutcomeCard({
       change={change}
       definition={
         <>
-          {summary}{' '}
+          <span>{summary}</span>
           <Tooltip id={'definition-' + id} content={details}>
             <Button type="button" variant="ghost" aria-label={title + 'の定義'}>
               ⓘ

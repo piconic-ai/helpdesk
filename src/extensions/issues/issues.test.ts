@@ -75,8 +75,17 @@ afterAll(async () => {
 
 test('F06-AC1 only the reviewing human can publish exactly the approved preview', async () => {
   const summary = 'Export receipt lines with local dates.'
+  for (const title of ['', 'Inquiry #1']) {
+    await expect(
+      invoke(ctx, scopes, 'issues.preview', { number: 1, title, summary }),
+    ).rejects.toThrow()
+  }
   const p = preview.parse(
-    await invoke(ctx, scopes, 'issues.preview', { number: 1, summary }),
+    await invoke(ctx, scopes, 'issues.preview', {
+      number: 1,
+      title: 'Improve search',
+      summary,
+    }),
   )
   expect(posted).toEqual([])
   const confirm = {
@@ -114,7 +123,7 @@ test('F06-AC1 only the reviewing human can publish exactly the approved preview'
     {
       url: 'https://api.github.com/repos/acme/desktop/issues',
       data: {
-        title: 'Inquiry #1',
+        title: 'Improve search',
         body: summary + '\n\n[#1](https://helpdesk.example/conversation/1)',
       },
     },
@@ -138,7 +147,7 @@ test('F06-AC2 an existing issue links back to each conversation and can be found
         label: 'acme/desktop#42',
         href: 'https://github.com/acme/desktop/issues/42',
       },
-      { label: 'Inquiry #1', href: '/conversation/1' },
+      { label: '会話 #1', href: '/conversation/1' },
     ],
   )
 })

@@ -170,3 +170,81 @@ if (relatedInfo) {
     )
   })
 }
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== 'null' || event.data?.type !== 'helpdesk:mail-height')
+    return
+  const height = event.data.height
+  if (!Number.isSafeInteger(height) || height < 0) return
+  const frame = [...document.querySelectorAll('iframe[data-mail-frame]')].find(
+    (candidate) => candidate.contentWindow === event.source,
+  )
+  if (frame) frame.height = String(Math.min(16000, Math.max(1, height)))
+})
+
+for (const frame of document.querySelectorAll('iframe[data-mail-frame]')) {
+  frame.contentWindow.postMessage('helpdesk:measure-mail', '*')
+}
+
+async function refreshDelivery(form) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000))
+    if (
+      document.activeElement !== document.body ||
+      document.querySelector('dialog[open], :popover-open')
+    )
+      return
+    try {
+      const response = await fetch('/actions/get', {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: new URLSearchParams({ number: form.elements.number.value }),
+      })
+      if (!response.ok) return
+      const { messages } = await response.json()
+      if (
+        messages.find((message) => message.id === form.elements.id.value)
+          ?.delivery !== 'queued'
+      ) {
+        if (document.activeElement === document.body) location.reload()
+        return
+      }
+    } catch {
+      return
+    }
+  }
+}
+
+for (const form of document.querySelectorAll('form[data-undo-reply]')) {
+  const button = form.querySelector('button')
+  const timer = setTimeout(() => {
+    form.hidden = true
+    if (!button.disabled) void refreshDelivery(form)
+  }, Number(form.dataset.undoReply))
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (button.disabled) return
+    button.disabled = true
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { Accept: 'application/json' },
+      })
+      if (!response.ok) throw new Error()
+      const { number, body } = await response.json()
+      const area = document.querySelector('textarea[data-draft-slot="reply"]')
+      area.value = [area.value, body].filter(Boolean).join('\n\n')
+      area.dataset.restoringDraft = ''
+      area.dispatchEvent(new Event('input', { bubbles: true }))
+      delete area.dataset.restoringDraft
+      location.assign('/conversation/' + number + '?notice=undoReply')
+    } catch {
+      clearTimeout(timer)
+      form.hidden = false
+      form.setAttribute('role', 'alert')
+      form.querySelector('span').textContent =
+        '送信を取り消せませんでした。会話を再読み込みして送信状態を確認してください。'
+    }
+  })
+}

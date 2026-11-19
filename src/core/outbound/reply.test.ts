@@ -4,6 +4,7 @@ import { actorSchema, deliverySchema } from '../conversations/state'
 import { replyDelivery } from './approval'
 import {
   queueReply,
+  undoReply,
   retryReply,
   approveReply,
   discardReply,
@@ -288,5 +289,83 @@ it('keeps approval and discard exclusive when two operators act on the same draf
     await expect(
       approveReply(local, { id, actor: operator, now }),
     ).rejects.toThrow()
+  }
+})
+
+it('W1: only the author can undo a held message before delivery; closing and notification never happen', async () => {
+  const number = await receive()
+  const input = {
+    number,
+    actor: operator,
+    body: 'Editable reply',
+    undoable: true,
+    close: true,
+    now: 100,
+  }
+  const { id } = await queueReply(local, input)
+  const send = success()
+  const env = { ...local, EMAIL: { send } }
+  expect(await deliverReply(env, id, 5099)).toBe(1)
+  expect(send).not.toHaveBeenCalled()
+  await expect(
+    undoReply(local, {
+      id,
+      actor: { kind: 'operator', id: 'other@example.org' },
+      now: 5099,
+    }),
+  ).rejects.toThrow()
+  expect(await undoReply(local, { id, actor: operator, now: 5099 })).toEqual({
+    number,
+    body: input.body,
+  })
+  await deliverReply(env, id, 5100)
+  expect(send).not.toHaveBeenCalled()
+  expect(await state(id)).toBeNull()
+  expect(
+    await local.DB.prepare('SELECT status FROM conversations WHERE number=?')
+      .bind(number)
+      .first('status'),
+  ).toBe('open')
+  expect(
+    await local.DB.prepare(
+      "SELECT count(*) n FROM events WHERE number=? AND kind='status_changed'",
+    )
+      .bind(number)
+      .first('n'),
+  ).toBe(0)
+})
+
+it('W1: an expired hold sends once; a customer reply during the grace period keeps the conversation open', async () => {
+  for (const inbound of [false, true]) {
+    const number = await receive()
+    const { id } = await queueReply(local, {
+      number,
+      actor: operator,
+      body: 'My reply',
+      now: 100,
+      close: true,
+      undoable: true,
+    })
+    if (inbound)
+      await local.DB.prepare(
+        "INSERT INTO events(number,kind,actor,at) VALUES(?,'message_received',?,101)",
+      )
+        .bind(number, JSON.stringify({ kind: 'system' }))
+        .run()
+    await expect(
+      undoReply(local, { id, actor: operator, now: 5100 }),
+    ).rejects.toThrow()
+    const send = success()
+    const env = { ...local, EMAIL: { send } }
+    await Promise.all([
+      deliverReply(env, id, 5100),
+      deliverReply(env, id, 5100),
+    ])
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(
+      await local.DB.prepare('SELECT status FROM conversations WHERE number=?')
+        .bind(number)
+        .first('status'),
+    ).toBe(inbound ? 'open' : 'closed')
   }
 })

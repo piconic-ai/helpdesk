@@ -1,3 +1,4 @@
+import { Stack } from '../../ui/layout'
 import {
   DetailPage,
   OverviewPage,
@@ -117,10 +118,10 @@ function extensionGroups(
     })
     return matches.length
       ? [
-          <section>
+          <Stack as="section" gap="lg">
             <h2>{group}</h2>
             <MetricGrid>{matches.map(extensionSettings)}</MetricGrid>
-          </section>,
+          </Stack>,
         ]
       : []
   })
@@ -266,7 +267,11 @@ function actionsFor(p: Panel, data?: Details) {
       case 'feedback.review':
         return c.kind === 'feedback' && c.status.kind === 'received'
       case 'feedback.convert':
-        return c.kind === 'feedback' && c.status.kind !== 'spam'
+        return (
+          c.kind === 'feedback' &&
+          c.status.kind !== 'spam' &&
+          Boolean(c.contact)
+        )
       case 'articles.attach':
       case 'issues.link':
       case 'issues.create':
@@ -283,6 +288,7 @@ function actionsFor(p: Panel, data?: Details) {
       case 'snooze.defer':
         return c.kind === 'inquiry' && !p.content
       case 'issues.preview':
+        return c.status.kind !== 'spam'
       case 'canned.apply':
         return (
           c.kind === 'inquiry' && ['open', 'pending'].includes(c.status.kind)
@@ -392,7 +398,7 @@ function panel(p: Panel, number?: number, data?: Details) {
   if (
     data &&
     data.conversation.kind === 'feedback' &&
-    ['issues', 'articles', 'snooze', 'merge', 'canned'].includes(p.id)
+    ['articles', 'snooze', 'merge', 'canned'].includes(p.id)
   )
     return null
   const summary = summaryFor(p, data)
@@ -403,7 +409,9 @@ function panel(p: Panel, number?: number, data?: Details) {
       {summary && <PanelSummary>{summary}</PanelSummary>}
       {p.links.map((l) => (
         <p>
-          <ActionLink href={l.href}>{l.label}</ActionLink>
+          <ActionLink href={l.href} variant="ghost">
+            {l.label}
+          </ActionLink>
         </p>
       ))}
       {ops.map((op) => {
@@ -418,15 +426,33 @@ function panel(p: Panel, number?: number, data?: Details) {
             ? 'Issue を起票する'
             : operationLabel(op.name, op.description)
         return (
-          <Popover id={'operation-' + p.id + '-' + op.name} label={label}>
+          <Popover
+            id={'operation-' + p.id + '-' + op.name}
+            label={label}
+            variant={op === ops[0] ? 'outline' : 'ghost'}
+          >
             {actionForm(op, p, number, data)}
           </Popover>
         )
       })}
       {ops.some((op) => op.name === 'issues.preview') && (
-        <ActionLink href={'/extensions/issues/link/' + number}>
-          既存の Issue を選ぶ
-        </ActionLink>
+        <details data-issue-picker={number}>
+          <summary>既存の Issue を選ぶ</summary>
+          <PanelForm method="post" action="/actions/issues.link">
+            <input type="hidden" name="number" value={number} />
+            <label>
+              題で探す
+              <Input type="search" placeholder="課題の題を入力" />
+            </label>
+            <label>
+              課題
+              <NativeSelect required name="issue" disabled />
+            </label>
+            <p role="status" aria-live="polite"></p>
+            <Button disabled>既存の Issue と紐づける</Button>
+          </PanelForm>
+          <script defer src="/ui/issue-picker.js"></script>
+        </details>
       )}
     </ContextPanel>
   )
@@ -444,7 +470,12 @@ export function conversationPanels(
   number: number,
   conversation: Details,
 ) {
-  const contextual = data.filter((p) => p.id !== 'snooze' && p.id !== 'canned')
+  const contextual = data.filter(
+    (p) => !['snooze', 'canned', 'feedback'].includes(p.id),
+  )
+  const feedback = data.find(
+    (p) => p.id === 'feedback' && conversation.conversation.kind === 'feedback',
+  )
   const command = (id: string) => {
     const p = data.find((entry) => entry.id === id)
     if (!p || conversation.conversation.kind !== 'inquiry') return null
@@ -463,6 +494,28 @@ export function conversationPanels(
     )
   }
   return {
+    feedback: feedback && (
+      <>
+        {actionsFor(feedback, conversation).map((op) =>
+          actionForm(op, feedback, number, conversation),
+        )}
+        {!conversation.conversation.contact && (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled
+              aria-describedby="feedback-no-contact"
+            >
+              問い合わせに変更
+            </Button>
+            <small id="feedback-no-contact">
+              連絡先が登録されていないため、返信はできません。
+            </small>
+          </>
+        )}
+      </>
+    ),
     related: extensionPanels(contextual, number, conversation),
     snooze: command('snooze'),
     canned: command('canned'),

@@ -1,5 +1,5 @@
 import { threadUrl } from './inbox-location'
-import { timelineChange } from './timeline'
+import { displayEvents, timelineChange } from './timeline'
 import { ReplyComposer } from '@/components/ReplyComposer'
 import type { Child } from 'hono/jsx'
 import { ActionMenu, Popover, ActionLink, Input } from '../../ui/controls'
@@ -33,12 +33,14 @@ import type {
 } from './console-usecase'
 import { shell, action, badge, noteLabel, stamp } from './console-page'
 import type { Result } from './inbox-page'
+import type { pendingReplyUndos } from '../outbound/reply-usecase'
 import { replySubject, senderLabel } from '../outbound/compose'
 import {
   assignment,
   labelPicker,
   draftReview,
   threadNotice,
+  replyUndoForm,
 } from './thread-controls-page'
 export { inboxPage } from './inbox-page'
 export { settingsPage } from './settings-page'
@@ -93,7 +95,8 @@ function message(
         <>
           <p>外部の画像は非表示です。</p>
           <iframe
-            sandbox=""
+            sandbox="allow-scripts"
+            data-mail-frame=""
             title="HTML メール"
             src={'/mail/' + encodeURIComponent(m.id)}
           />
@@ -184,6 +187,7 @@ function statusPicker(c: Details['conversation']) {
 const eventLabels: Record<string, string> = {
   conversation_opened: '会話を開始',
   message_received: 'メールを受信',
+  reply_undone: '返信の送信を取り消し',
   reply_discarded: '下書きを破棄',
   reply_drafted: '下書きを作成',
   reply_queued: '返信を送信待ちに変更',
@@ -231,12 +235,15 @@ function threadContext(
       <details>
         <summary>操作履歴</summary>
         <ul>
-          {data.events.map((e) => (
+          {displayEvents(data.events).map((e) => (
             <li>
               {stamp(e.at, now)}
               <span>
                 {' '}
-                {eventLabels[e.kind] ?? e.kind} · {eventActor(e.actor, names)}
+                {timelineChange(e, names) ??
+                  eventLabels[e.kind] ??
+                  e.kind} ·{' '}
+                {eventActor(e.actor, names)}
               </span>
             </li>
           ))}
@@ -247,11 +254,12 @@ function threadContext(
 }
 export function conversationPage(
   data: Details,
-  panels: { related: Child; snooze: Child; canned: Child },
+  panels: { related: Child; snooze: Child; canned: Child; feedback: Child },
   frame: ConsoleFrame,
   metadata: Awaited<ReturnType<typeof inboxMetadata>>,
   files: Files,
   articles: { title: string; url: string }[] = [],
+  holds: Awaited<ReturnType<typeof pendingReplyUndos>> = [],
 ) {
   const c = data.conversation
   const product = frame.products.find((p) => p.id === c.product)
@@ -274,6 +282,7 @@ export function conversationPage(
       back={{ label: '受信箱', href: search ? '/?' + search : '/' }}
       action={
         <ActionBar>
+          {panels.feedback}
           <ThreadPanelTrigger />
           {threadActions(c, panels.snooze)}
           <StepLink
@@ -295,6 +304,7 @@ export function conversationPage(
       aside={threadContext(data, panels.related, frame.now, names)}
     >
       {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
+      {holds.map((hold) => replyUndoForm(c.number, hold))}
       <ThreadTimeline>
         {[
           ...data.messages.map((m) => ({
@@ -303,12 +313,12 @@ export function conversationPage(
               m,
               data,
               files.filter((f) => f.message === m.id),
-              info?.name || c.contact,
+              info?.name || c.contact || '匿名',
               names,
               frame.now,
             ),
           })),
-          ...data.events.flatMap((e) => {
+          ...displayEvents(data.events).flatMap((e) => {
             const label = timelineChange(e, names)
             return label
               ? [

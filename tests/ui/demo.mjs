@@ -19,7 +19,7 @@ const demo = await startScene(
     'metrics',
   ],
   '.',
-  { port: Number(process.env.HELPDESK_DEMO_PORT ?? 8788) },
+  { tickingClock: true, port: Number(process.env.HELPDESK_DEMO_PORT ?? 8788) },
 )
 await seedReviewExamples(demo.db, ['issues', 'articles'])
 await demo.db.batch([

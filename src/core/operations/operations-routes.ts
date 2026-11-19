@@ -31,8 +31,13 @@ import {
   sendingDomains,
 } from '../settings/console-settings-usecase'
 import { enableHostedIntake } from '../intakes/hosted-policy-usecase'
-import { inboxStatus, returnInbox } from '../conversations/inbox-location'
+import {
+  feedbackReceipt,
+  inboxStatus,
+  returnInbox,
+} from '../conversations/inbox-location'
 import { operatorErrorPage } from '../conversations/console-page'
+import { pendingReplyUndos } from '../outbound/reply-usecase'
 import { readHtml, download } from '../conversations/media-usecase'
 import { recordView } from '../extensions/view-usecase'
 import { describe, invoke } from './runtime-usecase'
@@ -103,7 +108,8 @@ app.get('/', async (c) => {
   ])
   const rows = listed.filter((row) =>
     isFeedback
-      ? row.kind === 'feedback'
+      ? row.kind === 'feedback' &&
+        (query.status === 'spam' || row.status.kind !== 'spam')
       : row.kind === 'inquiry' &&
         (!isApproval || frame.approvalNumbers.has(row.number)),
   )
@@ -218,17 +224,19 @@ app.get('/conversation/:number', async (c) => {
         data.conversation.product,
         new URL(c.req.url).origin,
       ),
+      await pendingReplyUndos(c.env, number, ctx.operator.email, ctx.now),
     ),
   )
 })
 app.get('/mail/:id', async (c) => {
   const html = await readHtml(c.env, c.req.param('id'))
   if (html === null) return c.notFound()
+  const nonce = crypto.randomUUID()
   c.header(
     'Content-Security-Policy',
-    "default-src 'none'; style-src 'self'; sandbox; frame-ancestors 'self'; base-uri 'none'",
+    `default-src 'none'; style-src 'self'; script-src 'nonce-${nonce}'; sandbox allow-scripts; frame-ancestors 'self'; base-uri 'none'`,
   )
-  return c.html(htmlMailPage(html))
+  return c.html(htmlMailPage(html, nonce))
 })
 app.get('/attachment', async (c) => {
   const file = await download(
@@ -313,6 +321,8 @@ async function extensionResponse(
   result: unknown,
 ) {
   const number = Number(input.number) || undefined
+  const inbox = feedbackReceipt(name, input.inbox, number)
+  if (inbox) return c.redirect(inbox, 303)
   if (name === 'issues.preview') {
     const proposal = z
       .object({

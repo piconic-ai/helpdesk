@@ -9,12 +9,13 @@ import {
   RowPreview,
   RowLabels,
   QuickActions,
+  FeedbackRowAction,
   RowCount,
   Delivery,
   WaitingTime,
 } from '../../ui/inbox-parts'
 import { inboxStatus } from './inbox-location'
-import { badge, stamp } from './console-page'
+import { action, badge, stamp } from './console-page'
 import { operatorAvatar } from '../operators/identity-page'
 
 type Row = Result<'list'>[number]
@@ -51,7 +52,23 @@ function clock(
     </WaitingTime>
   )
 }
-function quickActions(row: Row) {
+function quickActions(row: Row, frame: ConsoleFrame) {
+  if (
+    row.kind === 'feedback' &&
+    row.status.kind === 'received' &&
+    frame.extensions.some((ext) => ext.id === 'feedback')
+  ) {
+    return (
+      <FeedbackRowAction>
+        {action(
+          'feedback.review',
+          '確認済みにする',
+          <Input type="hidden" name="inbox" value={inboxSearch(frame.query)} />,
+          row.number,
+        )}
+      </FeedbackRowAction>
+    )
+  }
   if (row.kind !== 'inquiry') return null
   return (
     <QuickActions>
@@ -87,7 +104,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       : undefined
   const profile = frame.operators.find((op) => op.email === assignee)
   const labels = m.labels
-  const sender = m.name || row.contact
+  const sender = m.name || row.contact || '匿名'
   const mixed = inboxStatus(frame.query) === 'all'
   const preview = (
     <RowPreview
@@ -134,7 +151,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       preview={preview}
       time={clock(row, m, frame.now)}
       assignee={operatorAvatar(profile, assignee)}
-      actions={quickActions(row)}
+      actions={quickActions(row, frame)}
     />
   )
 }

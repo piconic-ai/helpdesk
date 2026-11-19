@@ -23,6 +23,11 @@ export function decideFeedback(
         ? { ok: true, kind: 'feedback', status: 'received' }
         : { ok: false, reason: 'Feedback has not been reviewed' }
     case 'convert':
+      if (!current.contact)
+        return {
+          ok: false,
+          reason: 'Feedback without a reply address cannot be converted',
+        }
       return { ok: true, kind: 'inquiry', status: 'open' }
     case 'review':
       return current.status.kind === 'received'

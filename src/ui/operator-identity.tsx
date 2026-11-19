@@ -1,3 +1,4 @@
+import { extensionLabel } from '../core/extensions/extension-labels'
 import type { Actor } from '../core/conversations/state'
 type Profile = { displayName: string; avatarKey?: string | null }
 export function operatorAvatar(profile?: Profile, email?: string) {
@@ -57,7 +58,7 @@ export function actorIdentity(
     actor.kind === 'system'
       ? 'システム'
       : actor.kind === 'extension'
-        ? '拡張 ' + actor.id
+        ? extensionLabel(actor.id)
         : 'エージェント ' +
           actor.id +
           '（' +

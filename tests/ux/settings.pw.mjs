@@ -104,8 +104,16 @@ test.describe('公開受付', () => {
       .getByRole('textbox', { name: '返信', exact: true })
       .fill('詳しい状況を教えていただけますか。')
     await page.getByRole('button', { name: '送信', exact: true }).click()
-    await confirmSubmission(page)
-    await expect(page.getByRole('main')).toContainText('返信待ち')
+    await expect(
+      page.getByRole('button', { name: '取り消す', exact: true }),
+    ).toBeVisible()
+    await expect(async () => {
+      await page.reload()
+      await expect(page.locator('[data-ui=attributes]')).toContainText(
+        '返信待ち',
+        { timeout: 500 },
+      )
+    }).toPass({ timeout: 20000 })
     await expect(
       page.locator('article').filter({ hasText: '詳しい状況' }),
     ).toBeVisible()

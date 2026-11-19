@@ -492,3 +492,9 @@ Use the BarefootJS button, input, native select, popover, dialog, menu, tabs and
 Align the inbox checkbox with the middle of the row. Place the sender before the subject and use a subdued chip for the product. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation beside the heading.
 
 Use the focus ring on keyboard focus and a distinct hover, pressed and disabled appearance on controls. Fade the screen and popovers over 150ms without translating the content. Respect reduced motion. In the operator console, use navigation rows or buttons for destinations; reserve underlined links for running text. Group secondary commands in a menu.
+
+## Screen purpose and spacing
+
+Before composing a screen, describe who opens it and why in one sentence. Write up to three questions that person needs answered, group information by question, rank the groups, and align repeated information in the same columns. On the issues board the operator first needs to notify people whose issue was fixed, then decide what to fix next, then assess the result. Linked conversations, delivery receipts and the calculation belong in the detail view.
+
+Spacing belongs to the layout containing the elements. Stack separates vertical children, Cluster wraps horizontal children with equal row and column gaps, Grid stretches cards to a common row height, and PageBody separates the heading, filters, body and sections. Use lg (24px) between sections, md (16px) between cards, sm (12px) within cards and xs (8px) between a field label and its control. Cards share the settings-card padding token. Keep identifiers, counts, dates, status labels and action labels on one line.

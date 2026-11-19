@@ -34,7 +34,12 @@ test('J14 表示名とアイコンを保存し、担当・メモ・記録から�
   await page.goto(scene.origin + '/conversation/1')
   await page.getByRole('button', { name: '担当者を選ぶ' }).click()
   await page.getByRole('button', { name: '青木 ゆり', exact: true }).click()
-  await expect(page.locator('[data-ui=attributes] img')).toBeVisible()
+  await expect(page.locator('main [role=status]').first()).toContainText('担当')
+  await expect(
+    page
+      .getByRole('button', { name: '担当: 青木 ゆり', exact: true })
+      .locator('img'),
+  ).toBeVisible()
   await page.getByRole('tab', { name: '内部メモ', exact: true }).click()
   await page.getByRole('textbox', { name: '内部メモ' }).fill('確認中です。')
   await page.getByRole('button', { name: 'メモを残す' }).click()

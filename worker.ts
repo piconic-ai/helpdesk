@@ -138,12 +138,17 @@ export default {
             .object({ extension: z.string(), event: z.number() })
             .parse(job.body)
           await deliverEvent(env, data.extension, data.event, Date.now())
-        } else
-          await deliverReply(
+        } else {
+          const delaySeconds = await deliverReply(
             env,
             z.object({ id: z.string() }).parse(job.body).id,
             Date.now(),
           )
+          if (delaySeconds) {
+            job.retry({ delaySeconds })
+            continue
+          }
+        }
         job.ack()
       } catch {
         job.retry()

@@ -3,53 +3,75 @@ import { startScene } from '../ui/seed.mjs'
 
 test.use({ extensions: ['issues', 'metrics'] })
 
-test('修正を知らせた会話だけを課題と集計に数える', async ({ page, scene }) => {
-  for (const n of [1, 6]) {
-    await page.goto(scene.origin + '/conversation/' + n)
-    await page.getByRole('link', { name: '既存の Issue を選ぶ' }).click()
-    await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
-    await confirmSubmission(page)
-    await expect(
-      page.locator('[data-extension=issues] a[href*="github.com"]'),
-    ).toBeVisible()
-  }
-  await page.getByRole('link', { name: '課題', exact: true }).click()
-  const row = page
-    .locator('[data-ui=form-section]')
-    .filter({ has: page.getByRole('heading', { name: 'Inquiry #1' }) })
-  await expect(row).toContainText('開いている')
-  await expect(row).toContainText('紐づく声 2件')
-  await expect(row.getByRole('link', { name: '会話 #6' })).toBeVisible()
+test('W4 起票・題で紐づけ・修正の下書き・承認したお知らせを数える', async ({
+  page,
+  scene,
+}) => {
+  const title = '領収書の検索を改善する'
+  await page.goto(scene.origin + '/issues')
+  await page.getByRole('link', { name: '課題を追加' }).click()
+  await page.getByLabel('もとになる会話').selectOption('1')
+  await page.getByLabel('タイトル').fill(title)
+  await page.getByLabel('公開する要約').fill('検索条件の保存に対応する')
+  await page.getByRole('button', { name: '起票内容を確認' }).click()
+  await expect(page.getByRole('dialog')).toContainText(title)
+  expect(scene.github.created).toEqual([])
+  await confirmSubmission(page)
+  await expect.poll(() => scene.github.created.length).toBe(1)
+  await page.goto(scene.origin + '/conversation/6')
+  await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
+  await page.getByLabel('題で探す').fill('存在しない題')
+  await expect(page.getByText('該当する課題はありません。')).toBeVisible()
+  await page.getByLabel('題で探す').fill('検索を改善')
+  await expect(
+    page.getByRole('combobox', { name: '課題', exact: true }).locator('option'),
+  ).toHaveCount(1)
+  await expect(page).toHaveURL(/conversation\/6$/)
+  await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
+  await confirmSubmission(page)
+  await expect(
+    page.locator('[data-extension=issues] a[href*="github.com"]'),
+  ).toBeVisible()
+  await page.locator('nav a[href="/issues"]').click()
+  const main = page.getByRole('main')
+  await expect(main.getByRole('row').filter({ hasText: title })).toContainText(
+    '2件',
+  )
+  await main.getByRole('link', { name: title }).click()
+  await expect(main.getByRole('link', { name: /#6 / })).toBeVisible()
   await capture(
     page,
     'review-4-issues',
     '01-open',
     '別々の2件の声が同じ課題に集まる',
   )
-  await row.getByRole('link', { name: '会話 #1' }).click()
+  await main.getByRole('link', { name: /#1 / }).click()
   await page.getByRole('button', { name: '完了にする', exact: true }).click()
-  await page.getByRole('link', { name: '課題', exact: true }).click()
+  await page.locator('nav a[href="/issues"]').click()
   await scene.closeIssue()
+  const pending = main.getByRole('region', { name: /知らせる待ち/ })
   await expect(async () => {
     await page.reload()
-    await expect(row).toContainText('閉じた', { timeout: 1000 })
+    await expect(pending).toContainText(title, { timeout: 1000 })
   }).toPass()
-  await expect(row).toContainText('修正前30日 12.5%（1 / 8件）')
-  await expect(row).toContainText('修正後30日 100%（1 / 1件）')
-  await expect(row).toContainText('知らせた声 0件')
-  await expect(row).toContainText('目安')
-  await row.getByRole('link', { name: /会話 #1.*再開して承認/ }).click()
+  await pending.getByRole('link', { name: title }).click()
+  await expect(main).toContainText('12.5%（1 / 8件）')
+  await expect(main).toContainText('100%（1 / 1件）')
+  await expect(main).toContainText('目安')
+  await main.getByRole('link', { name: /#1 .*再開して承認/ }).click()
   const closedDraft = page
     .locator('article')
     .filter({ hasText: '問題の修正が完了しました' })
   await closedDraft.getByRole('button', { name: '下書きを破棄' }).click()
   await confirmSubmission(page)
   await expect(closedDraft).toHaveCount(0)
-  await page.getByRole('link', { name: '課題', exact: true }).click()
+  await page.locator('nav a[href="/issues"]').click()
+  await pending.getByRole('link', { name: title }).click()
   await expect(
-    row.getByRole('link', { name: /会話 #1.*下書きを破棄/ }),
+    main.getByRole('link', { name: /#1 .*下書きを破棄/ }),
   ).toBeVisible()
-  await row.getByRole('button', { name: '知らせる下書きを作る' }).click()
+  await main.getByRole('link', { name: '課題の一覧に戻る' }).click()
+  await pending.getByRole('button', { name: '下書きを作る' }).click()
   await expect(page.getByRole('status')).toContainText(
     '知らせの下書きを用意しました',
   )
@@ -59,7 +81,7 @@ test('修正を知らせた会話だけを課題と集計に数える', async ({
     '02-closure',
     '修正前後の比率と通知待ちの会話を確認',
   )
-  await row.getByRole('link', { name: '会話 #1' }).click()
+  await main.getByRole('link', { name: /#1 / }).click()
   await expect(page.getByRole('button', { name: '承認して送信' })).toHaveCount(
     0,
   )
@@ -67,17 +89,14 @@ test('修正を知らせた会話だけを課題と集計に数える', async ({
   const draft = page
     .locator('article')
     .filter({ hasText: '問題の修正が完了しました' })
-  await expect(draft.getByRole('button', { name: '承認して送信' })).toHaveCount(
-    1,
-  )
   await draft.getByRole('button', { name: '承認して送信' }).click()
   await confirmSubmission(page)
   await expect(async () => {
     await page.reload()
     await expect(draft).toContainText('送信済み', { timeout: 1000 })
   }).toPass()
-  await page.getByRole('link', { name: '課題', exact: true }).click()
-  await expect(row).toContainText('知らせた声 1件')
+  await page.locator('nav a[href="/issues"]').click()
+  await expect(pending).toContainText('2件の声のうち1件')
   await page.getByRole('link', { name: '対応状況の集計' }).click()
   const metric = page.locator('[data-ui=metric-card]').filter({
     has: page.getByRole('heading', { name: '声が改善に届いた割合' }),
@@ -187,16 +206,20 @@ test('同じ課題に複数のプロダクトから届いた声をまとめ、�
   }
   await scene.closeIssue()
   await page.goto(scene.origin + '/issues')
-  const title = page.getByRole('heading', { name: 'Inquiry #1' })
-  await expect(title).toHaveCount(1)
-  const row = page.locator('[data-ui=form-section]').filter({ has: title })
+  const table = page.getByRole('table', { name: '直した' })
   await expect(async () => {
     await page.reload()
-    await expect(row).toContainText('閉じた · 紐づく声 2件', { timeout: 1000 })
+    await expect(table).toContainText('領収書の一括ダウンロード', {
+      timeout: 1000,
+    })
   }).toPass()
-  await expect(row).toContainText('Slide · 閉じた · 紐づく声 1件')
-  await expect(row).toContainText('Desk · 閉じた · 紐づく声 1件')
+  await expect(table.getByRole('row')).toHaveCount(2)
+  await expect(table).toContainText('2件')
+  await table.getByRole('link', { name: '領収書の一括ダウンロード' }).click()
   await expect(
-    row.getByText('プロダクトの声に占める割合（目安）', { exact: true }),
-  ).toHaveCount(2)
+    page.getByRole('heading', { name: 'Slideの修正前後（目安）' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Deskの修正前後（目安）' }),
+  ).toBeVisible()
 })

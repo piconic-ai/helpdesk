@@ -5,12 +5,10 @@ export type Permission = 'read_body' | 'send' | 'external_fetch'
 export type IntakeInput = {
   product: string
   name?: string
-  email: string
   subject: string
   body: string
   origin: 'form' | 'chat'
-  kind?: 'inquiry' | 'feedback'
-}
+} & ({ kind?: 'inquiry'; email: string } | { kind: 'feedback'; email?: string })
 export type ExtensionEvent = {
   id: number
   kind: string
@@ -125,6 +123,7 @@ export type Panel = {
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
 export type Extension = {
+  navigationCount?: (ctx: ExtensionContext) => Promise<number>
   configurationGaps?: (
     ctx: ExtensionContext,
     products: { id: string; name: string }[],

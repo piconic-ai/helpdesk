@@ -64,6 +64,7 @@ const extensionScreens = [
   {
     ...panel('feedback', 'conversation', 'Feedback'),
     url: '/conversation/10',
+    after: '.heading-actions form[action="/actions/feedback.review"]',
     label: 'フィードバックの確認',
   },
   {

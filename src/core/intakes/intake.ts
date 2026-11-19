@@ -19,11 +19,17 @@ export const submissionSchema = z
       .refine((v) => v.trim().length > 0),
   })
   .strict()
-export const intakeSchema = submissionSchema.extend({
+const intakeFields = submissionSchema.extend({
   product: z.string().min(1),
   origin: z.enum(['form', 'chat']),
-  kind: z.enum(['inquiry', 'feedback']).default('inquiry'),
 })
+export const intakeSchema = z.union([
+  intakeFields.extend({ kind: z.literal('inquiry').default('inquiry') }),
+  intakeFields.extend({
+    kind: z.literal('feedback'),
+    email: addressSchema.optional(),
+  }),
+])
 export const exactOrigin = z
   .url({ protocol: /^https?$/ })
   .refine(

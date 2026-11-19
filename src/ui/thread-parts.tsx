@@ -1,5 +1,6 @@
 import type { Child } from 'hono/jsx'
 import { ActionLink, Button } from './controls'
+import { Stack } from './layout'
 import { Message } from './patterns'
 type Content = { children?: Child }
 export const MessageAuthor = ({ children }: Content) => (
@@ -47,10 +48,10 @@ export const ReplyArea = ({
   templates,
   children,
 }: Content & { templates: Child }) => (
-  <section className="reply-area" aria-label="返信欄">
+  <Stack as="section" className="reply-area" aria-label="返信欄">
     {templates}
     {children}
-  </section>
+  </Stack>
 )
 export const ThreadTimeline = ({ children }: Content) => (
   <section className="message-list" aria-label="メッセージ">

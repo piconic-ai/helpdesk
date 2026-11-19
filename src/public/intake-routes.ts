@@ -66,6 +66,13 @@ async function submit(
     : receiptPage(kind, receipt.parse(result).number, fields, responseTime)
 }
 
+function validationMessage(kind: FormKind, error: z.ZodError) {
+  if (kind !== 'feedback')
+    return '入力内容を確認し、必要な項目を入力してください。'
+  return error.issues.some((issue) => issue.path[0] === 'email')
+    ? 'メールアドレスを確認するか、連絡先を空にして送信してください。'
+    : 'ご意見・ご要望を1文字以上、100,000文字以内で入力してください。'
+}
 function submissionRequest(request: Request, form: FormData) {
   const headers = new Headers(request.headers)
   headers.set('X-Helpdesk-Key', String(form.get('publicKey') ?? ''))
@@ -208,7 +215,7 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
           policy,
           fields,
           requestContact,
-          '入力内容を確認し、必要な項目を入力してください。',
+          validationMessage(kind, error),
         ),
         400,
       )

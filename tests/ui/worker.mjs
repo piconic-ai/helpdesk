@@ -1,8 +1,12 @@
 // Exercise the compiled application with a local email binding and a deterministic AI response.
 import worker from './worker.js'
 let sequence = 0
+const clock = Date.now.bind(Date)
+let clockStart
 function localEnv(env, origin) {
-  Date.now = () => Number(env.FIXED_NOW)
+  clockStart ??= clock()
+  Date.now = () =>
+    Number(env.FIXED_NOW) + (env.TICKING_CLOCK ? clock() - clockStart : 0)
   crypto.randomUUID = () =>
     '00000000-0000-4000-8000-' + (++sequence).toString(16).padStart(12, '0')
   return {

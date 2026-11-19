@@ -54,7 +54,7 @@ function operator(ctx: ExtensionContext) {
 
 export async function previewIssue(ctx: ExtensionContext, input: unknown) {
   const by = operator(ctx)
-  const { number, summary } = previewInput.parse(input)
+  const { number, title, summary } = previewInput.parse(input)
   const { product } = await ctx.contact(number)
   const { repo, origin } = await issueDestination(ctx, product)
   const confirmation = crypto.randomUUID()
@@ -62,7 +62,7 @@ export async function previewIssue(ctx: ExtensionContext, input: unknown) {
     number,
     confirmation,
     repository: repo,
-    ...postFor(number, summary, origin),
+    ...postFor(number, title, summary, origin),
   }
   await ctx.put('preview/' + confirmation, {
     ...proposal,
@@ -168,7 +168,7 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
       )
         addresses.set(
           '/conversation/' + sibling.number,
-          'Inquiry #' + sibling.number,
+          '会話 #' + sibling.number,
         )
     }
   }

@@ -19,6 +19,7 @@ export function PublicShell(props: {
         </title>
         <link rel="stylesheet" href="/styles.css" />
         <link rel="stylesheet" href="/ui/public.css" />
+        <link rel="stylesheet" href="/ui/layout.css" />
         {props.search && <script src="/ui/live-filters.js" defer />}
         {props.turnstile && (
           <script

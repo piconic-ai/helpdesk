@@ -16,6 +16,15 @@ export const configSchema = z.object({
 export const positive = z.coerce.number().int().positive().safe()
 export const previewInput = z.object({
   number: positive,
+  title: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .refine(
+      (title) => !/^Inquiry #\d+$/i.test(title),
+      '課題の内容が分かる題を入力してください。',
+    ),
   summary: z.string().trim().min(1).max(2000),
 })
 export const confirmInput = z.object({
@@ -45,11 +54,12 @@ export const storedPreview = preview.extend({
 })
 export function postFor(
   number: number,
+  title: string,
   summary: string,
   origin: string,
 ): IssuePost {
   return {
-    title: 'Inquiry #' + number,
+    title,
     body:
       summary +
       '\n\n[#' +

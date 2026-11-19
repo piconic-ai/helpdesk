@@ -7,17 +7,12 @@
 .public-footer,
 .help-article {
   width: min(100%, var(--components-help-article-width));
-  margin-inline: auto;
 }
 .public-header {
   padding-block: var(--spacing-lg);
   border-bottom: var(--layout-hairline-width) solid var(--colors-hairline);
   color: var(--colors-ink);
   font: var(--typography-body-strong);
-}
-.help-article,
-.chat-widget {
-  margin-block: var(--spacing-xl);
 }
 .help-article {
   display: grid;
@@ -27,12 +22,6 @@
 }
 .help-article article {
   overflow-wrap: anywhere;
-}
-.help-article article > * + * {
-  margin-block-start: var(--spacing-md);
-}
-.help-article article :is(h2, h3, h4) {
-  margin-block-start: var(--spacing-lg);
 }
 .help-article article :is(ul, ol) {
   padding-inline-start: var(--spacing-lg);
@@ -62,7 +51,6 @@
   padding-block: var(--spacing-lg);
 }
 .article-vote legend {
-  margin-bottom: var(--spacing-sm);
   font: var(--typography-body-strong);
 }
 .public-actions,
@@ -101,7 +89,6 @@
 }
 .chat-widget {
   width: min(100%, var(--components-chat-widget-width));
-  margin-inline: auto;
   padding: var(--components-chat-widget-padding);
   background: var(--components-chat-widget-backgroundColor);
   color: var(--components-chat-widget-textColor);
@@ -126,7 +113,6 @@
 
 .chat-question,
 .receipt-details dd {
-  margin: 0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -137,10 +123,6 @@
 .receipt-details dt {
   font: var(--typography-caption);
   color: var(--colors-muted);
-}
-.receipt-details dd + dt,
-.chat-handoff[open] .public-form {
-  margin-block-start: var(--spacing-sm);
 }
 .chat-handoff summary {
   cursor: pointer;

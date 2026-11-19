@@ -1,3 +1,4 @@
+import { chapter } from './handbook.mjs'
 import { customerContact } from './customer.mjs'
 import { allExtensionIds } from '../ui/daily-screens.mjs'
 import { capture, confirmSubmission, expect, test } from './harness.mjs'
@@ -94,10 +95,14 @@ async function answer(page) {
     '問い合わせ #6 に記事を添え、窓口・宛先・番号付き件名を確認',
   )
   await button(page, '送信して完了').click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog).toContainText('customer6@example.net')
-  await confirmSubmission(page)
-  await expect(page.locator('[data-ui=attributes]')).toContainText('完了')
+  await expect(button(page, '取り消す')).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(async () => {
+    await page.reload()
+    await expect(page.locator('[data-ui=attributes]')).toContainText('完了', {
+      timeout: 500,
+    })
+  }).toPass({ timeout: 15000 })
   await record(
     page,
     '02-complete',
@@ -135,8 +140,7 @@ async function noteAndRetry(page) {
     page.getByText('宛先のメールサーバーが受信を拒否しました。'),
   ).toBeVisible()
   await button(page, '再送').click()
-  await expect(page.getByRole('dialog')).toContainText('customer4@example.net')
-  await confirmSubmission(page)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(async () => {
     await page.reload()
     await expect(
@@ -280,6 +284,7 @@ async function issueAndMetrics(page, scene, number) {
   const panel = page.locator('[data-extension=issues]')
   await button(panel, 'Issue を起票する').click()
   const summary = '領収書の発行手順を見つけやすくします。'
+  await panel.getByLabel('タイトル').fill('領収書を見つけやすくする')
   await panel.getByLabel('公開する要約').fill(summary)
   await button(panel, '起票内容を確認').click()
   const dialog = page.getByRole('dialog')
@@ -295,7 +300,7 @@ async function issueAndMetrics(page, scene, number) {
     .getByRole('link', { name: /未対応/ })
     .click()
   await row(page, 1).click()
-  await page.getByRole('link', { name: '既存の Issue を選ぶ' }).click()
+  await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
   await button(page, '既存の Issue と紐づける').click()
   await confirmSubmission(page)
   const articles = page.locator('[data-extension=articles]')
@@ -303,7 +308,12 @@ async function issueAndMetrics(page, scene, number) {
   await articles.getByLabel('記事にする内容').fill('領収書発行の案内')
   await button(articles.locator('form'), '記事の候補に追加').click()
   await page.getByRole('link', { name: '課題', exact: true }).click()
-  await expect(page.getByRole('main')).toContainText('紐づく声 2件')
+  await page
+    .getByRole('link', { name: '領収書を見つけやすくする', exact: true })
+    .click()
+  await expect(
+    page.getByRole('heading', { name: '紐づく声 2件' }),
+  ).toBeVisible()
   await record(page, '08-issues', '同じ課題に紐づく2件の声を確認')
   await page.getByRole('link', { name: '対応状況の集計' }).click()
   for (const name of [
@@ -317,6 +327,12 @@ async function issueAndMetrics(page, scene, number) {
   await page
     .getByRole('combobox', { name: 'プロダクト', exact: true })
     .selectOption('slide')
+  await page.waitForURL(
+    (url) =>
+      url.pathname === '/metrics' &&
+      url.searchParams.get('product') === 'slide',
+    { waitUntil: 'load' },
+  )
   await page
     .getByRole('combobox', { name: '期間', exact: true })
     .selectOption('7')
@@ -370,15 +386,22 @@ test('ハンズオンの例示データで #6 の回答から内部メモ・再�
     .bind('sato@example.com', '佐藤 優', 'mori@example.com', '森 直子')
     .run()
   await page.reload()
-  await test.step('1 受信箱の順番と絞り込み', () => readInbox(page, scene))
-  await test.step('2 記事を添付して送信、完了、次へ', () => answer(page))
-  await test.step('3–4 内部メモと失敗した返信の再送', () => noteAndRetry(page))
-  await test.step('5 AI の代理表示と下書きの確認', () => approve(page, scene))
-  const number =
-    await test.step('6–7 記事評価から同じ質問を問い合わせ、返信不要の声も受け付ける', () =>
-      publicVoices(page, scene))
-  await test.step('8–9 受け付けた問い合わせを課題につないで集計を見る', () =>
-    issueAndMetrics(page, scene, number))
-  await test.step('10 窓口・保持期間・削除・権限の読み取り', () =>
-    settings(page))
+  await test.step(chapter('H01', '絞り込み'), () => readInbox(page, scene))
+  await test.step(chapter('H02', '記事を添える', '送信して完了'), () =>
+    answer(page),
+  )
+  await test.step(
+    chapter('H03', '内部メモ') + ' / ' + chapter('H04', '再送'),
+    () => noteAndRetry(page),
+  )
+  await test.step(chapter('H05', '承認して送信'), () => approve(page, scene))
+  const number = await test.step(
+    chapter('H06', '質問する') + ' / ' + chapter('H07', '確認済みにする'),
+    () => publicVoices(page, scene),
+  )
+  await test.step(
+    chapter('H08', '起票内容を確認') + ' / ' + chapter('H09', '対応状況の集計'),
+    () => issueAndMetrics(page, scene, number),
+  )
+  await test.step(chapter('H10', '保存期間'), () => settings(page))
 })

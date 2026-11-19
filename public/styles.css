@@ -12,25 +12,8 @@ html {
   background: var(--colors-canvas);
 }
 body {
-  margin: 0;
   color: var(--colors-body);
   font: var(--typography-body);
-}
-h1,
-h2,
-h3,
-h4,
-p,
-figure,
-ul,
-ol,
-dl,
-dd,
-pre,
-blockquote,
-fieldset,
-form {
-  margin: 0;
 }
 h1,
 h2,
@@ -94,7 +77,6 @@ a:hover {
 }
 hr {
   width: 100%;
-  margin-block: var(--spacing-md);
   border: 0;
   border-top: var(--layout-hairline-width) solid var(--colors-hairline);
 }
@@ -279,9 +261,6 @@ dialog {
 dialog::backdrop {
   background: var(--layout-backdrop);
 }
-dialog > * + * {
-  margin-top: var(--spacing-md);
-}
 
 .app-shell {
   min-height: 100vh;
@@ -340,7 +319,6 @@ dialog > * + * {
   font: var(--typography-body-strong);
 }
 .sidebar-count {
-  margin-inline-start: auto;
   font: var(--typography-caption);
   color: var(--colors-muted);
 }
@@ -348,12 +326,10 @@ dialog > * + * {
   color: var(--colors-body);
 }
 .sidebar-footer {
-  margin-top: auto;
   border-top: var(--layout-hairline-width) solid var(--colors-hairline);
   padding-top: var(--spacing-sm);
 }
 .main-column {
-  margin-inline-start: var(--components-app-sidebar-width);
   padding: var(--spacing-xl);
   min-width: 0;
 }
@@ -363,7 +339,6 @@ dialog > * + * {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
 }
 .page-actions,
 .form-actions {
@@ -375,14 +350,12 @@ dialog > * + * {
 .inbox-view,
 .settings-view {
   max-width: var(--layout-inbox-width);
-  margin-inline: auto;
 }
 .filters {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
 }
 .filters input,
 .filters select {
@@ -451,7 +424,6 @@ dialog > * + * {
   flex: 1;
 }
 .row-top time {
-  margin-inline-start: auto;
   white-space: nowrap;
 }
 .row-bottom {
@@ -583,9 +555,6 @@ dialog > * + * {
   gap: var(--spacing-xs);
   min-width: 0;
 }
-.message-header time {
-  margin-inline-start: auto;
-}
 .message-body,
 .body {
   white-space: pre-wrap;
@@ -593,13 +562,8 @@ dialog > * + * {
 }
 .message-body {
   max-width: var(--components-help-article-width);
-  margin-block: var(--spacing-sm);
   color: var(--colors-ink);
   font: var(--typography-reading);
-}
-.message-footer,
-.attachments {
-  margin-top: var(--spacing-sm);
 }
 .attachments {
   padding: 0;
@@ -619,9 +583,6 @@ iframe {
 .context-panel {
   display: block;
 }
-.context-panel > summary {
-  margin-bottom: var(--spacing-sm);
-}
 .settings-card,
 .extension-card {
   padding: var(--components-settings-card-padding);
@@ -634,19 +595,8 @@ iframe {
 .extension-card h2 {
   font: var(--typography-title-sm);
 }
-.settings-card > * + *,
-.extension-card > * + *,
-.settings-card form > * + *,
-.extension-card form > * + * {
-  margin-top: var(--spacing-sm);
-}
-.settings-view > section + section,
-.context-panel section + section {
-  margin-top: var(--spacing-md);
-}
 .composer {
   min-width: 0;
-  margin-block: var(--spacing-md);
   padding: var(--components-composer-padding);
   background: var(--colors-canvas);
   border: var(--layout-hairline-width) solid var(--colors-hairline);
@@ -703,7 +653,6 @@ iframe {
     border-bottom: var(--layout-hairline-width) solid var(--colors-hairline);
   }
   .main-column {
-    margin: 0;
     padding: var(--spacing-md);
   }
   .thread-layout {
@@ -780,7 +729,6 @@ iframe {
 }
 .app-sidebar h2 {
   padding: 0 var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
   color: var(--colors-muted);
   font: var(--typography-caption);
 }
@@ -808,7 +756,6 @@ iframe {
   color: var(--colors-muted);
 }
 .product-switcher[open] > div {
-  margin-top: var(--spacing-xxs);
   background: var(--colors-canvas);
   border: var(--layout-hairline-width) solid var(--colors-hairline);
   border-radius: var(--rounded-md);
@@ -856,7 +803,6 @@ details.filter-tab[open] {
   display: grid;
   gap: var(--spacing-sm);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 10em), 1fr));
-  margin: var(--spacing-xs) 0;
 }
 .unread .row-sender,
 .unread .row-subject {
@@ -901,7 +847,6 @@ details.filter-tab[open] {
   #nav-drawer {
     position: fixed;
     inset: 0 auto 0 0;
-    margin: 0;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -920,13 +865,6 @@ details.filter-tab[open] {
   details.filter-tab > summary {
     min-height: var(--layout-touch-target);
   }
-}
-
-.thread-main .page-header {
-  margin-block: var(--spacing-sm);
-}
-.thread-header {
-  margin-bottom: var(--spacing-lg);
 }
 .back-link {
   font: var(--typography-caption);
@@ -958,24 +896,15 @@ details.filter-tab[open] {
   color: var(--colors-muted);
   font: var(--typography-caption);
 }
-.mail-privacy {
-  margin-block: var(--spacing-xs);
-}
 .mail-document {
   max-width: var(--components-help-article-width);
   font: var(--typography-reading);
   color: var(--colors-ink);
   overflow-wrap: anywhere;
 }
-.mail-document main > * + * {
-  margin-block-start: var(--spacing-xs);
-}
 .mail-document img {
   max-width: 100%;
   height: auto;
-}
-.message-body:last-child {
-  margin-bottom: 0;
 }
 .context-cards,
 .settings-view {
@@ -984,9 +913,6 @@ details.filter-tab[open] {
 }
 .context-cards {
   gap: var(--spacing-sm);
-}
-.context-panel .context-cards > * {
-  margin: 0;
 }
 .context-panel .extension-form input,
 .context-panel .extension-form select {
@@ -1013,19 +939,6 @@ details.filter-tab[open] {
   border-radius: var(--rounded-lg);
   box-shadow: var(--layout-raised-shadow);
 }
-.action-menu > div form + form,
-.action-menu form button {
-  margin-top: var(--spacing-xs);
-}
-.settings-view > section + section {
-  margin-top: 0;
-}
-.settings-view .page-header {
-  margin-bottom: 0;
-}
-.inbox-view > .settings-card {
-  margin-top: var(--spacing-lg);
-}
 .status-received,
 .status-reviewed {
   background: var(--colors-surface-card);
@@ -1046,9 +959,6 @@ details.filter-tab[open] {
   flex-wrap: wrap;
   gap: var(--spacing-sm);
 }
-.token-list form {
-  margin-inline-start: auto;
-}
 @media (max-width: 1199px) {
   .thread-layout {
     display: flex;
@@ -1061,7 +971,6 @@ details.filter-tab[open] {
   .thread-header {
     width: 100%;
     order: -2;
-    margin: 0;
   }
   .context-panel {
     width: 100%;
@@ -1111,24 +1020,14 @@ details.filter-tab[open] {
 .note-caption {
   color: var(--colors-note);
   font: var(--typography-caption);
-  margin-top: var(--spacing-xs);
 }
 .composer-addresses {
   color: var(--colors-muted);
   font: var(--typography-caption);
   overflow-wrap: anywhere;
 }
-.composer-actions {
-  margin-inline-start: auto;
-}
-.composer .banner-error {
-  margin-block: var(--spacing-xs);
-}
 .confirm-dialog .page-actions {
   justify-content: end;
-}
-.composer-field {
-  margin-block: var(--spacing-xs);
 }
 @media (max-width: 767px) {
   .composer-tabs .filter-tab {
@@ -1148,7 +1047,6 @@ details.filter-tab[open] {
   gap: var(--spacing-xs);
 }
 .reply-preview dd {
-  margin: 0;
   overflow-wrap: anywhere;
 }
 .reply-preview dt {
@@ -1160,7 +1058,6 @@ details.filter-tab[open] {
 }
 .article-choices {
   list-style: none;
-  margin: 0;
   padding: 0;
 }
 @media (max-width: 767px) {
@@ -1174,12 +1071,6 @@ details.filter-tab[open] {
   display: grid;
   max-width: var(--layout-thread-width);
   gap: var(--spacing-lg);
-}
-.extension-workspace .settings-card > * + * {
-  margin-top: var(--spacing-sm);
-}
-.extension-workspace .help-article {
-  margin-block: 0;
 }
 
 .actor-identity,
@@ -1248,10 +1139,6 @@ time,
 .confirm-dialog dt {
   font: var(--typography-body-strong);
 }
-.confirm-dialog .page-actions,
-.confirm-dialog > button {
-  margin-block-start: var(--spacing-lg);
-}
 .confirm-dialog button {
   min-width: 0;
 }
@@ -1264,9 +1151,6 @@ time,
 }
 .thread-navigation {
   justify-content: space-between;
-}
-.timeline-entry {
-  margin-inline: var(--spacing-md);
 }
 .thread-navigation .action-menu a {
   display: block;
@@ -1298,7 +1182,6 @@ button[popovertarget='reply-articles'] {
   position-anchor: --article-trigger;
   position-area: top span-right;
   position-try-fallbacks: flip-block;
-  margin: 0;
   max-height: 50vh;
   max-width: calc(100vw - var(--spacing-lg));
   overflow: auto;
@@ -1308,10 +1191,6 @@ button[popovertarget='reply-articles'] {
 }
 .rule-list {
   padding-inline-start: var(--spacing-lg);
-}
-.rule-list li + li,
-.settings-card h3:not(:first-child) {
-  margin-block-start: var(--spacing-lg);
 }
 .settings-card
   input:is(
@@ -1332,7 +1211,6 @@ button[popovertarget='reply-articles'] {
 legend,
 input[type='checkbox'] {
   padding: 0;
-  margin: 0;
 }
 ul,
 ol {

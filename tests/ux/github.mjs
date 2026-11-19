@@ -6,7 +6,7 @@ export function createGithub() {
   let closed = false
   const issue = () => ({
     number: 42,
-    title: 'Inquiry #1',
+    title: created.at(-1)?.title ?? '領収書の一括ダウンロード',
     state: closed ? 'closed' : 'open',
     closed_at: closed ? '2026-11-18T04:00:00Z' : null,
   })

@@ -1,4 +1,5 @@
 import type { Child } from 'hono/jsx'
+import { PageBody, Stack, Grid, Cluster } from './layout'
 import { ActionLink } from './controls'
 
 type Content = { children?: Child }
@@ -40,9 +41,10 @@ function Template({
   children,
 }: Page & { kind: 'list' | 'detail' | 'edit' | 'overview' }) {
   return (
-    <section data-ui-page={kind} data-contact={contact}>
-      <div
-        className={contact ? 'thread-header' : 'pattern-intro'}
+    <PageBody data-ui-page={kind} data-contact={contact}>
+      <Stack
+        gap="sm"
+        className={contact !== undefined ? 'thread-header' : 'pattern-intro'}
         data-contact={contact}
       >
         {back && (
@@ -52,14 +54,16 @@ function Template({
         )}
         <PageHeading title={title} description={description} action={action} />
         {attributes}
-      </div>
+      </Stack>
       {filters}
       <div data-ui="columns">
-        <div data-ui="body">{children}</div>
+        <Stack data-ui="body" gap="lg">
+          {children}
+        </Stack>
         {aside && <aside data-ui="panel">{aside}</aside>}
       </div>
       {footer && <footer data-ui="footer">{footer}</footer>}
-    </section>
+    </PageBody>
   )
 }
 export const ListPage = (props: Page) => <Template kind="list" {...props} />
@@ -70,10 +74,14 @@ export const OverviewPage = (props: Page) => (
 )
 export function FilterBar({ children, chips }: Content & { chips?: Child }) {
   return (
-    <div data-ui="filters">
+    <Stack data-ui="filters" gap="xs">
       <div data-ui="filter-line">{children}</div>
-      {chips && <div data-ui="chips">{chips}</div>}
-    </div>
+      {chips && (
+        <Cluster data-ui="chips" gap="xs">
+          {chips}
+        </Cluster>
+      )}
+    </Stack>
   )
 }
 export function ListRow({
@@ -181,12 +189,12 @@ export function MetricCard({
   definition: Child
 }) {
   return (
-    <article data-ui="metric-card">
+    <Stack as="article" data-ui="metric-card">
       <h2>{title}</h2>
       <strong>{value}</strong>
       <small>{change}</small>
       <p>{definition}</p>
-    </article>
+    </Stack>
   )
 }
 export function FormSection({
@@ -196,18 +204,25 @@ export function FormSection({
   children,
 }: Content & { id?: string; title: Child; description?: Child }) {
   return (
-    <section id={id} data-ui="form-section" className="settings-card">
+    <Stack
+      as="section"
+      id={id}
+      data-ui="form-section"
+      className="settings-card"
+    >
       <h2>{title}</h2>
       {description && <p>{description}</p>}
       {children}
-    </section>
+    </Stack>
   )
 }
 export const AttributeRow = ({ children }: Content) => (
-  <div data-ui="attributes">{children}</div>
+  <Cluster data-ui="attributes" gap="xs">
+    {children}
+  </Cluster>
 )
 export const ActionBar = ({ children }: Content) => (
-  <div data-ui="actions">{children}</div>
+  <Cluster data-ui="actions">{children}</Cluster>
 )
 export const CandidateList = ({ children }: Content) => (
   <div data-ui="candidates">{children}</div>
@@ -216,7 +231,7 @@ export const RowList = ({ children }: Content) => (
   <ul data-ui="row-list">{children}</ul>
 )
 export const MetricGrid = ({ children }: Content) => (
-  <div data-ui="metrics">{children}</div>
+  <Grid data-ui="metrics">{children}</Grid>
 )
 export function Candidate({
   icon,
@@ -249,14 +264,19 @@ export function ExtensionCard({
   settings?: Child
 }) {
   return (
-    <article id={id} data-extension={extension} data-ui="extension-card">
+    <Stack
+      as="article"
+      id={id}
+      data-extension={extension}
+      data-ui="extension-card"
+    >
       <header>
         <h3 title={typeof title === 'string' ? title : undefined}>{title}</h3>
         {toggle}
       </header>
       <p>{description}</p>
       {settings && <footer>{settings}</footer>}
-    </article>
+    </Stack>
   )
 }
 export function Notice({

@@ -1,3 +1,5 @@
+import { inboxSort } from './inbox-location'
+import { extensionContext } from '../extensions/context-usecase'
 import { listOperators, type Operator } from '../operators/operators-store'
 import type { Bindings } from '../settings/bindings'
 import {
@@ -77,10 +79,24 @@ export async function consoleFrame(
     approvalNumbers,
     openNumbers,
     counts,
-    extensions: (env.EXTENSIONS?.active ?? []).map(({ extension }) => ({
-      id: extension.id,
-      slots: extension.panels?.map((p) => p.slot) ?? [],
-    })),
+    extensions: await Promise.all(
+      (env.EXTENSIONS?.active ?? []).map(async (installed) => ({
+        id: installed.extension.id,
+        slots: installed.extension.panels?.map((p) => p.slot) ?? [],
+        count: await installed.extension.navigationCount?.(
+          extensionContext(
+            {
+              env,
+              operator,
+              actor: { kind: 'operator', id: operator.email },
+              now,
+              uuid: () => crypto.randomUUID(),
+            },
+            installed,
+          ),
+        ),
+      })),
+    ),
     now,
   }
 }
@@ -111,7 +127,7 @@ export async function inboxOrder(
       env.DB,
       numbers,
       groups,
-      query.sort === 'newest',
+      inboxSort(query),
       (page - 1) * limit,
       limit,
     ),

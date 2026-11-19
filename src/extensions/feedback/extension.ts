@@ -2,7 +2,9 @@ import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
 const numberInput = z.object({ number: z.coerce.number().int().positive() })
 const submission = z.object({
-  email: z.email(),
+  email: z
+    .union([z.email(), z.literal('').transform(() => undefined)])
+    .optional(),
   name: z.string().min(1).max(200).optional(),
   body: z.string().trim().min(1).max(100000),
 })

@@ -241,6 +241,34 @@ it('uses per-product reply guidance on receipts and lets the visitor correct a r
   expect(await response.text()).toContain('フィードバックへの返信はありません')
 })
 
+it('accepts anonymous feedback without linking unrelated people or exposing a reply address', async () => {
+  const first = await post('feedback', { body: 'Anonymous first' })
+  const second = await post('feedback', { body: 'Anonymous second', email: '' })
+  expect(first.status).toBe(200)
+  expect(second.status).toBe(200)
+  const receipt = await second.text()
+  expect(receipt).toContain('登録なし')
+  const number = receipt.match(/（#(\d+)）/)![1]
+  const thread = await app.request(origin + '/conversation/' + number, {}, env)
+  const html = await thread.text()
+  expect(thread.status).toBe(200)
+  expect(html).toContain('匿名')
+  expect(html).not.toContain('Anonymous first')
+  const invalid = await post('feedback', {
+    body: 'Keep my words',
+    email: 'bad',
+  })
+  expect(invalid.status).toBe(400)
+  const correction = await invalid.text()
+  expect(correction).toContain('Keep my words')
+  expect(correction).toContain('連絡先を空にして送信してください')
+  const inquiry = await post('form', {
+    subject: 'Reply please',
+    body: 'I need help',
+  })
+  expect(inquiry.status).toBe(400)
+})
+
 it('registers chat embedding sites without expanding the intake API or changing other public surfaces', async () => {
   const trusted = 'https://portal.example.com'
   const endpoint = origin + '/extensions/chat/embed-sites'

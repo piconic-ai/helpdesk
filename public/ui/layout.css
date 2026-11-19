@@ -1,0 +1,160 @@
+/* Layout containers own the space between their children. */
+:where(
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  ol,
+  ul,
+  dl,
+  dd,
+  pre,
+  fieldset,
+  blockquote,
+  form,
+  dialog,
+  [popover],
+  input
+) {
+  margin: 0;
+}
+[data-gap='xs'] {
+  gap: var(--spacing-xs);
+}
+[data-gap='sm'] {
+  gap: var(--spacing-sm);
+}
+[data-gap='md'] {
+  gap: var(--spacing-md);
+}
+[data-gap='lg'],
+[data-layout='page'] {
+  gap: var(--spacing-lg);
+}
+[data-layout] {
+  min-width: 0;
+}
+[data-layout='page'],
+[data-layout='stack'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+[data-layout='cluster'] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+[data-layout='grid'] {
+  display: grid;
+  align-items: stretch;
+}
+[data-ui-page] {
+  width: 100%;
+  justify-self: center;
+}
+[data-ui-page='edit'] {
+  justify-self: start;
+}
+.main-column,
+[data-inbox-view],
+[data-inbox-content],
+.reply-area,
+.draft-review,
+.settings-card,
+.message-inbound,
+.message-note,
+.message-outbound,
+.settings-card form:not(:has([role='switch'])),
+.help-article > article,
+.mail-document main,
+[data-ui='gallery'] main > section,
+[data-ui='gallery'] main > header,
+.public-surface,
+dialog[open]:not(#nav-drawer) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--spacing-sm);
+}
+[data-inbox-content],
+.main-column,
+[data-ui='gallery'] main > section,
+.public-surface {
+  gap: var(--spacing-lg);
+}
+.context-cards,
+.message-list {
+  gap: var(--spacing-md);
+}
+.settings-card form > :is(button, [data-slot='button']),
+.pattern-intro > [data-slot='button'],
+.thread-header > [data-slot='button'] {
+  justify-self: start;
+}
+[data-ui='metric-card'] > p:has([data-slot='tooltip']) {
+  display: grid;
+  grid-template-columns: minmax(0, auto) auto;
+  justify-content: start;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+[data-ui='metrics'] {
+  align-items: stretch;
+}
+.public-surface > *,
+[data-ui='gallery'] main {
+  justify-self: center;
+}
+[data-ui='gallery'] {
+  display: grid;
+}
+[data-ui='gallery'] main {
+  width: 100%;
+}
+dialog:modal:not(#nav-drawer) {
+  place-self: center;
+}
+#related-info:popover-open {
+  justify-self: end;
+}
+.app-sidebar .sidebar-extensions {
+  flex-grow: 1;
+}
+.message-header:has(time),
+.product-menu [data-slot='popover-trigger'] {
+  justify-content: space-between;
+}
+.row-top .row-subject,
+.row-bottom .row-preview {
+  flex-grow: 1;
+}
+[data-ui='conversation-row'] .row-time,
+[data-ui='conversation-row'] .row-assignee {
+  flex: 1 0 auto;
+  justify-content: end;
+}
+time,
+.row-number,
+.view-count,
+.sidebar-count,
+.status-badge,
+[data-ui='candidate'] code,
+.context-cards a[href^='/conversation/'] code,
+button,
+[data-slot='button'] {
+  white-space: nowrap;
+}
+@media (min-width: 768px) {
+  .app-shell {
+    padding-inline-start: var(--components-app-sidebar-width);
+  }
+}
+
+.sidebar-count {
+  flex: 1;
+  text-align: end;
+}

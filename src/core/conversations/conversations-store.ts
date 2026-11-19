@@ -80,7 +80,7 @@ export async function detail(
       .all(),
     db
       .prepare(
-        'SELECT * FROM conversations WHERE contact=? AND number NOT IN (SELECT value FROM json_each(?)) ORDER BY number DESC',
+        'SELECT * FROM conversations WHERE contact=? AND length(contact)>0 AND number NOT IN (SELECT value FROM json_each(?)) ORDER BY number DESC',
       )
       .bind(conversation.contact, JSON.stringify(group))
       .all(),

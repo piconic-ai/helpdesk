@@ -136,6 +136,8 @@ function extensionMenu(frame: ConsoleFrame) {
           route.label,
           route.icon ?? route.id,
           frame.path === route.path || frame.path.startsWith(route.path + '/'),
+          frame.extensions.find((ext) => ext.id === route.id)?.count ||
+            undefined,
         ),
       )}
     </nav>
@@ -272,7 +274,9 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <link rel="stylesheet" href="/ui/inbox.css" />
         <link rel="stylesheet" href="/ui/patterns.css" />
         <link rel="stylesheet" href="/ui/issue-metrics.css" />
+        <link rel="stylesheet" href="/ui/issues.css" />
         <link rel="stylesheet" href="/ui/voices-articles.css" />
+        <link rel="stylesheet" href="/ui/layout.css" />
       </head>
       <body className="app-shell" data-operator={frame?.operator.email}>
         <script src="/ui/form-drafts.js"></script>

@@ -24,9 +24,7 @@ test('J15 キーボードだけで一覧から返信して次の未対応へ進�
   await area.pressSequentially('Keyboard reply. j k e a u ?')
   await capture(page, 'J15', '01-reply', 'キーボードで会話を開き、返信欄に入力')
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByRole('dialog')).toBeVisible()
-  await page.keyboard.press('Tab')
-  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await page.waitForURL((url) => url.searchParams.get('notice') === 'reply', {
     waitUntil: 'load',
   })

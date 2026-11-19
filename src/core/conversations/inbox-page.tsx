@@ -1,7 +1,7 @@
 import type { coreOperations } from '../operations/catalog-usecase'
 import type { ConsoleFrame, inboxMetadata } from './console-usecase'
-import { shell, selectedView, statuses, inboxUrl } from './console-page'
-import { inboxStatus } from './inbox-location'
+import { action, shell, selectedView, statuses, inboxUrl } from './console-page'
+import { inboxSearch, inboxSort, inboxStatus } from './inbox-location'
 import { conversationRow } from './inbox-row-page'
 import { operatorAvatar } from '../operators/identity-page'
 import {
@@ -66,7 +66,12 @@ function chips(q: Query, frame: ConsoleFrame) {
       q.assignee,
     label: q.label,
     status: q.status && statuses[q.status],
-    sort: q.sort === 'newest' ? '新しい順' : undefined,
+    sort:
+      q.sort === 'unreviewed'
+        ? '未確認を先に'
+        : q.sort === 'newest' && q.view !== 'feedback'
+          ? '新しい順'
+          : undefined,
   }
   return Object.entries(labels)
     .filter(([, text]) => text)
@@ -164,14 +169,21 @@ function filters(q: Query, frame: ConsoleFrame) {
         <NativeSelect
           name="sort"
           aria-label="並び順"
-          data-implicit-value="waiting"
+          data-implicit-value={feedback ? 'newest' : 'waiting'}
         >
-          <option value="waiting" selected={q.sort !== 'newest'}>
-            待たせている順
-          </option>
-          <option value="newest" selected={q.sort === 'newest'}>
+          {!feedback && (
+            <option value="waiting" selected={inboxSort(q) === 'waiting'}>
+              待たせている順
+            </option>
+          )}
+          <option value="newest" selected={inboxSort(q) === 'newest'}>
             新しい順
           </option>
+          {feedback && (
+            <option value="unreviewed" selected={inboxSort(q) === 'unreviewed'}>
+              未確認を先に
+            </option>
+          )}
         </NativeSelect>
       </InboxFilters>
     </FilterBar>
@@ -201,6 +213,7 @@ export function inboxPage(
         description={page.total + ' 件'}
         filters={filters(q, frame)}
       >
+        {view === 'feedback' && feedbackNotice(q)}
         {failures.length > 0 && (
           <Notice kind="error">
             <h2>受信に失敗したメール</h2>
@@ -256,6 +269,25 @@ export function inboxPage(
       </ListPage>
     </div>,
     frame,
+  )
+}
+function feedbackNotice(q: Query) {
+  const number = Number(q.changed)
+  if (!Number.isSafeInteger(number) || number <= 0) return null
+  if (q.notice === 'feedback.unreview')
+    return <Notice kind="success">#{number} を未確認に戻しました。</Notice>
+  if (q.notice !== 'feedback.review') return null
+  return (
+    <Notice kind="success">
+      #{number} を確認済みにしました。
+      {action(
+        'feedback.unreview',
+        '元に戻す',
+        <Input type="hidden" name="inbox" value={inboxSearch(q)} />,
+        number,
+        'quiet',
+      )}
+    </Notice>
   )
 }
 function bulkBar(frame: ConsoleFrame, view: string) {
