@@ -35,6 +35,7 @@ test('保存したルールを編集・並べ替え、適用した会話の履�
   })
   await page.goto(scene.origin)
   await page.getByRole('link', { name: /請求変更の連絡/ }).click()
+  await expect(page).toHaveURL(/\/conversation\/\d+$/)
   await expect(async () => {
     await page.reload()
     await expect(

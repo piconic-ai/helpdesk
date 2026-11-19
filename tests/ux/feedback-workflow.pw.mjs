@@ -60,7 +60,10 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   )
   await choose(page, '並び順', { label: '新しい順' })
   await expect(page.locator('a.conversation-row').first()).toContainText(body)
-  await row.getByRole('link').click()
+  const thread = row.getByRole('link')
+  const threadURL = new URL(await thread.getAttribute('href'), scene.origin)
+  await thread.click()
+  await expect(page).toHaveURL(threadURL.href)
   await expect(page.getByRole('heading', { name: body })).toBeVisible()
   await expect(page.getByText(/連絡先が登録されていない/)).toBeVisible()
   await expect(

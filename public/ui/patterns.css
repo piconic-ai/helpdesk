@@ -2,6 +2,9 @@
   min-width: 0;
   animation: pattern-fade-in var(--layout-fade) ease both;
 }
+main[data-routed] [data-ui-page] {
+  animation: none;
+}
 [data-ui-page='detail'] {
   max-width: calc(
     var(--layout-thread-width) + var(--layout-context-width) + var(--spacing-xl)

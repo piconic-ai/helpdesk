@@ -245,8 +245,10 @@ function richChoice(select, index) {
   wrap.after(wrapper)
   wrap.hidden = true
 }
-document
-  .querySelectorAll(
-    'select[data-product-select],select:has(option .label-dot, option svg),form[data-live-filters] select[name=sort]',
-  )
-  .forEach(richChoice)
+window.onHelpdeskPage(() => {
+  document
+    .querySelectorAll(
+      'select[data-product-select],select:has(option .label-dot, option svg),form[data-live-filters] select[name=sort]',
+    )
+    .forEach(richChoice)
+})

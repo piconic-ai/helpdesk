@@ -41,7 +41,11 @@ test('A3 声を受付期間・プロダクト・ラベル別に集計し、同�
     const group = main.getByRole('link', { name, exact: true })
     await expect(group.locator('..')).toContainText('2件')
     await group.click()
-    expect(page.url()).toContain(condition)
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === '/voices/conversations' &&
+        url.search.includes(condition),
+    )
     await expect(main.getByRole('listitem')).toHaveCount(2)
     await expect(main.getByRole('link', { name: /^#1 / })).toBeVisible()
     await expect(main.getByRole('link', { name: /^#10 / })).toBeVisible()

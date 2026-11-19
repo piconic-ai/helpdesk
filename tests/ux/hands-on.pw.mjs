@@ -258,6 +258,9 @@ async function publicVoices(page, scene) {
     .first()
     .click()
   await page.getByRole('link', { name: new RegExp(feedback) }).click()
+  await expect(page).toHaveURL((url) =>
+    /^\/conversation\/\d+$/.test(url.pathname),
+  )
   await button(page, '確認済みにする').click()
   await expect(page.getByRole('main')).toContainText('確認済み')
   await record(

@@ -47,7 +47,6 @@
     'label',
   ])
   const drafts = new WeakMap()
-  const fields = []
   function get(key) {
     try {
       return storage.getItem(key)
@@ -125,7 +124,6 @@
       entry.field.addEventListener('change', save)
       restore(entry)
     }
-    fields.push(...entries)
   }
 
   function recordSubmission(source, target) {
@@ -166,8 +164,13 @@
     for (const entry of drafts.get(form) ?? []) put(entry.key, null)
   })
   consumeReceipt()
-  document.addEventListener('DOMContentLoaded', () => {
+  function restoreForms() {
     for (const form of document.forms) bind(form)
+  }
+  document.addEventListener('DOMContentLoaded', restoreForms)
+  document.addEventListener('helpdesk:page', () => {
+    consumeReceipt()
+    restoreForms()
   })
   document.addEventListener(
     'focusin',
@@ -196,6 +199,8 @@
     recordSubmission(event.target, event.detail),
   )
   window.addEventListener('pageshow', (event) => {
-    if (event.persisted) for (const entry of fields) restore(entry, true)
+    if (event.persisted)
+      for (const form of document.forms)
+        for (const entry of drafts.get(form) ?? []) restore(entry, true)
   })
 })()

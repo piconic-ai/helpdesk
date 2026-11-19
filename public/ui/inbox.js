@@ -1,4 +1,4 @@
-;(() => {
+window.onHelpdeskPage((signal) => {
   const operator = document.body.dataset.operator
   if (!operator) return
   const key = 'inbox-change:' + operator
@@ -78,29 +78,36 @@
           '現在の状態に操作を適用できません。画面を更新して対象を確認してください。',
         )
       const receipt = await response.json()
-      const target = new URL(location.href)
-      if (!inbox) target.searchParams.delete('notice')
-      const message = receipt.count
-        ? receipt.count + '件 · ' + verbs[undo ? 'undo' : change.action]
-        : '対象はすでにこの状態です。'
-      sessionStorage.setItem(
-        key,
-        JSON.stringify({
-          path: target.pathname + target.search,
-          token: undo || !receipt.count ? null : receipt.token,
-          message: notice && receipt.count ? verbs[change.action] : message,
-          selected: selected(),
-          focus: document.activeElement.closest('.inbox-item')?.dataset.number,
-          position: [...document.querySelectorAll('.inbox-item')].indexOf(
-            document.activeElement.closest('.inbox-item'),
-          ),
-        }),
-      )
-      if (target.href === location.href) location.reload()
-      else location.replace(target)
+      if (signal.aborted) return
+      await showChangeReceipt(change, receipt, notice, undo)
     } catch (error) {
-      window.helpdeskToast(error.message, true)
+      if (!signal.aborted) window.helpdeskToast(error.message, true)
       pending = false
+    }
+  }
+  async function showChangeReceipt(change, receipt, notice, undo) {
+    const target = new URL(location.href)
+    if (!inbox) target.searchParams.delete('notice')
+    const message = receipt.count
+      ? receipt.count + '件 · ' + verbs[undo ? 'undo' : change.action]
+      : '対象はすでにこの状態です。'
+    sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        path: target.pathname + target.search,
+        token: undo || !receipt.count ? null : receipt.token,
+        message: notice && receipt.count ? verbs[change.action] : message,
+        selected: selected(),
+        focus: document.activeElement.closest('.inbox-item')?.dataset.number,
+        position: [...document.querySelectorAll('.inbox-item')].indexOf(
+          document.activeElement.closest('.inbox-item'),
+        ),
+      }),
+    )
+    await window.helpdeskNavigate(target.href, { history: 'replace' })
+    if (!signal.aborted) {
+      pending = false
+      restoreReceipt()
     }
   }
   function restoreReceipt() {
@@ -150,6 +157,7 @@
         throw new Error(
           'ラベルは更新されました。画面を更新して確認してください。',
         )
+      if (signal.aborted) return
       const doc = new DOMParser().parseFromString(
         await updated.text(),
         'text/html',
@@ -190,7 +198,7 @@
         message.append(undo)
       }
     } catch (error) {
-      window.helpdeskToast(error.message, true)
+      if (!signal.aborted) window.helpdeskToast(error.message, true)
     } finally {
       pending = false
     }
@@ -201,28 +209,32 @@
       return { action, numbers, label: value }
     return { action, numbers }
   }
-  document.addEventListener('submit', (event) => {
-    const form = event.target
-    if (
-      !['/actions/status', '/actions/assign', '/actions/label'].includes(
-        form.getAttribute('action'),
+  document.addEventListener(
+    'submit',
+    (event) => {
+      const form = event.target
+      if (
+        !['/actions/status', '/actions/assign', '/actions/label'].includes(
+          form.getAttribute('action'),
+        )
       )
-    )
-      return
-    const path = form.getAttribute('action')
-    const f = new FormData(form)
-    let action = 'assign'
-    if (path === '/actions/status') action = f.get('event')
-    if (path === '/actions/label') action = f.get('action')
-    event.preventDefault()
-    const change = fieldChange(
-      action,
-      [Number(f.get('number'))],
-      f.get('email') ?? f.get('label'),
-    )
-    if (form.closest('#thread-labels')) void toggleLabel(form, change)
-    else perform(change, true)
-  })
+        return
+      const path = form.getAttribute('action')
+      const f = new FormData(form)
+      let action = 'assign'
+      if (path === '/actions/status') action = f.get('event')
+      if (path === '/actions/label') action = f.get('action')
+      event.preventDefault()
+      const change = fieldChange(
+        action,
+        [Number(f.get('number'))],
+        f.get('email') ?? f.get('label'),
+      )
+      if (form.closest('#thread-labels')) void toggleLabel(form, change)
+      else perform(change, true)
+    },
+    { signal },
+  )
   restoreReceipt()
   if (!inbox) return
   let anchor
@@ -244,18 +256,22 @@
     })
     box.addEventListener('change', refresh)
   }
-  document.addEventListener('keydown', (event) => {
-    if (
-      event.defaultPrevented ||
-      event.key !== 'Escape' ||
-      document.querySelector('dialog[open], :popover-open') ||
-      !selected().length
-    )
-      return
-    for (const box of boxes) box.checked = false
-    refresh()
-    all?.focus({ preventScroll: true })
-  })
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (
+        event.defaultPrevented ||
+        event.key !== 'Escape' ||
+        document.querySelector('dialog[open], :popover-open') ||
+        !selected().length
+      )
+        return
+      for (const box of boxes) box.checked = false
+      refresh()
+      all?.focus({ preventScroll: true })
+    },
+    { signal },
+  )
   refresh()
   function quick(button) {
     const id = Number(button.closest('[data-number]').dataset.number)
@@ -278,6 +294,7 @@
           'ラベルを変更できませんでした。もう一度お試しください。',
         )
       const { token, count } = await response.json()
+      if (signal.aborted) return
       const receipt = {
         path: pageKey,
         token,
@@ -290,6 +307,7 @@
         throw new Error(
           'ラベルを変更しました。画面を更新して確認してください。',
         )
+      if (signal.aborted) return
       const doc = new DOMParser().parseFromString(
         await latest.text(),
         'text/html',
@@ -314,7 +332,7 @@
       })
       restoreReceipt()
     } catch (error) {
-      window.helpdeskToast(error.message, true)
+      if (!signal.aborted) window.helpdeskToast(error.message, true)
     } finally {
       pending = false
     }
@@ -353,21 +371,25 @@
       !document.querySelector('dialog[open],:popover-open')
     )
   }
-  document.addEventListener('keydown', (event) => {
-    if (!isListShortcut(event)) return
-    const index = links.indexOf(document.activeElement)
-    if (event.key === 'j' || event.key === 'k') {
-      event.preventDefault()
-      const next = index < 0 ? 0 : index + (event.key === 'j' ? 1 : -1)
-      links[Math.max(0, Math.min(links.length - 1, next))]?.focus()
-    } else if (index >= 0 && (event.key === 'a' || event.key === 'e')) {
-      event.preventDefault()
-      links[index]
-        .closest('li')
-        .querySelector(
-          '[data-quick="' + (event.key === 'a' ? 'assign' : 'closed') + '"]',
-        )
-        ?.click()
-    }
-  })
-})()
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (!isListShortcut(event)) return
+      const index = links.indexOf(document.activeElement)
+      if (event.key === 'j' || event.key === 'k') {
+        event.preventDefault()
+        const next = index < 0 ? 0 : index + (event.key === 'j' ? 1 : -1)
+        links[Math.max(0, Math.min(links.length - 1, next))]?.focus()
+      } else if (index >= 0 && (event.key === 'a' || event.key === 'e')) {
+        event.preventDefault()
+        links[index]
+          .closest('li')
+          .querySelector(
+            '[data-quick="' + (event.key === 'a' ? 'assign' : 'closed') + '"]',
+          )
+          ?.click()
+      }
+    },
+    { signal },
+  )
+})

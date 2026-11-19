@@ -175,6 +175,9 @@ importers:
       '@barefootjs/jsx':
         specifier: ^0.40.2
         version: 0.40.2(@barefootjs/client@0.40.2)(typescript@5.9.3)
+      '@barefootjs/router':
+        specifier: 0.40.2
+        version: 0.40.2(@barefootjs/client@0.40.2)
       '@barefootjs/shared':
         specifier: ^0.40.2
         version: 0.40.2
@@ -334,6 +337,14 @@ packages:
     peerDependencies:
       '@barefootjs/client': '>=0.2.0'
       typescript: ^5.0.0
+
+  '@barefootjs/router@0.40.2':
+    resolution: {integrity: sha512-+nB/eN9WAGrgtR2aC4TSQRLlaWWTqKEJ5efvyYn8XKtYOfS0FkPoZWxzWnf7FM+7LV+H6fGoWulC+4zids3AuA==}
+    peerDependencies:
+      '@barefootjs/client': '>=0.14.0'
+    peerDependenciesMeta:
+      '@barefootjs/client':
+        optional: true
 
   '@barefootjs/shared@0.40.2':
     resolution: {integrity: sha512-ILscafczgk8igBIBhyZqfEDq64LclUBUxSFEX0gdhXdcASHYtJnfe3hZKSCVac6Fjqaohm3R2R9kDaZWd3v3zw==}
@@ -2609,6 +2620,12 @@ snapshots:
       '@barefootjs/client': 0.40.2(@barefootjs/jsx@0.40.2)
       '@barefootjs/shared': 0.40.2
       typescript: 5.9.3
+
+  '@barefootjs/router@0.40.2(@barefootjs/client@0.40.2)':
+    dependencies:
+      '@barefootjs/shared': 0.40.2
+    optionalDependencies:
+      '@barefootjs/client': 0.40.2(@barefootjs/jsx@0.40.2)
 
   '@barefootjs/shared@0.40.2': {}
 

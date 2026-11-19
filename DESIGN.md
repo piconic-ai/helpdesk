@@ -529,7 +529,7 @@ Use the BarefootJS button, input, native select, popover, dialog, menu, tabs and
 
 Align the inbox checkbox with the middle of the row. Place the product before the sender and subject. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation in the sticky toolbar above the subject.
 
-Use the focus ring on keyboard focus and a distinct hover, pressed and disabled appearance on controls. Fade the screen and popovers over 150ms without translating the content. Respect reduced motion. In the operator console, use navigation rows or buttons for destinations; reserve underlined links for running text. Group secondary commands in a menu.
+Use the focus ring on keyboard focus and a distinct hover, pressed and disabled appearance on controls. Use a 150ms fade on initial document entry and on popovers, without translating the content. On a BarefootJS route change, keep the current page visible until the next content is ready and swap it at full opacity. Respect reduced motion. In the operator console, use navigation rows or buttons for destinations; reserve underlined links for running text. Group secondary commands in a menu.
 
 ## Screen purpose and spacing
 

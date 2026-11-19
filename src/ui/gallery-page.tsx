@@ -361,6 +361,7 @@ export function galleryPage(query: URLSearchParams) {
         <link rel="stylesheet" href="/ui/inbox.css" />
         <link rel="stylesheet" href="/ui/patterns.css" />
         <link rel="stylesheet" href="/ui/layout.css" />
+        <script src="/ui/page-lifecycle.js"></script>
         <script defer src="/ui/live-filters.js"></script>
         <script type="module" src="/ui/barefoot-overlays.js"></script>
         <script defer src="/ui/gallery.js"></script>

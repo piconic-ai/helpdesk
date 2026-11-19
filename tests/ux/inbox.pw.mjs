@@ -32,6 +32,7 @@ test('受信箱で承認待ち、相手の文、内部メモ、返信を見分�
   await expect(row).toContainText('チームが増える予定')
   await expect(row).not.toContainText('ご希望の人数')
   await approval.click()
+  await expect(page).toHaveURL(/view=approval/)
   await expect(page.locator('a.conversation-row .row-preview')).toContainText(
     'ご希望の人数',
   )
@@ -49,6 +50,7 @@ test('受信箱で承認待ち、相手の文、内部メモ、返信を見分�
   await page.goto(scene.origin)
   await expect(row.locator('.row-preview')).toContainText('返信 · お手続き')
   await approval.click()
+  await expect(page).toHaveURL(/view=approval/)
   await expect(page.locator('.row-preview')).toContainText('下書き · 更新時に')
   await page.goto(scene.origin + '/?status=pending')
   await expect(

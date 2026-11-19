@@ -18,6 +18,7 @@
     "@barefootjs/client": "^0.40.2",
     "@barefootjs/hono": "^0.40.2",
     "@barefootjs/jsx": "^0.40.2",
+    "@barefootjs/router": "0.40.2",
     "@barefootjs/shared": "^0.40.2",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "drizzle-orm": "^0.45.4",

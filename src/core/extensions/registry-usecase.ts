@@ -119,6 +119,7 @@ export async function panels(
         slot,
         title: panel.title,
         script: panel.script,
+        scriptType: panel.scriptType,
         content: await panel.content?.(api, number),
         links: (await panel.links?.(api, number)) ?? [],
         choices: (await panel.choices?.(api)) ?? {},

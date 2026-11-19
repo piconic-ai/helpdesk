@@ -63,7 +63,7 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
   const current = new URL(page.url()).pathname
   await page.getByRole('link', { name: '次の未対応へ' }).click()
   await expect(status(page)).toContainText('未対応')
-  expect(new URL(page.url()).pathname).not.toBe(current)
+  await expect(page).toHaveURL((url) => url.pathname !== current)
   await capture(page, 'J1', '04-next', '次の未対応の問い合わせへ進む')
 })
 

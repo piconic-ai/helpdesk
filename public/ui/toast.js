@@ -1,5 +1,5 @@
 // Keep operation results outside normal flow without moving forms out of their scope.
-;(() => {
+window.onHelpdeskPage((signal) => {
   let current
   let pointer
   let updateHover = () => {}
@@ -9,7 +9,7 @@
       pointer = { x: event.clientX, y: event.clientY }
       updateHover()
     },
-    { passive: true },
+    { passive: true, signal },
   )
   let dispose = () => {}
   function availableComposerSpace(composer, toast) {
@@ -134,9 +134,17 @@
   }
   for (const toast of document.querySelectorAll('[data-toast]')) {
     if (!toast.hidden) show(toast)
-    new MutationObserver(() => {
+    const observer = new MutationObserver(() => {
       if (!toast.hidden && (current !== toast || toast.matches('[role=alert]')))
         show(toast)
-    }).observe(toast, { attributes: true, attributeFilter: ['hidden', 'role'] })
+    })
+    observer.observe(toast, {
+      attributes: true,
+      attributeFilter: ['hidden', 'role'],
+    })
+    signal.addEventListener('abort', () => observer.disconnect(), {
+      once: true,
+    })
   }
-})()
+  signal.addEventListener('abort', () => dispose(), { once: true })
+})

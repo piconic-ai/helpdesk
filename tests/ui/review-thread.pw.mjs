@@ -103,7 +103,7 @@ test('thread commands, context and approval preserve the reading position', asyn
   }
 })
 
-test('document navigation finishes a single fade within 150 ms of animation time', async ({
+test('document entry fades once and a routed page appears at full opacity', async ({
   page,
 }) => {
   const server = await startScene()
@@ -124,11 +124,15 @@ test('document navigation finishes a single fade within 150 ms of animation time
       )
     })
     await page.goto(server.origin)
-    await page.getByRole('link', { name: '設定', exact: true }).click()
     const measurement = await page.evaluate(() => window.pageFade)
     expect(measurement.ms).toBeGreaterThan(0)
     expect(measurement.ms).toBeLessThanOrEqual(150)
     expect(measurement.opacity).toBe('1')
+    await page.getByRole('link', { name: '設定', exact: true }).click()
+    await expect(page).toHaveURL(/\/settings$/)
+    const content = page.locator('main [data-ui-page]').first()
+    await expect(content).toHaveCSS('animation-name', 'none')
+    await expect(content).toHaveCSS('opacity', '1')
     expect(
       await page.evaluate(() =>
         document

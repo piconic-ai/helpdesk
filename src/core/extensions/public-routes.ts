@@ -61,8 +61,9 @@ app.all('/help/:id/:product/:path{.*}?', async (c) => {
     },
     item,
   )
+  const origin = new URL(c.req.url).origin
   const method = c.req.method
-  if (method === 'POST' && c.req.header('origin') !== new URL(c.req.url).origin)
+  if (method === 'POST' && c.req.header('origin') !== origin)
     return c.text('送信元を確認できませんでした。', 403)
   const page =
     method === 'POST'
@@ -80,14 +81,17 @@ app.all('/help/:id/:product/:path{.*}?', async (c) => {
     c.env,
     id,
     product,
-    new URL(c.req.url).origin,
+    origin,
     info?.mailbox,
   )
   const layout = articleLayout(id, method, path)
   const search = layout === 'index'
   c.header(
     'Content-Security-Policy',
-    publicPolicy(origins) + (search ? "; script-src 'self'" : ''),
+    publicPolicy(origins) +
+      (layout !== 'other'
+        ? `; script-src ${origin}/ui/ ${origin}/components/; connect-src 'self'`
+        : ''),
   )
   return c.html(
     publicDocument(info ?? { name: product, mailbox: null }, page, {

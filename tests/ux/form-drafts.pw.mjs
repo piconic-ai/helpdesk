@@ -97,6 +97,7 @@ test('返信・内部メモ・承認待ちの編集を分け、送信を取り�
   await expect(note).toBeEmpty()
   await page.goto(scene.origin + '/?view=approval')
   await page.locator('a.conversation-row').first().click()
+  await expect(page).toHaveURL((url) => url.pathname === '/conversation/5')
   const edit = page.getByLabel('下書きの本文')
   await edit.fill('承認前に書き直した文章')
   await page.reload()

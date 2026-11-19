@@ -1,5 +1,6 @@
 'use client'
 
+import { navigate } from '@barefootjs/router'
 import { createSignal, onMount } from '@barefootjs/client'
 import { TabsList, TabsTrigger } from './PatternTabs'
 
@@ -64,6 +65,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
   let reopening: Promise<boolean> | undefined
 
   async function reopen() {
+    const currentHeader = document.querySelector('.thread-header')
     try {
       await fetch('/actions/status', {
         method: 'POST',
@@ -84,7 +86,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
       const header = documentCopy.querySelector('.thread-header')
       if (!header || !header.querySelector('.status-open, .status-pending'))
         throw new Error('Reopen failed')
-      document.querySelector('.thread-header')?.replaceWith(header)
+      currentHeader?.replaceWith(header)
       setClosed(false)
       setReopenFailed(false)
       return true
@@ -146,6 +148,15 @@ export function ReplyComposer(props: ReplyComposerProps) {
     setNote(isNote)
     setFailureStatus(!isNote && unknownReply() ? 0 : null)
   }
+  function finishSubmission(form: HTMLFormElement, operation: string) {
+    const submitted = form.querySelector('textarea:not(:disabled)')
+    if (submitted instanceof HTMLTextAreaElement) {
+      submitted.value = ''
+      submitted.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    if (form.isConnected)
+      void navigate('/conversation/' + props.number + '?notice=' + operation)
+  }
   async function submit(event: SubmitEvent) {
     const form = event.currentTarget
     if (!(form instanceof HTMLFormElement)) return
@@ -181,12 +192,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
       const receipt = await response.json()
       if (!isNote && !hasReplyReceipt(receipt))
         throw new Error('Missing submission receipt')
-      const submitted = form.querySelector('textarea:not(:disabled)')
-      if (submitted instanceof HTMLTextAreaElement) {
-        submitted.value = ''
-        submitted.dispatchEvent(new Event('input', { bubbles: true }))
-      }
-      location.assign('/conversation/' + props.number + '?notice=' + operation)
+      finishSubmission(form, operation)
     } catch {
       submissionFailed(0, isNote)
     }

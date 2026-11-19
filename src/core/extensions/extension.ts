@@ -151,6 +151,7 @@ export type ExtensionOperation = {
 export type Panel = {
   available?: (ctx: ExtensionContext, number?: number) => Promise<boolean>
   script?: string
+  scriptType?: 'module'
   slot: 'conversation' | 'settings' | 'list'
   title: string
   operations: string[]

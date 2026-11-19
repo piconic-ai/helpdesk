@@ -121,6 +121,7 @@ test.describe('C 受信メールの拡張処理', () => {
       authentication: 'mx.example.net; dmarc=fail',
     })
     await page.getByRole('link', { name: /迷惑メール/ }).click()
+    await expect(page).toHaveURL(/status=spam/)
     await expect(async () => {
       await page.reload()
       await expect(page.getByRole('link', { name: /隔離の確認/ })).toBeVisible({

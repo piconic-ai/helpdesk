@@ -94,6 +94,9 @@ test.describe('公開受付', () => {
     await openFeedback(page)
     await capture(page, 'J7', '02-inbox', '未確認のフィードバックが並ぶ')
     await page.getByRole('link', { name: new RegExp(first) }).click()
+    await expect(page).toHaveURL((url) =>
+      /^\/conversation\/\d+$/.test(url.pathname),
+    )
     await page.getByRole('button', { name: '確認済みにする' }).click()
     await expect(page.getByRole('main')).toContainText('確認済み')
     await capture(page, 'J7', '03-reviewed', '1件目を確認済みにする')

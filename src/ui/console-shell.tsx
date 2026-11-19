@@ -281,6 +281,7 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         </title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="stylesheet" href="/styles.css" />
+        <script src="/ui/page-lifecycle.js"></script>
         <script type="module" src="/ui/barefoot-overlays.js"></script>
         <script defer src="/ui/toast.js"></script>
         <script defer src="/ui/console.js"></script>
@@ -294,7 +295,11 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <link rel="stylesheet" href="/ui/public.css" />
         <link rel="stylesheet" href="/ui/layout.css" />
       </head>
-      <body className="app-shell" data-operator={frame?.operator.email}>
+      <body
+        data-router-shell={frame?.operator.email}
+        className="app-shell"
+        data-operator={frame?.operator.email}
+      >
         <script src="/ui/form-drafts.js"></script>
         <Dialog
           id="action-confirmation"
@@ -346,7 +351,7 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
           </a>
         </header>
         <dialog id="nav-drawer" aria-label="ナビゲーション" />
-        <aside className="app-sidebar" id="navigation">
+        <aside bf-region="navigation" className="app-sidebar" id="navigation">
           {frame ? (
             navigation(frame)
           ) : (
@@ -355,10 +360,18 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
             </a>
           )}
         </aside>
-        <main id="main" className="main-column" tabindex={-1}>
+        <main
+          bf-region="content"
+          id="main"
+          className="main-column"
+          tabindex={-1}
+        >
           {content}
         </main>
         <BfScripts />
+        {frame && (
+          <script type="module" src="/components/navigation.js"></script>
+        )}
       </body>
     </html>
   )

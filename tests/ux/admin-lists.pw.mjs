@@ -38,7 +38,11 @@ test('読み込み中に変更した検索と選択を一度に反映し、入�
 }) => {
   const requests = []
   page.on('request', (request) => {
-    if (request.isNavigationRequest() && request.frame() === page.mainFrame())
+    if (
+      new URL(request.url()).pathname === '/extensions' &&
+      request.method() === 'GET' &&
+      request.frame() === page.mainFrame()
+    )
       requests.push(new URL(request.url()).search)
   })
   await editFiltersWhileLoading(

@@ -56,6 +56,7 @@ export const presence: Extension = {
       title: 'Other operators here',
       operations: [],
       script: '/extension-assets/presence.js',
+      scriptType: 'module',
     },
   ],
 }

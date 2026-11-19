@@ -88,8 +88,9 @@ document.addEventListener('submit', async (event) => {
       headers: { Accept: 'application/json' },
     })
     if (!response.ok) throw new Error()
+    if (!form.isConnected) return
     if (form.matches('.swatches')) displaySwatch(form, selected)
-    else location.assign('/settings/labels?saved=yes')
+    else void window.helpdeskNavigate('/settings/labels?saved=yes')
   } catch {
     window.helpdeskToast(
       'ラベルを更新できませんでした。同じ名前の有無と使用件数を確認して、もう一度お試しください。',
@@ -231,6 +232,7 @@ async function reviewIssue(form, trigger) {
       await response.text(),
       'text/html',
     )
+    if (!form.isConnected) return
     const create = doc.querySelector('form[action="/actions/issues.create"]')
     if (!create) throw new Error()
     const content = create.closest('section')

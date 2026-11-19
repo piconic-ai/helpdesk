@@ -484,7 +484,14 @@ function panel(p: Panel, number?: number, data?: Details) {
       number={number}
       extension={p.id}
     >
-      {p.script && <script defer src={p.script}></script>}
+      {p.script && (
+        <script
+          type={p.scriptType}
+          data-classic-panel={p.scriptType ? undefined : ''}
+          defer
+          src={p.script}
+        ></script>
+      )}
       {summary && <PanelSummary>{summary}</PanelSummary>}
       {p.links.map((l) => (
         <p>
@@ -539,7 +546,7 @@ function panel(p: Panel, number?: number, data?: Details) {
             <p role="status" aria-live="polite"></p>
             <Button disabled>既存の課題と紐づける</Button>
           </PanelForm>
-          <script defer src="/ui/issue-picker.js"></script>
+          <script type="module" src="/ui/issue-picker.js"></script>
         </details>
       )}
     </ContextPanel>

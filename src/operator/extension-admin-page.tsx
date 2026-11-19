@@ -635,12 +635,12 @@ export function guidePage(
       )}
       {guideLink(id)}
       {Object.hasOwn(publicGuides, id) && (
-        <script defer src="/ui/copy-snippet.js" />
+        <script type="module" src="/ui/copy-snippet.js" />
       )}
       {id === 'chat' && (
         <>
           <link rel="stylesheet" href="/ui/widget-settings.css" />
-          <script defer src="/ui/widget-settings.js" />
+          <script type="module" src="/ui/widget-settings.js" />
         </>
       )}
       {items.map((p) => guideProduct(id, p))}
