@@ -55,3 +55,10 @@
 - 1回に送れる問いは1〜64個で、問いのキーは最大100文字です。記事のスラッグには120文字まで使えるため、候補を `article.0` などの短いキーに対応づけます。`noul` の結果は `answers[key].noul` から読みます。[入力スキーマ](https://developers.cloudflare.com/workers-ai/models/clef/schema-input.json)・[出力スキーマ](https://developers.cloudflare.com/workers-ai/models/clef/schema-output.json)
 - Flash のコンテキストは24,576トークン、Clef は65,536トークンです。日本語の検索品質は導入先の記事と質問で測定します。[Clef Flash](https://developers.cloudflare.com/workers-ai/models/clef-flash/)・[Clef](https://developers.cloudflare.com/workers-ai/models/clef/)・[評価手順](reports/suggest-eval.md)
 - 100万入力トークンあたり Flash は0.038米ドル、Clef は0.240米ドルです。料金の試算と見直し方は[運営ガイド](dev/article-suggestions.md)に記載しました。[Workers AI の料金](https://developers.cloudflare.com/workers-ai/platform/pricing/)
+
+## 送信の取り消しと当日の集計
+
+- 窓口の解決アンケートは日本語を既定にし、英語も選べます。過去に保存したプロジェクト別の案内と本文を優先します。
+- 「過去7日」は運営者の現地日付で今日を含む7日です。開始は初日の最初の瞬間、終了は計測時刻を含みます。比較対象はその直前の同じ日数です。アカウントに IANA の時間帯名を保存し、未設定の運営者には日本時間を使います。夏時間で日が23時間・25時間になる地域でも暦の日で区切ります。
+- Cloudflare Queues の送信・再試行の遅延上限は24時間です。10秒から5分の取り消し待ちはこの範囲に収まります。再配送を受けたときも D1 の送信予定を確認します。[Cloudflare Queues の制限](https://developers.cloudflare.com/queues/platform/limits/)
+- 同じ会話への新しい受信と送信開始が競合した場合は、D1 の書き込み順で決めます。受信が先なら下書きに戻し、配送取得が先なら送信結果を記録します。「送信して完了」の完了時刻は配送が受理された時刻です。
