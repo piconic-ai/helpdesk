@@ -19,9 +19,10 @@ export async function updateAccount(
   email: string,
   name: string,
   file: File | null,
+  zone?: string,
 ) {
   const key = file ? await saveAvatarImage(env.RAW, 'avatars/', file) : null
-  const old = await saveProfile(env.DB, email, name, key)
+  const old = await saveProfile(env.DB, email, name, key, zone)
   if (key && old) await env.RAW.delete('avatars/' + old)
 }
 export function accountImage(env: Bindings, key: string) {

@@ -11,6 +11,7 @@ export function OutcomeCard({
   summary,
   details,
   series,
+  timeZone,
   format,
 }: {
   title: string
@@ -19,6 +20,7 @@ export function OutcomeCard({
   change: string
   summary: string
   details: string
+  timeZone: string
   series: TrendPoint[]
   format: (value: number) => string
 }) {
@@ -26,7 +28,14 @@ export function OutcomeCard({
     <MetricCard
       title={title}
       value={value}
-      trend={<Sparkline series={series} label={title} format={format} />}
+      trend={
+        <Sparkline
+          timeZone={timeZone}
+          series={series}
+          label={title}
+          format={format}
+        />
+      }
       change={change}
       definition={
         <>

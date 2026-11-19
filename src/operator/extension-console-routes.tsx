@@ -1,3 +1,5 @@
+import { defaultTimeZone } from '../core/operators/time-zone'
+import { reportPeriod } from '../extensions/metrics/report-period'
 import {
   articlePerformance,
   missingArticleQuestions,
@@ -312,18 +314,21 @@ app.get('/metrics', async (c) => {
   if (product && !state.products.some((p) => p.id === product))
     return c.notFound()
   const period = z.enum(['7', '30', '90', 'custom']).parse(query.period ?? '30')
-  // Date inputs represent calendar days in Japan; the report takes a half-open UTC interval.
-  const day = 86400000
-  const japanOffset = 9 * 3600000
-  const today = Math.floor((state.now + japanOffset) / day) * day - japanOffset
-  const to =
+  const zone =
+    state.operators.find((person) => person.email === state.operator.email)
+      ?.timeZone ?? defaultTimeZone
+  const range = reportPeriod(
     period === 'custom'
-      ? Date.parse(date.parse(query.end)) - japanOffset + day
-      : today + day
-  const from =
-    period === 'custom'
-      ? Date.parse(date.parse(query.start)) - japanOffset
-      : to - Number(period) * day
+      ? {
+          kind: 'custom',
+          start: date.parse(query.start),
+          end: date.parse(query.end),
+        }
+      : { kind: 'rolling', days: Number(period) },
+    state.now,
+    zone,
+  )
+  const { from, to } = range
   if (from < 0 || from >= to)
     return c.text('開始日と終了日を確認してください。', 400)
   const { history = [], ...result } = reportResult.parse(
@@ -332,14 +337,13 @@ app.get('/metrics', async (c) => {
       from,
       to,
       includeHistory: true,
+      timeZone: zone,
     }),
   )
-  const iso = (time: number) =>
-    new Date(time + japanOffset).toISOString().slice(0, 10)
   return c.render(
     metricsPage(
       state,
-      { product, period, start: iso(from), end: iso(to - day) },
+      { product, period, start: range.start, end: range.end, timeZone: zone },
       result,
       history,
     ),

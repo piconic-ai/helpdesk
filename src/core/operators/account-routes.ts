@@ -1,3 +1,4 @@
+import { timeZone } from './time-zone'
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { mailLanguage } from '../settings/mail-language'
@@ -43,8 +44,18 @@ accountRoutes.post(
         ),
         400,
       )
+    const zone = timeZone.optional().safeParse(form.timeZone)
+    if (!zone.success)
+      return c.html(
+        accountPage(
+          await frame(),
+          name.data,
+          '有効な時間帯を入力してください（例：Asia/Tokyo）。',
+        ),
+        400,
+      )
     try {
-      await updateAccount(c.env, operator.email, name.data, file)
+      await updateAccount(c.env, operator.email, name.data, file, zone.data)
     } catch (error) {
       if (error instanceof InvalidAvatar)
         return c.html(accountPage(await frame(), name.data, error.message), 400)

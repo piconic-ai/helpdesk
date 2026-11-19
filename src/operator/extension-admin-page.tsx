@@ -675,6 +675,7 @@ export function guidePage(
   )
 }
 export type MetricFilter = {
+  timeZone: string
   period: string
   product: string
   start: string
@@ -695,6 +696,8 @@ export function metricsPage(
   history: MetricWindow[],
 ) {
   const previous = history.at(-2)?.values ?? {}
+  const zoneLabel =
+    filter.timeZone === 'Asia/Tokyo' ? '日本時間' : filter.timeZone
   const selected = frame.products.find((p) => p.id === filter.product)
   function compactChange(key: string) {
     if (result[key] == null || previous[key] == null) return '比較データなし'
@@ -704,6 +707,7 @@ export function metricsPage(
     return (
       <OutcomeCard
         id={key}
+        timeZone={filter.timeZone}
         title={fieldLabel(key)}
         value={metricValue(key, result[key])}
         series={history.map(({ from, to, values }) => ({
@@ -792,7 +796,7 @@ export function metricsPage(
         </Field>
         {filter.period === 'custom' ? (
           <Popover id="metric-dates" variant="outline" label="日付の範囲">
-            <Field label="開始日（日本時間）">
+            <Field label={'開始日（' + zoneLabel + '）'}>
               <Input
                 type="date"
                 name="start"
@@ -801,7 +805,7 @@ export function metricsPage(
                 required
               />
             </Field>
-            <Field label="終了日（日本時間）">
+            <Field label={'終了日（' + zoneLabel + '）'}>
               <Input
                 type="date"
                 name="end"

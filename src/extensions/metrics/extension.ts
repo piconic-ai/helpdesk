@@ -1,3 +1,5 @@
+import { timeZone } from '../../core/operators/time-zone'
+import { previousPeriods } from './report-period'
 import { improvementRate } from '../issues/outcomes'
 import { z } from 'zod'
 import type { Extension } from '../../core/extensions/extension'
@@ -6,6 +8,7 @@ const input = z
   .object({
     product: z.string().default(''),
     includeHistory: z.boolean().optional(),
+    timeZone: timeZone.optional(),
     from: z.coerce.number().int().nonnegative().default(0),
     to: z.coerce.number().int().positive().default(Number.MAX_SAFE_INTEGER),
   })
@@ -68,7 +71,13 @@ export const metrics: Extension = {
       input,
       output: reportResult,
       async run(ctx, value) {
-        const { product, from, to, includeHistory } = input.parse(value)
+        const {
+          product,
+          from,
+          to,
+          includeHistory,
+          timeZone: zone,
+        } = input.parse(value)
         const [events, voices] = await Promise.all([ctx.events(), ctx.voices()])
         const period = async (start: number, end: number) => ({
           ...(await ctx.suggestionResolution(product, start, end)),
@@ -77,18 +86,20 @@ export const metrics: Extension = {
         })
         const current = period(from, to)
         if (!includeHistory) return current
-        const periods = []
         const duration = to - from
-        for (let back = 6; back >= 0; back--) {
-          const end = to - back * duration
-          if (end <= 0) continue
-          const start = Math.max(0, end - duration)
-          const values = back ? period(start, end) : current
-          periods.push(
-            values.then((values) => ({ from: start, to: end, values })),
-          )
-        }
-        const history = await Promise.all(periods)
+        const windows = zone
+          ? previousPeriods(from, to, zone)
+          : Array.from({ length: 6 }, (_, i) => ({
+              from: Math.max(0, from - (6 - i) * duration),
+              to: from - (5 - i) * duration,
+            })).filter((window) => window.to > 0)
+        const history = await Promise.all(
+          windows.map(async (window) => ({
+            ...window,
+            values: await period(window.from, window.to),
+          })),
+        )
+        history.push({ from, to, values: await current })
         return { ...(await current), history }
       },
     },

@@ -1,8 +1,9 @@
+import { defaultTimeZone } from './time-zone'
 import type { ConsoleFrame } from '../conversations/console-usecase'
 import { shell, field } from '../conversations/console-page'
 import { operatorAvatar } from './identity-page'
 import { EditPage, Notice, FormSection, SettingRow } from '../../ui/patterns'
-import { Field, ImageFileInput } from '../../ui/controls'
+import { Field, ImageFileInput, Input } from '../../ui/controls'
 import { SaveActions } from '../../ui/admin'
 
 export function accountPage(
@@ -35,6 +36,17 @@ export function accountPage(
             'text',
             true,
           )}
+          <Field
+            label="集計の時間帯"
+            description="日付の境目に使います。例：Asia/Tokyo、America/Los_Angeles"
+          >
+            <Input
+              name="timeZone"
+              type="text"
+              value={self?.timeZone ?? defaultTimeZone}
+              required
+            />
+          </Field>
           <Field label="アイコン画像">
             <ImageFileInput
               name="avatar"

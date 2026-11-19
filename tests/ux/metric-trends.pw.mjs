@@ -234,3 +234,44 @@ test('375pxの集計条件で長いプロダクト名と期間の選択値を全
     }
   }
 })
+
+test('運営者の現地日付で期間を区切り、当日ここまでに完了した会話だけを数える', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/account')
+  await page
+    .getByLabel('集計の時間帯')
+    .fill('America/Los_Angeles', { timeout: 3000 })
+  await page.getByRole('button', { name: 'アカウントを保存' }).click()
+  await expect(page).toHaveURL(/saved=yes/)
+  await page.goto(scene.origin + '/metrics?period=7')
+  await expect(page.locator('input[name=start]')).toHaveValue('2026-11-11')
+  await expect(page.locator('input[name=end]')).toHaveValue('2026-11-17')
+  const closed = page
+    .locator('[data-ui=metric-card]')
+    .filter({
+      has: page.getByRole('heading', { name: '完了件数', exact: true }),
+    })
+    .locator('strong')
+  const before = Number.parseInt(await closed.innerText(), 10)
+  for (const [number, end] of [
+    [1, '2026-11-18T04:59:00Z'],
+    [2, '2026-11-18T05:59:00Z'],
+  ]) {
+    const event = scene.db.prepare(
+      "INSERT INTO events(number,kind,actor,payload,at) VALUES(?,?,'{}',?,?)",
+    )
+    await scene.db.batch([
+      event.bind(number, 'conversation_opened', '{}', Date.parse(end) - day),
+      event.bind(
+        number,
+        'status_changed',
+        JSON.stringify({ to: 'closed' }),
+        Date.parse(end),
+      ),
+    ])
+  }
+  await page.reload()
+  await expect(closed).toHaveText(String(before + 1))
+})

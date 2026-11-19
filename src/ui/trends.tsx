@@ -1,20 +1,11 @@
 export type TrendPoint = { from: number; to: number; value: number | null }
-const dates = new Intl.DateTimeFormat('ja-JP', {
-  timeZone: 'Asia/Tokyo',
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-})
-function interval(point: TrendPoint) {
-  const start = dates.format(point.from),
-    end = dates.format(point.to - 1)
-  return start === end ? start : start + '〜' + end
-}
 export function Sparkline({
   series,
   label,
   format,
+  timeZone = 'Asia/Tokyo',
 }: {
+  timeZone?: string
   series: TrendPoint[]
   label: string
   format: (value: number) => string
@@ -23,6 +14,17 @@ export function Sparkline({
     point.value === null ? [] : [point.value],
   )
   if (values.length < 2) return null
+  const dates = new Intl.DateTimeFormat('ja-JP', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const interval = (point: TrendPoint) => {
+    const start = dates.format(point.from),
+      end = dates.format(point.to - 1)
+    return start === end ? start : start + '〜' + end
+  }
   const max = Math.max(0, ...values)
   const caption =
     label +
