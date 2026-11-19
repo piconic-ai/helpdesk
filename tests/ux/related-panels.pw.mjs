@@ -13,10 +13,18 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     await panel(id).getByRole('button', { name: label, exact: true }).click()
   }
   await page.getByRole('button', { name: '定型文を選ぶ' }).click()
-  const template = panel('canned').getByRole('radio').first()
+  const options = panel('canned').getByRole('radio')
+  await expect(options).toHaveCount(3)
+  for (const name of [
+    'お問い合わせの受付',
+    '確認中のお知らせ',
+    '解決のお知らせ',
+  ])
+    await expect(panel('canned').getByText(name, { exact: true })).toBeVisible()
+  const template = options.first()
   await expect(template).toBeChecked()
   await expect(panel('canned')).toContainText(
-    'Hello 山田 花, thank you for contacting Slide.',
+    '山田 花 様、Slide へのお問い合わせを受け付けました。',
   )
   await panel('canned')
     .locator('form')
@@ -103,7 +111,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   await page.keyboard.press('Escape')
   await page.getByRole('link', { name: /^返信待ち/ }).click()
   const combined = page.getByRole('link', { name: new RegExp(target) })
-  await expect.soft(combined).toContainText('Hello 山田 花')
+  await expect.soft(combined).toContainText('山田 花 様')
   await expect
     .soft(combined.getByRole('img', { name: '承認待ち', exact: true }))
     .toBeVisible()
