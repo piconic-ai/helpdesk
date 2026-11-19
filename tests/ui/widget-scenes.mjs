@@ -13,6 +13,8 @@ export const widgetSettingsScenes = [
   ['widget-options', 'ボタンと最初の説明文を編集'],
   ['widget-preview', '埋め込みの見本を開く'],
   ['widget-csp', 'CSP の設定を確認'],
+  ['widget-edit-sites', '埋め込み先を編集'],
+  ['widget-edit-response', '返信の目安を編集'],
 ].map(([id, label]) => ({
   id,
   label,

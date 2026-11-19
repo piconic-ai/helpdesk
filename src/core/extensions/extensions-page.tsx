@@ -357,16 +357,14 @@ function formField(
     )
   if (key === 'issue')
     return (
-      <label>
-        課題
-        <NativeSelect name="issue">
-          {p.links.filter(issueLink).map((l) => (
-            <option value={l.href.split('/').at(-1)}>
-              #{l.href.split('/').at(-1)} {l.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </label>
+      <ChoicePreviews
+        name="issue"
+        label="課題"
+        choices={p.links.filter(issueLink).map((link) => {
+          const value = link.href.split('/').at(-1)!
+          return { value, label: '#' + value + ' ' + link.label }
+        })}
+      />
     )
   if (key === 'days')
     return (
@@ -401,6 +399,7 @@ function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
           : undefined
       }
     >
+      {op.name === 'issues.preview' && <h3>GitHub に公開する課題</h3>}
       {data &&
         ['merge.combine', 'issues.preview', 'articles.suggest'].includes(
           op.name,

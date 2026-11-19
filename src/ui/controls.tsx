@@ -52,6 +52,17 @@ export function ActionLink({
 export function Input({ type, ...props }: Native['input']) {
   return <input type={type} data-slot="input" {...props} />
 }
+export function ImageFileInput(props: Native['input']) {
+  return (
+    <span className="image-file-picker">
+      <Input {...props} type="file" aria-label="アイコン画像" />
+      <span data-file-presentation="" hidden aria-hidden="true">
+        <span className="button-secondary">ファイルを選ぶ</span>
+        <span data-file-name="">未選択</span>
+      </span>
+    </span>
+  )
+}
 export function Textarea({ children, ...props }: Native['textarea']) {
   return (
     <textarea data-slot="textarea" {...props}>

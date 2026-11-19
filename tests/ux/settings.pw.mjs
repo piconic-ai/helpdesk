@@ -156,7 +156,9 @@ test('J9 窓口を作成し、拡張の案内から新プロダクトの公開�
       has: page.getByRole('heading', { name: 'Catalog', exact: true }),
     })
     .last()
+  await expect(product).toContainText('この端末で受付を試せます')
   await product.getByRole('button', { name: 'このサイトで受付を開始' }).click()
+  await expect(product).toContainText('受付中')
   await capture(
     page,
     'J9',

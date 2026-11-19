@@ -374,9 +374,6 @@ export function conversationPage(
         frame.labelColors,
       )}
     >
-      {!holds.length &&
-        threadNotice(frame.query.notice, c.number, frame.query.undoId)}
-      {holds.map((hold) => replyUndoForm(c.number, hold))}
       <ThreadTimeline>
         {[
           ...data.messages.map((m) => ({
@@ -411,6 +408,9 @@ export function conversationPage(
           .map((entry) => entry.view)}
       </ThreadTimeline>
       <ReplyArea templates={panels.canned}>
+        {!holds.length &&
+          threadNotice(frame.query.notice, c.number, frame.query.undoId)}
+        {holds.map((hold) => replyUndoForm(c.number, hold))}
         {offerToWrite && (
           <form
             id="reply-article-candidate"

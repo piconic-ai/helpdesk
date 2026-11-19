@@ -12,25 +12,38 @@
     { passive: true },
   )
   let dispose = () => {}
-  function position(node) {
-    const tools = document.querySelector('.composer-tools')
-    if (!tools || node.hidden) return
-    node.style.removeProperty('bottom')
-    const toast = node.getBoundingClientRect()
-    const editor = tools.closest('.composer')?.getBoundingClientRect()
-    const bar =
-      node.matches('[role=alert], [data-undo-reply]') &&
-      editor &&
-      editor.top >= toast.height + 8
-        ? editor
-        : tools.getBoundingClientRect()
+  function availableComposerSpace(composer, toast) {
+    const field = composer.querySelector('textarea:not(:disabled)')
+    if (!field || field.value || field === document.activeElement) return
+    const rect = field.getBoundingClientRect()
     if (
-      toast.top < bar.bottom &&
-      toast.bottom > bar.top &&
-      toast.left < bar.right &&
-      toast.right > bar.left
+      rect.height >= toast.height &&
+      rect.top >= 0 &&
+      rect.bottom <= innerHeight
     )
-      node.style.bottom = innerHeight - bar.top + 8 + 'px'
+      return rect.bottom - (rect.height - toast.height) / 2
+  }
+  function position(node) {
+    const composer = document.querySelector('.composer')
+    if (!composer || node.hidden) return
+    node.style.removeProperty('bottom')
+    node.removeAttribute('data-empty-composer')
+    const toast = node.getBoundingClientRect()
+    const editor = composer.getBoundingClientRect()
+    if (
+      toast.top >= editor.bottom ||
+      toast.bottom <= editor.top ||
+      toast.left >= editor.right ||
+      toast.right <= editor.left
+    )
+      return
+    const available = availableComposerSpace(composer, toast)
+    node.toggleAttribute('data-empty-composer', available !== undefined)
+    const footer = composer
+      .querySelector('.composer-footer')
+      .getBoundingClientRect()
+    const top = editor.top >= toast.height + 8 ? editor.top : footer.top
+    node.style.bottom = innerHeight - (available ?? top - 8) + 'px'
   }
   function show(node) {
     dispose()
@@ -87,7 +100,11 @@
     window.addEventListener('resize', place)
     const composer = document.querySelector('.composer')
     const observer = new ResizeObserver(place)
-    if (composer) observer.observe(composer)
+    if (composer) {
+      observer.observe(composer)
+      composer.addEventListener('focusin', place)
+      composer.addEventListener('input', place)
+    }
     place()
     node.onfocusin = stop
     node.onfocusout = () => queueMicrotask(resume)
@@ -95,6 +112,8 @@
       stop()
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
+      composer?.removeEventListener('focusin', place)
+      composer?.removeEventListener('input', place)
       observer.disconnect()
     }
     queueMicrotask(resume)

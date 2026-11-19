@@ -2,7 +2,7 @@ import type { ConsoleFrame } from '../conversations/console-usecase'
 import { shell, field } from '../conversations/console-page'
 import { operatorAvatar } from './identity-page'
 import { EditPage, Notice, FormSection, SettingRow } from '../../ui/patterns'
-import { Field, Input } from '../../ui/controls'
+import { Field, ImageFileInput } from '../../ui/controls'
 import { SaveActions } from '../../ui/admin'
 
 export function accountPage(
@@ -36,8 +36,7 @@ export function accountPage(
             true,
           )}
           <Field label="アイコン画像">
-            <Input
-              type="file"
+            <ImageFileInput
               name="avatar"
               accept="image/png,image/jpeg"
               aria-describedby="avatar-formats"

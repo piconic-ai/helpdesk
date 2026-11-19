@@ -82,7 +82,7 @@ export const guides: Record<string, { description: string; start: string }> = {
   notify: {
     description: '新着と担当者の変更を運営者に通知します。',
     start:
-      'メール通知先は helpdesk.config.ts の extensions 配列で、notify の settings.email に指定します。Slack・Discord には Worker のシークレット NOTIFY_WEBHOOK_URL に通知先の Webhook を設定します。Slack は既定の形式です。Discord には同じ notify の settings.format に「discord」を指定してください。窓口にテストメールを送って、指定先で通知を確認してください。',
+      'メール通知先は helpdesk.config.ts の extensions 配列で、notify の settings.email に指定します。Slack・Discord には Worker のシークレット NOTIFY_WEBHOOK_URL に通知先の Webhook を設定します。通知先のチャンネル名を画面に表示するには settings.webhookLabel に指定します。Slack は既定の形式です。Discord には同じ notify の settings.format に「discord」を指定してください。窓口にテストメールを送って、指定先で通知を確認してください。',
   },
   'auto-ack': {
     description:

@@ -35,7 +35,7 @@ async function capture(page, scene, width) {
   const nativePending =
     scene.action === 'loading' || (before && scene.id === 'composer-sending')
   const daily = process.env.HELPDESK_DAILY_CAPTURE
-  if (!daily && !before && !nativePending) {
+  if (!before && !nativePending) {
     await expect.soft(page).toHaveScreenshot(name)
     return
   }

@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
 import { test, expect } from '@playwright/test'
 import { registeredScreens } from './route-inventory.mjs'
 import { startDemo } from './demo-scene.mjs'
@@ -41,14 +39,7 @@ for (const [index, url] of [...routes].sort().entries()) {
               : ''
             const name =
               'menu-' + slug + variant + '-' + id + '-' + width + '.png'
-            const dir = process.env.HELPDESK_DAILY_CAPTURE
-            if (dir) {
-              await mkdir(dir, { recursive: true })
-              await writeFile(
-                resolve(dir, name),
-                await page.screenshot({ animations: 'disabled' }),
-              )
-            } else await expect.soft(page).toHaveScreenshot([name])
+            await expect.soft(page).toHaveScreenshot([name])
             await audit(page, id, width)
           })
         } finally {

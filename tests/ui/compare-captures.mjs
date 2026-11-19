@@ -61,14 +61,20 @@ for (const name of names) {
       let figureLabel = label
       if (
         dir === first &&
-        /^menu-settings-labels-label-rename-\d+$/.test(name) &&
         !(await access(file).then(
           () => true,
           () => false,
         ))
       ) {
-        file = resolve(dir, 'behavior-label-rename-' + width + '.png')
-        figureLabel += '（同じ表の旧編集欄）'
+        if (/^menu-settings-labels-label-rename-\d+$/.test(name)) {
+          file = resolve(dir, 'behavior-label-rename-' + width + '.png')
+          figureLabel += '（同じ表の旧編集欄）'
+        } else if (
+          ['widget-edit-sites', 'widget-edit-response'].includes(name)
+        ) {
+          file = resolve(dir, 'guide-chat-' + width + '.png')
+          figureLabel += '（以前は同じ設定ページに常時表示）'
+        }
       }
       await access(file)
       const href = safe(relative(output, file))

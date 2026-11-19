@@ -196,7 +196,7 @@ test('運営の返信には関連する記事を先頭に添え、記事がな�
   ).toBe(1)
   await page.goto(scene.origin + '/conversation/' + other)
   const add = page.locator('button[form="reply-article-candidate"]')
-  await expect(add).toHaveText('記事の候補に追加')
+  await expect(add).toHaveText('この件名を記事候補にする')
   await add.click()
   await expect(page.getByText('記事の候補を保存しました。')).toBeVisible()
   expect(

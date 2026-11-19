@@ -1,15 +1,18 @@
 import { defineConfig } from '@playwright/test'
+import { resolve } from 'node:path'
 
+const captureDir = process.env.HELPDESK_DAILY_CAPTURE
 const pixelComparison = { threshold: 0.1, maxDiffPixelRatio: 0.001 }
 
 export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
-  snapshotPathTemplate:
-    '{testDir}/../../docs/reports/loop/round-13/screens/{arg}{ext}',
+  snapshotPathTemplate: captureDir
+    ? resolve(captureDir, '{arg}{ext}')
+    : '{testDir}/../../docs/reports/loop/round-14/screens/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
-  updateSnapshots: 'none',
+  updateSnapshots: captureDir ? 'all' : 'none',
   timeout: 100_000,
   reporter: 'list',
   use: {

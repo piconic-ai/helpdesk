@@ -215,6 +215,10 @@ async function seed(db, raw, extensions) {
   for (const label of ['領収書', '請求', '経理'])
     statements.push(query('INSERT INTO labels VALUES(?,?)', 1, label))
   statements.push(query('INSERT INTO labels VALUES(?,?)', 4, '請求'))
+  // Two example labels hash to the same default; show a saved color choice as well.
+  statements.push(
+    query('INSERT INTO label_colors(name,color) VALUES(?,?)', '社内確認', 3),
+  )
   await db.batch(statements)
   await raw.put(
     'attachments/ui/statement',

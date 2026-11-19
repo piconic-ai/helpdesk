@@ -6,10 +6,10 @@ import { published } from '../extensions/articles/articles-usecase'
 import { publicPath, searchArticles } from '../extensions/articles/article'
 import type { Bindings } from '../core/settings/bindings'
 const fronts = [
-  ['articles', 'ヘルプ記事'],
-  ['form', 'お問い合わせ'],
-  ['chat', 'ヘルプチャット'],
-  ['feedback', 'フィードバック'],
+  ['articles', 'ヘルプ記事', '手順やよくある質問を調べる'],
+  ['form', 'お問い合わせ', '担当者からの返信を希望する方はこちら'],
+  ['chat', 'ヘルプチャット', '質問に合う記事を自動で探す'],
+  ['feedback', 'フィードバック', '返信不要のご意見・ご要望を送る'],
 ]
 function directoryLinks(
   product: string,
@@ -17,21 +17,21 @@ function directoryLinks(
   ready: boolean,
   enabled: Set<string>,
 ) {
-  return fronts.flatMap(([kind, label]) => {
+  return fronts.flatMap(([kind, label, description]) => {
     if (kind === 'form') {
       const path = contactDestination(
         product,
         mailbox,
         ready && enabled.has(kind),
       )
-      return path ? [{ label, path }] : []
+      return path ? [{ label, path, description }] : []
     }
     if (!enabled.has(kind) || (kind !== 'articles' && !ready)) return []
     const path =
       kind === 'articles'
         ? publicPath(product)
         : '/help/' + kind + '/' + encodeURIComponent(product)
-    return [{ label, path }]
+    return [{ label, path, description }]
   })
 }
 export async function helpDestinations(

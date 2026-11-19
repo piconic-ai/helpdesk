@@ -453,6 +453,8 @@ function portalControls(id: string, p: Portal) {
         />
       </form>
     )
+  const url = new URL(p.url)
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   if (!p.ready)
     return p.configured ? (
       <p>設定済みの受付ポリシーに、このサイトのオリジンを追加してください。</p>
@@ -463,17 +465,15 @@ function portalControls(id: string, p: Portal) {
       >
         <Input name="returnTo" type="hidden" value={'/extensions/' + id} />
         <p>
-          {p.name} の公開窓口を {new URL(p.url).origin}{' '}
-          で利用できるようにします。
+          {local
+            ? `${p.name} の窓口を開始すると、この端末で受付を試せます。`
+            : `${p.name} の公開窓口を ${url.origin} で利用できるようにします。`}
         </p>
         <Button>このサイトで受付を開始</Button>
       </form>
     )
   return (
     <>
-      {id === 'chat' &&
-        p.publicSettings &&
-        publicSettingsFields(id, p.id, p.publicSettings)}
       <ActionLink href={p.url}>{publicGuides[id]}</ActionLink>
       {id === 'form' && (
         <ActionLink
@@ -486,13 +486,14 @@ function portalControls(id: string, p: Portal) {
       <p>
         <code>{p.url}</code>
       </p>
-      {['localhost', '127.0.0.1', '[::1]'].includes(
-        new URL(p.url).hostname,
-      ) && (
+      {local && (
         <p>
           このURLと埋め込みコードは、この端末で試せます。公開サイトに貼り付けるコードは、公開先のヘルプデスクでコピーしてください。
         </p>
       )}
+      {id === 'chat' &&
+        p.publicSettings &&
+        publicSettingsFields(id, p.id, p.publicSettings)}
       {id === 'chat' && p.publicSettings?.widget ? (
         <WidgetSettings
           product={p}
@@ -530,7 +531,16 @@ function portalControls(id: string, p: Portal) {
 }
 function guideProduct(id: string, p: Portal) {
   return (
-    <FormSection title={<ProductMark product={p} size="heading" />}>
+    <FormSection
+      title={<ProductMark product={p} size="heading" />}
+      description={
+        Object.hasOwn(publicGuides, id) && id !== 'articles'
+          ? p.ready
+            ? '受付中'
+            : '受付開始前'
+          : undefined
+      }
+    >
       {portalControls(id, p)}
       {p.recommendation && (
         <RecommendationSettings product={p.id} settings={p.recommendation} />

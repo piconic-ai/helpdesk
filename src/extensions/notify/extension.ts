@@ -7,6 +7,7 @@ import type {
 const settings = z
   .object({
     format: z.enum(['slack', 'discord']).default('slack'),
+    webhookLabel: z.string().trim().min(1).max(100).optional(),
     includeBody: z.boolean().default(false),
     email: z.email().optional(),
   })
@@ -65,7 +66,12 @@ export const notify: Extension = {
     const destinations = [
       ...(conf.email ? [conf.email] : []),
       ...(ctx.secret('NOTIFY_WEBHOOK_URL')
-        ? [conf.format === 'discord' ? 'Discord' : 'Slack']
+        ? [
+            (conf.format === 'discord' ? 'Discord' : 'Slack') +
+              '（' +
+              (conf.webhookLabel ?? 'チャンネルは接続先の Webhook 設定で確認') +
+              '）',
+          ]
         : []),
     ]
     return destinations.length

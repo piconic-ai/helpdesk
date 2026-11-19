@@ -16,7 +16,8 @@ export function ThreadActivity({
 }) {
   if (entry.kind !== 'note' && !entry.delivery) return null
   return (
-    <a
+    <ActionLink
+      variant="ghost"
       className="thread-activity"
       href={'#message-author-' + encodeURIComponent(entry.id)}
     >
@@ -27,7 +28,7 @@ export function ThreadActivity({
       ) : (
         '内部メモへ'
       )}
-    </a>
+    </ActionLink>
   )
 }
 

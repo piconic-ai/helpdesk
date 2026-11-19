@@ -5,6 +5,8 @@ test('J14 表示名とアイコンを保存し、担当・メモ・記録から�
   scene,
 }) => {
   await page.getByRole('link', { name: /アカウント/ }).click()
+  await expect(page.getByText('ファイルを選ぶ', { exact: true })).toBeVisible()
+  await expect(page.getByText('未選択', { exact: true })).toBeVisible()
   await page.getByLabel('表示名', { exact: true }).fill('青木 ゆり')
   const png = await page.evaluate(() => {
     const canvas = document.createElement('canvas')
@@ -20,6 +22,7 @@ test('J14 表示名とアイコンを保存し、担当・メモ・記録から�
     mimeType: 'image/png',
     buffer: Buffer.from(png, 'base64'),
   })
+  await expect(page.getByText('profile.png', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'アカウントを保存' }).click()
   const sidebar = page.getByRole('link', { name: /アカウント/ })
   await expect(sidebar).toContainText('青木 ゆり')

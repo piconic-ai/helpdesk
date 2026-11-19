@@ -269,7 +269,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
             className="button-secondary"
             hidden={note()}
           >
-            記事の候補に追加
+            この件名を記事候補にする
           </button>
         </div>
       )}

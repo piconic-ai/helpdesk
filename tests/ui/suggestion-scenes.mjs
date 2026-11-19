@@ -104,7 +104,7 @@ export async function exposeSuggestionScene(page, id) {
   } else if (id === 'suggest-composer-empty') {
     await page
       .locator('.composer')
-      .getByRole('button', { name: '記事の候補に追加', exact: true })
+      .getByRole('button', { name: 'この件名を記事候補にする', exact: true })
       .scrollIntoViewIfNeeded()
   } else if (id === 'suggest-metric') {
     await page

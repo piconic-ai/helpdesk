@@ -208,6 +208,23 @@ it('shows the configured email-only notification destination in the card and gui
   expect(guide).toContain('discord')
 })
 
+it('identifies the webhook destination without displaying the secret', async () => {
+  env.EXTENSIONS = registry([
+    {
+      extension: notify,
+      enabled: true,
+      settings: { webhookLabel: '#support' },
+    },
+  ])
+  const endpoint = 'https://hooks.example.org/private-webhook'
+  const guide = await page('/extensions/notify', {
+    ...env,
+    NOTIFY_WEBHOOK_URL: endpoint,
+  } as Bindings)
+  expect(guide).toContain('Slack（#support）')
+  expect(guide).not.toContain(endpoint)
+})
+
 it('directs an operator to the reply area for live teammate activity', async () => {
   await enable('presence')
   const guide = await page('/extensions/presence')

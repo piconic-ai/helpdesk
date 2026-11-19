@@ -97,14 +97,27 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
     const slide = page.locator('section.settings-card').filter({
       has: page.getByRole('heading', { name: 'Slide', exact: true }),
     })
+    const sites = slide.getByText('埋め込み先を編集', { exact: true })
+    const responseTime = slide.getByText('返信の目安を編集', { exact: true })
+    await expect(slide.getByLabel('埋め込み先のサイト')).toBeHidden()
+    await sites.click()
     await slide.getByLabel('埋め込み先のサイト').fill(site)
     await slide.getByRole('button', { name: '埋め込み先を登録' }).click()
+    await sites.click()
     await expect(slide.getByText(site, { exact: true })).toBeVisible()
-    await slide.getByLabel('返信の目安').fill('2営業日以内')
+    await responseTime.click()
+    await slide
+      .getByRole('textbox', { name: '返信の目安', exact: true })
+      .fill('2営業日以内')
     await slide.getByRole('button', { name: '返信の目安を保存' }).click()
     await page.getByRole('button', { name: '元に戻す' }).click()
-    await expect(slide.getByLabel('返信の目安')).toHaveValue('')
-    await slide.getByLabel('返信の目安').fill('2営業日以内')
+    await responseTime.click()
+    await expect(
+      slide.getByRole('textbox', { name: '返信の目安', exact: true }),
+    ).toHaveValue('')
+    await slide
+      .getByRole('textbox', { name: '返信の目安', exact: true })
+      .fill('2営業日以内')
     await slide.getByRole('button', { name: '返信の目安を保存' }).click()
     snippet = await slide.getByLabel('埋め込みコード').inputValue()
     await page.goto(site)
@@ -119,6 +132,7 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
     )
     await expect(frame.getByText('2営業日以内')).toBeVisible()
     await page.goto(scene.origin + '/extensions/chat')
+    await sites.click()
     await slide.getByRole('button', { name: site + ' を解除' }).click()
     const refusal = page.waitForEvent(
       'requestfailed',

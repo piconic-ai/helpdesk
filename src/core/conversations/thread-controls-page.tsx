@@ -171,7 +171,7 @@ export function replyUndoForm(
       <Input type="hidden" name="number" value={number} />
       <span role="status">
         {hold.target === 'closed'
-          ? '返信を送信し、会話を完了します。取り消すと両方を取り消せます。'
+          ? '返信の送信と会話の完了を取り消せます。'
           : 'まもなく返信を送信します。'}
       </span>
       <Button variant="outline" type="submit">

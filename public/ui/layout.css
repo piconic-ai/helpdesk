@@ -506,9 +506,39 @@ form:has(input[name='role']) > small {
     font: var(--typography-caption);
     white-space: nowrap;
   }
+  .app-sidebar a:has(.nav-compact-name) {
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--layout-touch-target);
+    gap: 0;
+  }
   .sidebar-item-active .nav-compact-name {
     color: inherit;
   }
+}
+.image-file-picker:has([data-file-presentation]:not([hidden])) {
+  display: inline-grid;
+  position: relative;
+  justify-self: start;
+  max-width: 100%;
+}
+.image-file-picker:has([data-file-presentation]:not([hidden])) input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.image-file-picker [data-file-presentation]:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  overflow-wrap: anywhere;
+}
+.image-file-picker:focus-within [data-file-presentation] .button-secondary {
+  outline: var(--layout-focus-width) solid var(--colors-focus-ring);
+  outline-offset: var(--layout-focus-width);
 }
 [data-slot='native-select-wrapper'][hidden] {
   display: none;
@@ -786,33 +816,32 @@ button[popovertarget][aria-expanded='true'],
     margin-inline: calc(-1 * var(--spacing-md));
   }
   [data-inbox-view] .inbox-item:has(.row-actions) {
+    min-height: calc(var(--layout-touch-target) + 24px);
     grid-template-columns: auto minmax(0, 1fr);
     padding-bottom: 0;
   }
-  [data-inbox-view] .inbox-item .row-identity {
-    position: absolute;
-    inset-inline-start: 0;
-    top: 0;
-    width: var(--layout-touch-target);
-    justify-content: center;
-  }
   [data-inbox-view] .inbox-item a.conversation-row:has(> .row-owner) {
-    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-columns: auto minmax(0, 1fr) minmax(
+        calc(2 * var(--layout-touch-target)),
+        max-content
+      );
     padding-block: 0;
     gap: 0 var(--spacing-xxs);
   }
+  [data-inbox-view] .inbox-item a.conversation-row:focus-visible {
+    outline-offset: calc(-1 * var(--layout-focus-width));
+  }
   [data-inbox-view]
-    .inbox-item:has(.row-actions)
-    a.conversation-row:has(> .row-owner) {
-    grid-template-columns: minmax(0, 1fr) max-content calc(
-        2 * var(--layout-touch-target)
-      );
+    .inbox-item
+    a.conversation-row:has(> .row-owner)
+    > .row-top {
+    grid-area: 1 / 2;
   }
-  [data-inbox-view] .inbox-item a.conversation-row > .row-top {
-    grid-area: 1 / 1 / auto / -1;
-  }
-  [data-inbox-view] .inbox-item a.conversation-row > .row-bottom {
-    grid-area: 2 / 1;
+  [data-inbox-view]
+    .inbox-item
+    a.conversation-row:has(> .row-owner)
+    > .row-bottom {
+    grid-area: 2 / 2;
   }
   [data-inbox-view] .inbox-item .row-top {
     display: flex;
@@ -844,7 +873,7 @@ button[popovertarget][aria-expanded='true'],
   }
   [data-inbox-view] .inbox-item .row-bottom {
     display: flex;
-    min-height: var(--layout-touch-target);
+    min-height: 0;
     flex-wrap: wrap;
     gap: var(--spacing-xxs);
   }
@@ -852,9 +881,16 @@ button[popovertarget][aria-expanded='true'],
     flex: 1 0 110px;
   }
   [data-inbox-view] .inbox-item .row-owner {
-    grid-area: 2 / 2;
-    grid-template-rows: auto auto;
-    align-content: center;
+    display: flex;
+    grid-area: 1 / 3;
+    align-self: start;
+    align-items: center;
+    justify-content: end;
+    gap: var(--spacing-xxs);
+  }
+  [data-inbox-view] .inbox-item .row-owner .avatar {
+    width: 20px;
+    height: 20px;
   }
   [data-inbox-view] .row-owner > .row-time {
     font: var(--typography-caption);
@@ -905,6 +941,13 @@ button[popovertarget][aria-expanded='true'],
   }
 }
 
+[data-undo-reply][data-toast]:not([hidden]) {
+  flex-wrap: nowrap;
+  padding-block: var(--spacing-xs);
+}
+[data-undo-reply][data-toast] > [role='status'] {
+  min-width: 0;
+}
 [data-undo-reply][data-toast] {
   background: var(--colors-success-soft);
   color: var(--colors-success);
@@ -1030,4 +1073,23 @@ form.issue-section
 }
 [data-list-filters] > [data-slot='field'] {
   align-self: start;
+}
+
+[popover]:has(> form[action='/actions/issues.preview'])::backdrop {
+  background: var(--layout-backdrop);
+  pointer-events: none;
+}
+.label-name button[popovertarget^='label-color-']::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-inline-end: 1px solid currentColor;
+  border-block-end: 1px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+}
+
+body:has([data-empty-composer]:not([hidden]))
+  .composer
+  textarea:placeholder-shown::placeholder {
+  opacity: 0;
 }

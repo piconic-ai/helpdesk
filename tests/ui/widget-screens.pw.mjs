@@ -1,6 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { mkdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
 import axe from 'axe-core'
 import { startScene, fixedTime } from './seed.mjs'
 import { widgetScenes } from './widget-scenes.mjs'
@@ -84,15 +82,7 @@ for (const scene of widgetScenes)
           await show(page, scene.id, product.origin)
           for (const frame of page.frames()) await checkFrame(frame)
           const name = scene.id + '-' + width + '.png'
-          const dir = process.env.HELPDESK_DAILY_CAPTURE
-          if (dir) {
-            await mkdir(dir, { recursive: true })
-            await page.screenshot({
-              path: resolve(dir, name),
-              animations: 'disabled',
-              caret: 'hide',
-            })
-          } else await expect(page).toHaveScreenshot(name)
+          await expect(page).toHaveScreenshot(name)
         } finally {
           await page.close()
         }

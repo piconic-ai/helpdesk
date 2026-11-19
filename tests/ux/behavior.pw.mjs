@@ -324,9 +324,17 @@ test('短い会話の操作と担当表示が余分な段を作らず、混在�
     )
     const wait = await row.locator('.row-time:visible').boundingBox()
     const avatar = await row.locator('.row-owner .avatar').boundingBox()
-    expect(
-      Math.abs(wait.x + wait.width - avatar.x - avatar.width),
-    ).toBeLessThan(3)
+    if (width === 375) {
+      expect(wait.x + wait.width).toBeLessThanOrEqual(avatar.x)
+      expect(
+        Math.abs(wait.y + wait.height / 2 - avatar.y - avatar.height / 2),
+      ).toBeLessThan(2)
+      expect(width - avatar.x - avatar.width).toBeLessThan(9)
+    } else {
+      expect(
+        Math.abs(wait.x + wait.width - avatar.x - avatar.width),
+      ).toBeLessThan(3)
+    }
   }
   await page.locator('.row-select input').first().check()
   await page.locator('.row-select input').nth(1).check()
@@ -422,4 +430,28 @@ test('質問を受け付けた後は入力の案内を消し、最初に受付�
   expect((await page.locator('.chat-receipt').boundingBox()).y).toBeLessThan(
     (await page.locator('#chat-turns').boundingBox()).y,
   )
+})
+
+test('会話の保存結果と取り消しは直近の本文・宛先・操作欄を隠さない', async ({
+  page,
+  scene,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(scene.origin + '/conversation/1?notice=note')
+  const assertVisibleContent = async (toast) => {
+    const notice = await toast.boundingBox()
+    expect(notice).toBeTruthy()
+    const composer = await page.locator('.composer').boundingBox()
+    expect(notice.y).toBeGreaterThanOrEqual(composer.y)
+    const address = await page.locator('.composer-addresses').boundingBox()
+    expect(notice.y + notice.height).toBeLessThanOrEqual(address.y)
+    const tabs = await page.locator('.composer-tabs').boundingBox()
+    expect(notice.y).toBeGreaterThanOrEqual(tabs.y + tabs.height)
+  }
+  await assertVisibleContent(page.locator('[data-toast]:visible').first())
+  await page
+    .getByRole('textbox', { name: '返信', exact: true })
+    .fill('明細を確認しました。')
+  await page.getByRole('button', { name: '送信して完了' }).click()
+  await assertVisibleContent(page.locator('[data-undo-reply]:visible'))
 })

@@ -6,7 +6,9 @@ export type RecommendationForm = Awaited<ReturnType<typeof recommendationForm>>
 function modelOptions(selected: string) {
   return ['clef-flash', 'clef'].map((model) => (
     <option value={model} selected={selected === model}>
-      {model === 'clef' ? 'Clef' : 'Clef Flash'}
+      {model === 'clef'
+        ? 'Clef（より長い記事に対応）'
+        : 'Clef Flash（チャットの標準）'}
     </option>
   ))
 }

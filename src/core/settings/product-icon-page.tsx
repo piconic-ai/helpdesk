@@ -1,4 +1,10 @@
-import { Button, Field, Input, NativeSelect } from '../../ui/controls'
+import {
+  Button,
+  Field,
+  Input,
+  ImageFileInput,
+  NativeSelect,
+} from '../../ui/controls'
 import { ProductMark } from '../../ui/product-mark'
 import { EditPage, Notice } from '../../ui/patterns'
 import { shell } from '../../ui/console-shell'
@@ -47,7 +53,7 @@ export function ProductIconForm({
         label="アイコン画像"
         description="JPEG・PNG（非インターレース）、2 MB・200万画素まで。中央を正方形に切り抜きます。"
       >
-        <Input type="file" name="image" accept="image/jpeg,image/png" />
+        <ImageFileInput name="image" accept="image/jpeg,image/png" />
       </Field>
       <Button>アイコンを保存</Button>
     </form>

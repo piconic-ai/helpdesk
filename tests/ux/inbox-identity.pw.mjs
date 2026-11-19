@@ -80,6 +80,10 @@ test('ラベルの色を保存し、会話と一覧と絞り込みから同じ�
 }) => {
   await page.goto(scene.origin + '/settings')
   await page.getByRole('link', { name: /^ラベル/ }).click()
+  const marks = await page
+    .locator('button[popovertarget^="label-color-"] .label-dot')
+    .evaluateAll((dots) => dots.map((d) => d.dataset.identityColor))
+  expect(new Set(marks).size).toBe(marks.length)
   const section = page.getByRole('row').filter({
     has: page.getByRole('button', { name: '経理の色を変更', exact: true }),
   })

@@ -2,6 +2,30 @@ const drawer = document.querySelector('#nav-drawer')
 const sidebar = document.querySelector('#navigation')
 const openDrawer = document.querySelector('[data-open-drawer]')
 const mobileHeader = document.querySelector('.mobile-header')
+for (const picker of document.querySelectorAll('.image-file-picker')) {
+  const input = picker.querySelector('input[type=file]')
+  const presentation = picker.querySelector('[data-file-presentation]')
+  const filename = picker.querySelector('[data-file-name]')
+  const update = () => {
+    filename.textContent = input.files[0]?.name ?? '未選択'
+  }
+  input.addEventListener('change', update)
+  input.form?.addEventListener('reset', () => queueMicrotask(update))
+  update()
+  presentation.hidden = false
+}
+for (const form of document.querySelectorAll(
+  'form[action="/extensions/rules/add"]',
+)) {
+  const update = () => {
+    form.querySelector('[type=submit]').disabled =
+      !form.elements.label.value && !form.elements.assignee.value
+  }
+  form.addEventListener('change', update)
+  form.addEventListener('helpdesk:restore-choice', update, true)
+  window.addEventListener('pageshow', update)
+  update()
+}
 function closeDrawer() {
   drawer.close()
 }

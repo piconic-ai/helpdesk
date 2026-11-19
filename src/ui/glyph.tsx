@@ -5,7 +5,7 @@ const symbols = {
   open: 'M3 10 5 4h10l2 6v5H3z M3 10h4l1 2h4l1-2h4',
   pending: 'M10 2.5a7.5 7.5 0 1 0 .01 0z M10 6v4l3 2',
   mine: 'M10 3a3 3 0 1 0 .01 0z M4 16v-1a6 5 0 0 1 12 0v1',
-  closed: 'M3 10l4 4 10-10',
+  closed: 'M2 4h16v4H2z M4 8v9h12V8 M8 11h4',
   spam: 'M10 2l7 3v4c0 4-3 6-7 9-4-3-7-5-7-9V5z M10 6v4 M10 13v.2',
   extensions: 'M3 3h5v5H3z M12 3h5v5h-5z M3 12h5v5H3z M12 12h5v5h-5z',
   settings: 'M3 5h14 M3 10h14 M3 15h14 M7 3v4 M13 8v4 M8 13v4',

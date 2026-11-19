@@ -30,6 +30,16 @@ test('拡張の一覧、サイドバー、会話に同じ記号が表示され�
     await expect(icon).toHaveAttribute('data-glyph', declared.get(id))
   }
   await page.setViewportSize({ width: 1024, height: 900 })
+  for (const [path, name] of [
+    ['/voices', '声の集計'],
+    ['/metrics', '対応状況'],
+  ]) {
+    const label = page.locator(
+      '.sidebar-extensions a[href="' + path + '"] .nav-compact-name',
+    )
+    await expect(label).toHaveText(name)
+    await expect(label).toBeVisible()
+  }
   await page.goto(scene.origin + '/conversation/1')
   await page.getByRole('button', { name: '関連情報', exact: true }).click()
   const panels = page.locator('.extension-panel')
