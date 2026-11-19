@@ -133,6 +133,11 @@ label {
 label :is(input, select, textarea) {
   font: var(--typography-body);
 }
+label:has(> input[type='checkbox']:not([role='switch'])):not(.row-select) {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
 input[type='email'] {
   font: var(--typography-code);
 }
@@ -175,11 +180,17 @@ button:hover,
   color: var(--colors-on-primary);
 }
 button:disabled,
-.button-primary:disabled {
+.button-primary:disabled,
+.composer:invalid:not(.composer-note) .composer-actions button[type='submit'] {
   background: var(--colors-primary-disabled);
   border-color: var(--colors-primary-disabled);
   color: var(--colors-muted);
   cursor: default;
+}
+.composer:invalid:not(.composer-note)
+  .composer-actions
+  button[type='submit']:enabled {
+  color: var(--colors-body);
 }
 .button-quiet {
   border-color: transparent;
@@ -602,9 +613,6 @@ iframe {
   border: var(--layout-hairline-width) solid var(--colors-hairline);
   border-radius: var(--rounded-lg);
 }
-.composer:focus-within:not([aria-busy='true']) {
-  border-color: var(--colors-ink);
-}
 .composer[data-mode='note'],
 .composer:has([aria-pressed='true'][data-mode='note']) {
   background: var(--colors-note-soft);
@@ -822,7 +830,7 @@ details.filter-tab[open] {
   justify-content: space-between;
   gap: var(--spacing-xs);
 }
-.extension-form + .extension-form {
+.extension-panel .extension-form + .extension-form {
   border-top: var(--layout-hairline-width) solid var(--colors-hairline);
   padding-top: var(--spacing-sm);
 }

@@ -27,6 +27,7 @@ test('公開フォームでは送信前に記事を読み、そのまま送る�
 }) => {
   const url = scene.origin + '/help/form/slide'
   await page.goto(url)
+  await expect(page.getByText(/送信前に関連記事/)).toBeVisible()
   const subject = '前月の領収書について'
   await page.getByLabel('件名').fill(subject)
   await page
@@ -46,6 +47,18 @@ test('公開フォームでは送信前に記事を読み、そのまま送る�
       .first('n')
   expect(await count()).toBe(0)
   const link = page.getByRole('link', { name: /領収書を発行する/ })
+  await expect(
+    page.getByText('領収書の確認を担当者に依頼します。', { exact: true }),
+  ).toBeVisible()
+  expect(
+    await link.evaluate((el) =>
+      Boolean(
+        el.compareDocumentPosition(
+          document.querySelector('button[type="submit"]'),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ),
+  ).toBe(true)
   const tracked = new URL(await link.getAttribute('href'), scene.origin)
   const presentation = tracked.searchParams.get('suggestion')
   const [article] = await Promise.all([

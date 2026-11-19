@@ -19,6 +19,8 @@ import {
 } from '../../ui/controls'
 import {
   BodyText,
+  ChoicePreviews,
+  Disclosure,
   ContextPanel,
   PanelSummary,
   PanelForm,
@@ -40,6 +42,7 @@ const groups: Record<string, string[]> = {
   直す: ['issues', 'merge'],
   整える: ['rules', 'notify', 'metrics', 'survey', 'export'],
 }
+const publicIntakeIds = ['form', 'chat', 'feedback']
 function extensionSettings(entry: ExtensionEntry) {
   const label = extensionLabel(entry.id)
   const required = [
@@ -52,6 +55,9 @@ function extensionSettings(entry: ExtensionEntry) {
       method="post"
       action={'/extensions/' + entry.id}
       data-permissions={permissionText(entry.permissions)}
+      data-public-intake={
+        publicIntakeIds.includes(entry.id) ? 'yes' : undefined
+      }
     >
       <input
         type="hidden"
@@ -78,6 +84,7 @@ function extensionSettings(entry: ExtensionEntry) {
       extension={entry.id}
       settings={
         <>
+          {entry.summary && <p>{entry.summary}</p>}
           {required.length > 0 && (
             <small>設定が必要：{required.join('、')}</small>
           )}
@@ -218,15 +225,28 @@ function operationField(
   const required = op.inputSchema.required?.includes(key)
   const options = panel.choices[key]
   const label = fieldLabel(key)
-  if (options)
+  const choices = options?.map((value) => {
+    const entry = panel.choiceLabels[key]?.[value] ?? statuses[value] ?? value
+    return typeof entry === 'string'
+      ? { value, label: entry }
+      : { value, ...entry }
+  })
+  if (choices?.some((choice) => 'description' in choice))
+    return (
+      <ChoicePreviews
+        name={key}
+        label={label}
+        required={required}
+        choices={choices}
+      />
+    )
+  if (choices)
     return (
       <label>
         {label}
         <NativeSelect name={key}>
-          {options.map((value) => (
-            <option value={value}>
-              {panel.choiceLabels[key]?.[value] ?? statuses[value] ?? value}
-            </option>
+          {choices.map(({ value, label }) => (
+            <option value={value}>{label}</option>
           ))}
         </NativeSelect>
       </label>
@@ -317,7 +337,7 @@ function formField(
         <NativeSelect name="target" required>
           {mergeTargets(data).map((t) => (
             <option value={t.number}>
-              {t.subject} (#{t.number})
+              #{t.number} {t.subject}
             </option>
           ))}
         </NativeSelect>
@@ -353,26 +373,55 @@ function formField(
     return (
       <label>
         再表示日時（日本時間）
-        <Input required type="datetime-local" name="untilLocal" />
+        <Input
+          required
+          type="text"
+          name="untilLocal"
+          placeholder="年-月-日 時:分"
+          pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}"
+          aria-describedby="snooze-format"
+        />
+        <small id="snooze-format">例：2026-12-24 14:30（24時間表記）</small>
       </label>
     )
   return operationField(op, key, p, number)
 }
 function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
   return (
-    <PanelForm method="post" action={'/actions/' + op.name}>
+    <PanelForm
+      method="post"
+      action={'/actions/' + op.name}
+      data-source={
+        op.name === 'merge.combine' && data
+          ? '#' + number + ' ' + data.conversation.subject
+          : undefined
+      }
+    >
+      {data && ['merge.combine', 'issues.preview'].includes(op.name) && (
+        <PanelSummary>
+          {op.name === 'merge.combine' ? '統合元：' : '元の問い合わせ：'}#
+          {number} {data.conversation.subject}
+        </PanelSummary>
+      )}
+      {op.name === 'issues.preview' && p.content && (
+        <PanelSummary>{p.content}</PanelSummary>
+      )}
       {Object.keys(op.inputSchema.properties ?? {}).map((key) =>
         formField(op, key, p, number, data),
       )}
-      <Button variant="outline">
-        {operationLabel(op.name, op.description)}
+      <Button variant={op.name === 'feedback.review' ? 'default' : 'outline'}>
+        {op.name === 'merge.combine'
+          ? 'この会話を統合する内容を確認'
+          : operationLabel(op.name, op.description)}
       </Button>
     </PanelForm>
   )
 }
 function summaryFor(p: Panel, data?: Details) {
-  if (p.content) return p.content
+  if (p.content && (p.id !== 'issues' || !p.operations.length)) return p.content
   switch (p.id) {
+    case 'presence':
+      return '閲覧状況を確認中…'
     case 'issues':
       return (
         '関連付けた Issue　' +
@@ -487,13 +536,15 @@ export function conversationPanels(
     if (!ops.length) return null
     return (
       <div data-extension={id}>
-        <Popover
-          id={'operation-' + id}
-          label={id === 'snooze' ? 'スヌーズ' : '定型文を選ぶ'}
+        <Disclosure
+          command
+          title={id === 'snooze' ? 'スヌーズ' : '定型文を選ぶ'}
         >
-          <PanelSummary>{summaryFor(p, conversation)}</PanelSummary>
+          {id === 'snooze' && (
+            <PanelSummary>{summaryFor(p, conversation)}</PanelSummary>
+          )}
           {ops.map((op) => actionForm(op, p, number, conversation))}
-        </Popover>
+        </Disclosure>
       </div>
     )
   }

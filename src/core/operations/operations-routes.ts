@@ -412,7 +412,8 @@ app.post('/actions/:name', async (c) => {
     args.changeId = ctx.uuid()
   }
   if (name === 'snooze.defer' && typeof args.untilLocal === 'string') {
-    args.until = new Date(args.untilLocal + ':00+09:00').toISOString()
+    const local = args.untilLocal.trim().replace(' ', 'T')
+    args.until = local + ':00+09:00'
     delete args.untilLocal
   }
   const result = await invoke(ctx, scopes, name, args)

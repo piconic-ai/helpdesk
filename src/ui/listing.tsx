@@ -79,7 +79,12 @@ export function ListFilters({
         )
       }
     >
-      <form action={path} method="get" data-live-filters="">
+      <form
+        action={path}
+        method="get"
+        data-live-filters=""
+        data-list-filters=""
+      >
         <Field label="検索">
           <Input
             type="search"

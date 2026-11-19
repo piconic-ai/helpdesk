@@ -113,12 +113,49 @@ export function inspectComposition() {
       }
     }
   }
+  function checkEditors() {
+    const stacked = innerWidth <= 767 ? 'details' : 'details[open]'
+    for (const editor of main.querySelectorAll(
+      '[data-ui=list-row] > ' + stacked,
+    )) {
+      if (!visible(editor)) continue
+      const caption = editor.parentElement.firstElementChild
+      if (
+        editor.getBoundingClientRect().top <
+        caption.getBoundingClientRect().bottom
+      )
+        problems.push(
+          'Editor crowds its row title: ' + caption.textContent.trim(),
+        )
+    }
+    const templates = main.querySelector(
+      '.reply-area [data-extension=canned] details[open]',
+    )
+    const composer = main.querySelector('.reply-area .composer')
+    if (
+      templates &&
+      composer &&
+      visible(templates) &&
+      templates.getBoundingClientRect().bottom >
+        composer.getBoundingClientRect().top + 1
+    )
+      problems.push('Composer covers the open template choices')
+    for (const select of main.querySelectorAll('[data-slot=native-select]')) {
+      if (
+        visible(select) &&
+        getComputedStyle(select).appearance === 'base-select' &&
+        getComputedStyle(select, '::picker-icon').display !== 'none'
+      )
+        problems.push('Duplicate dropdown arrow on ' + select.name)
+    }
+  }
   checkAlignment()
   checkColumnWidth()
   checkInsets()
   if (!document.body.matches('.public-surface')) {
     checkNavigation()
     checkButtonGroups()
+    checkEditors()
   }
   return [...new Set(problems)]
 }

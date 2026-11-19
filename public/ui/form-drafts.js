@@ -36,6 +36,7 @@
     'summary',
     'topic',
     'template',
+    'language',
   ])
   const objectFields = new Set(['id', 'number', 'product', 'email', 'key'])
   const drafts = new WeakMap()
@@ -97,7 +98,9 @@
       .filter((f) => f.type === 'hidden' && objectFields.has(f.name))
       .map((f) => [f.name, f.value])
     const slots = editable.map((f) => f.dataset.draftSlot || f.name)
-    const scope = prefix + JSON.stringify([screen, action, object, slots])
+    // Keep existing message-body drafts when the language selector is introduced.
+    const identity = slots.filter((name) => name !== 'language')
+    const scope = prefix + JSON.stringify([screen, action, object, identity])
     const entries = editable.map((field, i) => ({
       field,
       key: scope + ':' + slots[i],

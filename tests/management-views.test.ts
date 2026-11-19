@@ -2,6 +2,8 @@ import { afterEach, beforeEach, expect, it } from 'vitest'
 import { app } from '../worker'
 import type { Bindings } from '../src/core/settings/bindings'
 import { testPlatform } from './platform'
+import { notify } from '../src/extensions/notify/extension'
+import { registry } from '../src/core/extensions/registry'
 
 const origin = 'http://management.local'
 const admin = 'admin@example.org'
@@ -185,6 +187,39 @@ it('combines activation filters with search, exposes consent permissions, and re
   expect((await request('/extensions/survey')).status).toBe(404)
 })
 
+it('shows the configured email-only notification destination in the card and guide', async () => {
+  env.EXTENSIONS = registry([
+    {
+      extension: notify,
+      enabled: true,
+      settings: { email: 'support@example.org' },
+    },
+  ])
+  const card = await page('/extensions?q=notify')
+  expect(card).toContain('通知先：support@example.org')
+  expect(card).not.toContain('設定が必要：NOTIFY_WEBHOOK_URL')
+  const guide = await page('/extensions/notify')
+  expect(guide).toContain('通知先：support@example.org')
+  expect(guide).toContain('extension: notify')
+  expect(guide).toContain('settings.format')
+  expect(guide).toContain('discord')
+})
+
+it('directs an operator to the reply area for live teammate activity', async () => {
+  await enable('presence')
+  const guide = await page('/extensions/presence')
+  expect(guide).toContain('返信欄')
+  expect(guide).toContain('入力中')
+})
+
+it('shows the scope and record counts beside the anonymized export action', async () => {
+  await enable('export')
+  const html = await page('/extensions/export')
+  expect(html).toContain('全期間・全プロダクト')
+  expect(html).toContain('会話 0件・メッセージ 0件・操作履歴 0件')
+  expect(html).toContain('書き出す個人情報')
+})
+
 it('finds a saved reply by its body and restores the previous text after an edit', async () => {
   await enable('canned')
   const after = await submit('/extensions/canned/save', {
@@ -238,9 +273,9 @@ it('finds a saved reply by its body and restores the previous text after an edit
 it('keeps rule priority visible while filtering and rejects stale assignment choices', async () => {
   await enable('rules')
   await studio()
-  expect(await page('/extensions/rules')).toContain(
-    '保存済みのルールはありません。',
-  )
+  const editor = await page('/extensions/rules')
+  expect(editor).toContain('保存済みのルールはありません。')
+  expect(editor).toContain('空欄の場合、すべての件名に適用します。')
   await submit('/extensions/rules/add', {
     subjectContains: 'invoice',
     assignee: admin,

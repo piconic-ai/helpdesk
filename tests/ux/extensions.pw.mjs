@@ -216,7 +216,9 @@ test.describe('公開画面の埋め込み', () => {
       const product = page.locator('section.settings-card').filter({
         has: page.getByRole('heading', { name: 'Slide', exact: true }),
       })
-      const html = await product.getByLabel('埋め込みコード').inputValue()
+      const html = await product
+        .getByRole('textbox', { name: '埋め込みコード', exact: true })
+        .inputValue()
       expect(html).toContain(id === 'chat' ? '<script' : '<iframe')
       await page.route(scene.origin + '/example-embed', (route) =>
         route.fulfill({ contentType: 'text/html; charset=utf-8', body: html }),

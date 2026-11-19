@@ -276,7 +276,7 @@ async function issueAndMetrics(page, scene, number) {
     .locator('[data-ui=form-section]')
     .filter({ has: page.getByRole('heading', { name: 'Slide', exact: true }) })
   await slide.getByLabel('GitHub リポジトリ').fill('example/helpdesk')
-  await button(slide, '登録する').click()
+  await button(slide, 'リポジトリを更新').click()
   await expect(page.getByRole('status')).toContainText('リポジトリを登録')
   await page
     .getByRole('navigation', { name: '受信箱', exact: true })

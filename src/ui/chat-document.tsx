@@ -14,7 +14,7 @@ type Options = {
   siteKey?: string
   articles: boolean
   feedback: boolean
-  form: boolean
+  contact?: string
 }
 export function chatDocument(options: Options) {
   const { product, parent, lang } = options
@@ -130,13 +130,15 @@ export function chatDocument(options: Options) {
                   {copy.feedback}
                 </a>
               )}
-              {options.form && (
+              {options.contact && (
                 <a
-                  href={'/help/form/' + base}
+                  href={options.contact}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {copy.form}
+                  {options.contact.startsWith('mailto:')
+                    ? copy.mail
+                    : copy.form}
                 </a>
               )}
             </footer>

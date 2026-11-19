@@ -58,7 +58,20 @@ export const notify: Extension = {
   id: 'notify',
   icon: 'notify',
   secrets: ['NOTIFY_WEBHOOK_URL'],
+  requiredSecrets: [],
   config: settings,
+  async settingsSummary(ctx) {
+    const conf = settings.parse(ctx.config)
+    const destinations = [
+      ...(conf.email ? [conf.email] : []),
+      ...(ctx.secret('NOTIFY_WEBHOOK_URL')
+        ? [conf.format === 'discord' ? 'Discord' : 'Slack']
+        : []),
+    ]
+    return destinations.length
+      ? '通知先：' + destinations.join('、')
+      : '通知先は未設定です。'
+  },
   permissions: ['external_fetch', 'read_body', 'send'],
   subscribers: [
     { kind: 'message_received', run: notifyEvent },

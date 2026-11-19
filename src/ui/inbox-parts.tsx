@@ -65,11 +65,13 @@ export function RowHeadline({
 }
 export function RowPreview({
   number,
+  sender,
   text,
   icon,
   children,
 }: {
   number: number
+  sender?: string
   text: string
   icon?: Child
   children?: Child
@@ -78,6 +80,11 @@ export function RowPreview({
     <>
       <code className="row-number">#{number}</code>
       {icon}
+      {sender && (
+        <span className="row-mobile-sender" title={sender}>
+          {sender}
+        </span>
+      )}
       <span className="row-preview" title={text}>
         {text.length > 180 ? text.slice(0, 180) + '…' : text}
       </span>

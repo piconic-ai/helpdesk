@@ -233,8 +233,10 @@ function ThreadExample() {
         description="見本の表示を閉じます。"
       >
         <form method="dialog">
-          <Button autofocus>キャンセル</Button>
-          <Button variant="destructive">削除する</Button>
+          <ActionBar>
+            <Button autofocus>キャンセル</Button>
+            <Button variant="destructive">削除する</Button>
+          </ActionBar>
         </form>
       </Dialog>
     </DetailPage>

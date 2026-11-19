@@ -57,7 +57,7 @@ export const survey: Extension = {
   async publicPage(ctx, product, path) {
     const row = await lookup(ctx, product, path)
     if (!row) return null
-    return surveyForm()
+    return surveyForm(row.number)
   },
   async publicAction(ctx, product, path, request) {
     const row = await lookup(ctx, product, path)
@@ -70,6 +70,6 @@ export const survey: Extension = {
     await ctx.create(key, input.data === 'yes')
     const resolved = z.boolean().parse(await ctx.get(key))
     await ctx.emit('answered', row.number, { product, resolved }, row.token)
-    return surveyReceipt()
+    return surveyReceipt(row.number)
   },
 }

@@ -24,6 +24,7 @@ const japanese = {
   directory: 'ヘルプ記事の一覧',
   feedback: '返信不要のご意見',
   form: '問い合わせフォーム',
+  mail: 'メールで問い合わせる',
   retry:
     '送信できませんでした。入力した内容を確認して、もう一度お試しください。',
   rate: '送信を確認できませんでした。時間をおいて、もう一度お試しください。',
@@ -59,6 +60,7 @@ const english: typeof japanese = {
   directory: 'Help articles',
   feedback: 'Leave feedback',
   form: 'Contact form',
+  mail: 'Contact us by email',
   retry: 'Your message could not be sent. Check the details and try again.',
   rate: 'We could not verify your submission. Please wait and try again.',
   articleError:

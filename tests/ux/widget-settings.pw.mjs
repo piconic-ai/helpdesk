@@ -29,7 +29,9 @@ test('ボタンの設定で埋め込みコードと見本が変わり、保存�
   await product.getByRole('button', { name: 'コードをコピー' }).click()
   await expect(product.getByRole('status')).toHaveText('コピーしました。')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(live)
-  await product.getByText('埋め込みの見本を開く', { exact: true }).click()
+  await product
+    .getByRole('button', { name: '変更したボタンを見本で確認' })
+    .click()
   await product.locator('iframe').scrollIntoViewIfNeeded()
   const preview = product.frameLocator('iframe')
   const launcher = preview.getByRole('button', { name: label, exact: true })

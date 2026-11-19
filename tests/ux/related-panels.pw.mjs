@@ -13,8 +13,9 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     await panel(id).getByRole('button', { name: label, exact: true }).click()
   }
   await expand('canned', '定型文を選ぶ')
-  const templates = panel('canned').getByRole('combobox', { name: '定型文' })
-  await templates.selectOption({ index: 0 })
+  const template = panel('canned').getByRole('radio').first()
+  await expect(template).toBeChecked()
+  await expect(panel('canned')).toContainText('{{name}}')
   await panel('canned')
     .locator('form')
     .getByRole('button', { name: '定型文から下書きを作成' })
@@ -32,7 +33,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   await expand('snooze', 'スヌーズ')
   await panel('snooze')
     .getByLabel('再表示日時（日本時間）')
-    .fill('2026-11-24T09:30')
+    .fill('2026-11-24 09:30')
   await panel('snooze')
     .locator('form')
     .getByRole('button', { name: '指定日時まで保留' })
@@ -122,7 +123,7 @@ test('保留の設定と解除は直前の状態へ戻せる', async ({ page, sc
   const panel = page.locator('[data-extension=snooze]')
   const open = async () => {
     await page.getByRole('button', { name: 'その他の操作' }).click()
-    await panel.locator('[data-slot=popover-trigger]').click()
+    await panel.getByRole('button', { name: 'スヌーズ', exact: true }).click()
   }
   const defer = async () => {
     await open()

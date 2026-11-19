@@ -79,7 +79,9 @@ export async function exposeSuggestionScene(page, id) {
     })
     const target = card.getByText('記事のおすすめを設定', { exact: true })
     await target.click()
-    await target.scrollIntoViewIfNeeded()
+    await target.evaluate((element) =>
+      element.scrollIntoView({ block: 'start' }),
+    )
   } else if (id === 'suggest-form') {
     await page.locator('input[name=subject]').fill('経費精算について')
     await page

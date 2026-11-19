@@ -111,6 +111,14 @@ export const issues: Extension = {
           ))
         )
       },
+      async content(ctx, number) {
+        if (!number) return ''
+        const repository = await configuredRepository(
+          ctx,
+          (await ctx.contact(number)).product,
+        )
+        return '投稿先：' + repository
+      },
       links: panelLinks,
     },
     {

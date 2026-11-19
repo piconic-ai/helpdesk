@@ -131,6 +131,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
   const marks = rowMarks(m, frame.approvalNumbers.has(row.number), mixed)
   const preview = (
     <RowPreview
+      sender={sender}
       number={row.number}
       text={m.preview}
       icon={channelIcon(row.origin)}

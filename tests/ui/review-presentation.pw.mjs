@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test'
 import { startScene } from './seed.mjs'
 
-test('north-star metrics and extension groups retain their hierarchy at both widths', async ({
+test('north-star metrics and extension groups retain their hierarchy at all three widths', async ({
   page,
 }) => {
   const scene = await startScene(['metrics', 'issues', 'canned'])
   try {
-    for (const width of [375, 1440]) {
+    for (const width of [375, 1024, 1440]) {
       await page.setViewportSize({ width, height: 812 })
       await page.goto(scene.origin + '/metrics')
       const top = page.locator('[aria-label="集計結果"] [data-ui=metric-card]')
@@ -41,7 +41,18 @@ test('north-star metrics and extension groups retain their hierarchy at both wid
           'white-space',
           'nowrap',
         )
-        await expect(card.locator('h3')).toHaveCSS('text-overflow', 'ellipsis')
+        const readable = await card.locator('h3').evaluate((heading) => {
+          const range = new Range()
+          range.selectNodeContents(heading)
+          const text = range.getBoundingClientRect()
+          const box = heading.getBoundingClientRect()
+          return (
+            heading.scrollWidth <= heading.clientWidth &&
+            text.right <= box.right + 1 &&
+            text.bottom <= box.bottom + 1
+          )
+        })
+        expect(readable, await card.locator('h3').innerText()).toBe(true)
       }
       const group = page.getByRole('heading', {
         name: '受け付ける',

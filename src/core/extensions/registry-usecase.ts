@@ -78,14 +78,19 @@ export async function management(ctx: Context) {
               choices,
             )) ?? [])
           : [],
+        summary: i.enabled
+          ? await i.extension.settingsSummary?.(extensionContext(ctx, i))
+          : undefined,
         id: i.extension.id,
         icon: i.extension.icon,
         enabled: i.enabled,
         permissions: i.extension.permissions,
         secrets: i.extension.secrets ?? [],
-        missing: (i.extension.secrets ?? []).filter(
-          (name) => !Reflect.get(ctx.env, name),
-        ),
+        missing: (
+          i.extension.requiredSecrets ??
+          i.extension.secrets ??
+          []
+        ).filter((name) => !Reflect.get(ctx.env, name)),
         needsAI: Boolean(i.extension.requiresAI && !ctx.env.AI),
       })),
     ),

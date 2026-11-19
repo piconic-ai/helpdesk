@@ -12,7 +12,9 @@ import { replySubject } from '../core/outbound/compose'
 import {
   acknowledgmentText,
   automaticPolicy,
+  editedMessage,
   messageKey,
+  messageLanguage,
   messageWording,
   surveyText,
   wordingFor,
@@ -25,6 +27,7 @@ const formSchema = z.object({
   product: z.string().min(1),
   intent: z.enum(['preview', 'save']),
   body: messageWording,
+  language: messageLanguage.default('en'),
   revision: z.uuid().or(z.literal('')),
 })
 const path = '/extensions/:id{auto-ack|survey}'
@@ -56,7 +59,7 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
       ctx,
       id,
       key,
-      form.body,
+      editedMessage(id, form),
       form.revision,
     )
     if (result !== null)
@@ -82,7 +85,9 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
   const approval = { by: installed.enabledBy, at: current.enabledAt }
   if (!product) return c.render(automaticMailPage(id, frame, approval))
   const draft = form?.intent === 'preview' ? form : undefined
-  const wording = draft?.body ?? wordingFor(id, current.wording)
+  const wording = draft
+    ? editedMessage(id, draft)
+    : wordingFor(id, current.wording)
   const number = 123
   const preview =
     id === 'auto-ack'
@@ -101,9 +106,14 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
       approval,
       {
         product: product.id,
-        wording,
+        productName: product.name,
+        wording: wording.body,
+        language: wording.language,
         revision: draft?.revision ?? current.revision,
-        subject: replySubject('お問い合わせの例', number),
+        subject: replySubject(
+          wording.language === 'ja' ? 'お問い合わせの例' : 'Sample inquiry',
+          number,
+        ),
         preview,
       },
       mailNotice(conflict, !!draft, c.req.query('notice') === 'saved'),

@@ -13,12 +13,38 @@ interface ReplyComposerProps {
   closed?: boolean
   noteOnly?: boolean
 }
+function submitLabel(note: boolean, sending: boolean) {
+  if (note) return sending ? '保存中…' : 'メモを残す'
+  return sending ? '送信中…' : '送信'
+}
+function hasReplyReceipt(value: unknown) {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    typeof value.id === 'string' &&
+    value.id.length > 0
+  )
+}
+function replyRejection(status: number | null) {
+  switch (status) {
+    case 400:
+    case 422:
+      return '返信を受け付けられませんでした。本文を保持しました。送信内容を確認してください。'
+    case 401:
+    case 403:
+      return '返信に必要な権限を確認できませんでした。本文を保持しました。ログイン状態と送信権限を確認してください。'
+    case 404:
+      return '会話が見つからないため、返信を受け付けられませんでした。本文を保持しました。'
+  }
+}
+
 export function ReplyComposer(props: ReplyComposerProps) {
   const [replyBody, setReplyBody] = createSignal('')
   const [preview, setPreview] = createSignal(false)
   const [note, setNote] = createSignal(props.noteOnly ?? false)
   const [sending, setSending] = createSignal(false)
-  const [failed, setFailed] = createSignal(false)
+  const [failureStatus, setFailureStatus] = createSignal<number | null>(null)
 
   const [closed, setClosed] = createSignal(props.closed ?? false)
   const [reopenFailed, setReopenFailed] = createSignal(false)
@@ -105,21 +131,18 @@ export function ReplyComposer(props: ReplyComposerProps) {
     event.preventDefault()
     if (sending() || !form.reportValidity()) return
     const isNote = note()
-    const closeAfterSend =
-      !isNote &&
-      event.submitter instanceof HTMLButtonElement &&
-      event.submitter.name === 'close'
+    const submittedFields = new FormData(form, event.submitter)
     const operation = isNote
       ? 'note'
-      : closeAfterSend
+      : submittedFields.has('close')
         ? 'replyAndClose'
         : 'reply'
     const fields = new URLSearchParams({
       number: String(props.number),
-      body: String(new FormData(form).get('body') ?? ''),
+      body: String(submittedFields.get('body') ?? ''),
     })
     setSending(true)
-    setFailed(false)
+    setFailureStatus(null)
     try {
       if (!isNote && closed() && !(await (reopening ?? reopen()))) {
         setSending(false)
@@ -130,7 +153,14 @@ export function ReplyComposer(props: ReplyComposerProps) {
         headers: { Accept: 'application/json' },
         body: fields,
       })
-      if (!response.ok) throw new Error('Submission failed')
+      if (!response.ok) {
+        setFailureStatus(response.status)
+        setSending(false)
+        return
+      }
+      const receipt = await response.json()
+      if (!isNote && !hasReplyReceipt(receipt))
+        throw new Error('Missing submission receipt')
       const submitted = form.querySelector('textarea:not(:disabled)')
       if (submitted instanceof HTMLTextAreaElement) {
         submitted.value = ''
@@ -138,7 +168,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
       }
       location.assign('/conversation/' + props.number + '?notice=' + operation)
     } catch {
-      setFailed(true)
+      setFailureStatus(0)
       setSending(false)
     }
   }
@@ -162,7 +192,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
             disabled={sending()}
             onClick={() => {
               setNote(false)
-              setFailed(false)
+              setFailureStatus(null)
             }}
           >
             返信
@@ -174,7 +204,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
             disabled={sending()}
             onClick={() => {
               setNote(true)
-              setFailed(false)
+              setFailureStatus(null)
             }}
           >
             内部メモ
@@ -304,10 +334,23 @@ export function ReplyComposer(props: ReplyComposerProps) {
         </dl>
         <pre className="message-body">{replyBody()}</pre>
       </section>
-      <p className="banner-error" role="alert" hidden={!failed()}>
+      <p
+        className="banner-error"
+        role="alert"
+        hidden={failureStatus() === null}
+      >
         {note()
           ? 'メモを保存できませんでした。本文を確認して、もう一度お試しください。'
-          : '送信できませんでした。本文は保持されています。送信履歴を確認してから、もう一度お試しください。'}
+          : (replyRejection(failureStatus()) ??
+            '送信結果を確認できませんでした。本文を保持しました。もう一度送る前に、最新の会話を確認してください。')}
+        <a
+          hidden={note() || Boolean(replyRejection(failureStatus()))}
+          href={'/conversation/' + props.number + '#thread-messages'}
+          target="_blank"
+          rel="noopener"
+        >
+          別のタブで送信結果を確認
+        </a>
       </p>
       <div className="composer-footer">
         <p className="composer-addresses" hidden={note()}>
@@ -334,14 +377,12 @@ export function ReplyComposer(props: ReplyComposerProps) {
           >
             送信して完了
           </button>
-          <button type="submit" className="button-primary" disabled={sending()}>
-            {sending()
-              ? note()
-                ? '保存中…'
-                : '送信中…'
-              : note()
-                ? 'メモを残す'
-                : '送信'}
+          <button
+            type="submit"
+            className={props.noteOnly ? 'button-secondary' : 'button-primary'}
+            disabled={sending()}
+          >
+            {submitLabel(note(), sending())}
           </button>
         </div>
       </div>

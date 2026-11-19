@@ -276,7 +276,6 @@ function operators(data: Data, visible: Data['operators']) {
           action={
             <Disclosure title={'編集：' + o.displayName}>
               <section aria-label={o.email}>
-                <h3>{o.displayName}</h3>
                 {action(
                   'role',
                   '運営者を保存',

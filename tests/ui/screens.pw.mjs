@@ -1,3 +1,4 @@
+import { loopScenes, exposeLoopScene, seedLoopScene } from './loop-scenes.mjs'
 import {
   suggestionScenes,
   exposeSuggestionScene,
@@ -87,6 +88,7 @@ async function verifyViewport(browser, scene, origin, width) {
         await exposeIdentityControls(page, scene.id)
       if (widgetSettingsScenes.includes(scene))
         await exposeWidgetSettings(page, scene)
+      if (loopScenes.includes(scene)) await exposeLoopScene(page, scene)
       if (save) await capture(page, scene, width)
       if (!before && scene.action !== 'loading')
         await audit(page, scene.id, width)
@@ -110,9 +112,11 @@ const inventory = before
       ...trendScenes,
       ...widgetSettingsScenes,
       ...suggestionScenes,
+      ...loopScenes,
     ]
 // Use a stable visible hostname and port wherever the installation snippet is captured.
 function scenePort(scene, index) {
+  if (loopScenes.includes(scene)) return 24000 + loopScenes.indexOf(scene)
   if (scene.id === 'suggest-settings') return 23945
   if (scene.id === 'issue-preview') return 23382
   if (scene.id.startsWith('guide-')) return 23400 + index
@@ -131,6 +135,7 @@ for (const [index, scene] of inventory.entries()) {
         await seedReviewExamples(server.db, scene.extensions ?? [])
       if (suggestionScenes.includes(scene))
         await seedSuggestionScene(server.db, scene.id)
+      if (loopScenes.includes(scene)) await seedLoopScene(server.db, scene)
       if (trendScenes.includes(scene)) await seedTrendExamples(server.db)
       if (identityScenes.includes(scene))
         await setSceneIcon(server.origin, scene.mode)

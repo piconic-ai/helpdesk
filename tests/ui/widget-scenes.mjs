@@ -37,5 +37,13 @@ export async function exposeWidgetSettings(page, scene) {
         .frameLocator('iframe')
         .getByRole('textbox', { name: '質問', exact: true }),
     ).toBeFocused()
+    const footer = preview.frameLocator('iframe').locator('footer')
+    await expect
+      .poll(() =>
+        footer.evaluate(
+          (el) => el.getBoundingClientRect().bottom <= innerHeight + 1,
+        ),
+      )
+      .toBe(true)
   }
 }

@@ -235,11 +235,13 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
   await operator.getByLabel('権限').selectOption({ label: '管理者' })
   await operator.getByRole('button', { name: '運営者を保存' }).click()
   await editor.locator('summary').click()
-  await expect(operator.getByRole('heading')).toHaveText('森 直子')
+  await expect(editor.locator('summary')).toContainText('森 直子')
+  await expect(operator.getByLabel('表示名')).toHaveValue('森 直子')
   await expect(operator.getByLabel('権限')).toHaveValue('admin')
   await page.reload()
   await editor.locator('summary').click()
-  await expect(operator.getByRole('heading')).toHaveText('森 直子')
+  await expect(editor.locator('summary')).toContainText('森 直子')
+  await expect(operator.getByLabel('表示名')).toHaveValue('森 直子')
   await capture(
     page,
     'C-settings',

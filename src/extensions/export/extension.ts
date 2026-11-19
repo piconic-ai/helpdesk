@@ -87,5 +87,23 @@ export const exportExtension: Extension = {
       },
     },
   ],
-  panels: [{ slot: 'settings', title: 'Export', operations: ['jsonl'] }],
+  panels: [
+    {
+      slot: 'settings',
+      title: 'Export',
+      operations: ['jsonl'],
+      async content(ctx) {
+        const { conversations, messages, events } = await ctx.snapshotCounts()
+        return (
+          '現在の対象：会話 ' +
+          conversations +
+          '件・メッセージ ' +
+          messages +
+          '件・操作履歴 ' +
+          events +
+          '件'
+        )
+      },
+    },
+  ],
 }

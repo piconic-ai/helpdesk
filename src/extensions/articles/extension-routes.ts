@@ -142,6 +142,6 @@ export const articles: Extension = {
         suggestion,
       )
     }
-    return articleVoteReceipt(helpful.data === 'yes')
+    return articleVoteReceipt(data.data, helpful.data === 'yes')
   },
 }

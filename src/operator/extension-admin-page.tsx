@@ -12,6 +12,7 @@ import type {
   CandidateSource,
 } from './article-candidates-usecase'
 import { Popover } from '../ui/controls'
+import { Stack } from '../ui/layout'
 import type { ListWindow } from '../ui/listing'
 import { listRows, ListFilters, PageLinks } from '../ui/listing'
 import {
@@ -404,6 +405,124 @@ type Portal = {
   recommendation?: RecommendationForm
   publicSettings?: PublicSettings
 }
+const guideLinks: Record<string, [string, string]> = {
+  feedback: ['/?view=feedback', 'フィードバックの受信箱を開く'],
+  spam: ['/?status=spam', '迷惑メールを開く'],
+  articles: ['/articles', '記事の管理を開く'],
+  metrics: ['/metrics', '集計画面を開く'],
+}
+function guideLink(id: string) {
+  const link =
+    guideLinks[id] ??
+    (['merge', 'presence', 'snooze'].includes(id)
+      ? ['/', '受信箱で会話を選ぶ']
+      : null)
+  return link && <ActionLink href={link[0]}>{link[1]}</ActionLink>
+}
+
+function portalControls(id: string, p: Portal) {
+  if (id === 'issues')
+    return (
+      <form method="post" action="/extensions/issues/repository">
+        <input type="hidden" name="product" value={p.id} />
+        <label>
+          GitHub リポジトリ
+          <Input
+            name="repository"
+            value={p.repository}
+            placeholder="owner/repository"
+            required
+          />
+        </label>
+        <SaveActions
+          verb={p.repository ? 'リポジトリを更新' : '登録する'}
+          cancel="/extensions/issues"
+        />
+      </form>
+    )
+  if (!p.ready)
+    return p.configured ? (
+      <p>設定済みの受付ポリシーに、このサイトのオリジンを追加してください。</p>
+    ) : (
+      <form
+        method="post"
+        action={'/settings/public-intakes/' + encodeURIComponent(p.id)}
+      >
+        <Input name="returnTo" type="hidden" value={'/extensions/' + id} />
+        <p>
+          {p.name} の公開窓口を {new URL(p.url).origin}{' '}
+          で利用できるようにします。
+        </p>
+        <Button>このサイトで受付を開始</Button>
+      </form>
+    )
+  return (
+    <>
+      {id === 'chat' &&
+        p.publicSettings &&
+        publicSettingsFields(id, p.id, p.publicSettings)}
+      <ActionLink href={p.url}>{publicGuides[id]}</ActionLink>
+      {id === 'form' && (
+        <ActionLink
+          variant="ghost"
+          href={'/?' + new URLSearchParams({ product: p.id })}
+        >
+          {p.name} の受信箱を開く
+        </ActionLink>
+      )}
+      <p>
+        <code>{p.url}</code>
+      </p>
+      {id === 'chat' && p.publicSettings?.widget ? (
+        <WidgetSettings
+          product={p}
+          url={p.url}
+          options={p.publicSettings.widget}
+        />
+      ) : (
+        <>
+          <p>登録済みのサイトに次のコードを貼り付けてください。</p>
+          <Stack
+            as="section"
+            data-copy-block=""
+            aria-label={p.name + ' の埋め込みコード'}
+          >
+            <label>
+              埋め込みコード
+              <Textarea data-snippet="" readonly rows={3}>
+                {'<iframe src="' +
+                  p.url +
+                  '" title="' +
+                  extensionLabel(id) +
+                  '" width="100%" height="540" loading="lazy"></iframe>'}
+              </Textarea>
+            </label>
+            <ActionBar>
+              <Button type="button" data-copy-snippet="">
+                コードをコピー
+              </Button>
+              <span role="status" data-copy-result=""></span>
+            </ActionBar>
+          </Stack>
+        </>
+      )}
+    </>
+  )
+}
+function guideProduct(id: string, p: Portal) {
+  return (
+    <FormSection title={<ProductMark product={p} size="heading" />}>
+      {portalControls(id, p)}
+      {p.recommendation && (
+        <RecommendationSettings product={p.id} settings={p.recommendation} />
+      )}
+      {p.ready &&
+        id !== 'chat' &&
+        p.publicSettings &&
+        publicSettingsFields(id, p.id, p.publicSettings)}
+    </FormSection>
+  )
+}
 export function guidePage(
   id: string,
   frame: ConsoleFrame,
@@ -426,7 +545,8 @@ export function guidePage(
       title={extensionLabel(id)}
       description={list === undefined ? undefined : list.total + '件'}
       filters={
-        list && (
+        list &&
+        (list.total > 0 || !!frame.query.q || id !== 'rules') && (
           <ListFilters
             title={extensionLabel(id)}
             path={'/extensions/' + id}
@@ -463,18 +583,13 @@ export function guidePage(
       {id === 'issues' && (
         <p>
           {items.some((p) => p.tokenReady)
-            ? 'GITHUB_TOKEN は設定済みです。'
-            : 'GITHUB_TOKEN は未設定です。'}
-          投稿には Worker のシークレット GITHUB_TOKEN
-          が必要です。対象リポジトリの Issues
-          に読み書きできるトークンを設定してください。
+            ? 'GITHUB_TOKEN は設定済みです。対象リポジトリの Issues に読み書きできるトークンを使用します。'
+            : 'GITHUB_TOKEN は未設定です。Worker のシークレットに、対象リポジトリの Issues に読み書きできるトークンを設定してください。'}
         </p>
       )}
-      {id === 'articles' && (
-        <ActionLink href="/articles">記事の管理を開く</ActionLink>
-      )}
-      {id === 'metrics' && (
-        <ActionLink href="/metrics">集計画面を開く</ActionLink>
+      {guideLink(id)}
+      {Object.hasOwn(publicGuides, id) && (
+        <script defer src="/ui/copy-snippet.js" />
       )}
       {id === 'chat' && (
         <>
@@ -482,78 +597,7 @@ export function guidePage(
           <script defer src="/ui/widget-settings.js" />
         </>
       )}
-      {items.map((p) => (
-        <FormSection title={<ProductMark product={p} size="heading" />}>
-          {id === 'issues' ? (
-            <form method="post" action="/extensions/issues/repository">
-              <input type="hidden" name="product" value={p.id} />
-              <label>
-                GitHub リポジトリ
-                <Input
-                  name="repository"
-                  value={p.repository}
-                  placeholder="owner/repository"
-                  required
-                />
-              </label>
-              <SaveActions verb="登録する" cancel="/extensions/issues" />
-            </form>
-          ) : p.ready ? (
-            <>
-              <ActionLink href={p.url}>{publicGuides[id]}</ActionLink>
-              <p>
-                <code>{p.url}</code>
-              </p>
-              {id === 'chat' && p.publicSettings?.widget ? (
-                <WidgetSettings
-                  product={p}
-                  url={p.url}
-                  options={p.publicSettings.widget}
-                />
-              ) : (
-                <>
-                  <p>登録済みのサイトに次のコードを貼り付けてください。</p>
-                  <label>
-                    埋め込みコード
-                    <Textarea readonly rows={3}>
-                      {'<iframe src="' +
-                        p.url +
-                        '" title="' +
-                        extensionLabel(id) +
-                        '" width="100%" height="540" loading="lazy"></iframe>'}
-                    </Textarea>
-                  </label>
-                </>
-              )}
-            </>
-          ) : p.configured ? (
-            <p>
-              設定済みの受付ポリシーに、このサイトのオリジンを追加してください。
-            </p>
-          ) : (
-            <form
-              method="post"
-              action={'/settings/public-intakes/' + encodeURIComponent(p.id)}
-            >
-              <Input
-                name="returnTo"
-                type="hidden"
-                value={'/extensions/' + id}
-              />
-              <Button>このサイトで受付を開始</Button>
-            </form>
-          )}
-          {p.recommendation && (
-            <RecommendationSettings
-              product={p.id}
-              settings={p.recommendation}
-            />
-          )}
-          {p.ready &&
-            p.publicSettings &&
-            publicSettingsFields(id, p.id, p.publicSettings)}
-        </FormSection>
-      ))}
+      {items.map((p) => guideProduct(id, p))}
       {contents}
       <FormSection title="使用する権限">
         <p>{permissions}</p>
@@ -622,13 +666,15 @@ export function metricsPage(
               result.voices +
               '件・前期比 ' +
               compactChange(key)
-            : key === 'selfResolutionRate'
-              ? result.solvedSuggestions +
-                '件 / ' +
-                result.shownSuggestions +
-                '件・前期比 ' +
-                compactChange(key)
-              : '前期比 ' + compactChange(key)
+            : key === 'firstContactRate' && result.closed
+              ? '対象 ' + result.closed + '件・前期比 ' + compactChange(key)
+              : key === 'selfResolutionRate'
+                ? result.solvedSuggestions +
+                  '件 / ' +
+                  result.shownSuggestions +
+                  '件・前期比 ' +
+                  compactChange(key)
+                : '前期比 ' + compactChange(key)
         }
       />
     )

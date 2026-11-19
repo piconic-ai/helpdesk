@@ -13,7 +13,7 @@ for (const picker of document.querySelectorAll('[data-issue-picker]')) {
     )
     select.replaceChildren(
       ...matches.map(
-        (i) => new Option(i.title + ' (#' + i.number + ')', i.number),
+        (i) => new Option('#' + i.number + ' ' + i.title, i.number),
       ),
     )
     if (matches.some((i) => String(i.number) === value)) select.value = value

@@ -50,7 +50,7 @@ test('保存したルールを編集・並べ替え、適用した会話の履�
   )
   await page.goto(scene.origin + '/extensions/rules')
   await rows.first().locator('summary').click()
-  await rows.first().getByRole('button', { name: 'このルールを解除' }).click()
+  await rows.first().getByRole('button', { name: 'このルールを削除' }).click()
   await confirmSubmission(page)
   await expect(rows).toHaveCount(1)
 })
@@ -76,10 +76,8 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await edit.getByRole('button').click()
   await page.goto(scene.origin + '/conversation/1')
   const canned = page.locator('[data-extension=canned]')
-  await canned.locator('[data-slot=popover-trigger]').click()
-  await canned
-    .getByRole('combobox', { name: '定型文', exact: true })
-    .selectOption({ label: '入金のご案内' })
+  await canned.getByRole('button', { name: '定型文を選ぶ' }).click()
+  await canned.getByRole('radio', { name: /入金のご案内/ }).check()
   await canned.locator('form').getByRole('button').click()
   await expect(page.getByRole('textbox', { name: '下書きの本文' })).toHaveValue(
     '山田 花 様、入金を確認しました。',
@@ -87,7 +85,7 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
   await page
     .getByRole('combobox', { name: '課題', exact: true })
-    .selectOption({ label: '領収書の一括ダウンロード (#42)' })
+    .selectOption({ label: '#42 領収書の一括ダウンロード' })
   await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
   await expect(page.getByRole('dialog')).toContainText('example/helpdesk')
   await confirmSubmission(page)
@@ -119,9 +117,9 @@ test('集計に定義・前期差・少数件の案内があり未設定の拡�
   await page.goto(scene.origin + '/extensions')
   for (const name of ['受け付ける', '答える', '直す', '整える'])
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
-  await expect(page.locator('[data-extension=notify]')).toContainText(
-    '設定が必要',
-  )
+  const notify = page.locator('[data-extension=notify]')
+  await expect(notify.getByRole('switch')).toBeChecked()
+  await expect(notify).toContainText('通知先は未設定です。')
 })
 
 test.describe('返信欄の記事候補', () => {

@@ -136,13 +136,14 @@ export function retryArticleVote(
   }
 }
 
-export function articleVoteReceipt(helpful: boolean) {
+export function articleVoteReceipt(article: Article, helpful: boolean) {
   const title = 'ご回答ありがとうございます'
   return {
     title,
     html: String(
       <DetailPage title={title}>
         <Notice kind="success">記事への評価を受け付けました。</Notice>
+        <a href={publicPath(article.product, article.id)}>{article.title}</a>
         {!helpful && (
           <p>記事で解決できなかった内容を、担当者にご相談いただけます。</p>
         )}

@@ -54,7 +54,11 @@ export const ReplyArea = ({
   </Stack>
 )
 export const ThreadTimeline = ({ children }: Content) => (
-  <section className="message-list" aria-label="メッセージ">
+  <section
+    id="thread-messages"
+    className="message-list"
+    aria-label="メッセージ"
+  >
     {children}
   </section>
 )

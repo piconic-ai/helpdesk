@@ -19,7 +19,10 @@ export function cannedSettings(
       <Field label="定型文の表示名">
         <Input required name="name" maxlength={100} value={name} />
       </Field>
-      <Field label="定型文の本文">
+      <Field
+        label="定型文の本文"
+        description="相手の名前には {{name}}、プロダクト名には {{product}} が使えます。"
+      >
         <Textarea required name="body" maxlength={4000}>
           {body}
         </Textarea>

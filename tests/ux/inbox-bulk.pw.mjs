@@ -166,7 +166,7 @@ test('長い件名、担当者、複数のラベル、3通のやりとりが各�
     expect(geometry.top.bottom).toBeLessThanOrEqual(geometry.bottom.top)
     expect(geometry.clipTitles).toBe(true)
     expect(geometry.single).toBe(true)
-    expect(geometry.documentFits).toBe(true)
+    expect(geometry.documentFits, width + 'px document width').toBe(true)
     expect(geometry.width).toBeGreaterThan(0)
   }
 })

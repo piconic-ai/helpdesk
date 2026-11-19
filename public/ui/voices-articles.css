@@ -62,9 +62,9 @@
 @media (max-width: 640px) {
   [data-ui='filter-line']
     form:is(
-      [action='/voices'],
-      [action='/articles'],
-      [action='/articles/candidates']
+      [data-list-filters],
+      :has(> label [data-product-select]),
+      [action='/voices']
     ) {
     display: grid;
     align-items: end;
@@ -73,12 +73,28 @@
   }
   [data-ui='filter-line']
     form:is(
-      [action='/voices'],
-      [action='/articles'],
-      [action='/articles/candidates']
+      [data-list-filters],
+      :has(> label [data-product-select]),
+      [action='/voices']
     )
     > :first-child {
     grid-column: 1 / -1;
+  }
+  [data-ui='filter-line'] label:has([data-product-select]) {
+    grid-column: 1 / -1;
+  }
+  [data-ui='filter-line']
+    [data-slot='native-select-wrapper']:has([data-product-select]) {
+    width: 100%;
+  }
+  [data-ui='filter-line'] [data-product-select] .product-mark-name,
+  [data-ui='chips'] .product-mark-name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  [data-ui='chips'] :has(.product-mark) {
+    min-width: 0;
+    max-width: 100%;
   }
   [data-ui='filter-line'] form[action='/voices'] > button {
     grid-column: 1 / -1;
@@ -86,9 +102,9 @@
   }
   [data-ui='filter-line']
     form:is(
-      [action='/voices'],
-      [action='/articles'],
-      [action='/articles/candidates']
+      [data-list-filters],
+      :has(> label [data-product-select]),
+      [action='/voices']
     )
     :is(input, select) {
     width: 100%;

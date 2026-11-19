@@ -38,6 +38,9 @@ function confirmAction(trigger, title, description, verb, commit) {
   confirmation.querySelector('p').textContent = description
   const button = confirmation.querySelector('[data-commit]')
   button.textContent = verb
+  const destructive = trigger.classList.contains('button-danger')
+  button.classList.toggle('button-primary', !destructive)
+  button.classList.toggle('button-danger', destructive)
   button.onclick = () => {
     confirmation.close('confirmed')
     commit()
@@ -74,8 +77,10 @@ function submissionDetails(form, trigger) {
     ]
   if (action === '/actions/merge.combine')
     return [
-      label,
-      'この会話を「' +
+      'この会話を統合する',
+      '「' +
+        form.dataset.source +
+        '」を「' +
         form.elements.target.selectedOptions[0].textContent.trim() +
         '」に統合します。',
     ]
@@ -86,17 +91,21 @@ function submissionDetails(form, trigger) {
 
 function settingsConfirmation(action, form, trigger, label) {
   if (action === '/extensions/rules/remove')
-    return [label, '選択した振り分けルール1件を削除します。']
+    return [label, form.dataset.ruleSummary + ' の振り分けルールを削除します。']
   if (form.elements.enabled?.value === 'yes' && form.dataset.permissions)
     return [
       trigger.getAttribute('aria-label'),
-      '使用する権限：' + form.dataset.permissions,
+      (form.dataset.publicIntake
+        ? '全プロダクトで機能が使えるようになります。受付はプロダクトごとに開始します。\n'
+        : '') +
+        '使用する権限：' +
+        form.dataset.permissions,
     ]
   if (form.elements.enabled?.value === 'no')
     return [
-      label,
+      trigger.getAttribute('aria-label'),
       form.closest('[data-extension]').querySelector('h3').textContent +
-        'を無効にします。',
+        'を無効にします。設定は保持され、再度有効にするまで新しい処理は停止します。',
     ]
   if (action === '/articles/edit' && trigger?.value === 'publish')
     return [
@@ -194,6 +203,44 @@ function editTarget(element) {
     'input,textarea,select,[contenteditable]:not([contenteditable=false])',
   )
 }
+
+// Keep the first tab interaction when the server-rendered form precedes its module.
+function replayEarlyTabInput(event) {
+  const tab = event.target.closest?.('.composer-tabs [role=tab]')
+  if (!tab || event.defaultPrevented) return
+  const key = event.key
+  if (key && !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(key)) return
+  if (key) event.preventDefault()
+  document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+      const current = document.activeElement
+      if (current?.closest('[role=tablist]') !== tab.parentElement) return
+      if (key) {
+        current.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      } else if (tab.getAttribute('aria-selected') !== 'true') {
+        tab.click()
+      }
+    },
+    { once: true },
+  )
+}
+document.addEventListener('keydown', replayEarlyTabInput)
+document.addEventListener('click', replayEarlyTabInput)
+document.addEventListener(
+  'DOMContentLoaded',
+  () => {
+    document.removeEventListener('keydown', replayEarlyTabInput)
+    document.removeEventListener('click', replayEarlyTabInput)
+  },
+  { once: true },
+)
 
 function editMode(composer, mode) {
   const tab = composer.querySelectorAll('.composer-tabs button')[

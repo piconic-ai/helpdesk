@@ -83,6 +83,10 @@
 .public-form {
   justify-items: stretch;
 }
+.public-form .receipt-details dd {
+  max-height: 12em;
+  overflow-y: auto;
+}
 .public-form button,
 .chat-widget > .button-quiet {
   justify-self: start;
@@ -98,6 +102,9 @@
   box-shadow: var(--layout-raised-shadow);
 }
 @media (max-width: 767px) {
+  .public-form button {
+    min-height: var(--layout-touch-target);
+  }
   .public-surface {
     padding-inline: var(--spacing-md);
   }

@@ -25,14 +25,24 @@ for (const policy of ['auto-ack', 'survey']) {
         '2026-11-04T05:00:00.000Z',
       )
       await page.getByLabel('プロダクト', { exact: true }).selectOption('slide')
-      await page.getByRole('button', { name: 'プロダクトを表示' }).click()
+      await expect(page).toHaveURL(
+        (url) => url.searchParams.get('product') === 'slide',
+      )
+      await expect(
+        page.getByText('承認の対象は、すべてのプロダクトです。'),
+      ).toBeVisible()
+      await page.getByLabel('自動送信の案内の言語').selectOption('ja')
       const body = page.getByRole('textbox', { name: /^本文/ })
       await body.fill(wording)
+      await page.reload()
+      await expect(page.getByLabel('自動送信の案内の言語')).toHaveValue('ja')
+      await expect(body).toHaveValue(wording)
       await page
         .getByRole('button', { name: 'プレビュー', exact: true })
         .click()
       await expect(preview).toContainText(wording)
       await expect(preview).toContainText('[#123]')
+      await expect(preview).toContainText('自動送信')
       if (!receipt)
         await expect(preview).toContainText('/help/survey/slide/example')
       await expect(page.getByText('保存前のプレビューです。')).toBeVisible()
@@ -44,6 +54,8 @@ for (const policy of ['auto-ack', 'survey']) {
       )
       await page.getByRole('link', { name: '取り消し' }).click()
       await expect(body).not.toHaveValue(wording)
+      await expect(page.getByLabel('自動送信の案内の言語')).toHaveValue('en')
+      await page.getByLabel('自動送信の案内の言語').selectOption('ja')
       await body.fill(wording)
       await page.getByRole('button', { name: '文面を保存' }).click()
       await expect(page.getByText('文面を保存しました。')).toBeVisible()
@@ -56,7 +68,9 @@ for (const policy of ['auto-ack', 'survey']) {
         '保存した文面が当該プロダクトのプレビューに反映',
       )
       await page.getByLabel('プロダクト', { exact: true }).selectOption('desk')
-      await page.getByRole('button', { name: 'プロダクトを表示' }).click()
+      await expect(page).toHaveURL(
+        (url) => url.searchParams.get('product') === 'desk',
+      )
       await expect(preview).not.toContainText(wording)
       const number = receipt ? 12 : 6
       if (receipt) {
@@ -83,6 +97,13 @@ for (const policy of ['auto-ack', 'survey']) {
             .first('body'),
         )
         .toContain(wording)
+      const sent = await scene.db
+        .prepare(
+          "SELECT body FROM messages WHERE number=? AND delivery='sent' AND json_extract(actor,'$.id')=?",
+        )
+        .bind(number, policy)
+        .first('body')
+      expect(sent).toContain('自動送信')
       await page.goto(scene.origin + '/conversation/' + number)
       await expect(
         page.getByText(wording, { exact: false }).first(),

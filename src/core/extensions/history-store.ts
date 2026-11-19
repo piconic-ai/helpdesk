@@ -49,6 +49,15 @@ export async function history(
       payload: { product, ...JSON.parse(e.payload) },
     }))
 }
+export async function snapshotCounts(db: D1Database) {
+  return (
+    await db
+      .prepare(
+        'SELECT (SELECT COUNT(*) FROM conversations) AS conversations, (SELECT COUNT(*) FROM messages) AS messages, (SELECT COUNT(*) FROM events) AS events',
+      )
+      .all<{ conversations: number; messages: number; events: number }>()
+  ).results[0]
+}
 export async function snapshot(db: D1Database) {
   const [conversations, messages, events] = await db.batch([
     db.prepare('SELECT * FROM conversations ORDER BY number'),

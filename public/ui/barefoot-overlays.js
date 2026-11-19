@@ -1,7 +1,7 @@
 // BarefootJS UI, adapted from PopoverContent, DropdownMenuContent and DialogContent.
 // MIT, BarefootJS Contributors. See src/ui/BAREFOOT-LICENSE.
 const focusable =
-  'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+  'button:not(:disabled), summary, a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
 
 // Barefoot's position tracker samples again at close, including a scroll from focus().
 function trackPosition(update) {

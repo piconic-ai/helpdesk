@@ -63,6 +63,7 @@ export function publicSettingsFields(
               placeholder="例: 2営業日以内"
             />
           </label>
+          <small>問い合わせを受け付けた後、利用者に表示します。</small>
           <SaveActions verb="返信の目安を保存" cancel={'/extensions/' + id} />
         </form>
       )}

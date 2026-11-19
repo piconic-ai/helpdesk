@@ -1,3 +1,4 @@
+import { loopScenes } from './loop-scenes.mjs'
 import { suggestionScenes } from './suggestion-scenes.mjs'
 import { widgetScenes, widgetSettingsScenes } from './widget-scenes.mjs'
 import { trendScenes } from './trend-scenes.mjs'
@@ -16,6 +17,7 @@ if (!last)
 const titles = new Map(
   [
     ...screens,
+    ...loopScenes,
     ...dailyScreens,
     ...compositionScreens,
     ...reviewScreens,

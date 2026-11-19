@@ -72,6 +72,11 @@ export type ExtensionContext = {
     event: 'marked_spam' | 'unmarked_spam',
   ) => Promise<void>
   events: (kind?: string) => Promise<ExtensionEvent[]>
+  snapshotCounts: () => Promise<{
+    conversations: number
+    messages: number
+    events: number
+  }>
   snapshot: () => Promise<{
     conversations: Record<string, unknown>[]
     messages: Record<string, unknown>[]
@@ -149,7 +154,12 @@ export type Panel = {
   operations: string[]
   choiceLabels?: (
     ctx: ExtensionContext,
-  ) => Promise<Record<string, Record<string, string>>>
+  ) => Promise<
+    Record<
+      string,
+      Record<string, string | { label: string; description: string }>
+    >
+  >
   choices?: (ctx: ExtensionContext) => Promise<Record<string, string[]>>
   links?: (
     ctx: ExtensionContext,
@@ -163,6 +173,7 @@ export type ReplyLink = { title: string; path: string }
 export type Extension = {
   icon?: GlyphName
   navigationCount?: (ctx: ExtensionContext) => Promise<number>
+  settingsSummary?: (ctx: ExtensionContext) => Promise<string>
   configurationGaps?: (
     ctx: ExtensionContext,
     products: { id: string; name: string }[],
@@ -174,6 +185,7 @@ export type Extension = {
   ) => Promise<ReplyLink[] | { links: ReplyLink[]; offerToWrite: boolean }>
   requiresAI?: boolean
   secrets?: string[]
+  requiredSecrets?: string[]
   id: string
   permissions: Permission[]
   config: z.ZodType

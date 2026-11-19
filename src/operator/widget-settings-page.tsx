@@ -62,6 +62,7 @@ export function WidgetSettings({
     '/extensions/chat/preview/' + encodeURIComponent(product.id)
   return (
     <section
+      data-copy-block=""
       data-widget-settings=""
       data-origin={origin}
       data-product={product.id}
@@ -124,6 +125,10 @@ export function WidgetSettings({
                 {options.introduction}
               </Textarea>
             </label>
+            <Button type="button" data-show-widget-preview="">
+              変更したボタンを見本で確認
+            </Button>
+            <p>位置・文言を変えた場合はコードを貼り直してください。</p>
             <SaveActions
               verb="チャットの表示を保存"
               cancel="/extensions/chat"
@@ -141,9 +146,9 @@ export function WidgetSettings({
         </Disclosure>
         <Disclosure title="CSP の設定を確認">
           <p>
-            プロダクトの Content-Security-Policy で <code>script-src</code> と{' '}
-            <code>frame-src</code> の両方に <code>{origin}</code>{' '}
-            を追加してください。
+            埋め込み先のサイトで Content-Security-Policy を更新します。{' '}
+            <code>script-src</code> と <code>frame-src</code> の両方に{' '}
+            <code>{origin}</code> （ヘルプデスクのオリジン）を追加してください。
           </p>
         </Disclosure>
       </Stack>

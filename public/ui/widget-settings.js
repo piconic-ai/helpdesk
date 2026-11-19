@@ -28,16 +28,12 @@ for (const panel of document.querySelectorAll('[data-widget-settings]')) {
   }
   form.elements.position.addEventListener('change', refresh)
   form.elements.label.addEventListener('input', refresh)
-  panel
-    .querySelector('[data-copy-snippet]')
-    .addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(snippet.value)
-        result.textContent = 'コピーしました。'
-      } catch {
-        snippet.focus()
-        snippet.select()
-        result.textContent = 'コードを選択しました。コピーしてください。'
-      }
+  form
+    .querySelector('[data-show-widget-preview]')
+    .addEventListener('click', () => {
+      const disclosure = preview.closest('details')
+      disclosure.open = true
+      disclosure.querySelector('summary').focus()
+      preview.scrollIntoView({ block: 'center' })
     })
 }

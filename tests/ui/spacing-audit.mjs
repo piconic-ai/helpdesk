@@ -70,7 +70,7 @@ export function inspectSpacing() {
       if (visible(element)) inspect(element)
   }
   eachVisible(
-    '[data-layout], [data-ui=filter-line], [data-inbox-content], .context-cards, .reply-area, .settings-card form, main section, .public-form',
+    '[data-layout], [data-ui=filter-line], [data-inbox-content], .context-cards, .reply-area, .settings-card form, main section, .public-form, #thread-actions:popover-open',
     checkPeers,
   )
   eachVisible('[data-layout=grid]', checkHeights)

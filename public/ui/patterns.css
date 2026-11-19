@@ -109,6 +109,17 @@
 [data-ui='setting-row'] strong {
   color: var(--colors-ink);
 }
+[data-ui='list-row']:has(> details[open]) {
+  flex-wrap: wrap;
+}
+[data-ui='list-row'] > details[open] {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+[data-ui='list-row'] > details[open] > form,
+[data-ui='list-row'] > details[open] > section {
+  max-width: 560px;
+}
 [data-ui='setting-row'] > :first-child {
   display: grid;
 }
@@ -310,6 +321,15 @@
   [data-ui='actions'] {
     gap: var(--spacing-xs);
   }
+  [data-ui='list-row']:has(> details) {
+    flex-wrap: wrap;
+  }
+  [data-ui='list-row'] > details {
+    flex-basis: 100%;
+  }
+  .reply-area:has(.thread-command[open]) .composer {
+    position: static;
+  }
 }
 [data-ui='gallery'] main {
   max-width: 1100px;
@@ -447,6 +467,10 @@
   border-radius: var(--rounded-pill);
   cursor: pointer;
 }
+[data-ui='extension-card'] button[role='switch'][aria-checked='true'] {
+  color: var(--colors-on-primary);
+  background: var(--colors-primary);
+}
 [data-ui='extension-card'] input[role='switch'] {
   display: inline-grid;
   align-items: center;
@@ -490,6 +514,16 @@
   appearance: none;
   padding-inline-end: calc(var(--layout-icon-size) + var(--spacing-md));
 }
+[data-slot='native-select']::picker-icon {
+  display: none;
+}
+[data-slot='native-select']:is(
+  [data-product-select],
+  :has(option svg, option .label-dot)
+) {
+  display: inline-flex;
+  align-items: center;
+}
 [data-slot='native-select-icon'] {
   position: absolute;
   align-self: center;
@@ -517,11 +551,42 @@ html:has(dialog:modal) {
 .reply-area:has(.composer-note) > [data-extension='canned'] {
   display: none;
 }
+.thread-command > summary {
+  width: fit-content;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-height: var(--components-button-secondary-height);
+}
+.thread-command[open],
+.thread-command .extension-form,
+.template-choices,
+.template-choices label > span {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+#thread-actions:popover-open {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+.thread-command .extension-form {
+  justify-items: start;
+}
+.template-choices {
+  max-height: 35dvh;
+  overflow: auto;
+}
+.template-choices label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-xs);
+}
+.template-choices small {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 [data-ui='extension-card'] > header h3 {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  line-height: var(--typography-title-sm-lineHeight);
 }
 [data-ui='extension-card'] > header form {
   flex: none;

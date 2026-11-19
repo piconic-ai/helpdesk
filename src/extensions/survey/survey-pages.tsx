@@ -1,22 +1,28 @@
 import { AnswerChoices } from '../../ui/public-forms'
 import { DetailPage, EditPage, Notice } from '../../ui/patterns'
 
-export function surveyForm() {
+export function surveyForm(number: number) {
   return {
     title: '解決アンケート',
     html: String(
-      <EditPage title="問い合わせは解決しましたか？">
-        <AnswerChoices name="resolved" question="回答を選んでください" />
+      <EditPage
+        title="問い合わせは解決しましたか？"
+        description={'問い合わせ #' + number}
+      >
+        <AnswerChoices name="resolved" question="選んだ回答を送信します" />
       </EditPage>,
     ),
   }
 }
 
-export function surveyReceipt() {
+export function surveyReceipt(number: number) {
   return {
     title: '回答を記録しました',
     html: String(
-      <DetailPage title="ご回答ありがとうございます">
+      <DetailPage
+        title="ご回答ありがとうございます"
+        description={'問い合わせ #' + number}
+      >
         <Notice kind="success">回答を記録しました。</Notice>
       </DetailPage>,
     ),

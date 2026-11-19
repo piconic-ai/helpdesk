@@ -84,6 +84,23 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
   await page.goto(scene.origin + '/conversation/1')
   const merge = page.locator('[data-extension="merge"]')
   await merge.getByRole('button', { name: '会話を統合', exact: true }).click()
+  await expect(merge.locator('option:checked')).toHaveText(
+    /^#\d+\s+ワークスペース/,
+  )
+  await expect(merge).toContainText('統合元：#1')
+  await merge
+    .locator('form')
+    .getByRole('button', { name: '会話を統合' })
+    .click()
+  const confirmMerge = page.locator('dialog:modal')
+  await expect(confirmMerge).toContainText('「#1 ')
+  await expect(
+    confirmMerge.getByRole('button', {
+      name: 'この会話を統合する',
+      exact: true,
+    }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
   await inspectModal(
     page,
     merge.locator('form').getByRole('button', { name: '会話を統合' }),
@@ -121,6 +138,13 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   const disable = page
     .locator('[data-extension="rules"]')
     .getByRole('switch', { name: /無効にする/ })
+  await disable.click()
+  await expect(
+    page
+      .getByRole('dialog')
+      .getByRole('button', { name: '振り分けルールを無効にする', exact: true }),
+  ).toBeVisible({ timeout: 1000 })
+  await page.keyboard.press('Escape')
   await inspectModal(page, disable, { content: '無効にします' })
   await page.goto(scene.origin + '/extensions/rules')
   const editor = page.locator('form[action="/extensions/rules/add"]').last()
@@ -129,7 +153,7 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   await editor.getByRole('button', { name: 'ルールを保存' }).click()
   await page.locator('[data-list=rules] summary').first().click()
   await inspectModal(page, formButton(page, '/extensions/rules/remove'), {
-    content: 'ルール1件',
+    content: '全プロダクト・件名に「請求内容の確認」・ラベル「請求」',
   })
   await page.goto(scene.origin + '/articles/new')
   await page.getByLabel('題名').fill('更新の手順')

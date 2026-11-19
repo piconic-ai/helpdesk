@@ -85,6 +85,15 @@ try {
         .locator('#sample-confirm')
         .evaluate((el) => el.matches(':modal')),
     )
+    const dialog = page.getByRole('dialog')
+    const cancel = await dialog
+      .getByRole('button', { name: 'キャンセル' })
+      .boundingBox()
+    const remove = await dialog
+      .getByRole('button', { name: '削除する' })
+      .boundingBox()
+    const buttonGap = remove.x - (cancel.x + cancel.width)
+    assert(buttonGap >= 8, width + 'px confirmation button gap: ' + buttonGap)
     await page
       .locator('#sample-confirm')
       .screenshot({ path: resolve(output, 'confirmation-' + width + '.png') })
@@ -106,7 +115,10 @@ try {
     assert.equal(await page.locator('[data-ui="conversation-row"]').count(), 1)
     await page.close()
     console.log(
-      width + 'px gallery, candidates, confirmation and tooltip passed',
+      width +
+        'px gallery, candidates, confirmation (' +
+        buttonGap +
+        'px button gap) and tooltip passed',
     )
   }
 } finally {

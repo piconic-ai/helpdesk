@@ -2,13 +2,22 @@ import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import type { AutomaticPolicy } from '../extensions/automatic-message'
 import { extensionLabel } from '../core/extensions/extension-labels'
 import { FormSection, ActionBar, EditPage, Notice } from '../ui/patterns'
-import { Field, Button, Input, Textarea, ActionLink } from '../ui/controls'
+import {
+  Field,
+  Button,
+  Input,
+  NativeSelect,
+  Textarea,
+  ActionLink,
+} from '../ui/controls'
 import { BodyText } from '../ui/admin'
 import { shell } from '../ui/console-shell'
 import { productSelect } from './extension-admin-page'
 
 type MessageForm = {
   product: string
+  productName: string
+  language: 'ja' | 'en'
   wording: string
   revision: string
   subject: string
@@ -43,6 +52,7 @@ export function automaticMailPage(
             ? '初めて受け付けた問い合わせメールに自動で返信します。'
             : '問い合わせを完了すると、回答用のリンクを自動で送ります。'}
         </p>
+        <p>承認の対象は、すべてのプロダクトです。</p>
         {approval.by ? (
           <p>
             有効にした運営者：
@@ -63,11 +73,13 @@ export function automaticMailPage(
       </FormSection>
       {data ? (
         <>
-          <form method="get" action={path}>
+          <form method="get" action={path} data-live-filters="">
             {productSelect(frame, data.product)}
-            <Button>プロダクトを表示</Button>
+            <noscript>
+              <Button>プロダクトを表示</Button>
+            </noscript>
           </form>
-          <FormSection title="送信文面のプレビュー">
+          <FormSection title={data.productName + ' の送信文面'}>
             <p>
               問い合わせ番号と件名は表示例です。
               {id === 'survey' && '回答先は送信ごとに発行する専用リンクです。'}
@@ -83,6 +95,19 @@ export function automaticMailPage(
             >
               <Input type="hidden" name="product" value={data.product} />
               <Input type="hidden" name="revision" value={data.revision} />
+              <Field
+                label="自動送信の案内の言語"
+                description="定型の案内と既定の本文に使います。編集した本文はそのまま送ります。"
+              >
+                <NativeSelect name="language">
+                  <option value="ja" selected={data.language === 'ja'}>
+                    日本語
+                  </option>
+                  <option value="en" selected={data.language === 'en'}>
+                    英語
+                  </option>
+                </NativeSelect>
+              </Field>
               <Field
                 label="本文"
                 description="自動送信の表示と問い合わせ番号は自動で入ります。"

@@ -17,6 +17,9 @@ export const rules: Extension = {
   icon: 'rules',
   permissions: [],
   config,
+  async settingsSummary(ctx) {
+    return '登録済みのルール ' + (await storedRules(ctx)).length + '件'
+  },
   subscribers: [
     {
       kind: 'conversation_opened',

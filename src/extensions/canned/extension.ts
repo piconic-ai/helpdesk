@@ -39,7 +39,7 @@ export const canned = {
           template: Object.fromEntries(
             [...(await savedTemplates(ctx))].map(([id, item]) => [
               id,
-              item.name,
+              { label: item.name, description: item.body },
             ]),
           ),
         }

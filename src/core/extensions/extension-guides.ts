@@ -25,7 +25,7 @@ export const guides: Record<string, { description: string; start: string }> = {
   feedback: {
     description: '製品への声を集め、確認済みや問い合わせに変更できます。',
     start:
-      '公開フォームから感想を送り、サイドバーの「フィードバック」で受付を確認してください。',
+      '公開フォームから感想を送り、フィードバックの受信箱で受付を確認してください。',
   },
   chat: {
     description:
@@ -40,17 +40,18 @@ export const guides: Record<string, { description: string; start: string }> = {
   },
   export: {
     description: '会話、メッセージ、操作履歴を JSON Lines で書き出します。',
-    start: '相手の情報を伏せるか選び、書き出した内容を確認してください。',
+    start:
+      '全期間・全プロダクトの会話・メッセージ・操作履歴を書き出します。伏せる設定では、本文中も含めて、メールアドレスと登録された相手の名前を置き換えます。住所など、その他の自由記述は残ります。',
   },
   snooze: {
     description: '指定した日時まで会話を受信箱から保留します。',
     start:
-      '会話の「その他の操作」で再表示日時を選び、期限が来ると受信箱に戻ることを確認してください。',
+      '会話の「その他の操作」からスヌーズを選び、日本時間で再表示日時を設定します。期限に受信箱へ戻ります。期限前は同じ会話の「保留を解除」で戻せます。',
   },
   merge: {
     description: '同じ相手・窓口の問い合わせを一つにまとめます。',
     start:
-      '対象の会話を開き、会話の関連情報で同じ相手からの問い合わせを選んでください。',
+      'まとめたい会話を開き、「関連情報」で同じ相手・同じ窓口の統合先を選びます。今開いている会話のメッセージが選んだ会話にまとまります。',
   },
   canned: {
     description: '保存した定型文から、相手や製品名を入れた返信案を作ります。',
@@ -71,7 +72,7 @@ export const guides: Record<string, { description: string; start: string }> = {
   presence: {
     description: '同じ会話を閲覧中の運営者を表示します。',
     start:
-      '2人の運営者で同じ会話を開き、会話の関連情報の閲覧者を確認してください。',
+      '会話を開くと、ほかに対応している担当者の名前と「閲覧中」「入力中」が返信欄に表示されます。「関連情報」では同じ会話を開いている人数を確認できます。自分だけのときは、ほかに閲覧中の担当者はいないと表示されます。',
   },
   survey: {
     description: '問い合わせの完了時に、解決したか尋ねる専用リンクを送ります。',
@@ -81,16 +82,18 @@ export const guides: Record<string, { description: string; start: string }> = {
   notify: {
     description: '新着と担当者の変更を運営者に通知します。',
     start:
-      'helpdesk.config.ts の notify.settings で通知先を設定し、テストメールを受信して通知を確認してください。',
+      'メール通知先は helpdesk.config.ts の extensions 配列で、notify の settings.email に指定します。Slack・Discord には Worker のシークレット NOTIFY_WEBHOOK_URL に通知先の Webhook を設定します。Slack は既定の形式です。Discord には同じ notify の settings.format に「discord」を指定してください。窓口にテストメールを送って、指定先で通知を確認してください。',
   },
   'auto-ack': {
-    description: '窓口で受信した問い合わせに受付のお知らせを送ります。',
+    description:
+      '初めて届いた問い合わせメールの差出人に受付のお知らせを自動送信します。設定から送信文面を確認・編集できます。',
     start:
       'テスト用の窓口へメールを送り、受付返信と問い合わせ番号を確認してください。',
   },
   spam: {
     description: '迷惑メールと判定した問い合わせを隔離します。',
-    start: '受信箱の「迷惑メール」を開き、隔離した会話を確認してください。',
+    start:
+      '隔離された会話を開いて内容を確認します。誤って隔離された場合は会話の操作から迷惑メールを解除できます。',
   },
 }
 export const publicGuides: Record<string, string> = {

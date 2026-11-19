@@ -1,9 +1,17 @@
 const panel = document.currentScript.closest('section')
 const number = panel.dataset.number
 const tab = crypto.randomUUID()
-const display = document.createElement('p')
-display.setAttribute('aria-live', 'polite')
-panel.append(display)
+const display = panel.querySelector('.extension-content')
+const replyArea = document.querySelector('.reply-area')
+const liveStatus = replyArea ? display.cloneNode(false) : display
+liveStatus.setAttribute('aria-live', 'polite')
+if (replyArea) {
+  liveStatus.hidden = true
+  replyArea.prepend(liveStatus)
+}
+function changeText(element, text) {
+  if (element.textContent !== text) element.textContent = text
+}
 let typedAt = 0
 let pending = false
 let updating = false
@@ -24,19 +32,33 @@ async function heartbeat() {
         mode: Date.now() - typedAt < 12000 ? 'typing' : 'reading',
       }),
     })
-    if (!response.ok) return
+    if (!response.ok) throw new Error('Heartbeat failed')
     const users = await response.json()
-    display.textContent = users
-      .map(
-        (user) =>
-          user.email +
-          '（' +
-          (user.mode === 'typing' ? '入力中' : '閲覧中') +
-          '）',
+    const memberStatus =
+      users
+        .map(
+          (user) =>
+            user.email +
+            '（' +
+            (user.mode === 'typing' ? '入力中' : '閲覧中') +
+            '）',
+        )
+        .join(', ') || 'ほかに閲覧中の担当者はいません。'
+    if (replyArea) {
+      liveStatus.hidden = users.length === 0
+      changeText(
+        display,
+        users.length
+          ? 'ほかに' +
+              users.length +
+              '人がこの会話を開いています。返信欄で状況を確認できます。'
+          : memberStatus,
       )
-      .join(', ')
+    }
+    changeText(liveStatus, memberStatus)
   } catch {
-    display.textContent = ''
+    if (replyArea) liveStatus.hidden = true
+    changeText(display, '閲覧状況を取得できません。再確認しています。')
   } finally {
     updating = false
     if (pending) {

@@ -185,6 +185,9 @@
   flex: 0 1 auto;
   color: var(--colors-body);
 }
+.row-mobile-sender {
+  display: none;
+}
 .row-sender {
   color: var(--colors-ink);
 }
@@ -327,9 +330,13 @@
   padding: var(--spacing-sm) 0;
   resize: vertical;
 }
-.composer:focus-within {
-  outline: var(--layout-focus-width) solid var(--colors-focus-ring);
-  outline-offset: var(--layout-focus-width);
+.composer-actions .button-primary {
+  min-width: 6em;
+}
+.composer .banner-error:not([hidden]):has(a:not([hidden])) {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-xxs);
 }
 .composer-tabs {
   display: inline-flex;
@@ -349,17 +356,30 @@
 }
 @media (max-width: 767px) {
   .filters {
-    gap: var(--spacing-xxs);
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
   }
   .filters > [data-slot='popover'] > button,
   .filters > select {
     padding-inline: var(--spacing-xxs);
   }
   .filters > input[type='search'] {
-    width: 1px;
+    flex: 1 0 100%;
   }
-  .row-top .row-sender {
-    max-width: 26%;
+  .inbox-item:has(.row-mobile-sender) .row-top .row-sender {
+    display: none;
+  }
+  .inbox-item .row-bottom .row-mobile-sender {
+    display: block;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 5.3em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .composer-actions > button {
+    padding-inline: var(--spacing-xs);
   }
   [data-ui='body'] > .composer {
     position: sticky;

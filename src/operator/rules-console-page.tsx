@@ -25,6 +25,19 @@ export function rulesSettings(
   const people = Object.fromEntries(
     frame.operators.map((o) => [o.email, o.displayName]),
   )
+  const ruleSummary = (rule: (typeof rules)[number]['rule'], index: number) =>
+    [
+      index + 1 + '番目',
+      rule.product ? (products[rule.product] ?? rule.product) : '全プロダクト',
+      rule.subjectContains
+        ? '件名に「' + rule.subjectContains + '」'
+        : 'すべての件名',
+      rule.label && 'ラベル「' + rule.label + '」',
+      rule.assignee &&
+        '担当者「' + (people[rule.assignee] ?? rule.assignee) + '」',
+    ]
+      .filter(Boolean)
+      .join('・')
   const editor = (
     key = '',
     rule: Partial<(typeof rules)[number]['rule']> = {},
@@ -35,10 +48,13 @@ export function rulesSettings(
       {select(
         'product',
         'プロダクト',
-        { '': 'すべて', ...products },
+        { '': 'すべてのプロダクトに適用', ...products },
         rule.product ?? '',
       )}
-      <Field label="件名に含む言葉">
+      <Field
+        label="件名に含む言葉"
+        description="空欄の場合、すべての件名に適用します。"
+      >
         <Input
           name="subjectContains"
           maxlength={200}
@@ -69,6 +85,13 @@ export function rulesSettings(
       />
     </form>
   )
+  if (!total)
+    return (
+      <FormSection id="new-rule" title="新しいルール">
+        <p>保存済みのルールはありません。</p>
+        {editor()}
+      </FormSection>
+    )
   return (
     <>
       <h2>保存済みのルール</h2>
@@ -142,14 +165,18 @@ export function rulesSettings(
                         下へ
                       </Button>
                     </form>
-                    <form action="/extensions/rules/remove" method="post">
+                    <form
+                      action="/extensions/rules/remove"
+                      method="post"
+                      data-rule-summary={ruleSummary(rule, index)}
+                    >
                       <input
                         type="hidden"
                         name="revision"
                         value={versions.get(key) ?? ''}
                       />
                       <input type="hidden" name="key" value={key} />
-                      <Button variant="destructive">このルールを解除</Button>
+                      <Button variant="destructive">このルールを削除</Button>
                     </form>
                   </ActionBar>
                 </Disclosure>

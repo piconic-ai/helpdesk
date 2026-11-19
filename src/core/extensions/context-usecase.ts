@@ -9,6 +9,7 @@ import { setAssignment } from '../operations/operator-store'
 import {
   history,
   snapshot,
+  snapshotCounts,
   inboundBody,
   emitOnce,
   receivedVoices,
@@ -70,6 +71,10 @@ export function extensionContext(
     change: (number, event) =>
       coreOperations.status.execute({ ...c, actor }, { number, event }),
     events: (kind) => history(c.env.DB, kind),
+    snapshotCounts: () => {
+      requirePermission('read_body')
+      return snapshotCounts(c.env.DB)
+    },
     snapshot: () => {
       requirePermission('read_body')
       return snapshot(c.env.DB)

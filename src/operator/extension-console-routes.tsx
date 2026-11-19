@@ -533,7 +533,20 @@ app.get('/extensions/:id', async (c) => {
       ? (await panels(ctx, scopes, 'settings')).filter((p) => p.id === id)
       : []
   let list: ListWindow | undefined
-  let content = extensionPanels(sections)
+  let content =
+    id === 'notify' ? (
+      <>
+        <p>{await installed.extension.settingsSummary?.(api)}</p>
+        <p>メール通知の設定例</p>
+        <code>
+          {
+            '{ extension: notify, enabled: true, settings: { email: "support@example.com" } }'
+          }
+        </code>
+      </>
+    ) : (
+      extensionPanels(sections)
+    )
   if (id === 'canned' || id === 'rules') {
     const { rows, versions } = await readExtensionSettings(c.env.DB, id)
     if (id === 'canned') {

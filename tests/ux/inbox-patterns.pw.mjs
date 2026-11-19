@@ -1,5 +1,26 @@
 import { expect, test } from './harness.mjs'
 
+test.describe('受付種別の一覧', () => {
+  test.use({ extensions: ['feedback'] })
+
+  test('375pxの承認待ちとフィードバックで検索の説明が1行に収まる', async ({
+    page,
+    scene,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    for (const view of ['approval', 'feedback']) {
+      await page.goto(scene.origin + '/?view=' + view)
+      const search = page.getByRole('searchbox', { name: '問い合わせを検索' })
+      const box = await search.boundingBox()
+      const filter = await page
+        .getByRole('button', { name: '絞り込み' })
+        .boundingBox()
+      expect(box.y + box.height, view).toBeLessThanOrEqual(filter.y)
+      expect(box.width, view).toBeGreaterThan(280)
+    }
+  })
+})
+
 test('受信箱は状態の重複を省き、入力から混在する検索結果へ移動して条件を外せる', async ({
   page,
   scene,
@@ -77,4 +98,55 @@ test('チェックボックスは2行の中央に揃い、返信とメモは矢�
   await page.keyboard.press('ArrowLeft')
   await expect(reply).toBeFocused()
   await expect(reply).toHaveAttribute('aria-selected', 'true')
+})
+
+test('返信欄の読み込み中に押した最初の矢印キーでもメモに切り替わる', async ({
+  page,
+  scene,
+}) => {
+  let release
+  const loading = new Promise((resolve) => {
+    release = resolve
+  })
+  await page.route('**/components/**/ReplyComposer*.js', async (route) => {
+    await loading
+    await route.continue()
+  })
+  await page.goto(scene.origin + '/conversation/1', { waitUntil: 'commit' })
+  const reply = page.getByRole('tab', { name: '返信', exact: true })
+  try {
+    await reply.focus()
+    await page.keyboard.press('ArrowRight')
+  } finally {
+    release()
+  }
+  const note = page.getByRole('tab', { name: '内部メモ', exact: true })
+  await expect(note).toBeFocused()
+  await expect(note).toHaveAttribute('aria-selected', 'true')
+  await expect(
+    page.getByRole('textbox', { name: '内部メモ', exact: true }),
+  ).toBeVisible()
+})
+
+test('375pxの受信箱で検索の説明と差出人を読み、独立した件名の行から会話を選べる', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  const search = page.getByRole('searchbox', { name: '問い合わせを検索' })
+  const bounds = await search.boundingBox()
+  expect(bounds.width).toBeGreaterThan(280)
+  const row = page.locator('.inbox-item[data-number="7"]')
+  const sender = row
+    .getByText('森 海斗', { exact: true })
+    .filter({ visible: true })
+  await expect(sender).toBeVisible()
+  expect(await sender.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  )
+  const title = row.locator('.row-subject')
+  expect((await title.boundingBox()).width).toBeGreaterThan(140)
+  await title.click()
+  await expect(
+    page.getByRole('heading', { name: '添付した利用明細について' }),
+  ).toBeVisible()
 })

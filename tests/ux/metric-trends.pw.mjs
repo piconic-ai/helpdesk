@@ -175,3 +175,69 @@ test('6製品の声が集まった課題は一覧で5個まで示し、詳細で
   await expect(detail.nth(0).locator('.product-mark')).toHaveCount(5)
   await expect(detail.nth(1).locator('.product-mark')).toHaveCount(1)
 })
+
+test('375pxの集計条件で長いプロダクト名と期間の選択値を全文読める', async ({
+  page,
+  scene,
+}) => {
+  const name = '法人のお客様向けワークスペース管理・利用状況集計サービス'
+  await scene.db
+    .prepare('UPDATE products SET name=? WHERE id=?')
+    .bind(name, 'slide')
+    .run()
+  await page.setViewportSize({ width: 375, height: 812 })
+  const product = page.getByRole('combobox', {
+    name: 'プロダクト',
+    exact: true,
+  })
+  for (const path of [
+    '/metrics?product=slide&period=custom&start=2026-11-01&end=2026-11-18',
+    '/voices?product=slide',
+  ]) {
+    await page.goto(scene.origin + path)
+    await expect(product).toHaveValue('slide')
+    const selected = product.locator('selectedcontent .product-mark-name')
+    await expect(selected).toHaveText(name)
+    expect(
+      await selected.evaluate((label) => {
+        const select = label.closest('select').getBoundingClientRect()
+        const icon = label
+          .closest('[data-slot=native-select-wrapper]')
+          .querySelector('svg[data-slot=native-select-icon]')
+          .getBoundingClientRect()
+        const text = document.createRange()
+        text.selectNodeContents(label)
+        return [...text.getClientRects()].every(
+          (line) =>
+            line.left >= select.left &&
+            line.right <= icon.left &&
+            line.top >= select.top &&
+            line.bottom <= select.bottom,
+        )
+      }),
+    ).toBe(true)
+    if (path.startsWith('/metrics')) {
+      const period = page.getByRole('combobox', { name: '期間', exact: true })
+      await expect(period).toHaveValue('custom')
+      expect(
+        await period.evaluate((select) => {
+          const ctx = document.createElement('canvas').getContext('2d')
+          const style = getComputedStyle(select)
+          ctx.font = style.font
+          const labelWidth = ctx.measureText(
+            select.selectedOptions[0].textContent,
+          ).width
+          return (
+            select.clientWidth -
+              parseFloat(style.paddingLeft) -
+              parseFloat(style.paddingRight) >=
+            labelWidth
+          )
+        }),
+      ).toBe(true)
+      await page.getByRole('button', { name: '日付の範囲' }).click()
+      await expect(page.getByLabel('開始日')).toHaveValue('2026-11-01')
+      await expect(page.getByLabel('終了日')).toHaveValue('2026-11-18')
+    }
+  }
+})

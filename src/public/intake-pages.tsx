@@ -63,6 +63,7 @@ export function intakePage(
   fields: Fields = {},
   requestContact = false,
   error = '',
+  offerArticles = false,
 ) {
   const title = titles[kind]
   const chat = kind === 'chat'
@@ -71,7 +72,15 @@ export function intakePage(
   return {
     title,
     html: String(
-      <EditPage title={title}>
+      <EditPage
+        title={title}
+        description={
+          kind === 'form' &&
+          (offerArticles
+            ? 'すべての項目を入力してください。送信前に関連記事が見つかった場合は、ご案内します。'
+            : 'すべての項目を入力してください。')
+        }
+      >
         {error && <Notice kind="error">{error}</Notice>}
         <PublicForm>
           <IntakeKey policy={policy} />
@@ -258,6 +267,13 @@ export function formSuggestions(
     title,
     html: String(
       <DetailPage title={title}>
+        <PublicLinks
+          newTab
+          items={items.map((a) => ({
+            label: a.title + '（新しいタブ）',
+            path: a.url,
+          }))}
+        />
         <PublicForm>
           <IntakeKey policy={policy} />
           {['subject', 'email', 'body', 'presentations', 'submissionId'].map(
@@ -269,6 +285,7 @@ export function formSuggestions(
           <ReceiptDetails
             entries={[
               ['件名', fields.subject],
+              ['お問い合わせ内容', fields.body],
               ['返信先', fields.email],
             ]}
           />
@@ -277,13 +294,6 @@ export function formSuggestions(
             このまま送る
           </Button>
         </PublicForm>
-        <PublicLinks
-          newTab
-          items={items.map((a) => ({
-            label: a.title + '（新しいタブ）',
-            path: a.url,
-          }))}
-        />
       </DetailPage>,
     ),
   }

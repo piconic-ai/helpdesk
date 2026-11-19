@@ -11,6 +11,7 @@ import {
   ActionBar,
   Message,
   Notice,
+  RowList,
 } from '../../ui/patterns'
 import {
   AttachmentList,
@@ -279,7 +280,7 @@ function threadContext(
       </FormSection>
       <details>
         <summary>操作履歴</summary>
-        <ul>
+        <RowList>
           {displayEvents(data.events).map((e) => (
             <li>
               {stamp(e.at, now)}
@@ -292,7 +293,7 @@ function threadContext(
               </span>
             </li>
           ))}
-        </ul>
+        </RowList>
       </details>
     </ThreadPanel>
   )

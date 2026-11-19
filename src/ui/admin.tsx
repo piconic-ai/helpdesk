@@ -1,6 +1,6 @@
 import { glyph, type GlyphName } from './glyph'
 import type { Child, JSX } from 'hono/jsx'
-import { ActionLink, Button } from './controls'
+import { ActionLink, Button, Input } from './controls'
 import { ActionBar } from './patterns'
 
 export function SaveActions({
@@ -26,13 +26,15 @@ export function SaveActions({
 export function Disclosure({
   title,
   children,
+  command = false,
 }: {
   title: Child
   children: Child
+  command?: boolean
 }) {
   return (
-    <details>
-      <summary>{title}</summary>
+    <details className={command ? 'thread-command' : undefined}>
+      <summary role={command ? 'button' : undefined}>{title}</summary>
       {children}
     </details>
   )
@@ -92,4 +94,37 @@ export function ArticlePreview({
 }
 export function BodyText({ children }: { children: Child }) {
   return <pre className="message-body">{children}</pre>
+}
+
+export function ChoicePreviews({
+  name,
+  label,
+  required,
+  choices,
+}: {
+  name: string
+  label: string
+  required?: boolean
+  choices: { value: string; label: string; description?: string }[]
+}) {
+  return (
+    <fieldset className="template-choices">
+      <legend>{label}</legend>
+      {choices.map((choice, index) => (
+        <label>
+          <Input
+            type="radio"
+            name={name}
+            value={choice.value}
+            required={required}
+            checked={index === 0}
+          />
+          <span>
+            <strong>{choice.label}</strong>
+            {choice.description && <small>{choice.description}</small>}
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  )
 }

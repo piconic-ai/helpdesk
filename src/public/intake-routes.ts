@@ -210,7 +210,7 @@ async function chatEntry(
         ? policy.turnstileSiteKey
         : undefined,
       articles: active.has('articles'),
-      form: active.has('form'),
+      contact: contactDestination(info.id, info.mailbox, active.has('form')),
       feedback: active.has('feedback'),
     }),
   )
@@ -263,6 +263,13 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
         kind,
         policy,
         kind === 'form' ? { submissionId: crypto.randomUUID() } : {},
+        false,
+        '',
+        ['articles', 'chat'].every((id) =>
+          c.env.EXTENSIONS?.active.some(
+            (installed) => installed.extension.id === id,
+          ),
+        ),
       ),
     )
   }
