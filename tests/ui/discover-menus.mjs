@@ -1,5 +1,6 @@
 // Walk the actual menu tree. New shared pickers automatically enter the coverage set.
 import { expect } from '@playwright/test'
+import { openReplyControls } from './drive.mjs'
 
 const triggerSelector =
   '[popovertarget]:not([popovertargetaction=hide]):not(:disabled)'
@@ -57,7 +58,10 @@ async function explore(page, scope, seen, visit) {
   const triggers = await scope.locator(triggerSelector).all()
   for (const trigger of triggers) {
     const id = await trigger.getAttribute('popovertarget')
-    if (seen.has(id) || !(await trigger.isVisible())) continue
+    if (seen.has(id)) continue
+    if (['reply-templates', 'reply-articles'].includes(id))
+      await openReplyControls(page)
+    if (!(await trigger.isVisible())) continue
     const panel = page.locator('[id="' + id + '"]')
     if (
       !(await panel.evaluate(

@@ -596,8 +596,12 @@ button[popovertarget][aria-expanded='true'],
   white-space: normal;
   overflow-wrap: anywhere;
 }
+[popover]:has([data-choice] .choice-reference) {
+  max-block-size: min(50dvh, 26rem);
+  overflow: auto;
+}
 [popover] [data-choice]:has(.choice-reference) {
-  row-gap: 0;
+  row-gap: var(--spacing-xxs);
   padding-block: var(--spacing-xs);
   border-bottom: 1px solid var(--colors-hairline);
   width: 100%;
@@ -835,19 +839,34 @@ button[popovertarget][aria-expanded='true'],
     .inbox-item
     a.conversation-row:has(> .row-owner)
     > .row-top {
-    grid-area: 1 / 2;
+    grid-area: 1 / 1 / 2 / 4;
   }
   [data-inbox-view]
     .inbox-item
     a.conversation-row:has(> .row-owner)
     > .row-bottom {
-    grid-area: 2 / 2;
+    grid-area: 2 / 1 / 3 / 3;
   }
   [data-inbox-view] .inbox-item .row-top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 var(--spacing-xxs);
+    display: block;
+    min-width: 0;
+  }
+  /* Only the first line shares space with the contact and owner. */
+  [data-inbox-view] .inbox-item .row-top::before {
+    content: '';
+    float: inline-end;
+    width: 6.5rem;
+    height: var(--spacing-lg);
+  }
+  [data-inbox-view] .inbox-item .row-origin::before {
+    content: '';
+    float: inline-start;
+    width: calc(var(--spacing-lg) + var(--spacing-md));
+    height: var(--spacing-lg);
+  }
+  [data-inbox-view] .inbox-item .row-identity {
+    grid-area: 1 / 1;
+    align-self: start;
   }
   [data-inbox-view]
     .inbox-item
@@ -856,9 +875,8 @@ button[popovertarget][aria-expanded='true'],
     line-height: var(--typography-title-sm-lineHeight);
   }
   [data-inbox-view] .inbox-item .row-origin {
-    display: block;
-    flex: 0 1 auto;
-    max-width: 100%;
+    display: inline;
+    line-height: var(--spacing-lg);
   }
   [data-inbox-view] .inbox-item .row-origin .row-sender {
     display: inline;
@@ -869,7 +887,8 @@ button[popovertarget][aria-expanded='true'],
     max-width: none;
   }
   [data-inbox-view] .inbox-item .row-top .row-subject {
-    flex: 1 0 9.5em;
+    display: block;
+    width: calc(100% - 2 * var(--layout-touch-target));
   }
   [data-inbox-view] .inbox-item .row-bottom {
     display: flex;
@@ -1092,4 +1111,44 @@ body:has([data-empty-composer]:not([hidden]))
   .composer
   textarea:placeholder-shown::placeholder {
   opacity: 0;
+}
+
+#thread-status > p:first-child {
+  margin-block-end: var(--spacing-xs);
+}
+.inbox-bulk > small {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  :is(dialog, .issue-pending, [data-copy-block])
+    :is(button, [data-slot='button']) {
+    min-height: var(--layout-touch-target);
+  }
+}
+
+[data-expand-reply] {
+  display: none;
+}
+@media (max-width: 767px) {
+  #reply-area[data-reading]:not(:target):not(
+      :has([data-toast]:not([hidden]), textarea:enabled:not(:placeholder-shown))
+    ) {
+    & .composer :is(.composer-footer, .candidate-offer) {
+      display: none;
+    }
+    & .composer-field textarea {
+      height: var(--layout-touch-target);
+      min-height: var(--layout-touch-target);
+    }
+    & .composer > div:has(> .composer-tabs):not([hidden]) {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-xs);
+    }
+    & [data-expand-reply] {
+      display: inline-flex;
+    }
+  }
 }

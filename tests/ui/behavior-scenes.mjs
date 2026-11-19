@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test'
+import { openReplyControls } from './drive.mjs'
 
 const cases = [
   ['product-add', '窓口を登録', '/settings/mailboxes?new=yes'],
@@ -55,6 +56,12 @@ const cases = [
     (p) => p.getByRole('button', { name: /^並び順：/ }).click(),
   ],
   ['confirmed-notice', '会話の保存結果', '/conversation/1?notice=note'],
+  [
+    'reply-controls-open',
+    '返信欄の操作を開く',
+    '/conversation/7',
+    openReplyControls,
+  ],
 ]
 // Create the success state through its real command so the timeline and notice agree.
 export async function saveExampleNote(page, origin) {

@@ -258,10 +258,11 @@ function threadContext(
   now: number,
   names: Names,
   colors: ConsoleFrame['labelColors'],
+  productName: string,
 ) {
   const sourcePage = pageAtIntake(data.events)
   return (
-    <ThreadPanel>
+    <ThreadPanel context={'#' + data.conversation.number + ' · ' + productName}>
       {sourcePage && (
         <FormSection title="チャットを開いたページ">
           <p>{sourcePage}</p>
@@ -324,6 +325,7 @@ export function conversationPage(
   const info = metadata.get(c.number)
   const activity =
     data.messages.findLast((m) => m.delivery === 'failed') ??
+    data.messages.findLast((m) => m.delivery === 'awaiting_approval') ??
     data.messages.at(-1)
   const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
   const { next, previous } = adjacentOpen(frame.openNumbers, c.number)
@@ -372,6 +374,7 @@ export function conversationPage(
         frame.now,
         names,
         frame.labelColors,
+        product?.name ?? c.product,
       )}
     >
       <ThreadTimeline>

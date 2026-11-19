@@ -1,4 +1,5 @@
 import { fixedTime } from './seed.mjs'
+import { openReplyControls } from './drive.mjs'
 
 const missingId = '233b1729-7201-4ac3-a0e9-e5548a3fc6e8'
 const missingQuestion = 'チームの利用履歴を月ごとに集計できますか？'
@@ -99,9 +100,11 @@ export async function exposeSuggestionScene(page, id) {
     await page.getByRole('button', { name: '質問する' }).click()
     await page.getByRole('button', { name: '担当者に問い合わせる' }).waitFor()
   } else if (id === 'suggest-composer') {
+    await openReplyControls(page)
     await page.getByRole('button', { name: '記事を添える' }).click()
     await page.getByRole('searchbox', { name: '記事の題名で検索' }).waitFor()
   } else if (id === 'suggest-composer-empty') {
+    await openReplyControls(page)
     await page
       .locator('.composer')
       .getByRole('button', { name: 'この件名を記事候補にする', exact: true })

@@ -114,7 +114,10 @@ function rowMarks(m: RowDetails, approval: boolean, mixed: boolean) {
   if (approval)
     marks.push(
       <Delivery state="awaiting_approval" compact>
-        承認待ち
+        {m.previewDelivery === 'awaiting_approval' ||
+        m.previewDelivery === 'draft'
+          ? '承認待ち'
+          : '別の返信が承認待ち'}
       </Delivery>,
     )
   if (!approval && !m.failed && m.previewDelivery)

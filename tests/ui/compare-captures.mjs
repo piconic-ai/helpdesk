@@ -69,6 +69,9 @@ for (const name of names) {
         if (/^menu-settings-labels-label-rename-\d+$/.test(name)) {
           file = resolve(dir, 'behavior-label-rename-' + width + '.png')
           figureLabel += '（同じ表の旧編集欄）'
+        } else if (name === 'behavior-reply-controls-open') {
+          file = resolve(dir, 'thread-attachment-' + width + '.png')
+          figureLabel += '（以前は返信欄を常時展開）'
         } else if (
           ['widget-edit-sites', 'widget-edit-response'].includes(name)
         ) {

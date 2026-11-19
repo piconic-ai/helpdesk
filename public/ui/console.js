@@ -18,14 +18,34 @@ for (const form of document.querySelectorAll(
   'form[action="/extensions/rules/add"]',
 )) {
   const update = () => {
-    form.querySelector('[type=submit]').disabled =
-      !form.elements.label.value && !form.elements.assignee.value
+    const missing = !form.elements.label.value && !form.elements.assignee.value
+    form.querySelector('[type=submit]').disabled = missing
+    form.querySelector('[data-rule-requirement]').hidden = !missing
   }
   form.addEventListener('change', update)
   form.addEventListener('helpdesk:restore-choice', update, true)
   window.addEventListener('pageshow', update)
   update()
 }
+function enableCompactReply() {
+  const replyArea = document.querySelector('#reply-area')
+  if (!replyArea) return
+
+  replyArea.dataset.reading = ''
+  const expand = () => {
+    delete replyArea.dataset.reading
+  }
+  replyArea.addEventListener('focusin', (event) => {
+    if (event.target.matches('textarea, [role=tab]')) expand()
+  })
+  replyArea
+    .querySelector('[data-expand-reply]')
+    ?.addEventListener('click', () => {
+      expand()
+      replyArea.querySelector('textarea:enabled')?.focus()
+    })
+}
+enableCompactReply()
 function closeDrawer() {
   drawer.close()
 }

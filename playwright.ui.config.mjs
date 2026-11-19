@@ -9,7 +9,7 @@ export default defineConfig({
   testMatch: '**/*.pw.mjs',
   snapshotPathTemplate: captureDir
     ? resolve(captureDir, '{arg}{ext}')
-    : '{testDir}/../../docs/reports/loop/round-14/screens/{arg}{ext}',
+    : '{testDir}/../../docs/reports/loop/round-15/screens/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
   updateSnapshots: captureDir ? 'all' : 'none',

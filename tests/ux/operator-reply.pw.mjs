@@ -125,6 +125,15 @@ test('送信結果が分からない時は別タブで最新の会話を開き�
   await expect(page.getByRole('alert')).toContainText(
     '送信結果を確認できませんでした',
   )
+  const send = page.getByRole('button', { name: '送信', exact: true })
+  await expect(send).toBeHidden()
+  await expect(page.getByRole('button', { name: '送信して完了' })).toBeHidden()
+  await page.getByRole('tab', { name: '内部メモ' }).click()
+  await page.getByRole('tab', { name: '返信', exact: true }).click()
+  await expect(send).toBeHidden()
+  await expect(
+    page.getByRole('button', { name: '最新の会話を読み直す' }),
+  ).toBeVisible()
   const link = page.getByRole('link', { name: '別のタブで送信結果を確認' })
   const [fresh] = await Promise.all([page.waitForEvent('popup'), link.click()])
   await expect(fresh).toHaveURL(
@@ -135,6 +144,14 @@ test('送信結果が分からない時は別タブで最新の会話を開き�
   )
   await fresh.close()
   await expect(body).toHaveValue('注文履歴から領収書を発行できます。')
+  await page.getByRole('button', { name: '最新の会話を読み直す' }).click()
+  await expect(
+    page
+      .locator('.message-outbound')
+      .filter({ hasText: '注文履歴から領収書を発行できます。' }),
+  ).toHaveCount(1)
+  await expect(body).toHaveValue('注文履歴から領収書を発行できます。')
+  await expect(send).toBeEnabled()
 })
 
 test('入力を検証して返信が拒否された時は理由を示し、下書きを残す', async ({
@@ -213,4 +230,24 @@ test('空欄の返信は送信操作を淡く表示し、本文を入力する�
   await body.fill('領収書を確認しました。')
   await page.mouse.move(0, 0)
   expect(await send.evaluate(color)).not.toBe(empty)
+})
+
+test('375pxの空の返信欄から添付の依頼を読み、入力すると返信操作を使える', async ({
+  page,
+  scene,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(scene.origin + '/conversation/7')
+  const composer = page.locator('.composer')
+  expect((await composer.boundingBox()).height).toBeLessThan(180)
+  const first = page.locator('.message-inbound .message-body').first()
+  expect((await first.boundingBox()).y).toBeLessThan(
+    (await composer.boundingBox()).y,
+  )
+  const body = page.getByRole('textbox', { name: '返信', exact: true })
+  await body.fill('添付の明細を確認しました。')
+  await expect(
+    composer.getByRole('button', { name: '送信して完了' }),
+  ).toBeVisible()
+  await expect(composer.locator('.composer-addresses')).toBeVisible()
 })

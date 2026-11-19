@@ -84,6 +84,11 @@ export function voicesOverview(
     >
       {total ? (
         <section aria-label="声の内訳">
+          {rows.some((row) => row.series.length >= 2) && (
+            <p>
+              折れ線は対象期間を最大7区間に分けた件数です。受付月別は、その月の範囲で集計します。
+            </p>
+          )}
           {(['label', 'product', 'month'] as const).map((dimension) => {
             const buckets = rows.filter((r) => r.dimension === dimension)
             const max = buckets.reduce(

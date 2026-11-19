@@ -112,8 +112,9 @@ function submissionDetails(form, trigger) {
   if (action === '/actions/approve')
     return [
       label,
-      recipient +
-        ' に承認済みの返信を送信します。\n' +
+      'この返信を承認し、' +
+        recipient +
+        ' に送信します。\n' +
         form.elements.body.value,
     ]
   if (action === '/actions/discard' && !form.closest('.banner-success'))

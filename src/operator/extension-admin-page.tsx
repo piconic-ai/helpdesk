@@ -248,9 +248,17 @@ export function candidatesPage(
                 />
               }
               status={
-                <span data-candidate-status="">
-                  {c.articleId ? '着手済み' : '記事を書き始める'}
-                </span>
+                c.articleId ? (
+                  <span data-candidate-status="">着手済み</span>
+                ) : (
+                  <ActionLink
+                    variant="outline"
+                    data-candidate-status=""
+                    href={'/articles/new?candidate=' + c.number}
+                  >
+                    記事を書き始める
+                  </ActionLink>
+                )
               }
               action={
                 <ActionLink
@@ -800,6 +808,8 @@ export function metricsPage(
     <OverviewPage title="対応状況の集計" filters={filters}>
       <p>
         直前の同じ日数と比較しています。
+        {history.length > 1 &&
+          '折れ線の1点は、選んだ期間と同じ日数の集計です。'}
         {(result.resolved ?? 0) < 5 &&
           '解決件数が5件未満のため、値は目安です。'}
       </p>

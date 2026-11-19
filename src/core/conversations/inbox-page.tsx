@@ -362,6 +362,7 @@ function bulkBar(frame: ConsoleFrame, view: string) {
       <Button type="button" variant="ghost" data-clear-selection="">
         選択を解除
       </Button>
+      {frame.query.label && <small>ラベル：{frame.query.label}</small>}
       <ActionBar>
         {view !== 'feedback' && (
           <FilterPicker id="bulk-assignee" label="担当者を選ぶ">

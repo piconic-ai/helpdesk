@@ -38,7 +38,10 @@ export const MessageText = ({ children }: Content) => (
 export const AttachmentList = ({ children }: Content) => (
   <ul className="attachments">{children}</ul>
 )
-export const ThreadPanel = ({ children }: Content) => (
+export const ThreadPanel = ({
+  children,
+  context,
+}: Content & { context: string }) => (
   <section
     id="related-info"
     tabindex={-1}
@@ -46,7 +49,10 @@ export const ThreadPanel = ({ children }: Content) => (
     className="context-cards"
   >
     <header className="context-drawer-header">
-      <h2>会話の関連情報</h2>
+      <div>
+        <h2>会話の関連情報</h2>
+        <small>{context}</small>
+      </div>
       <Button
         type="button"
         variant="ghost"

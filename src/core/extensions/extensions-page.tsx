@@ -355,17 +355,24 @@ function formField(
         </NativeSelect>
       </label>
     )
-  if (key === 'issue')
-    return (
-      <ChoicePreviews
-        name="issue"
-        label="課題"
-        choices={p.links.filter(issueLink).map((link) => {
-          const value = link.href.split('/').at(-1)!
-          return { value, label: '#' + value + ' ' + link.label }
-        })}
-      />
-    )
+  if (key === 'issue') {
+    const fixed = (link: Panel['links'][number]) =>
+      link.icon?.name === 'issue_fixed' || link.icon?.name === 'issue_notify'
+    const choices = p.links
+      .filter(issueLink)
+      .sort((a, b) => Number(fixed(b)) - Number(fixed(a)))
+      .map((link) => {
+        const value = link.href.split('/').at(-1)!
+        return {
+          value,
+          label: '#' + value + ' ' + link.label,
+          description: fixed(link)
+            ? '直した課題 · 修正前後を比較できます。'
+            : '修正前の件数のみ確認できます。',
+        }
+      })
+    return <ChoicePreviews name="issue" label="課題" choices={choices} />
+  }
   if (key === 'days')
     return (
       <label>
@@ -500,6 +507,16 @@ function panel(p: Panel, number?: number, data?: Details) {
             variant={op === ops[0] ? 'outline' : 'ghost'}
           >
             {actionForm(op, p, number, data)}
+            {op.name === 'issues.preview' && (
+              <Button
+                type="button"
+                variant="ghost"
+                popovertarget={'operation-' + p.id + '-' + op.name}
+                popovertargetaction="hide"
+              >
+                入力を閉じる
+              </Button>
+            )}
           </Popover>
         )
       })}

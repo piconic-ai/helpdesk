@@ -5,6 +5,11 @@ const draft =
   'お問い合わせありがとうございます。領収書の宛名を確認し、再発行の手順をご案内します。'
 const note = '次回の請求日までに経理担当へ確認する。'
 
+export async function openReplyControls(page) {
+  const expand = page.getByRole('button', { name: '返信の操作を開く' })
+  if (await expand.isVisible()) await expand.click()
+}
+
 async function reveal(target) {
   const folded = await target
     .locator('xpath=ancestor-or-self::details[not(@open)]')
@@ -15,6 +20,23 @@ async function reveal(target) {
   await target.evaluate((el) =>
     el.scrollIntoView({ block: 'center', behavior: 'instant' }),
   )
+}
+
+async function openSectionPanels(page, target) {
+  const containers = await target
+    .first()
+    .locator('xpath=ancestor-or-self::*[@id]')
+    .evaluateAll((els) => els.map((el) => el.id))
+  for (const [id, name] of [
+    ['related-info', '関連情報'],
+    ['thread-actions', 'その他の操作'],
+    ['reply-templates', '定型文を選ぶ'],
+  ]) {
+    if (containers.includes(id)) {
+      if (id === 'reply-templates') await openReplyControls(page)
+      await page.getByRole('button', { name, exact: true }).click()
+    }
+  }
 }
 
 async function section(page, scene, before) {
@@ -29,18 +51,7 @@ async function section(page, scene, before) {
       }),
     })
   if (!before) {
-    const containers = await target
-      .first()
-      .locator('xpath=ancestor-or-self::*[@id]')
-      .evaluateAll((els) => els.map((el) => el.id))
-    for (const [id, name] of [
-      ['related-info', '関連情報'],
-      ['thread-actions', 'その他の操作'],
-      ['reply-templates', '定型文を選ぶ'],
-    ]) {
-      if (containers.includes(id))
-        await page.getByRole('button', { name, exact: true }).click()
-    }
+    await openSectionPanels(page, target)
   }
   await reveal(target.first())
   if (!before) {

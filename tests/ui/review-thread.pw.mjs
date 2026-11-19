@@ -1,3 +1,4 @@
+import { openReplyControls } from './drive.mjs'
 import { test, expect } from '@playwright/test'
 import { startScene } from './seed.mjs'
 
@@ -36,6 +37,7 @@ test('thread commands, context and approval preserve the reading position', asyn
           body.x + body.width,
         )
       }
+      await openReplyControls(page)
       await expect(
         page
           .getByRole('region', { name: '返信欄' })

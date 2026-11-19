@@ -42,7 +42,12 @@ export function rulesSettings(
     key = '',
     rule: Partial<(typeof rules)[number]['rule']> = {},
   ) => (
-    <form method="post" action="/extensions/rules/add">
+    <form
+      method="post"
+      action="/extensions/rules/add"
+      data-layout="stack"
+      data-gap="sm"
+    >
       <input type="hidden" name="revision" value={versions.get(key) ?? ''} />
       <input type="hidden" name="key" value={key} />
       {select(
@@ -77,7 +82,9 @@ export function rulesSettings(
         { '': '変更しない', ...people },
         rule.assignee ?? '',
       )}
-      <small>ラベルまたは担当者を選択してください。</small>
+      <small data-rule-requirement="">
+        ラベルまたは担当者を選択してください。
+      </small>
       <SaveActions
         verb={key ? '変更を保存' : 'ルールを保存'}
         cancel="/extensions/rules"

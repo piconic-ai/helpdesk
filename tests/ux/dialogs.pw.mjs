@@ -155,6 +155,9 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   await editor.getByLabel('件名に含む言葉').fill('請求内容の確認')
   await choose(editor, '付けるラベル', '請求')
   await expect(
+    editor.getByText('ラベルまたは担当者を選択してください。'),
+  ).toBeHidden()
+  await expect(
     editor.getByRole('button', { name: 'ルールを保存' }),
   ).toBeEnabled()
   await editor.getByRole('button', { name: 'ルールを保存' }).click()

@@ -181,6 +181,10 @@ test('狭い一覧でも最新の文を読めて、行の操作が担当者と�
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 812 })
+  const longRow = page.locator('.inbox-item[data-number="11"]')
+  const subject = await longRow.locator('.row-subject').boundingBox()
+  expect(subject.width).toBeGreaterThanOrEqual(230)
+  expect((await longRow.boundingBox()).height).toBeLessThan(125)
   for (const row of await page.locator('.inbox-item:has(.row-actions)').all()) {
     await row.hover()
     const preview = await row.locator('.row-preview').boundingBox()
@@ -311,6 +315,16 @@ test('一覧の内部メモと、別の返信で起きた送信失敗を区別�
   const row = page.locator('.inbox-item[data-number="4"]')
   await expect(row.locator('.row-preview')).toContainText('修正が完了')
   await expect(row).toContainText('別の返信で送信失敗')
+  const approval = page.locator('.inbox-item[data-number="5"]')
+  await expect(approval).toContainText('別の返信が承認待ち')
+  await page.setViewportSize({ width: 375, height: 812 })
+  await approval.locator('a.conversation-row').click()
+  await page.getByRole('link', { name: '承認待ちの返信へ' }).click()
+  await expect(
+    page
+      .locator('article:has(:target)')
+      .getByRole('button', { name: '承認して送信' }),
+  ).toBeVisible()
 })
 
 test('短い会話の操作と担当表示が余分な段を作らず、混在するラベルの操作結果を説明する', async ({
@@ -454,4 +468,12 @@ test('会話の保存結果と取り消しは直近の本文・宛先・操作�
     .fill('明細を確認しました。')
   await page.getByRole('button', { name: '送信して完了' }).click()
   await assertVisibleContent(page.locator('[data-undo-reply]:visible'))
+})
+
+test('絞り込んだラベルが一括選択中も分かる', async ({ page, scene }) => {
+  await page.goto(scene.origin + '/?label=' + encodeURIComponent('請求'))
+  await page.locator('.row-select input').first().check()
+  await expect(
+    page.getByRole('region', { name: 'まとめて操作' }),
+  ).toContainText('ラベル：請求')
 })
