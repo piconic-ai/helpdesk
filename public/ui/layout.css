@@ -494,6 +494,9 @@ form:has(input[name='role']) > small {
     font: var(--typography-caption);
     white-space: nowrap;
   }
+  .sidebar-item-active .nav-compact-name {
+    color: inherit;
+  }
 }
 [data-slot='native-select-wrapper'][hidden] {
   display: none;

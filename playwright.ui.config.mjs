@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
   snapshotPathTemplate:
-    '{testDir}/../../docs/reports/loop/round-12/screens/{arg}{ext}',
+    '{testDir}/../../docs/reports/loop/round-13/screens/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
   updateSnapshots: 'none',
