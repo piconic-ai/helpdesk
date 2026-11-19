@@ -87,7 +87,7 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
   const draft = form?.intent === 'preview' ? form : undefined
   const wording = draft
     ? editedMessage(id, draft)
-    : wordingFor(id, current.wording)
+    : wordingFor(id, current.wording, product.language)
   const number = 123
   const preview =
     id === 'auto-ack'

@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
+import { mailLanguage } from '../settings/mail-language'
 import { z } from 'zod'
 import type { AppEnv } from './middleware'
 import { consoleFrame } from '../conversations/console-usecase'
@@ -68,11 +69,14 @@ accountRoutes.post('/settings/senders/:product', async (c) => {
     return c.text('管理者の権限が必要です。', 403)
   const form = await c.req.parseBody()
   const name = displayName.parse(form.senderName)
+  const language = mailLanguage.optional().safeParse(form.language)
+  if (!language.success) return c.text('窓口の言語を確認してください。', 400)
   const saved = await updateSender(
     c.env,
     c.req.param('product'),
     name,
     form.showOperator === 'on',
+    language.data,
   )
   return saved
     ? c.redirect(

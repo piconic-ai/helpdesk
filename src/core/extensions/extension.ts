@@ -1,3 +1,4 @@
+import type { MailLanguage } from '../settings/mail-language'
 import type {
   CandidateSummary,
   Judgment,
@@ -123,6 +124,7 @@ export type ExtensionContext = {
   contact: (number: number) => Promise<{
     name: string
     productName: string
+    language: MailLanguage
     product: string
     subject: string
     mailbox: string

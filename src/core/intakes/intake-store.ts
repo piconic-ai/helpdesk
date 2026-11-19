@@ -1,3 +1,4 @@
+import { mailLanguage } from '../settings/mail-language'
 import { inquirySuggestionStatements } from '../suggestions/suggestion-store'
 import { z } from 'zod'
 import type { Intake } from './intake'
@@ -105,7 +106,7 @@ export async function draft(
 export async function contactInfo(db: D1Database, number: number) {
   const row = await db
     .prepare(
-      `SELECT coalesce(c.contact_name,c.contact) AS name,p.name AS productName,c.product,c.contact AS email,c.mailbox,c.subject,c.status FROM conversations c JOIN products p ON c.product=p.id WHERE c.number=?`,
+      `SELECT coalesce(c.contact_name,c.contact) AS name,p.name AS productName,coalesce(s.language,'ja') AS language,c.product,c.contact AS email,c.mailbox,c.subject,c.status FROM conversations c JOIN products p ON c.product=p.id LEFT JOIN product_senders s ON s.product=c.product WHERE c.number=?`,
     )
     .bind(number)
     .first()
@@ -113,6 +114,7 @@ export async function contactInfo(db: D1Database, number: number) {
     .object({
       name: z.string(),
       productName: z.string(),
+      language: mailLanguage,
       product: z.string(),
       email: z.union([z.email(), z.literal('')]),
       mailbox: z.email(),

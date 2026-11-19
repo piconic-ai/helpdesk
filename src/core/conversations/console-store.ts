@@ -1,9 +1,10 @@
+import { mailLanguage } from '../settings/mail-language'
 import { z } from 'zod'
 
 export async function products(db: D1Database) {
   const rows = await db
     .prepare(
-      'SELECT p.id,p.name,i.emoji,i.image_key IS NOT NULL AS hasIconImage,s.name AS senderName,coalesce(s.show_operator,0) AS showOperator FROM products p LEFT JOIN product_icons i ON i.product=p.id LEFT JOIN product_senders s ON s.product=p.id ORDER BY p.name,p.id',
+      "SELECT p.id,p.name,coalesce(s.language,'ja') AS language,i.emoji,i.image_key IS NOT NULL AS hasIconImage,s.name AS senderName,coalesce(s.show_operator,0) AS showOperator FROM products p LEFT JOIN product_icons i ON i.product=p.id LEFT JOIN product_senders s ON s.product=p.id ORDER BY p.name,p.id",
     )
     .all()
   return z
@@ -14,6 +15,7 @@ export async function products(db: D1Database) {
         emoji: z.string().nullable(),
         hasIconImage: z.number().transform(Boolean),
         senderName: z.string().nullable(),
+        language: mailLanguage,
         showOperator: z.number().transform(Boolean),
       }),
     )

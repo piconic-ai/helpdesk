@@ -36,7 +36,7 @@ async function invite(ctx: ExtensionContext, e: ExtensionEvent) {
       c.product,
       e.number,
       token,
-      wordingFor('survey', await ctx.get(messageKey(c.product))),
+      wordingFor('survey', await ctx.get(messageKey(c.product)), c.language),
     ),
     key,
   )

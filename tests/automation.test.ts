@@ -252,7 +252,7 @@ it('F14-AC1/2 asks once and records one answer for a private ticket', async () =
   expect(events).toHaveLength(1)
   expect(events[0].payload).toMatchObject({ resolved: false, product: 'shop' })
   await send(row!.id)
-  expect(sent.at(-1)?.text).toContain('Was your inquiry resolved?')
+  expect(sent.at(-1)?.text).toContain('お問い合わせは解決しましたか？')
 })
 it('F10-AC1/2/3 calculates product and period cohorts with article resolutions, survey feedback and human-only time', () => {
   expect(calculate(events, 'shop', 10, 18)).toEqual({

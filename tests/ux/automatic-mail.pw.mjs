@@ -55,7 +55,9 @@ for (const policy of ['auto-ack', 'survey']) {
       )
       await page.getByRole('link', { name: '取り消し' }).click()
       await expect(body).not.toHaveValue(wording)
-      await expect(page.getByLabel('自動送信の案内の言語')).toHaveValue('en')
+      await expect(page.getByLabel('自動送信の案内の言語')).toHaveValue(
+        receipt ? 'en' : 'ja',
+      )
       await page.getByLabel('自動送信の案内の言語').selectOption('ja')
       await body.fill(wording)
       await page.getByRole('button', { name: '文面を保存' }).click()
@@ -118,3 +120,19 @@ for (const policy of ['auto-ack', 'survey']) {
     },
   )
 }
+
+test('解決アンケートの既定の案内と本文は窓口の言語に従う', async ({
+  page,
+  scene,
+}) => {
+  const url = scene.origin + '/extensions/survey?product=slide'
+  const preview = page.locator('pre.message-body')
+  await page.goto(url)
+  await expect(preview).toContainText('お問い合わせは解決しましたか？')
+  await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
+  await page.getByLabel('窓口の言語').selectOption('en')
+  await page.getByRole('button', { name: '差出人を保存' }).click()
+  await page.goto(url)
+  await expect(preview).toContainText('Was your inquiry resolved?')
+  await expect(page.getByLabel('自動送信の案内の言語')).toHaveValue('en')
+})

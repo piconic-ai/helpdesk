@@ -288,6 +288,12 @@ function mailboxPage(
             />{' '}
             返信した運営者の表示名を差出人に含める
           </label>
+          {select(
+            'language',
+            '窓口の言語',
+            { ja: '日本語', en: '英語' },
+            product.language,
+          )}
           <SaveActions verb="差出人を保存" cancel={path} />
         </form>
       </FormSection>

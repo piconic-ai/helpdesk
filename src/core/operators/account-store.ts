@@ -1,3 +1,5 @@
+import type { MailLanguage } from '../settings/mail-language'
+
 export async function saveProfile(
   db: D1Database,
   email: string,
@@ -22,11 +24,12 @@ export async function saveSender(
   product: string,
   name: string,
   showOperator: boolean,
+  language?: MailLanguage,
 ) {
   const result = await db
-    .prepare(`INSERT INTO product_senders(product,name,show_operator)
-    SELECT id,?,? FROM products WHERE id=? ON CONFLICT(product) DO UPDATE SET name=excluded.name,show_operator=excluded.show_operator RETURNING product`)
-    .bind(name, Number(showOperator), product)
+    .prepare(`INSERT INTO product_senders(product,name,show_operator,language)
+    SELECT id,?1,?2,coalesce(?3,'ja') FROM products WHERE id=?4 ON CONFLICT(product) DO UPDATE SET name=excluded.name,show_operator=excluded.show_operator,language=coalesce(?3,product_senders.language) RETURNING product`)
+    .bind(name, Number(showOperator), language ?? null, product)
     .first()
   return result !== null
 }

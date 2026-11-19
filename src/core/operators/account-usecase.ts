@@ -3,6 +3,8 @@ import type { Bindings } from '../settings/bindings'
 import { saveAvatarImage } from './avatar-storage-usecase'
 import { saveProfile, saveSender } from './account-store'
 
+import type { MailLanguage } from '../settings/mail-language'
+
 export const displayName = z
   .string()
   .trim()
@@ -30,6 +32,7 @@ export function updateSender(
   product: string,
   name: string,
   show: boolean,
+  language?: MailLanguage,
 ) {
-  return saveSender(env.DB, product, name, show)
+  return saveSender(env.DB, product, name, show, language)
 }
