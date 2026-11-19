@@ -72,6 +72,17 @@
   border-top: var(--layout-hairline-width) solid var(--colors-hairline);
   font: var(--typography-caption);
 }
+@media (max-width: 440px) {
+  .chat-window footer:has(a:nth-child(3)) {
+    display: grid;
+    grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+    gap: var(--spacing-xxs) var(--spacing-md);
+  }
+  .chat-window footer:has(a:nth-child(3)) > a:first-child {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
 .chat-window footer a {
   display: inline-flex;
   align-items: center;

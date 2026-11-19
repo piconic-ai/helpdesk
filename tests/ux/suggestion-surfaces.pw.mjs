@@ -89,6 +89,39 @@ test('公開フォームでは送信前に記事を読み、そのまま送る�
   ])
 })
 
+test('W3 公開フォームから記事で解決し、問い合わせを送らずに終了できる', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/help/form/slide')
+  const subject = '領収書を注文履歴から発行したい'
+  await page.getByLabel('件名').fill(subject)
+  await page
+    .getByLabel('お問い合わせ内容')
+    .fill('領収書の発行方法を確認します。')
+  await page.getByLabel('連絡先メールアドレス').fill('reader@example.net')
+  await page.getByRole('button', { name: '送信', exact: true }).click()
+  const link = page.getByRole('link', { name: /領収書を発行する/ })
+  const presentation = new URL(
+    await link.getAttribute('href'),
+    scene.origin,
+  ).searchParams.get('suggestion')
+  const reading = page.waitForEvent('popup')
+  await link.click()
+  const article = await reading
+  await article.getByRole('button', { name: 'はい', exact: true }).click()
+  await article.close()
+  await page.getByRole('link', { name: '送信せずに終了' }).click()
+  await expect(page).toHaveURL(/\/help\/articles\/slide\/?$/)
+  expect(await reactions(scene, presentation)).toEqual(['opened', 'resolved'])
+  expect(
+    await scene.db
+      .prepare('SELECT count(*) AS n FROM conversations WHERE subject=?')
+      .bind(subject)
+      .first('n'),
+  ).toBe(0)
+})
+
 test('運営の返信には関連する記事を先頭に添え、記事がない質問からは候補を作る', async ({
   page,
   scene,

@@ -283,3 +283,18 @@ test('375pxで短い返信は冒頭まで見え、長い返信は欄内で読み
     )
     .toBe(true)
 })
+
+test('375pxでプレビューから本文の編集に戻れる', async ({ page, scene }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(scene.origin + '/conversation/1')
+  const reply = page.getByRole('textbox', { name: '返信', exact: true })
+  await reply.fill('領収書は購入履歴から再発行できます。')
+  await page.getByRole('button', { name: 'プレビュー', exact: true }).click()
+  const preview = page.getByRole('region', { name: '返信のプレビュー' })
+  await expect(preview).toContainText('購入履歴')
+  const edit = preview.getByRole('button', { name: '編集に戻る' })
+  await expect(edit).toBeInViewport()
+  await edit.click()
+  await expect(reply).toBeFocused()
+  await expect(reply).toHaveValue('領収書は購入履歴から再発行できます。')
+})

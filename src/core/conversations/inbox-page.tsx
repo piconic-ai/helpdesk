@@ -373,6 +373,9 @@ function bulkBar(frame: ConsoleFrame, view: string) {
       <ActionBar>
         {view !== 'feedback' && (
           <FilterPicker id="bulk-assignee" label="担当者を選ぶ">
+            <small data-mixed-label-hint="">
+              「−」は選択中の一部の会話を担当しています。
+            </small>
             <CandidateList>
               {frame.operators.map((op) => (
                 <Button

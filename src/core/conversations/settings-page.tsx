@@ -335,7 +335,9 @@ function MailboxPolicies({ extensions }: Pick<ConsoleFrame, 'extensions'>) {
               target="_blank"
               rel="noopener"
             >
-              {item.id === 'notify' ? '通知先を確認' : '送信する文面を確認'}
+              {item.id === 'notify'
+                ? '通知先を確認'
+                : extensionLabel(item.id) + 'の文面を確認'}
               （新しいタブ）
             </ActionLink>
           </li>

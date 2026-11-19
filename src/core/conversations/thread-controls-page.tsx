@@ -29,6 +29,7 @@ export function assignment(c: Inquiry, frame: ConsoleFrame) {
         </>
       }
     >
+      <p>この会話の担当者</p>
       <CandidateList>
         {choices.map((op) => {
           const label = op.displayName
@@ -78,6 +79,7 @@ export function labelPicker(
         )
       }
     >
+      <p>この会話のラベル</p>
       <CandidateList>
         {choices.map((name) => {
           const selected = used.has(name)

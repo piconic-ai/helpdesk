@@ -34,6 +34,21 @@ for (const [index, url] of [...routes].sort().entries()) {
           const slug =
             url.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home'
           await inspectMenus(page, url === '/', async (id, panel) => {
+            if (
+              width === 375 &&
+              ['thread-assignee', 'thread-labels'].includes(id)
+            ) {
+              const opener = await page
+                .locator('[popovertarget="' + id + '"]')
+                .first()
+                .boundingBox()
+              const toolbar = await page
+                .locator('.thread-toolbar')
+                .boundingBox()
+              expect
+                .soft(opener.y, id + ' below toolbar')
+                .toBeGreaterThanOrEqual(toolbar.y + toolbar.height - 1)
+            }
             const bounds = await panel.boundingBox()
             expect.soft(bounds.y, id + ' top').toBeGreaterThanOrEqual(0)
             expect

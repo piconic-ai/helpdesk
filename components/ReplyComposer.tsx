@@ -297,7 +297,24 @@ export function ReplyComposer(props: ReplyComposerProps) {
         aria-label="返信のプレビュー"
         hidden={!preview() || note()}
       >
-        <h2>返信のプレビュー</h2>
+        <div data-ui="actions">
+          <h2>返信のプレビュー</h2>
+          <button
+            type="button"
+            className="button-quiet"
+            onClick={(event) => {
+              if (!(event.currentTarget instanceof HTMLButtonElement)) return
+              const field =
+                event.currentTarget.form?.querySelector<HTMLTextAreaElement>(
+                  'textarea[data-draft-slot="reply"]',
+                )
+              setPreview(false)
+              requestAnimationFrame(() => field?.focus())
+            }}
+          >
+            編集に戻る
+          </button>
+        </div>
         <dl>
           <dt>差出人</dt>
           <dd>

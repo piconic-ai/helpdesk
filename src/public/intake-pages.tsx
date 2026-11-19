@@ -261,6 +261,7 @@ export function intakeUnavailable() {
 }
 
 export function formSuggestions(
+  product: string,
   items: { title: string; url: string }[],
   policy: IntakePolicy,
   fields: Fields,
@@ -277,6 +278,13 @@ export function formSuggestions(
             path: a.url,
           }))}
         />
+        <p>記事で解決した場合は、記事の「はい」で結果を記録できます。</p>
+        <ActionLink
+          variant="ghost"
+          href={'/help/articles/' + encodeURIComponent(product) + '/'}
+        >
+          送信せずに終了
+        </ActionLink>
         <PublicForm>
           <IntakeKey policy={policy} />
           {['subject', 'email', 'body', 'presentations', 'submissionId'].map(

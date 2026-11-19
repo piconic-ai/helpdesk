@@ -127,7 +127,7 @@ function extensionMenu(frame: ConsoleFrame) {
           route.id === 'metrics'
             ? route.path === '/voices'
               ? '声の集計'
-              : '対応状況'
+              : '対応状況の集計'
             : undefined,
         ),
       )}

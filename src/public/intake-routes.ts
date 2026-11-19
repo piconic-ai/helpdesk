@@ -63,7 +63,7 @@ async function submitForm(
     })
     if (offer) fields.presentations = offer.presentation
     if (offer?.articles.length)
-      return formSuggestions(offer.articles, policy, {
+      return formSuggestions(product, offer.articles, policy, {
         ...fields,
         submissionId,
       })

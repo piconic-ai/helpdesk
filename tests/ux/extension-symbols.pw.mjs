@@ -32,13 +32,20 @@ test('拡張の一覧、サイドバー、会話に同じ記号が表示され�
   await page.setViewportSize({ width: 1024, height: 900 })
   for (const [path, name] of [
     ['/voices', '声の集計'],
-    ['/metrics', '対応状況'],
+    ['/metrics', '対応状況の集計'],
   ]) {
     const label = page.locator(
       '.sidebar-extensions a[href="' + path + '"] .nav-compact-name',
     )
     await expect(label).toHaveText(name)
     await expect(label).toBeVisible()
+    expect(
+      await label.evaluate(
+        (el) =>
+          el.clientWidth >= el.scrollWidth &&
+          el.getBoundingClientRect().width > 1,
+      ),
+    ).toBe(true)
   }
   await page.goto(scene.origin + '/conversation/1')
   await page.getByRole('button', { name: '関連情報', exact: true }).click()
