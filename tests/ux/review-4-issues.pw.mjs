@@ -47,7 +47,11 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   )
   await main.getByRole('link', { name: /#1 / }).click()
   await page.getByRole('button', { name: '完了にする', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: '再開する', exact: true }),
+  ).toBeVisible()
   await page.locator('nav a[href="/issues"]').click()
+  await expect(page).toHaveURL(scene.origin + '/issues')
   await scene.closeIssue()
   const pending = main.getByRole('region', { name: /知らせる待ち/ })
   await expect(async () => {

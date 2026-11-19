@@ -1,0 +1,2384 @@
+[
+  {
+    "id": "J14",
+    "flows": [
+      "W5"
+    ],
+    "title": "J14 表示名とアイコンを保存し、担当・メモ・記録から同じ運営者を見分ける",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('link', { name: /アカウント/ })",
+        "duration": 104,
+        "location": "tests/ux/account.pw.mjs:7"
+      },
+      {
+        "label": "Fill \"青木 ゆり\" getByLabel('表示名', { exact: true })",
+        "duration": 195,
+        "location": "tests/ux/account.pw.mjs:8"
+      },
+      {
+        "label": "Set input files getByLabel('アイコン画像')",
+        "duration": 6,
+        "location": "tests/ux/account.pw.mjs:18"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'アカウントを保存' })",
+        "duration": 96,
+        "location": "tests/ux/account.pw.mjs:23"
+      },
+      {
+        "label": "Navigate 127.0.0.1/conversation/1",
+        "duration": 119,
+        "location": "tests/ux/account.pw.mjs:34"
+      },
+      {
+        "label": "Click getByRole('button', { name: '担当者を選ぶ' })",
+        "duration": 51,
+        "location": "tests/ux/account.pw.mjs:35"
+      },
+      {
+        "label": "Click getByRole('button', { name: '青木 ゆり', exact: true })",
+        "duration": 33,
+        "location": "tests/ux/account.pw.mjs:36"
+      },
+      {
+        "label": "Click getByRole('tab', { name: '内部メモ', exact: true })",
+        "duration": 21,
+        "location": "tests/ux/account.pw.mjs:43"
+      },
+      {
+        "label": "Fill \"確認中です。\" getByRole('textbox', { name: '内部メモ' })",
+        "duration": 5,
+        "location": "tests/ux/account.pw.mjs:44"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'メモを残す' })",
+        "duration": 43,
+        "location": "tests/ux/account.pw.mjs:45"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 81,
+        "location": "tests/ux/account.pw.mjs:61"
+      },
+      {
+        "label": "Click getByRole('button', { name: '絞り込み', exact: true })",
+        "duration": 33,
+        "location": "tests/ux/account.pw.mjs:67"
+      },
+      {
+        "label": "Click getByRole('button', { name: /^担当者 すべて$/ })",
+        "duration": 33,
+        "location": "tests/ux/account.pw.mjs:68"
+      },
+      {
+        "label": "Click locator('#filter-assignee').getByRole('button', { name: /青木 ゆり/ })",
+        "duration": 54,
+        "location": "tests/ux/account.pw.mjs:73"
+      },
+      {
+        "label": "Navigate 127.0.0.1/conversation/5",
+        "duration": 113,
+        "location": "tests/ux/account.pw.mjs:74"
+      }
+    ]
+  },
+  {
+    "id": "J5",
+    "flows": [
+      "W1"
+    ],
+    "title": "J5 記事をプレビューし公開してから返信に添える",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 75,
+        "location": "tests/ux/extensions.pw.mjs:13"
+      },
+      {
+        "label": "Click getByRole('link', { name: 'ヘルプ記事', exact: true })",
+        "duration": 88,
+        "location": "tests/ux/extensions.pw.mjs:14"
+      },
+      {
+        "label": "Click getByRole('link', { name: '記事を書く' })",
+        "duration": 132,
+        "location": "tests/ux/extensions.pw.mjs:15"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 96,
+        "location": "tests/ux/extensions.pw.mjs:18"
+      },
+      {
+        "label": "Fill \"請求書の受け取り方\" getByLabel('題名')",
+        "duration": 7,
+        "location": "tests/ux/extensions.pw.mjs:19"
+      },
+      {
+        "label": "Fill \"設定の「請求」から請求書をダウンロードできます。\" getByLabel('本文')",
+        "duration": 6,
+        "location": "tests/ux/extensions.pw.mjs:20"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'プレビュー' })",
+        "duration": 79,
+        "location": "tests/ux/extensions.pw.mjs:21"
+      },
+      {
+        "label": "Click getByRole('button', { name: '公開する' })",
+        "duration": 33,
+        "location": "tests/ux/extensions.pw.mjs:24"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 72,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click getByRole('link', { name: '公開記事を読む' })",
+        "duration": 87,
+        "location": "tests/ux/extensions.pw.mjs:26"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 78,
+        "location": "tests/ux/extensions.pw.mjs:31"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書の宛名を変更できますか/ })",
+        "duration": 91,
+        "location": "tests/ux/extensions.pw.mjs:32"
+      },
+      {
+        "label": "Fill \"こちらをご参照ください。\" getByLabel('返信', { exact: true })",
+        "duration": 86,
+        "location": "tests/ux/extensions.pw.mjs:35"
+      },
+      {
+        "label": "Click getByRole('button', { name: '記事を添える' })",
+        "duration": 34,
+        "location": "tests/ux/extensions.pw.mjs:36"
+      },
+      {
+        "label": "Fill \"請求書\" getByLabel('記事の題名で検索')",
+        "duration": 4,
+        "location": "tests/ux/extensions.pw.mjs:37"
+      },
+      {
+        "label": "Click getByRole('button', { name: '請求書の受け取り方', exact: true })",
+        "duration": 30,
+        "location": "tests/ux/extensions.pw.mjs:38"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'プレビュー' })",
+        "duration": 28,
+        "location": "tests/ux/extensions.pw.mjs:39"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 26,
+        "location": "tests/ux/extensions.pw.mjs:42"
+      }
+    ]
+  },
+  {
+    "id": "J10",
+    "flows": [
+      "W4"
+    ],
+    "title": "J10 直近30日の指標を確認しプロダクトと期間を切り替える",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 63,
+        "location": "tests/ux/extensions.pw.mjs:105"
+      },
+      {
+        "label": "Click getByRole('link', { name: '対応状況の集計' })",
+        "duration": 65,
+        "location": "tests/ux/extensions.pw.mjs:106"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 4,
+        "location": "tests/ux/extensions.pw.mjs:118"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '期間', exact: true })",
+        "duration": 103,
+        "location": "tests/ux/extensions.pw.mjs:121"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '期間', exact: true })",
+        "duration": 3,
+        "location": "tests/ux/extensions.pw.mjs:130"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 61,
+        "location": "tests/ux/extensions.pw.mjs:133"
+      },
+      {
+        "label": "Click getByRole('button', { name: '日付の範囲' })",
+        "duration": 27,
+        "location": "tests/ux/extensions.pw.mjs:134"
+      },
+      {
+        "label": "Fill \"2026-11-01\" getByLabel('開始日')",
+        "duration": 3,
+        "location": "tests/ux/extensions.pw.mjs:135"
+      },
+      {
+        "label": "Fill \"2026-11-15\" getByLabel('終了日')",
+        "duration": 92,
+        "location": "tests/ux/extensions.pw.mjs:136"
+      }
+    ]
+  },
+  {
+    "id": "J8",
+    "flows": [
+      "W4"
+    ],
+    "title": "J8 起票内容を確認し、Issue が閉じた通知案を承認する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 84,
+        "location": "tests/ux/extensions.pw.mjs:55"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書の宛名を変更できますか/ })",
+        "duration": 84,
+        "location": "tests/ux/extensions.pw.mjs:56"
+      },
+      {
+        "label": "Click locator('[data-extension=\"issues\"]').getByText('Issue を起票する', { exact: true })",
+        "duration": 121,
+        "location": "tests/ux/extensions.pw.mjs:58"
+      },
+      {
+        "label": "Fill \"領収書を見つけやすくする\" locator('[data-extension=\"issues\"]').getByLabel('タイトル')",
+        "duration": 3,
+        "location": "tests/ux/extensions.pw.mjs:59"
+      },
+      {
+        "label": "Fill \"請求書を表示するボタンが画面外に出ます。\" locator('[data-extension=\"issues\"]').getByLabel('公開する要約')",
+        "duration": 3,
+        "location": "tests/ux/extensions.pw.mjs:60"
+      },
+      {
+        "label": "Click locator('[data-extension=\"issues\"]').getByRole('button', { name: '起票内容を確認' })",
+        "duration": 27,
+        "location": "tests/ux/extensions.pw.mjs:61"
+      },
+      {
+        "label": "Click getByRole('button', { name: '確認した内容で起票' })",
+        "duration": 93,
+        "location": "tests/ux/extensions.pw.mjs:65"
+      },
+      {
+        "wait": true,
+        "label": "Expect \"toPass\" ",
+        "duration": 1392
+      },
+      {
+        "label": "Click getByRole('button', { name: '承認して送信' })",
+        "duration": 40,
+        "location": "tests/ux/extensions.pw.mjs:83"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 90,
+        "location": "tests/ux/harness.mjs:117"
+      }
+    ]
+  },
+  {
+    "id": "W2",
+    "flows": [
+      "W2"
+    ],
+    "title": "W2 連絡先を空にして意見を送り、一覧で確認・取り消し・並べ替えができる",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/help/feedback/slide",
+        "duration": 24,
+        "location": "tests/ux/feedback-workflow.pw.mjs:26"
+      },
+      {
+        "label": "Fill \"匿名で送った表示についての提案\" getByLabel('ご意見・ご要望')",
+        "duration": 15,
+        "location": "tests/ux/feedback-workflow.pw.mjs:27"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 67,
+        "location": "tests/ux/feedback-workflow.pw.mjs:30"
+      },
+      {
+        "label": "Navigate 127.0.0.1/?view=feedback",
+        "duration": 59,
+        "location": "tests/ux/feedback-workflow.pw.mjs:43"
+      },
+      {
+        "label": "Click getByRole('listitem').filter({ has: getByRole('link', { name: /匿名で送った表示についての提案/ }) }).getByRole('button', { name: '確認済みにする' })",
+        "duration": 90,
+        "location": "tests/ux/feedback-workflow.pw.mjs:50"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '並び順' })",
+        "duration": 4,
+        "location": "tests/ux/feedback-workflow.pw.mjs:53"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '並び順' })",
+        "duration": 4,
+        "location": "tests/ux/feedback-workflow.pw.mjs:57"
+      },
+      {
+        "label": "Click getByRole('listitem').filter({ has: getByRole('link', { name: /匿名で送った表示についての提案/ }) }).getByRole('link')",
+        "duration": 43,
+        "location": "tests/ux/feedback-workflow.pw.mjs:59"
+      },
+      {
+        "label": "Navigate 127.0.0.1/?view=feedback",
+        "duration": 54,
+        "location": "tests/ux/feedback-workflow.pw.mjs:83"
+      },
+      {
+        "label": "Click locator('li[data-number=\"10\"]').getByRole('button', { name: '確認済みにする' })",
+        "duration": 83,
+        "location": "tests/ux/feedback-workflow.pw.mjs:85"
+      },
+      {
+        "label": "Click getByRole('button', { name: '元に戻す' })",
+        "duration": 146,
+        "location": "tests/ux/feedback-workflow.pw.mjs:86"
+      },
+      {
+        "label": "Click locator('li[data-number=\"10\"]').getByRole('link')",
+        "duration": 38,
+        "location": "tests/ux/feedback-workflow.pw.mjs:88"
+      }
+    ]
+  },
+  {
+    "id": "W4",
+    "flows": [
+      "W4"
+    ],
+    "title": "W4 課題の優先順位・詳細・検索の境界と既存の題の同期",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/issues",
+        "duration": 102,
+        "location": "tests/ux/issue-board.pw.mjs:11"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('table', { name: '直した' }).getByRole('link', { name: '領収書の宛名を変更できるようにする' })",
+        "duration": 69,
+        "location": "tests/ux/issue-board.pw.mjs:35"
+      },
+      {
+        "label": "Click getByRole('link', { name: '課題の一覧に戻る' })",
+        "duration": 57,
+        "location": "tests/ux/issue-board.pw.mjs:45"
+      },
+      {
+        "label": "Reload ",
+        "duration": 138,
+        "location": "tests/ux/issue-board.pw.mjs:66"
+      },
+      {
+        "label": "Reload ",
+        "duration": 143,
+        "location": "tests/ux/issue-board.pw.mjs:70"
+      },
+      {
+        "label": "Fill \"追加課題19\" getByRole('main').getByRole('searchbox')",
+        "duration": 20,
+        "location": "tests/ux/issue-board.pw.mjs:71"
+      }
+    ]
+  },
+  {
+    "id": "W3",
+    "flows": [
+      "W3"
+    ],
+    "title": "W3 公開ヘルプで探した記事を読み、評価後に同じ製品の窓口へ進む",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/help/articles/slide/",
+        "duration": 43,
+        "location": "tests/ux/loop-walk.pw.mjs:11"
+      },
+      {
+        "label": "Fill \"領収書\" getByLabel('記事を検索')",
+        "duration": 20,
+        "location": "tests/ux/loop-walk.pw.mjs:13"
+      },
+      {
+        "label": "Click getByRole('link', { name: '領収書を発行する' })",
+        "duration": 86,
+        "location": "tests/ux/loop-walk.pw.mjs:17"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'いいえ' })",
+        "duration": 90,
+        "location": "tests/ux/loop-walk.pw.mjs:21"
+      },
+      {
+        "label": "Click getByRole('link', { name: 'お問い合わせ' })",
+        "duration": 39,
+        "location": "tests/ux/loop-walk.pw.mjs:28"
+      }
+    ]
+  },
+  {
+    "id": "W3",
+    "flows": [
+      "W3"
+    ],
+    "title": "W3 製品内で記事を読んで解決を伝え、受信箱に問い合わせが増えていないことを確かめる",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/billing/receipts",
+        "duration": 24,
+        "location": "tests/ux/loop-walk.pw.mjs:44"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'ヘルプ', exact: true })",
+        "duration": 43,
+        "location": "tests/ux/loop-walk.pw.mjs:49"
+      },
+      {
+        "label": "Fill \"領収書を発行したい\" locator('iframe').contentFrame().getByRole('textbox', { name: '質問', exact: true })",
+        "duration": 55,
+        "location": "tests/ux/loop-walk.pw.mjs:52"
+      },
+      {
+        "label": "Click locator('iframe').contentFrame().getByRole('button', { name: '質問する' })",
+        "duration": 54,
+        "location": "tests/ux/loop-walk.pw.mjs:53"
+      },
+      {
+        "label": "Click locator('iframe').contentFrame().getByRole('link', { name: '領収書を発行する' })",
+        "duration": 78,
+        "location": "tests/ux/loop-walk.pw.mjs:54"
+      },
+      {
+        "label": "Click locator('iframe').contentFrame().getByRole('button', { name: 'やりとりに戻る' })",
+        "duration": 42,
+        "location": "tests/ux/loop-walk.pw.mjs:60"
+      },
+      {
+        "label": "Click locator('iframe').contentFrame().getByRole('button', { name: '解決した', exact: true })",
+        "duration": 35,
+        "location": "tests/ux/loop-walk.pw.mjs:61"
+      },
+      {
+        "label": "Reload ",
+        "duration": 209,
+        "location": "tests/ux/loop-walk.pw.mjs:63"
+      }
+    ]
+  },
+  {
+    "id": "W4",
+    "flows": [
+      "W4"
+    ],
+    "title": "W4 声の内訳から開いた会話を記事候補にして、同じ声の本文を編集画面で確かめる",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('link', { name: '声の集計', exact: true })",
+        "duration": 69,
+        "location": "tests/ux/loop-walk.pw.mjs:77"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: 'Slide', exact: true })",
+        "duration": 146,
+        "location": "tests/ux/loop-walk.pw.mjs:81"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^#1 / })",
+        "duration": 296,
+        "location": "tests/ux/loop-walk.pw.mjs:82"
+      },
+      {
+        "label": "Click locator('[data-extension=\"articles\"]').getByRole('button', { name: '記事の候補に追加', exact: true })",
+        "duration": 37,
+        "location": "tests/ux/loop-walk.pw.mjs:90"
+      },
+      {
+        "label": "Fill \"発行済みの領収書の宛名を変える手順\" locator('[data-extension=\"articles\"]').getByLabel('記事にする内容')",
+        "duration": 6,
+        "location": "tests/ux/loop-walk.pw.mjs:91"
+      },
+      {
+        "label": "Click locator('[data-extension=\"articles\"]').locator('form').getByRole('button', { name: '記事の候補に追加', exact: true })",
+        "duration": 107,
+        "location": "tests/ux/loop-walk.pw.mjs:92"
+      },
+      {
+        "label": "Click getByRole('link', { name: 'ヘルプ記事', exact: true })",
+        "duration": 143,
+        "location": "tests/ux/loop-walk.pw.mjs:93"
+      },
+      {
+        "label": "Click getByRole('link', { name: /候補（1件）/ })",
+        "duration": 135,
+        "location": "tests/ux/loop-walk.pw.mjs:94"
+      },
+      {
+        "label": "Click getByRole('link', { name: '発行済みの領収書の宛名を変える手順' })",
+        "duration": 153,
+        "location": "tests/ux/loop-walk.pw.mjs:95"
+      }
+    ]
+  },
+  {
+    "id": "W1",
+    "flows": [
+      "W1"
+    ],
+    "title": "W1 送信して完了を取り消すと本文と状態を復元し、相手への配送も発生しない",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/conversation/1",
+        "duration": 168,
+        "location": "tests/ux/operator-reply.pw.mjs:7"
+      },
+      {
+        "label": "Fill \"取り消してから宛先を確認します。\" getByRole('textbox', { name: '返信', exact: true })",
+        "duration": 26,
+        "location": "tests/ux/operator-reply.pw.mjs:10"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信して完了' })",
+        "duration": 42,
+        "location": "tests/ux/operator-reply.pw.mjs:11"
+      },
+      {
+        "label": "Reload ",
+        "duration": 105,
+        "location": "tests/ux/operator-reply.pw.mjs:15"
+      },
+      {
+        "label": "Click getByRole('button', { name: '取り消す' })",
+        "duration": 43,
+        "location": "tests/ux/operator-reply.pw.mjs:16"
+      }
+    ]
+  },
+  {
+    "id": "W1",
+    "flows": [
+      "W1"
+    ],
+    "title": "W1 長い差出人でも製品名が読め、最後の担当変更と拡張の表示名が分かる",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/conversation/1",
+        "duration": 203,
+        "location": "tests/ux/operator-reply.pw.mjs:63"
+      },
+      {
+        "label": "Click getByText('操作履歴', { exact: true })",
+        "duration": 22,
+        "location": "tests/ux/operator-reply.pw.mjs:72"
+      }
+    ]
+  },
+  {
+    "id": "W4",
+    "flows": [
+      "W4"
+    ],
+    "title": "W4 起票・題で紐づけ・修正の下書き・承認したお知らせを数える",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/issues",
+        "duration": 110,
+        "location": "tests/ux/review-4-issues.pw.mjs:11"
+      },
+      {
+        "label": "Click getByRole('link', { name: '課題を追加' })",
+        "duration": 75,
+        "location": "tests/ux/review-4-issues.pw.mjs:12"
+      },
+      {
+        "label": "Select option getByLabel('もとになる会話')",
+        "duration": 86,
+        "location": "tests/ux/review-4-issues.pw.mjs:13"
+      },
+      {
+        "label": "Fill \"領収書の検索を改善する\" getByLabel('タイトル')",
+        "duration": 9,
+        "location": "tests/ux/review-4-issues.pw.mjs:14"
+      },
+      {
+        "label": "Fill \"検索条件の保存に対応する\" getByLabel('公開する要約')",
+        "duration": 5,
+        "location": "tests/ux/review-4-issues.pw.mjs:15"
+      },
+      {
+        "label": "Click getByRole('button', { name: '起票内容を確認' })",
+        "duration": 37,
+        "location": "tests/ux/review-4-issues.pw.mjs:16"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 129,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Navigate 127.0.0.1/conversation/6",
+        "duration": 346,
+        "location": "tests/ux/review-4-issues.pw.mjs:21"
+      },
+      {
+        "label": "Click getByText('既存の Issue を選ぶ', { exact: true })",
+        "duration": 58,
+        "location": "tests/ux/review-4-issues.pw.mjs:22"
+      },
+      {
+        "label": "Fill \"存在しない題\" getByLabel('題で探す')",
+        "duration": 11,
+        "location": "tests/ux/review-4-issues.pw.mjs:23"
+      },
+      {
+        "label": "Fill \"検索を改善\" getByLabel('題で探す')",
+        "duration": 11,
+        "location": "tests/ux/review-4-issues.pw.mjs:25"
+      },
+      {
+        "label": "Click getByRole('button', { name: '既存の Issue と紐づける' })",
+        "duration": 34,
+        "location": "tests/ux/review-4-issues.pw.mjs:30"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 214,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click locator('nav a[href=\"/issues\"]')",
+        "duration": 78,
+        "location": "tests/ux/review-4-issues.pw.mjs:35"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: '領収書の検索を改善する' })",
+        "duration": 77,
+        "location": "tests/ux/review-4-issues.pw.mjs:40"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: /#1 / })",
+        "duration": 129,
+        "location": "tests/ux/review-4-issues.pw.mjs:48"
+      },
+      {
+        "label": "Click getByRole('button', { name: '完了にする', exact: true })",
+        "duration": 227,
+        "location": "tests/ux/review-4-issues.pw.mjs:49"
+      },
+      {
+        "label": "Click locator('nav a[href=\"/issues\"]')",
+        "duration": 53,
+        "location": "tests/ux/review-4-issues.pw.mjs:53"
+      },
+      {
+        "wait": true,
+        "label": "Expect \"toPass\" ",
+        "duration": 1451
+      },
+      {
+        "label": "Click getByRole('main').getByRole('region', { name: /知らせる待ち/ }).getByRole('link', { name: '領収書の検索を改善する' })",
+        "duration": 80,
+        "location": "tests/ux/review-4-issues.pw.mjs:61"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: /#1 .*再開して承認/ })",
+        "duration": 78,
+        "location": "tests/ux/review-4-issues.pw.mjs:65"
+      },
+      {
+        "label": "Click locator('article').filter({ hasText: '問題の修正が完了しました' }).getByRole('button', { name: '下書きを破棄' })",
+        "duration": 123,
+        "location": "tests/ux/review-4-issues.pw.mjs:69"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 87,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click locator('nav a[href=\"/issues\"]')",
+        "duration": 220,
+        "location": "tests/ux/review-4-issues.pw.mjs:72"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('region', { name: /知らせる待ち/ }).getByRole('link', { name: '領収書の検索を改善する' })",
+        "duration": 248,
+        "location": "tests/ux/review-4-issues.pw.mjs:73"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: '課題の一覧に戻る' })",
+        "duration": 59,
+        "location": "tests/ux/review-4-issues.pw.mjs:77"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('region', { name: /知らせる待ち/ }).getByRole('button', { name: '下書きを作る' })",
+        "duration": 276,
+        "location": "tests/ux/review-4-issues.pw.mjs:78"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: /#1 / })",
+        "duration": 69,
+        "location": "tests/ux/review-4-issues.pw.mjs:88"
+      },
+      {
+        "label": "Click getByRole('button', { name: '再開する', exact: true })",
+        "duration": 112,
+        "location": "tests/ux/review-4-issues.pw.mjs:92"
+      },
+      {
+        "label": "Click locator('article').filter({ hasText: '問題の修正が完了しました' }).getByRole('button', { name: '承認して送信' })",
+        "duration": 254,
+        "location": "tests/ux/review-4-issues.pw.mjs:96"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 183,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click locator('nav a[href=\"/issues\"]')",
+        "duration": 59,
+        "location": "tests/ux/review-4-issues.pw.mjs:102"
+      },
+      {
+        "label": "Click getByRole('link', { name: '対応状況の集計' })",
+        "duration": 77,
+        "location": "tests/ux/review-4-issues.pw.mjs:104"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 5,
+        "location": "tests/ux/review-4-issues.pw.mjs:111"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 5,
+        "location": "tests/ux/review-4-issues.pw.mjs:128"
+      }
+    ]
+  },
+  {
+    "id": "H12",
+    "flows": [
+      "W3",
+      "W4"
+    ],
+    "title": "H12 12. 記事を書き、問い合わせの前に解決できたかを見る（4分）",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/articles",
+        "duration": 133,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:10"
+      },
+      {
+        "label": "Click getByRole('link', { name: '記事を書く' })",
+        "duration": 57,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:11"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト' })",
+        "duration": 90,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:14"
+      },
+      {
+        "label": "Fill \"共有リンクを作成する\" getByLabel('題名')",
+        "duration": 4,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:15"
+      },
+      {
+        "label": "Fill \"編集画面から閲覧用の共有リンクを発行できます。\" getByLabel(/要約/)",
+        "duration": 6,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:18"
+      },
+      {
+        "label": "Fill \"編集画面で「共有」を選び、「閲覧用リンクをコピー」を押します。\" getByLabel('本文')",
+        "duration": 4,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:21"
+      },
+      {
+        "label": "Click getByRole('button', { name: '公開する' })",
+        "duration": 33,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:22"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 68,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Navigate 127.0.0.1/help/chat/slide",
+        "duration": 73,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:26"
+      },
+      {
+        "label": "Fill \"共有リンクを発行したい\" getByLabel('質問', { exact: true })",
+        "duration": 24,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:29"
+      },
+      {
+        "label": "Click getByRole('button', { name: '質問する' })",
+        "duration": 39,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:30"
+      },
+      {
+        "label": "Click getByRole('link', { name: '共有リンクを作成する', exact: true })",
+        "duration": 104,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:31"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'やりとりに戻る' })",
+        "duration": 8,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:35"
+      },
+      {
+        "label": "Click getByRole('button', { name: '解決した', exact: true })",
+        "duration": 34,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:36"
+      },
+      {
+        "label": "Navigate 127.0.0.1/metrics",
+        "duration": 88,
+        "location": "tests/ux/suggestion-handbook.pw.mjs:39"
+      }
+    ]
+  },
+  {
+    "id": "J3",
+    "flows": [
+      "W1"
+    ],
+    "title": "J3 失敗の理由を読んで再送する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 63,
+        "location": "tests/ux/thread.pw.mjs:129"
+      },
+      {
+        "label": "Click getByRole('link', { name: /月額プランの明細/ })",
+        "duration": 81,
+        "location": "tests/ux/thread.pw.mjs:133"
+      },
+      {
+        "label": "Click getByRole('button', { name: '再送', exact: true })",
+        "duration": 98,
+        "location": "tests/ux/thread.pw.mjs:138"
+      }
+    ]
+  },
+  {
+    "id": "J1",
+    "flows": [
+      "W1"
+    ],
+    "title": "J1 新着メールを担当し、ラベルとプレビューを確認して返信する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 213,
+        "location": "tests/ux/thread.pw.mjs:32"
+      },
+      {
+        "label": "Click getByRole('link', { name: /希望日に納品できますか/ })",
+        "duration": 63,
+        "location": "tests/ux/thread.pw.mjs:36"
+      },
+      {
+        "label": "Click getByRole('button', { name: '担当者を選ぶ' })",
+        "duration": 120,
+        "location": "tests/ux/thread.pw.mjs:37"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'sato', exact: true })",
+        "duration": 34,
+        "location": "tests/ux/thread.pw.mjs:38"
+      },
+      {
+        "label": "Click getByText('ラベルを選ぶ', { exact: true })",
+        "duration": 42,
+        "location": "tests/ux/thread.pw.mjs:40"
+      },
+      {
+        "label": "Click getByRole('button', { name: '請求を付ける' })",
+        "duration": 89,
+        "location": "tests/ux/thread.pw.mjs:41"
+      },
+      {
+        "label": "Fill \"ご希望の日にお届けします。\" getByRole('textbox', { name: '返信', exact: true })",
+        "duration": 7,
+        "location": "tests/ux/thread.pw.mjs:44"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'プレビュー', exact: true })",
+        "duration": 36,
+        "location": "tests/ux/thread.pw.mjs:45"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 30,
+        "location": "tests/ux/thread.pw.mjs:59"
+      },
+      {
+        "wait": true,
+        "label": "Expect \"toPass\" ",
+        "duration": 5132
+      },
+      {
+        "label": "Click getByRole('link', { name: '次の未対応へ' })",
+        "duration": 72,
+        "location": "tests/ux/thread.pw.mjs:64"
+      }
+    ]
+  },
+  {
+    "id": "J2",
+    "flows": [
+      "W1"
+    ],
+    "title": "J2 受信で再開し、返信して完了した後も相手の返信が届く",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 140,
+        "location": "tests/ux/thread.pw.mjs:85"
+      },
+      {
+        "label": "Click getByRole('link', { name: /ワークスペースの招待メールについて/ })",
+        "duration": 88,
+        "location": "tests/ux/thread.pw.mjs:86"
+      },
+      {
+        "label": "Fill \"招待メールをもう一度お送りしました。\" getByRole('textbox', { name: '返信', exact: true })",
+        "duration": 6,
+        "location": "tests/ux/thread.pw.mjs:98"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信して完了' })",
+        "duration": 40,
+        "location": "tests/ux/thread.pw.mjs:99"
+      },
+      {
+        "wait": true,
+        "label": "Expect \"toPass\" ",
+        "duration": 5197
+      },
+      {
+        "label": "Reload ",
+        "duration": 87,
+        "location": "tests/ux/thread.pw.mjs:116"
+      },
+      {
+        "label": "Click getByRole('button', { name: '完了にする', exact: true })",
+        "duration": 45,
+        "location": "tests/ux/thread.pw.mjs:122"
+      },
+      {
+        "label": "Fill \"追加でご案内します。\" getByRole('textbox', { name: '返信', exact: true })",
+        "duration": 5,
+        "location": "tests/ux/thread.pw.mjs:123"
+      }
+    ]
+  },
+  {
+    "id": "J4",
+    "flows": [
+      "W1"
+    ],
+    "title": "J4 エージェントの下書きを直して承認し、別の下書きを破棄する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 79,
+        "location": "tests/ux/thread.pw.mjs:154"
+      },
+      {
+        "label": "Click getByRole('link', { name: /承認待ち/ }).first()",
+        "duration": 62,
+        "location": "tests/ux/thread.pw.mjs:158"
+      },
+      {
+        "label": "Click getByRole('link', { name: /チームプランの契約更新/ })",
+        "duration": 97,
+        "location": "tests/ux/thread.pw.mjs:162"
+      },
+      {
+        "label": "Fill \"更新日の前日まで人数を変更できます。\" locator('article').filter({ hasText: '更新時にメンバー数を変更できます。' }).getByRole('textbox', { name: '下書きの本文' })",
+        "duration": 91,
+        "location": "tests/ux/thread.pw.mjs:167"
+      },
+      {
+        "label": "Click locator('article').filter({ hasText: '更新時にメンバー数を変更できます。' }).getByRole('button', { name: '承認して送信' })",
+        "duration": 28,
+        "location": "tests/ux/thread.pw.mjs:169"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 161,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click locator('article').filter({ hasText: '破棄する予定の下書き' }).getByRole('button', { name: '下書きを破棄' })",
+        "duration": 39,
+        "location": "tests/ux/thread.pw.mjs:175"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 78,
+        "location": "tests/ux/harness.mjs:117"
+      }
+    ]
+  },
+  {
+    "id": "A3",
+    "flows": [
+      "W4"
+    ],
+    "title": "A3 声を受付期間・プロダクト・ラベル別に集計し、同じ条件の問い合わせとフィードバックを開く",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/voices",
+        "duration": 80,
+        "location": "tests/ux/voices-articles.pw.mjs:22"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 16,
+        "location": "tests/ux/voices-articles.pw.mjs:25"
+      },
+      {
+        "label": "Fill \"2026-11-01\" getByLabel('開始日')",
+        "duration": 5,
+        "location": "tests/ux/voices-articles.pw.mjs:26"
+      },
+      {
+        "label": "Fill \"2026-11-01\" getByLabel('終了日')",
+        "duration": 3,
+        "location": "tests/ux/voices-articles.pw.mjs:27"
+      },
+      {
+        "label": "Click getByRole('button', { name: '集計する' })",
+        "duration": 68,
+        "location": "tests/ux/voices-articles.pw.mjs:28"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: '新しい受付', exact: true })",
+        "duration": 49,
+        "location": "tests/ux/voices-articles.pw.mjs:44"
+      },
+      {
+        "label": "Go back ",
+        "duration": 64,
+        "location": "tests/ux/voices-articles.pw.mjs:56"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: 'Slide', exact: true })",
+        "duration": 54,
+        "location": "tests/ux/voices-articles.pw.mjs:44"
+      },
+      {
+        "label": "Go back ",
+        "duration": 71,
+        "location": "tests/ux/voices-articles.pw.mjs:56"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: '2026-11', exact: true })",
+        "duration": 71,
+        "location": "tests/ux/voices-articles.pw.mjs:44"
+      },
+      {
+        "label": "Go back ",
+        "duration": 115,
+        "location": "tests/ux/voices-articles.pw.mjs:56"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: '新しい受付', exact: true })",
+        "duration": 77,
+        "location": "tests/ux/voices-articles.pw.mjs:58"
+      },
+      {
+        "label": "Click getByRole('main').getByRole('link', { name: /^#10 / })",
+        "duration": 276,
+        "location": "tests/ux/voices-articles.pw.mjs:59"
+      }
+    ]
+  },
+  {
+    "id": "A4",
+    "flows": [
+      "W4"
+    ],
+    "title": "A4 元の会話を見ながら候補を記事にし、候補一覧から保存した下書きを再開する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/conversation/1",
+        "duration": 145,
+        "location": "tests/ux/voices-articles.pw.mjs:70"
+      },
+      {
+        "label": "Click locator('[data-extension=\"articles\"]').getByRole('button', { name: '記事の候補に追加', exact: true })",
+        "duration": 53,
+        "location": "tests/ux/voices-articles.pw.mjs:74"
+      },
+      {
+        "label": "Fill \"領収書の宛名変更の手順\" locator('[data-extension=\"articles\"]').getByLabel('記事にする内容')",
+        "duration": 5,
+        "location": "tests/ux/voices-articles.pw.mjs:75"
+      },
+      {
+        "label": "Click locator('[data-extension=\"articles\"]').locator('form').getByRole('button', { name: '記事の候補に追加', exact: true })",
+        "duration": 133,
+        "location": "tests/ux/voices-articles.pw.mjs:79"
+      },
+      {
+        "label": "Click getByRole('link', { name: 'ヘルプ記事', exact: true })",
+        "duration": 225,
+        "location": "tests/ux/voices-articles.pw.mjs:80"
+      },
+      {
+        "label": "Click getByRole('link', { name: /候補（1件）/ })",
+        "duration": 164,
+        "location": "tests/ux/voices-articles.pw.mjs:81"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書の宛名変更の手順/ })",
+        "duration": 59,
+        "location": "tests/ux/voices-articles.pw.mjs:91"
+      },
+      {
+        "label": "Click getByRole('link', { name: '元の会話 #1 を開く' })",
+        "duration": 29,
+        "location": "tests/ux/voices-articles.pw.mjs:96"
+      },
+      {
+        "label": "Fill \"注文履歴から変更できます。\" getByLabel('本文')",
+        "duration": 8,
+        "location": "tests/ux/voices-articles.pw.mjs:102"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'プレビュー' })",
+        "duration": 115,
+        "location": "tests/ux/voices-articles.pw.mjs:109"
+      },
+      {
+        "label": "Click getByRole('button', { name: '下書きを保存' })",
+        "duration": 60,
+        "location": "tests/ux/voices-articles.pw.mjs:114"
+      },
+      {
+        "label": "Navigate 127.0.0.1/articles/candidates",
+        "duration": 79,
+        "location": "tests/ux/voices-articles.pw.mjs:123"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書の宛名変更の手順/ })",
+        "duration": 45,
+        "location": "tests/ux/voices-articles.pw.mjs:125"
+      }
+    ]
+  },
+  {
+    "id": "H11",
+    "flows": [
+      "W3"
+    ],
+    "title": "H11 11. プロダクトの画面から問い合わせる（3分）",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/billing/receipts?account=private-query-marker",
+        "duration": 21,
+        "location": "tests/ux/widget-journey.pw.mjs:40"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 3,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Enter\" ",
+        "duration": 4,
+        "location": "tests/ux/widget-journey.pw.mjs:18"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Enter\" ",
+        "duration": 5,
+        "location": "tests/ux/widget-journey.pw.mjs:18"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 0,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Enter\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:18"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 3,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 3,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Enter\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:18"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Enter\" ",
+        "duration": 3,
+        "location": "tests/ux/widget-journey.pw.mjs:18"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Tab\" ",
+        "duration": 1,
+        "location": "tests/ux/widget-journey.pw.mjs:11"
+      },
+      {
+        "label": "Press \"Enter\" ",
+        "duration": 2,
+        "location": "tests/ux/widget-journey.pw.mjs:18"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 90,
+        "location": "tests/ux/widget-journey.pw.mjs:93"
+      },
+      {
+        "label": "Click locator('a.conversation-row').filter({ hasText: '領収書を発行したい' })",
+        "duration": 73,
+        "location": "tests/ux/widget-journey.pw.mjs:98"
+      }
+    ]
+  },
+  {
+    "id": "W5",
+    "flows": [
+      "W5"
+    ],
+    "title": "W5 管理者が窓口・運営者の権限・保存期間を設定し、選んだ相手のデータだけを削除する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('link', { name: '設定', exact: true })",
+        "duration": 67,
+        "location": "tests/ux/workspace-workflow.pw.mjs:7"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^プロダクトと窓口/ })",
+        "duration": 88,
+        "location": "tests/ux/workspace-workflow.pw.mjs:9"
+      },
+      {
+        "label": "Fill \"Atlas\" getByLabel('プロダクト名', { exact: true })",
+        "duration": 87,
+        "location": "tests/ux/workspace-workflow.pw.mjs:10"
+      },
+      {
+        "label": "Fill \"atlas\" getByLabel('窓口アドレスの先頭').first()",
+        "duration": 4,
+        "location": "tests/ux/workspace-workflow.pw.mjs:11"
+      },
+      {
+        "label": "Select option getByLabel('送信ドメイン').first()",
+        "duration": 3,
+        "location": "tests/ux/workspace-workflow.pw.mjs:15"
+      },
+      {
+        "label": "Click getByRole('button', { name: '窓口を登録' })",
+        "duration": 101,
+        "location": "tests/ux/workspace-workflow.pw.mjs:16"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定に戻る' })",
+        "duration": 63,
+        "location": "tests/ux/workspace-workflow.pw.mjs:19"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^運営者/ })",
+        "duration": 151,
+        "location": "tests/ux/workspace-workflow.pw.mjs:20"
+      },
+      {
+        "label": "Click locator('details').filter({ has: getByRole('region', { name: 'mori@example.com', includeHidden: true }) }).locator('summary')",
+        "duration": 123,
+        "location": "tests/ux/workspace-workflow.pw.mjs:27"
+      },
+      {
+        "label": "Select option locator('details').filter({ has: getByRole('region', { name: 'mori@example.com', includeHidden: true }) }).getByLabel('権限')",
+        "duration": 3,
+        "location": "tests/ux/workspace-workflow.pw.mjs:28"
+      },
+      {
+        "label": "Click locator('details').filter({ has: getByRole('region', { name: 'mori@example.com', includeHidden: true }) }).getByRole('button', { name: '運営者を保存' })",
+        "duration": 64,
+        "location": "tests/ux/workspace-workflow.pw.mjs:29"
+      },
+      {
+        "label": "Click locator('details').filter({ has: getByRole('region', { name: 'mori@example.com', includeHidden: true }) }).locator('summary')",
+        "duration": 120,
+        "location": "tests/ux/workspace-workflow.pw.mjs:30"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定に戻る' })",
+        "duration": 66,
+        "location": "tests/ux/workspace-workflow.pw.mjs:33"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^保存期間/ })",
+        "duration": 135,
+        "location": "tests/ux/workspace-workflow.pw.mjs:34"
+      },
+      {
+        "label": "Fill \"30\" getByRole('spinbutton')",
+        "duration": 90,
+        "location": "tests/ux/workspace-workflow.pw.mjs:35"
+      },
+      {
+        "label": "Click getByRole('button', { name: '保存期間を変更' })",
+        "duration": 74,
+        "location": "tests/ux/workspace-workflow.pw.mjs:36"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定に戻る' })",
+        "duration": 126,
+        "location": "tests/ux/workspace-workflow.pw.mjs:37"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^連絡先のデータ削除/ })",
+        "duration": 49,
+        "location": "tests/ux/workspace-workflow.pw.mjs:42"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '削除する相手' })",
+        "duration": 41,
+        "location": "tests/ux/workspace-workflow.pw.mjs:44"
+      },
+      {
+        "label": "Click getByRole('button', { name: '削除内容を確認' })",
+        "duration": 31,
+        "location": "tests/ux/workspace-workflow.pw.mjs:45"
+      },
+      {
+        "label": "Click getByRole('dialog').getByRole('button', { name: 'すべて削除' })",
+        "duration": 68,
+        "location": "tests/ux/workspace-workflow.pw.mjs:48"
+      }
+    ]
+  },
+  {
+    "id": "J12",
+    "flows": [
+      "W3"
+    ],
+    "title": "J12 チャットで読んだ記事で解決できない質問をそのまま運営へ送る",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/help/chat/slide",
+        "duration": 110,
+        "location": "tests/ux/public-handoff.pw.mjs:15"
+      },
+      {
+        "label": "Fill \"領収書はどこから発行できますか？\" getByLabel('質問')",
+        "duration": 91,
+        "location": "tests/ux/public-handoff.pw.mjs:16"
+      },
+      {
+        "label": "Click getByRole('button', { name: '質問する' })",
+        "duration": 58,
+        "location": "tests/ux/public-handoff.pw.mjs:17"
+      },
+      {
+        "label": "Click getByRole('link', { name: '領収書を発行する' })",
+        "duration": 75,
+        "location": "tests/ux/public-handoff.pw.mjs:24"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'やりとりに戻る' })",
+        "duration": 18,
+        "location": "tests/ux/public-handoff.pw.mjs:26"
+      },
+      {
+        "label": "Click getByRole('button', { name: '解決しなかった' })",
+        "duration": 52,
+        "location": "tests/ux/public-handoff.pw.mjs:28"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 57,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 61,
+        "location": "tests/ux/public-handoff.pw.mjs:31"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 90,
+        "location": "tests/ux/public-handoff.pw.mjs:45"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書はどこから発行できますか？/ })",
+        "duration": 174,
+        "location": "tests/ux/public-handoff.pw.mjs:48"
+      }
+    ]
+  },
+  {
+    "id": "J6",
+    "flows": [
+      "W3"
+    ],
+    "title": "J6 記事を読んで、別の質問を問い合わせとして受け付ける",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/help/chat/slide",
+        "duration": 87,
+        "location": "tests/ux/settings.pw.mjs:30"
+      },
+      {
+        "label": "Fill \"領収書を発行できますか？\" getByLabel('質問')",
+        "duration": 20,
+        "location": "tests/ux/settings.pw.mjs:32"
+      },
+      {
+        "label": "Click getByRole('button', { name: '質問する' })",
+        "duration": 36,
+        "location": "tests/ux/settings.pw.mjs:33"
+      },
+      {
+        "label": "Click getByRole('link', { name: '領収書を発行する' })",
+        "duration": 67,
+        "location": "tests/ux/settings.pw.mjs:40"
+      },
+      {
+        "label": "Click getByRole('link', { name: '新しいタブで開く' })",
+        "duration": 146,
+        "location": "tests/ux/settings.pw.mjs:43"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'やりとりに戻る' })",
+        "duration": 69,
+        "location": "tests/ux/settings.pw.mjs:49"
+      },
+      {
+        "label": "Fill \"カタログの印刷について相談したいです\" getByLabel('質問')",
+        "duration": 10,
+        "location": "tests/ux/settings.pw.mjs:32"
+      },
+      {
+        "label": "Click getByRole('button', { name: '質問する' })",
+        "duration": 43,
+        "location": "tests/ux/settings.pw.mjs:33"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 45,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 71,
+        "location": "tests/ux/settings.pw.mjs:59"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 87,
+        "location": "tests/ux/settings.pw.mjs:8"
+      },
+      {
+        "label": "Click getByRole('link', { name: /カタログの印刷について相談したいです/ })",
+        "duration": 127,
+        "location": "tests/ux/settings.pw.mjs:67"
+      }
+    ]
+  },
+  {
+    "id": "H01",
+    "flows": [
+      "W1"
+    ],
+    "title": "H01 1. 受信箱を読む(3分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('button', { name: 'すべてのプロダクト', exact: true })",
+        "duration": 88,
+        "location": "tests/ux/hands-on.pw.mjs:23"
+      },
+      {
+        "label": "Click getByRole('link', { name: 'Desk', exact: true })",
+        "duration": 143,
+        "location": "tests/ux/hands-on.pw.mjs:24"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'Desk', exact: true })",
+        "duration": 56,
+        "location": "tests/ux/hands-on.pw.mjs:27"
+      },
+      {
+        "label": "Click getByRole('link', { name: 'すべてのプロダクト', exact: true })",
+        "duration": 103,
+        "location": "tests/ux/hands-on.pw.mjs:30"
+      },
+      {
+        "label": "Fill \"領収書\" getByRole('searchbox', { name: '問い合わせを検索' })",
+        "duration": 15,
+        "location": "tests/ux/hands-on.pw.mjs:51"
+      },
+      {
+        "label": "Fill \"\" getByRole('searchbox', { name: '問い合わせを検索' })",
+        "duration": 15,
+        "location": "tests/ux/hands-on.pw.mjs:55"
+      },
+      {
+        "label": "Click getByRole('button', { name: '絞り込み', exact: true })",
+        "duration": 126,
+        "location": "tests/ux/hands-on.pw.mjs:57"
+      },
+      {
+        "label": "Click getByRole('button', { name: '担当者 すべて', exact: true })",
+        "duration": 77,
+        "location": "tests/ux/hands-on.pw.mjs:58"
+      },
+      {
+        "label": "Click getByRole('button', { name: '佐藤 優', exact: true })",
+        "duration": 155,
+        "location": "tests/ux/hands-on.pw.mjs:59"
+      },
+      {
+        "label": "Click getByRole('link', { name: '佐藤 優を外す' })",
+        "duration": 88,
+        "location": "tests/ux/hands-on.pw.mjs:62"
+      },
+      {
+        "label": "Click getByRole('button', { name: '絞り込み', exact: true })",
+        "duration": 87,
+        "location": "tests/ux/hands-on.pw.mjs:63"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'ラベル' })",
+        "duration": 11,
+        "location": "tests/ux/hands-on.pw.mjs:64"
+      },
+      {
+        "label": "Click getByRole('link', { name: '請求を外す' })",
+        "duration": 130,
+        "location": "tests/ux/hands-on.pw.mjs:68"
+      }
+    ]
+  },
+  {
+    "id": "H02",
+    "flows": [
+      "W1"
+    ],
+    "title": "H02 2. 問い合わせに答える(7分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click locator('a.conversation-row').filter({ has: getByText('#6', { exact: true }) })",
+        "duration": 189,
+        "location": "tests/ux/hands-on.pw.mjs:72"
+      },
+      {
+        "label": "Click getByRole('button', { name: '担当者を選ぶ', exact: true })",
+        "duration": 176,
+        "location": "tests/ux/hands-on.pw.mjs:73"
+      },
+      {
+        "label": "Click getByRole('button', { name: '佐藤 優', exact: true })",
+        "duration": 240,
+        "location": "tests/ux/hands-on.pw.mjs:74"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'ラベルを選ぶ', exact: true })",
+        "duration": 72,
+        "location": "tests/ux/hands-on.pw.mjs:76"
+      },
+      {
+        "label": "Click getByRole('button', { name: '請求を付ける', exact: true })",
+        "duration": 137,
+        "location": "tests/ux/hands-on.pw.mjs:77"
+      },
+      {
+        "label": "Fill \"こちらの記事で、領収書を発行する手順をご確認ください。\" getByRole('textbox', { name: '返信', exact: true })",
+        "duration": 38,
+        "location": "tests/ux/hands-on.pw.mjs:80"
+      },
+      {
+        "label": "Click getByRole('button', { name: '記事を添える', exact: true })",
+        "duration": 97,
+        "location": "tests/ux/hands-on.pw.mjs:81"
+      },
+      {
+        "label": "Fill \"領収書\" getByLabel('記事の題名で検索')",
+        "duration": 7,
+        "location": "tests/ux/hands-on.pw.mjs:82"
+      },
+      {
+        "label": "Click getByRole('button', { name: '領収書を発行する', exact: true })",
+        "duration": 67,
+        "location": "tests/ux/hands-on.pw.mjs:83"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'プレビュー', exact: true })",
+        "duration": 52,
+        "location": "tests/ux/hands-on.pw.mjs:85"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信して完了', exact: true })",
+        "duration": 50,
+        "location": "tests/ux/hands-on.pw.mjs:97"
+      },
+      {
+        "label": "Click getByRole('link', { name: '次の未対応へ' })",
+        "duration": 112,
+        "location": "tests/ux/hands-on.pw.mjs:111"
+      }
+    ]
+  },
+  {
+    "id": "H03/H04",
+    "flows": [
+      "W1"
+    ],
+    "title": "H03 3. 内部メモを残す(2分) / H04 4. 送信の失敗に気づいて直す(2分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('tab', { name: '内部メモ' })",
+        "duration": 69,
+        "location": "tests/ux/hands-on.pw.mjs:117"
+      },
+      {
+        "label": "Fill \"次回の案内は経理チームに確認済みです。\" getByRole('textbox', { name: '内部メモ' })",
+        "duration": 17,
+        "location": "tests/ux/hands-on.pw.mjs:124"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'メモを残す', exact: true })",
+        "duration": 191,
+        "location": "tests/ux/hands-on.pw.mjs:125"
+      },
+      {
+        "label": "Click getByRole('navigation', { name: '受信箱', exact: true }).getByRole('link', { name: /未対応/ })",
+        "duration": 91,
+        "location": "tests/ux/hands-on.pw.mjs:136"
+      },
+      {
+        "label": "Click locator('a.conversation-row').filter({ has: getByText('#4', { exact: true }) })",
+        "duration": 134,
+        "location": "tests/ux/hands-on.pw.mjs:138"
+      },
+      {
+        "label": "Click getByRole('button', { name: '再送', exact: true })",
+        "duration": 268,
+        "location": "tests/ux/hands-on.pw.mjs:142"
+      }
+    ]
+  },
+  {
+    "id": "H05",
+    "flows": [
+      "W1"
+    ],
+    "title": "H05 5. AI の下書きを承認する(4分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('navigation', { name: '受信箱', exact: true }).getByRole('link', { name: /承認待ち/ })",
+        "duration": 90,
+        "location": "tests/ux/hands-on.pw.mjs:163"
+      },
+      {
+        "label": "Click locator('a.conversation-row').filter({ has: getByText('#5', { exact: true }) })",
+        "duration": 179,
+        "location": "tests/ux/hands-on.pw.mjs:164"
+      },
+      {
+        "label": "Fill \"更新日の前日まで、メンバー数を変更できます。\" locator('article').filter({ has: getByRole('textbox', { name: '下書きの本文' }) }).getByRole('textbox', { name: '下書きの本文' })",
+        "duration": 20,
+        "location": "tests/ux/hands-on.pw.mjs:171"
+      },
+      {
+        "label": "Click locator('article').filter({ has: getByRole('textbox', { name: '下書きの本文' }) }).getByRole('button', { name: '承認して送信', exact: true })",
+        "duration": 83,
+        "location": "tests/ux/hands-on.pw.mjs:172"
+      },
+      {
+        "label": "Click getByRole('dialog').getByRole('button', { name: 'キャンセル', exact: true })",
+        "duration": 48,
+        "location": "tests/ux/hands-on.pw.mjs:181"
+      },
+      {
+        "label": "Click locator('article').filter({ has: getByRole('textbox', { name: '下書きの本文' }) }).getByRole('button', { name: '下書きを破棄', exact: true })",
+        "duration": 66,
+        "location": "tests/ux/hands-on.pw.mjs:190"
+      },
+      {
+        "label": "Click getByRole('dialog').getByRole('button', { name: 'キャンセル', exact: true })",
+        "duration": 38,
+        "location": "tests/ux/hands-on.pw.mjs:192"
+      },
+      {
+        "label": "Click locator('article').filter({ has: getByRole('textbox', { name: '下書きの本文' }) }).getByRole('button', { name: '承認して送信', exact: true })",
+        "duration": 33,
+        "location": "tests/ux/hands-on.pw.mjs:193"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 210,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Reload ",
+        "duration": 196,
+        "location": "tests/ux/hands-on.pw.mjs:204"
+      }
+    ]
+  },
+  {
+    "id": "H06/H07",
+    "flows": [
+      "W2",
+      "W3"
+    ],
+    "title": "H06 6. ユーザーの立場で、自分で解決する(5分) / H07 7. 返信不要の声を受け止める(3分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/help/chat/slide",
+        "duration": 127,
+        "location": "tests/ux/hands-on.pw.mjs:218"
+      },
+      {
+        "label": "Fill \"領収書を発行したい\" getByLabel('質問')",
+        "duration": 49,
+        "location": "tests/ux/hands-on.pw.mjs:219"
+      },
+      {
+        "label": "Click getByRole('button', { name: '質問する', exact: true })",
+        "duration": 66,
+        "location": "tests/ux/hands-on.pw.mjs:220"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書を発行する/ })",
+        "duration": 135,
+        "location": "tests/ux/hands-on.pw.mjs:221"
+      },
+      {
+        "label": "Click getByRole('link', { name: '新しいタブで開く' })",
+        "duration": 100,
+        "location": "tests/ux/hands-on.pw.mjs:223"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'いいえ', exact: true })",
+        "duration": 85,
+        "location": "tests/ux/hands-on.pw.mjs:228"
+      },
+      {
+        "label": "Click getByRole('button', { name: 'やりとりに戻る', exact: true })",
+        "duration": 36,
+        "location": "tests/ux/hands-on.pw.mjs:231"
+      },
+      {
+        "label": "Click getByRole('button', { name: '解決しなかった', exact: true })",
+        "duration": 49,
+        "location": "tests/ux/hands-on.pw.mjs:232"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 64,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 45,
+        "location": "tests/ux/hands-on.pw.mjs:234"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 120,
+        "location": "tests/ux/hands-on.pw.mjs:243"
+      },
+      {
+        "label": "Navigate 127.0.0.1/help/feedback/slide",
+        "duration": 48,
+        "location": "tests/ux/hands-on.pw.mjs:245"
+      },
+      {
+        "label": "Fill \"領収書を探しやすくしてほしいです\" getByLabel('ご意見・ご要望')",
+        "duration": 21,
+        "location": "tests/ux/hands-on.pw.mjs:247"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 34,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 182,
+        "location": "tests/ux/hands-on.pw.mjs:249"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^フィードバック/ }).first()",
+        "duration": 244,
+        "location": "tests/ux/hands-on.pw.mjs:257"
+      },
+      {
+        "label": "Click getByRole('link', { name: /領収書を探しやすくしてほしいです/ })",
+        "duration": 185,
+        "location": "tests/ux/hands-on.pw.mjs:258"
+      },
+      {
+        "label": "Click getByRole('button', { name: '確認済みにする', exact: true })",
+        "duration": 204,
+        "location": "tests/ux/hands-on.pw.mjs:259"
+      }
+    ]
+  },
+  {
+    "id": "H08/H09",
+    "flows": [
+      "W4"
+    ],
+    "title": "H08 8. 答えるだけで終わらせず、直す(4分) / H09 9. 数値を見る(2分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('link', { name: '拡張の管理', exact: true })",
+        "duration": 145,
+        "location": "tests/ux/hands-on.pw.mjs:270"
+      },
+      {
+        "label": "Click locator('[data-extension=issues]').getByRole('link', { name: '設定' })",
+        "duration": 187,
+        "location": "tests/ux/hands-on.pw.mjs:274"
+      },
+      {
+        "label": "Fill \"example/helpdesk\" locator('[data-ui=form-section]').filter({ has: getByRole('heading', { name: 'Slide', exact: true }) }).getByLabel('GitHub リポジトリ')",
+        "duration": 55,
+        "location": "tests/ux/hands-on.pw.mjs:278"
+      },
+      {
+        "label": "Click locator('[data-ui=form-section]').filter({ has: getByRole('heading', { name: 'Slide', exact: true }) }).getByRole('button', { name: 'リポジトリを更新', exact: true })",
+        "duration": 77,
+        "location": "tests/ux/hands-on.pw.mjs:279"
+      },
+      {
+        "label": "Click getByRole('navigation', { name: '受信箱', exact: true }).getByRole('link', { name: /未対応/ })",
+        "duration": 87,
+        "location": "tests/ux/hands-on.pw.mjs:284"
+      },
+      {
+        "label": "Click locator('a.conversation-row').filter({ has: getByText('#12', { exact: true }) })",
+        "duration": 144,
+        "location": "tests/ux/hands-on.pw.mjs:285"
+      },
+      {
+        "label": "Click locator('[data-extension=issues]').getByRole('button', { name: 'Issue を起票する', exact: true })",
+        "duration": 87,
+        "location": "tests/ux/hands-on.pw.mjs:287"
+      },
+      {
+        "label": "Fill \"領収書を見つけやすくする\" locator('[data-extension=issues]').getByLabel('タイトル')",
+        "duration": 7,
+        "location": "tests/ux/hands-on.pw.mjs:289"
+      },
+      {
+        "label": "Fill \"領収書の発行手順を見つけやすくします。\" locator('[data-extension=issues]').getByLabel('公開する要約')",
+        "duration": 9,
+        "location": "tests/ux/hands-on.pw.mjs:290"
+      },
+      {
+        "label": "Click locator('[data-extension=issues]').getByRole('button', { name: '起票内容を確認', exact: true })",
+        "duration": 43,
+        "location": "tests/ux/hands-on.pw.mjs:291"
+      },
+      {
+        "label": "Click getByRole('dialog').getByRole('button', { name: '確認した内容で起票', exact: true })",
+        "duration": 146,
+        "location": "tests/ux/hands-on.pw.mjs:298"
+      },
+      {
+        "label": "Click getByRole('navigation', { name: '受信箱', exact: true }).getByRole('link', { name: /未対応/ })",
+        "duration": 195,
+        "location": "tests/ux/hands-on.pw.mjs:303"
+      },
+      {
+        "label": "Click locator('a.conversation-row').filter({ has: getByText('#1', { exact: true }) })",
+        "duration": 140,
+        "location": "tests/ux/hands-on.pw.mjs:304"
+      },
+      {
+        "label": "Click getByText('既存の Issue を選ぶ', { exact: true })",
+        "duration": 127,
+        "location": "tests/ux/hands-on.pw.mjs:305"
+      },
+      {
+        "label": "Click getByRole('button', { name: '既存の Issue と紐づける', exact: true })",
+        "duration": 71,
+        "location": "tests/ux/hands-on.pw.mjs:306"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 168,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click locator('[data-extension=articles]').getByRole('button', { name: '記事の候補に追加', exact: true })",
+        "duration": 118,
+        "location": "tests/ux/hands-on.pw.mjs:309"
+      },
+      {
+        "label": "Fill \"領収書発行の案内\" locator('[data-extension=articles]').getByLabel('記事にする内容')",
+        "duration": 14,
+        "location": "tests/ux/hands-on.pw.mjs:310"
+      },
+      {
+        "label": "Click locator('[data-extension=articles]').locator('form').getByRole('button', { name: '記事の候補に追加', exact: true })",
+        "duration": 109,
+        "location": "tests/ux/hands-on.pw.mjs:311"
+      },
+      {
+        "label": "Click getByRole('link', { name: '課題', exact: true })",
+        "duration": 147,
+        "location": "tests/ux/hands-on.pw.mjs:312"
+      },
+      {
+        "label": "Click getByRole('link', { name: '領収書を見つけやすくする', exact: true })",
+        "duration": 213,
+        "location": "tests/ux/hands-on.pw.mjs:315"
+      },
+      {
+        "label": "Click getByRole('link', { name: '対応状況の集計' })",
+        "duration": 122,
+        "location": "tests/ux/hands-on.pw.mjs:320"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: 'プロダクト', exact: true })",
+        "duration": 27,
+        "location": "tests/ux/hands-on.pw.mjs:331"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '期間', exact: true })",
+        "duration": 23,
+        "location": "tests/ux/hands-on.pw.mjs:340"
+      }
+    ]
+  },
+  {
+    "id": "H10",
+    "flows": [
+      "W5"
+    ],
+    "title": "H10 10. 場を整える(3分)",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Click getByRole('link', { name: /佐藤 優 のアカウント/ })",
+        "duration": 216,
+        "location": "tests/ux/hands-on.pw.mjs:350"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定', exact: true })",
+        "duration": 116,
+        "location": "tests/ux/hands-on.pw.mjs:352"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^プロダクトと窓口/ })",
+        "duration": 135,
+        "location": "tests/ux/hands-on.pw.mjs:353"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定に戻る' })",
+        "duration": 116,
+        "location": "tests/ux/hands-on.pw.mjs:355"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^保存期間/ })",
+        "duration": 270,
+        "location": "tests/ux/hands-on.pw.mjs:356"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定に戻る' })",
+        "duration": 73,
+        "location": "tests/ux/hands-on.pw.mjs:359"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^連絡先のデータ削除/ })",
+        "duration": 180,
+        "location": "tests/ux/hands-on.pw.mjs:360"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定に戻る' })",
+        "duration": 76,
+        "location": "tests/ux/hands-on.pw.mjs:362"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^API トークンの管理/ })",
+        "duration": 205,
+        "location": "tests/ux/hands-on.pw.mjs:363"
+      }
+    ]
+  },
+  {
+    "id": "J9",
+    "flows": [
+      "W5"
+    ],
+    "title": "J9 窓口を作成し、拡張の案内から新プロダクトの公開受付を開始する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 136,
+        "location": "tests/ux/settings.pw.mjs:8"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定', exact: true })",
+        "duration": 99,
+        "location": "tests/ux/settings.pw.mjs:135"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^プロダクトと窓口/ })",
+        "duration": 173,
+        "location": "tests/ux/settings.pw.mjs:136"
+      },
+      {
+        "label": "Fill \"Catalog\" getByLabel('プロダクト名', { exact: true })",
+        "duration": 104,
+        "location": "tests/ux/settings.pw.mjs:137"
+      },
+      {
+        "label": "Fill \"catalog\" getByLabel('窓口アドレスの先頭').first()",
+        "duration": 8,
+        "location": "tests/ux/settings.pw.mjs:138"
+      },
+      {
+        "label": "Select option getByLabel('送信ドメイン').first()",
+        "duration": 4,
+        "location": "tests/ux/settings.pw.mjs:142"
+      },
+      {
+        "label": "Click getByRole('button', { name: '窓口を登録' })",
+        "duration": 112,
+        "location": "tests/ux/settings.pw.mjs:143"
+      },
+      {
+        "label": "Click getByRole('link', { name: '拡張の管理', exact: true })",
+        "duration": 67,
+        "location": "tests/ux/settings.pw.mjs:146"
+      },
+      {
+        "label": "Click locator('[data-extension=form]').getByRole('switch', { name: /有効にする/ })",
+        "duration": 139,
+        "location": "tests/ux/settings.pw.mjs:148"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 140,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Click locator('[data-extension=form]').getByRole('link', { name: '設定' })",
+        "duration": 163,
+        "location": "tests/ux/settings.pw.mjs:151"
+      },
+      {
+        "label": "Click locator('section').filter({ has: getByRole('heading', { name: 'Catalog', exact: true }) }).last().getByRole('button', { name: 'このサイトで受付を開始' })",
+        "duration": 129,
+        "location": "tests/ux/settings.pw.mjs:158"
+      },
+      {
+        "label": "Click locator('section').filter({ has: getByRole('heading', { name: 'Catalog', exact: true }) }).last().getByRole('link', { name: '公開フォームを開く' })",
+        "duration": 124,
+        "location": "tests/ux/settings.pw.mjs:165"
+      },
+      {
+        "label": "Fill \"新しい窓口への相談\" getByLabel('件名')",
+        "duration": 26,
+        "location": "tests/ux/settings.pw.mjs:166"
+      },
+      {
+        "label": "Fill \"届いているか確認してください。\" getByLabel('お問い合わせ内容')",
+        "duration": 9,
+        "location": "tests/ux/settings.pw.mjs:169"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 35,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 77,
+        "location": "tests/ux/settings.pw.mjs:171"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 118,
+        "location": "tests/ux/settings.pw.mjs:8"
+      },
+      {
+        "label": "Click getByRole('link', { name: /新しい窓口への相談/ })",
+        "duration": 111,
+        "location": "tests/ux/settings.pw.mjs:175"
+      }
+    ]
+  },
+  {
+    "id": "J11",
+    "flows": [
+      "W5"
+    ],
+    "title": "J11 候補から相手を選び、確認して会話を削除する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 95,
+        "location": "tests/ux/settings.pw.mjs:8"
+      },
+      {
+        "label": "Click getByRole('link', { name: '設定', exact: true })",
+        "duration": 100,
+        "location": "tests/ux/settings.pw.mjs:185"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^連絡先のデータ削除/ })",
+        "duration": 190,
+        "location": "tests/ux/settings.pw.mjs:186"
+      },
+      {
+        "label": "Select option getByRole('combobox', { name: '削除する相手' })",
+        "duration": 14,
+        "location": "tests/ux/settings.pw.mjs:191"
+      },
+      {
+        "label": "Click getByRole('button', { name: '削除内容を確認' })",
+        "duration": 53,
+        "location": "tests/ux/settings.pw.mjs:193"
+      },
+      {
+        "label": "Click getByRole('dialog').getByRole('button', { name: 'キャンセル' })",
+        "duration": 42,
+        "location": "tests/ux/settings.pw.mjs:197"
+      },
+      {
+        "label": "Click getByRole('button', { name: '削除内容を確認' })",
+        "duration": 41,
+        "location": "tests/ux/settings.pw.mjs:201"
+      },
+      {
+        "label": "Click getByRole('dialog').getByRole('button', { name: 'すべて削除' })",
+        "duration": 124,
+        "location": "tests/ux/settings.pw.mjs:203"
+      }
+    ]
+  },
+  {
+    "id": "J7",
+    "flows": [
+      "W2"
+    ],
+    "title": "J7 フィードバックを確認し、別の意見は問い合わせに変えて返信する",
+    "status": "passed",
+    "actions": [
+      {
+        "label": "Navigate 127.0.0.1/help/feedback/slide",
+        "duration": 78,
+        "location": "tests/ux/settings.pw.mjs:17"
+      },
+      {
+        "label": "Fill \"表示倍率の切り替えが便利です\" getByLabel('ご意見・ご要望')",
+        "duration": 34,
+        "location": "tests/ux/settings.pw.mjs:18"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 34,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 157,
+        "location": "tests/ux/settings.pw.mjs:20"
+      },
+      {
+        "label": "Navigate 127.0.0.1/help/feedback/slide",
+        "duration": 116,
+        "location": "tests/ux/settings.pw.mjs:17"
+      },
+      {
+        "label": "Fill \"印刷用の画面について相談したいです\" getByLabel('ご意見・ご要望')",
+        "duration": 25,
+        "location": "tests/ux/settings.pw.mjs:18"
+      },
+      {
+        "label": "Click getByLabel('連絡先メールアドレス')",
+        "duration": 33,
+        "location": "tests/ux/customer.mjs:9"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 132,
+        "location": "tests/ux/settings.pw.mjs:20"
+      },
+      {
+        "label": "Navigate 127.0.0.1/",
+        "duration": 197,
+        "location": "tests/ux/settings.pw.mjs:8"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^フィードバック/ }).first()",
+        "duration": 261,
+        "location": "tests/ux/settings.pw.mjs:14"
+      },
+      {
+        "label": "Click getByRole('link', { name: /表示倍率の切り替えが便利です/ })",
+        "duration": 203,
+        "location": "tests/ux/settings.pw.mjs:96"
+      },
+      {
+        "label": "Click getByRole('button', { name: '確認済みにする' })",
+        "duration": 295,
+        "location": "tests/ux/settings.pw.mjs:97"
+      },
+      {
+        "label": "Click getByRole('link', { name: /^フィードバック/ }).first()",
+        "duration": 108,
+        "location": "tests/ux/settings.pw.mjs:14"
+      },
+      {
+        "label": "Click getByRole('link', { name: /印刷用の画面について相談したいです/ })",
+        "duration": 204,
+        "location": "tests/ux/settings.pw.mjs:101"
+      },
+      {
+        "label": "Click getByRole('button', { name: '問い合わせに変更' })",
+        "duration": 113,
+        "location": "tests/ux/settings.pw.mjs:102"
+      },
+      {
+        "label": "Click locator('#action-confirmation').locator('[data-commit]')",
+        "duration": 274,
+        "location": "tests/ux/harness.mjs:117"
+      },
+      {
+        "label": "Fill \"詳しい状況を教えていただけますか。\" getByRole('textbox', { name: '返信', exact: true })",
+        "duration": 107,
+        "location": "tests/ux/settings.pw.mjs:106"
+      },
+      {
+        "label": "Click getByRole('button', { name: '送信', exact: true })",
+        "duration": 78,
+        "location": "tests/ux/settings.pw.mjs:107"
+      },
+      {
+        "wait": true,
+        "label": "Expect \"toPass\" ",
+        "duration": 6212
+      }
+    ]
+  }
+]

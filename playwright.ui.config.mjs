@@ -5,7 +5,8 @@ const pixelComparison = { threshold: 0.1, maxDiffPixelRatio: 0.001 }
 export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
-  snapshotPathTemplate: '{testDir}/../../docs/reports/ux-8/after/{arg}{ext}',
+  snapshotPathTemplate:
+    '{testDir}/../../docs/reports/loop/round-6/screens/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
   timeout: 100_000,
