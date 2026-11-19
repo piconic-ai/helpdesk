@@ -117,14 +117,16 @@ export function retryReply(
 export async function deliverReply(
   env: { DB: D1Database; EMAIL: EmailBinding },
   id: string,
-  now: number,
+  clock: number | (() => number) = Date.now,
 ) {
+  const time = typeof clock === 'number' ? () => clock : clock
+  const now = time()
   const reply = await claim(env.DB, id, now)
   if (!reply) return holdDelay(env.DB, id, now)
   const payload = composeReply(reply)
   if (reply.automatic) payload.headers['Auto-Submitted'] = 'auto-generated'
   const result = await sendReply(env.EMAIL, payload)
-  await finish(env.DB, id, reply.attempt, reply.actor, now, result)
+  await finish(env.DB, id, reply.attempt, reply.actor, time(), result)
 }
 export async function recoverReplies(env: QueueEnv, now = Date.now()) {
   // A consumer can terminate between provider acceptance and the D1 commit.

@@ -168,7 +168,6 @@ export default {
           const delaySeconds = await deliverReply(
             env,
             z.object({ id: z.string() }).parse(job.body).id,
-            Date.now(),
           )
           if (delaySeconds) {
             job.retry({ delaySeconds })

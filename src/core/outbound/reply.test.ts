@@ -369,3 +369,52 @@ it('W1: an expired hold sends once; a customer reply during the grace period kee
     ).toBe(inbound ? 'open' : 'closed')
   }
 })
+
+it.each(['accepted', 'rejected'] as const)(
+  'closes a scheduled reply only after the provider accepts it (%s)',
+  async (result) => {
+    const number = await receive()
+    const { id } = await queueReply(local, {
+      number,
+      actor: operator,
+      body: 'Here is the update',
+      close: true,
+      undoable: true,
+      now: 100,
+    })
+    const status = () =>
+      local.DB.prepare('SELECT status FROM conversations WHERE number=?')
+        .bind(number)
+        .first('status')
+    const started = Promise.withResolvers<void>()
+    const release = Promise.withResolvers<void>()
+    const send = async () => {
+      started.resolve()
+      await release.promise
+      if (result === 'rejected') throw { code: 'E_INVALID_RECIPIENT' }
+      return { messageId: 'accepted@example.org' }
+    }
+    let instant = 300100
+    const processing = deliverReply(
+      { ...local, EMAIL: { send } },
+      id,
+      () => instant,
+    )
+    await started.promise
+    try {
+      expect(await status()).toBe('open')
+      instant += 500
+    } finally {
+      release.resolve()
+      await processing
+    }
+    expect(await status()).toBe(result === 'accepted' ? 'closed' : 'open')
+    expect(
+      await local.DB.prepare(
+        'SELECT closed_at FROM conversations WHERE number=?',
+      )
+        .bind(number)
+        .first('closed_at'),
+    ).toBe(result === 'accepted' ? instant : null)
+  },
+)

@@ -205,12 +205,11 @@ const claimSchema = replyEnvelopeSchema.extend({
   automatic: z.number().transform(Boolean),
 })
 export async function claim(db: D1Database, id: string, now: number) {
-  const [changed, , , rows] = await db.batch([
+  const [changed, rows] = await db.batch([
     db
       .prepare(`UPDATE outbox SET phase='sending',claimed_at=? WHERE message=? AND phase='ready' AND NOT EXISTS (SELECT 1 FROM reply_holds WHERE message=outbox.message AND until_at>?) AND EXISTS
       (SELECT id FROM messages WHERE id=? AND kind='outbound' AND delivery='queued' AND approval IS NOT NULL)`)
       .bind(now, id, now, id),
-    ...releaseHeldStatus(db, id, now),
     db
       .prepare(`SELECT c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic
       FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id LEFT JOIN standing_messages s ON s.message=m.id WHERE m.id=?`)
@@ -250,6 +249,7 @@ export async function finish(
         attempt,
       ),
     event(db, accepted ? 'reply_sent' : 'reply_failed', input, 'changes()=1'),
+    ...(accepted ? releaseHeldStatus(db, id, now) : []),
     db
       .prepare(`DELETE FROM outbox WHERE attempt=? AND ? != 'unknown'`)
       .bind(attempt, result.kind),
