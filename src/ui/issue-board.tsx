@@ -295,7 +295,9 @@ export function NewIssueForm({
       <Field label="もとになる会話">
         <NativeSelect name="number" required data-product-select="">
           <button type="button">{createElement('selectedcontent', {})}</button>
-          <option value="">会話を選ぶ</option>
+          <option value="" disabled>
+            会話を選ぶ
+          </option>
           {choices.map((c) => (
             <option value={c.number}>
               <span className="choice-reference">

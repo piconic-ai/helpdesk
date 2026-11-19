@@ -11,6 +11,7 @@ type Filters = {
   query: Search
   options?: Option[]
   filterLabel?: string
+  defaultOrder?: string
   sortable?: boolean
 }
 export type ListWindow = { total: number; page: number; pages: number }
@@ -51,6 +52,7 @@ export function ListFilters({
   query,
   options,
   filterLabel,
+  defaultOrder = '標準の順序',
   sortable = true,
 }: Filters) {
   const chip = (key: string, label: string) => (
@@ -109,7 +111,7 @@ export function ListFilters({
         {sortable && (
           <Field label="並び順">
             <NativeSelect name="sort" aria-label="並び順">
-              <option value="">標準の順序</option>
+              <option value="">{defaultOrder}</option>
               <option value="name" selected={query.sort === 'name'}>
                 名前順
               </option>

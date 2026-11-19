@@ -270,7 +270,14 @@ export function inboxPage(
     <div data-inbox-view="">
       <ListPage
         title={title}
-        description={page.total + ' 件'}
+        description={
+          <>
+            <span data-inbox-count="">{page.total} 件</span>
+            <span data-inbox-count-pending="" hidden>
+              件数を確認中
+            </span>
+          </>
+        }
         filters={
           <InboxTools>
             {filters(q, frame)}

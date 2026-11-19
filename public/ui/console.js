@@ -29,7 +29,11 @@ for (const form of document.querySelectorAll(
 }
 function enableCompactReply() {
   const replyArea = document.querySelector('#reply-area')
-  if (!replyArea) return
+  if (
+    !replyArea ||
+    replyArea.querySelector('[data-expand-reply]')?.closest('[hidden]')
+  )
+    return
 
   replyArea.dataset.reading = ''
   const expand = () => {
@@ -143,12 +147,16 @@ const inbox = document.querySelector('[data-inbox-results]')
 if (inbox) {
   const content = inbox.querySelector('[data-inbox-content]')
   const placeholder = inbox.querySelector('[data-inbox-loading]')
+  const count = document.querySelector('[data-inbox-count]')
+  const pendingCount = document.querySelector('[data-inbox-count-pending]')
   let timer
   const reset = () => {
     clearTimeout(timer)
     inbox.removeAttribute('aria-busy')
     content.inert = false
     placeholder.hidden = true
+    count.hidden = false
+    pendingCount.hidden = true
   }
   const loading = () => {
     reset()
@@ -156,6 +164,8 @@ if (inbox) {
       inbox.setAttribute('aria-busy', 'true')
       content.inert = true
       placeholder.hidden = false
+      count.hidden = true
+      pendingCount.hidden = false
     }, 180)
   }
   if (window.navigation) {

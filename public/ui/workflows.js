@@ -155,7 +155,8 @@ function submissionDetails(form, trigger) {
         form.dataset.source +
         '」を「' +
         form.elements.target.selectedOptions[0].textContent.trim() +
-        '」に統合します。',
+        '」に統合します。共通の返信先：' +
+        form.dataset.mergeContact,
     ]
   if (action === '/actions/feedback.convert')
     return [
@@ -189,9 +190,7 @@ function settingsConfirmation(action, form, trigger, label) {
   if (form.elements.enabled?.value === 'yes' && form.dataset.permissions)
     return [
       form.closest('[data-extension]').querySelector('h3').textContent +
-        (form.elements.enabled.value === 'yes'
-          ? 'を有効にする'
-          : 'を無効にする'),
+        'を有効にする',
       (form.dataset.publicIntake
         ? '全プロダクトで機能が使えるようになります。受付はプロダクトごとに開始します。\n'
         : '') +
@@ -201,16 +200,20 @@ function settingsConfirmation(action, form, trigger, label) {
   if (form.elements.enabled?.value === 'no')
     return [
       form.closest('[data-extension]').querySelector('h3').textContent +
-        (form.elements.enabled.value === 'yes'
-          ? 'を有効にする'
-          : 'を無効にする'),
+        'を無効にする',
       form.closest('[data-extension]').querySelector('h3').textContent +
         'を無効にします。設定は保持され、再度有効にするまで新しい処理は停止します。',
     ]
   if (action === '/articles/edit' && trigger?.value === 'publish')
     return [
       label,
-      '「' + form.elements.title.value + '」を公開ヘルプに掲載します。',
+      '「' +
+        form.elements.title.value +
+        '」を ' +
+        (form.elements.product.selectedOptions?.[0]?.textContent.trim() ||
+          form.elements.product.dataset.productName ||
+          form.elements.product.value) +
+        ' の公開ヘルプに掲載します。',
     ]
 }
 

@@ -32,7 +32,11 @@
     for (const candidate of bar.querySelectorAll('[data-change="assign"]'))
       candidate.setAttribute(
         'aria-pressed',
-        String(assignees.size === 1 && assignees.has(candidate.dataset.value)),
+        assignees.has(candidate.dataset.value)
+          ? assignees.size === 1
+            ? 'true'
+            : 'mixed'
+          : 'false',
       )
     const size = selected().length
     bar.inert = !size

@@ -30,7 +30,7 @@ const operations: Record<string, string> = {
   'issues.preview': '起票内容を確認',
   'issues.create': '確認した内容で起票',
   'issues.link': '既存の課題と紐づける',
-  'issues.impact': '修正前後の件数を比較',
+  'issues.impact': '選んだ期間の声を見る',
   'merge.combine': '会話を統合',
   'metrics.report': '集計する',
   'snooze.defer': '指定日時まで保留',

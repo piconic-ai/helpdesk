@@ -55,9 +55,11 @@ export function WidgetSettings({
   product,
   url,
   options,
+  local,
 }: {
   product: { id: string; name: string }
   url: string
+  local: boolean
   options: ChatWidget
 }) {
   const origin = new URL(url).origin
@@ -71,7 +73,9 @@ export function WidgetSettings({
       data-product={product.id}
     >
       <Stack gap="md">
-        <h3>プロダクトへの埋め込み</h3>
+        <h3>
+          {local ? 'この端末で試す埋め込みコード' : 'プロダクトへの埋め込み'}
+        </h3>
         <label>
           埋め込みコード
           <Textarea data-snippet="" readonly rows={3}>

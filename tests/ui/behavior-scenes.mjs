@@ -28,6 +28,9 @@ const cases = [
     '/settings/labels',
     async (p) => {
       await p.getByRole('button', { name: '操作：経理', exact: true }).click()
+      await p
+        .getByRole('combobox', { name: 'まとめる先' })
+        .selectOption({ label: '請求' })
       await p.getByRole('button', { name: '別のラベルにまとめる' }).click()
       await expect(p.getByRole('dialog')).toBeVisible()
     },

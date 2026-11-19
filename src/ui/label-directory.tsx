@@ -61,6 +61,9 @@ function labelActions(row: Row, rows: Row[], index: number) {
           <Input type="hidden" name="label" value={row.name} />
           <Field label="まとめる先">
             <NativeSelect name="target" aria-label="まとめる先" required>
+              <option value="" disabled selected>
+                まとめる先を選ぶ
+              </option>
               {rows
                 .filter((r) => r.name !== row.name)
                 .map((r) => (

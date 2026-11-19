@@ -213,6 +213,7 @@ function richChoice(select, index) {
       )
   }
   for (const opt of select.options) {
+    if (opt.disabled && !opt.value) continue
     const item = document.createElement('button')
     item.type = 'button'
     item.className = 'button-quiet'

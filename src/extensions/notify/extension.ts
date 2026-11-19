@@ -76,7 +76,7 @@ export const notify: Extension = {
     ]
     return destinations.length
       ? '通知先：' + destinations.join('、')
-      : '通知先は未設定です。'
+      : '通知先は未設定です。配信するには通知先を設定してください。'
   },
   permissions: ['external_fetch', 'read_body', 'send'],
   subscribers: [

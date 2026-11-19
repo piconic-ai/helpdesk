@@ -251,3 +251,35 @@ test('375pxの空の返信欄から添付の依頼を読み、入力すると返
   ).toBeVisible()
   await expect(composer.locator('.composer-addresses')).toBeVisible()
 })
+
+test('375pxで短い返信は冒頭まで見え、長い返信は欄内で読み直せる', async ({
+  page,
+  scene,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(scene.origin + '/conversation/1')
+  const field = page.getByRole('textbox', { name: '返信', exact: true })
+  const sentence =
+    'お問い合わせありがとうございます。領収書の宛名を確認し、再発行の手順をご案内します。'
+  await field.fill(sentence)
+  await field.press('End')
+  expect(
+    await field.evaluate((el) => el.scrollHeight - el.clientHeight),
+  ).toBeLessThanOrEqual(1)
+  await field.fill(Array(16).fill(sentence).join('\n'))
+  await field.press('End')
+  expect(await field.evaluate((el) => el.scrollHeight)).toBeGreaterThan(
+    await field.evaluate((el) => el.clientHeight),
+  )
+  await field.press(
+    process.platform === 'darwin' ? 'Meta+ArrowUp' : 'Control+Home',
+  )
+  await expect.poll(() => field.evaluate((el) => el.selectionStart)).toBe(0)
+  await expect
+    .poll(() =>
+      field.evaluate(
+        (el) => el.scrollTop <= parseFloat(getComputedStyle(el).paddingTop),
+      ),
+    )
+    .toBe(true)
+})

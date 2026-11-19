@@ -95,6 +95,9 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
     .click()
   const confirmMerge = page.locator('dialog:modal')
   await expect(confirmMerge).toContainText('「#1 ')
+  await expect(confirmMerge).toContainText(
+    '共通の返信先：customer1@example.net',
+  )
   await expect(
     confirmMerge.getByRole('button', {
       name: 'この会話を統合する',

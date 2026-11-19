@@ -102,7 +102,10 @@ export function libraryPage(
   candidateCount: number,
   query: Record<string, string>,
 ) {
-  const list = listRows(items, query, (a) => ({
+  const updated = [...items].sort(
+    (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+  )
+  const list = listRows(updated, query, (a) => ({
     text:
       a.title +
       ' ' +
@@ -117,6 +120,7 @@ export function libraryPage(
     <ListFilters
       title="記事"
       path="/articles"
+      defaultOrder="更新が新しい順"
       query={query}
       filterLabel="公開状態"
       options={[
@@ -216,6 +220,7 @@ export function candidatesPage(
         <ListFilters
           title="候補"
           path="/articles/candidates"
+          defaultOrder="会話番号の新しい順"
           query={query}
           filterLabel="記事の作成"
           options={[
@@ -311,7 +316,12 @@ function articleProduct(
         <input type="hidden" name="number" value={source.number} />
       )}
       {data.id && <input type="hidden" name="id" value={data.id} />}
-      <input type="hidden" name="product" value={data.product} />
+      <input
+        type="hidden"
+        name="product"
+        value={data.product}
+        data-product-name={product?.name}
+      />
       {product && (
         <p>
           <ProductMark product={product} />
@@ -441,26 +451,28 @@ function guideLink(id: string) {
   return link && <ActionLink href={link[0]}>{link[1]}</ActionLink>
 }
 
-function portalControls(id: string, p: Portal) {
-  if (id === 'issues')
-    return (
-      <form method="post" action="/extensions/issues/repository">
-        <input type="hidden" name="product" value={p.id} />
-        <label>
-          GitHub リポジトリ
-          <Input
-            name="repository"
-            value={p.repository}
-            placeholder="owner/repository"
-            required
-          />
-        </label>
-        <SaveActions
-          verb={p.repository ? 'リポジトリを更新' : '登録する'}
-          cancel="/extensions/issues"
+function repositorySettings(p: Portal) {
+  return (
+    <form method="post" action="/extensions/issues/repository">
+      <input type="hidden" name="product" value={p.id} />
+      <label>
+        GitHub リポジトリ
+        <Input
+          name="repository"
+          value={p.repository}
+          placeholder="例：example/helpdesk"
+          required
         />
-      </form>
-    )
+      </label>
+      <SaveActions
+        verb={p.repository ? 'リポジトリを更新' : '登録する'}
+        cancel="/extensions/issues"
+      />
+    </form>
+  )
+}
+function portalControls(id: string, p: Portal) {
+  if (id === 'issues') return repositorySettings(p)
   const url = new URL(p.url)
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   if (!p.ready)
@@ -507,10 +519,15 @@ function portalControls(id: string, p: Portal) {
           product={p}
           url={p.url}
           options={p.publicSettings.widget}
+          local={local}
         />
       ) : (
         <>
-          <p>登録済みのサイトに次のコードを貼り付けてください。</p>
+          <p>
+            {local
+              ? 'この端末で試す埋め込みコード'
+              : '登録済みのサイトに次のコードを貼り付けてください。'}
+          </p>
           <Stack
             as="section"
             data-copy-block=""

@@ -272,8 +272,8 @@ function operationField(
       <label>
         {label}
         <NativeSelect name={key}>
-          <option value="">伏せて書き出す</option>
-          <option value="true">含めて書き出す</option>
+          <option value="">名前とメールアドレスを伏せる</option>
+          <option value="true">名前とメールアドレスを含める</option>
         </NativeSelect>
       </label>
     )
@@ -400,6 +400,9 @@ function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
     <PanelForm
       method="post"
       action={'/actions/' + op.name}
+      data-merge-contact={
+        op.name === 'merge.combine' ? data?.conversation.contact : undefined
+      }
       data-source={
         op.name === 'merge.combine' && data
           ? '#' + number + ' ' + data.conversation.subject

@@ -13,6 +13,9 @@ test('ボタンの設定で埋め込みコードと見本が変わり、保存�
   const product = page
     .locator('section.settings-card')
     .filter({ has: page.getByRole('heading', { name: 'Slide', exact: true }) })
+  await expect(
+    product.getByRole('heading', { name: 'この端末で試す埋め込みコード' }),
+  ).toBeVisible()
   const snippet = product.getByLabel('埋め込みコード')
   const initial = await snippet.inputValue()
   expect(initial.split('\n')).toHaveLength(1)

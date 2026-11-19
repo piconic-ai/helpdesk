@@ -33,7 +33,12 @@ for (const [index, url] of [...routes].sort().entries()) {
           await page.goto(server.origin + url)
           const slug =
             url.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home'
-          await inspectMenus(page, url === '/', async (id) => {
+          await inspectMenus(page, url === '/', async (id, panel) => {
+            const bounds = await panel.boundingBox()
+            expect.soft(bounds.y, id + ' top').toBeGreaterThanOrEqual(0)
+            expect
+              .soft(bounds.y + bounds.height, id + ' bottom')
+              .toBeLessThanOrEqual(page.viewportSize().height + 1)
             const variant = url.includes('?')
               ? '-' + createHash('sha256').update(url).digest('hex').slice(0, 8)
               : ''
