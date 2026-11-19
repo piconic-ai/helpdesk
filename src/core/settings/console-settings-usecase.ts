@@ -1,3 +1,4 @@
+import { saveLabelColor } from '../conversations/label-colors-store'
 import { z } from 'zod'
 import { listContacts } from '../operations/operator-store'
 import type { Context } from '../operations/catalog-usecase'
@@ -36,4 +37,17 @@ export function mailboxInput(
   }
   const name = z.string().trim().min(1).max(200).parse(form.name)
   return { product: ctx.uuid(), name, address }
+}
+
+export async function changeLabelColor(ctx: Context, input: unknown) {
+  const { label, color } = z
+    .object({
+      label: z.string().min(1).max(200),
+      color: z
+        .string()
+        .regex(/^[0-7]$/)
+        .transform(Number),
+    })
+    .parse(input)
+  await saveLabelColor(ctx.env.DB, label, color)
 }

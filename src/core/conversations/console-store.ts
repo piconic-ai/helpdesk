@@ -3,7 +3,7 @@ import { z } from 'zod'
 export async function products(db: D1Database) {
   const rows = await db
     .prepare(
-      'SELECT p.id,p.name,s.name AS senderName,coalesce(s.show_operator,0) AS showOperator FROM products p LEFT JOIN product_senders s ON s.product=p.id ORDER BY p.name,p.id',
+      'SELECT p.id,p.name,i.emoji,i.image_key IS NOT NULL AS hasIconImage,s.name AS senderName,coalesce(s.show_operator,0) AS showOperator FROM products p LEFT JOIN product_icons i ON i.product=p.id LEFT JOIN product_senders s ON s.product=p.id ORDER BY p.name,p.id',
     )
     .all()
   return z
@@ -11,6 +11,8 @@ export async function products(db: D1Database) {
       z.object({
         id: z.string(),
         name: z.string(),
+        emoji: z.string().nullable(),
+        hasIconImage: z.number().transform(Boolean),
         senderName: z.string().nullable(),
         showOperator: z.number().transform(Boolean),
       }),
@@ -38,14 +40,17 @@ export async function rowDetails(
         CASE WHEN c.status='open' AND m.kind='inbound' THEN 0 ELSE 1 END, m.created_at DESC,m.rowid DESC) AS position
     FROM messages m JOIN members x ON x.source=m.number JOIN conversations c ON c.number=x.target WHERE x.target IN (SELECT value FROM json_each(?1))
   ), reads AS (
-    SELECT x.target,MAX(e.at) AS at FROM events e JOIN members x ON x.source=e.number
-    WHERE e.kind='conversation_viewed' AND json_extract(e.actor,'$.id')=?3 GROUP BY x.target
+    SELECT x.target,MAX(e.at) AS at,MAX(e.id) AS id FROM events e JOIN members x ON x.source=e.number
+    WHERE e.kind='conversation_viewed' AND json_extract(e.actor,'$.kind')='operator' AND json_extract(e.actor,'$.id')=?3 GROUP BY x.target
   ), last_inbound AS (
     SELECT target,MAX(created_at) AS at FROM entries WHERE kind='inbound' GROUP BY target
   )
   SELECT c.number,c.contact_name AS name,p.name AS productName, coalesce(m.latest,c.created_at) AS at,
     m.latestKind AS previewKind,m.latestDelivery AS previewDelivery,i.at AS lastInbound,
-    coalesce(m.messages,0) AS messages, EXISTS(SELECT 1 FROM attachments a JOIN messages f ON a.message=f.id JOIN members x ON x.source=f.number WHERE x.target=c.number) AS hasFiles,coalesce(m.body,'') AS preview, coalesce(i.at > coalesce(r.at,-1),0) AS unread,
+    coalesce(m.messages,0) AS messages, EXISTS(SELECT 1 FROM attachments a JOIN messages f ON a.message=f.id JOIN members x ON x.source=f.number WHERE x.target=c.number) AS hasFiles,coalesce(m.body,'') AS preview, (coalesce(i.at > coalesce(r.at,-1),0) OR EXISTS (
+      SELECT 1 FROM events e JOIN members x ON x.source=e.number WHERE x.target=c.number
+      AND e.kind='message_received' AND e.id>coalesce(r.id,0)
+    )) AS unread,
     EXISTS(SELECT 1 FROM entries f WHERE f.target=c.number AND f.delivery='failed') AS failed,
     (SELECT json_group_array(name) FROM (SELECT DISTINCT l.name FROM labels l JOIN members x ON x.source=l.number WHERE x.target=c.number ORDER BY l.name)) AS labels
   FROM conversations c JOIN products p ON p.id=c.product LEFT JOIN entries m ON m.target=c.number AND m.position=1
@@ -67,7 +72,9 @@ export async function rowDetails(
         hasFiles: z.number(),
         preview: z.string(),
         previewKind: z.enum(['inbound', 'note', 'outbound']).nullable(),
-        previewDelivery: z.string().nullable(),
+        previewDelivery: z
+          .enum(['draft', 'awaiting_approval', 'queued', 'sent', 'failed'])
+          .nullable(),
         unread: z.number(),
         failed: z.number(),
         labels: z

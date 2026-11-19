@@ -26,6 +26,7 @@ async function members(ctx: ExtensionContext, number: number) {
 }
 export const presence: Extension = {
   id: 'presence',
+  icon: 'presence',
   permissions: [],
   config: z.object({}).strict(),
   operations: [

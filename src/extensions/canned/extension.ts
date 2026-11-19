@@ -7,6 +7,7 @@ const input = z.object({
 })
 export const canned = {
   id: 'canned',
+  icon: 'canned',
   permissions: [],
   config: templateConfig,
   operations: [

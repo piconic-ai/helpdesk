@@ -10,7 +10,7 @@ export function ArticleListRow({
 }: {
   title: string
   href: string
-  product: string
+  product: Child
   date: Child
   rating: string
   status: string

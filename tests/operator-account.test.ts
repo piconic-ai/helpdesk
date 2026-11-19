@@ -210,3 +210,45 @@ it('sends the configured product From name; human identity is opt-in and fixed w
   const page = await app.request(origin + '/conversation/' + number, {}, env)
   expect(await page.text()).toContain('Studio サポート · 山本 花')
 })
+
+it('publishes only the chosen product icon and restricts replacements to a same-origin administrator', async () => {
+  const admin = { ...env, LOCAL_OPERATOR: 'admin@example.org' }
+  const publicEnv = {
+    ...env,
+    LOCAL_OPERATOR: undefined,
+    ENVIRONMENT: 'production' as const,
+  }
+  const icon = (id: string) =>
+    app.request(origin + '/help/product-icon/' + id, {}, publicEnv)
+  const write = (bindings: Bindings, mode: string, from = origin) => {
+    const form = new FormData()
+    form.set('mode', mode)
+    if (mode === 'image')
+      form.set(
+        'image',
+        new File([samplePng], 'icon.png', { type: 'image/png' }),
+      )
+    return app.request(
+      origin + '/settings/product-icon/studio',
+      { method: 'POST', headers: { Origin: from }, body: form },
+      bindings,
+    )
+  }
+  expect((await write(env, 'image')).status).toBe(403)
+  expect((await write(admin, 'image', 'https://outside.example')).status).toBe(
+    403,
+  )
+  expect((await write(admin, 'image')).status).toBe(303)
+  const key = await platform.DB.prepare(
+    "SELECT image_key FROM product_icons WHERE product='studio'",
+  ).first<string>('image_key')
+  expect(key).toBeTruthy()
+  expect((await icon('studio')).headers.get('content-type')).toBe('image/png')
+  expect((await icon(key!)).status).toBe(404)
+  expect(
+    (await app.request(origin + '/account/avatar/' + key, {}, env)).status,
+  ).toBe(404)
+  expect((await write(admin, 'initial')).status).toBe(303)
+  expect(await platform.RAW.get('product-icons/' + key)).toBeNull()
+  expect(await (await icon('studio')).text()).toContain('>S</text>')
+})

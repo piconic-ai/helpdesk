@@ -1,8 +1,10 @@
+import { consoleFrame } from './src/core/conversations/console-usecase'
 import { Hono, type Context } from 'hono'
 import { galleryPage } from './src/ui/gallery-page'
 import { z } from 'zod'
 import type { Bindings } from './src/core/settings/bindings'
 import type { AppEnv } from './src/core/operators/middleware'
+import { productIconRoutes } from './src/core/settings/product-icon-routes'
 import { accountRoutes } from './src/core/operators/account-routes'
 import { extensionConsoleRoutes } from './src/operator/extension-console-routes'
 import { operatorRoutes } from './src/core/operations/operations-routes'
@@ -55,7 +57,8 @@ async function renderMissingPage(c: Context<AppEnv>) {
       c.get('operator') &&
       !/^\/(?:api|mcp|public|ui|components|extension-assets)(?:\/|$)/.test(path)
     ) {
-      c.res = await c.html(operatorErrorPage(404), 404)
+      const frame = await consoleFrame(c.env, c.get('operator'), path)
+      c.res = await c.html(operatorErrorPage(404, frame), 404)
     }
   }
 }
@@ -79,7 +82,9 @@ app.use('*', async (c, next) => {
   if (!c.res.headers.has('Content-Security-Policy'))
     c.header(
       'Content-Security-Policy',
-      (c.get('operator') ? "img-src 'self'; " : '') +
+      (c.get('operator') || c.req.path.startsWith('/help')
+        ? "img-src 'self'; "
+        : '') +
         "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     )
   c.header('X-Content-Type-Options', 'nosniff')
@@ -117,6 +122,7 @@ app.on('GET', ['/help', '/help/'], async (c) => {
 app.get('/help/*', (c) => c.notFound())
 app.route('/', intakeRoutes)
 app.route('/', machineRoutes)
+operatorRoutes.route('/', productIconRoutes)
 operatorRoutes.route('/', accountRoutes)
 operatorRoutes.route('/', extensionConsoleRoutes)
 app.route('/', operatorRoutes)

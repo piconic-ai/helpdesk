@@ -14,6 +14,7 @@ export function matches(
 }
 export const rules: Extension = {
   id: 'rules',
+  icon: 'rules',
   permissions: [],
   config,
   subscribers: [

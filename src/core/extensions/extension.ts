@@ -1,3 +1,4 @@
+import type { GlyphName } from '../../ui/glyph'
 import type { z } from 'zod'
 import type { Context, Scope } from '../operations/catalog-usecase'
 
@@ -119,10 +120,13 @@ export type Panel = {
   links?: (
     ctx: ExtensionContext,
     number?: number,
-  ) => Promise<{ label: string; href: string }[]>
+  ) => Promise<
+    { label: string; href: string; icon?: { name: GlyphName; label: string } }[]
+  >
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
 export type Extension = {
+  icon?: GlyphName
   navigationCount?: (ctx: ExtensionContext) => Promise<number>
   configurationGaps?: (
     ctx: ExtensionContext,

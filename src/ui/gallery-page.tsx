@@ -312,6 +312,7 @@ function OverviewExample() {
         value="窓口 2件"
       />
       <ExtensionCard
+        icon="articles"
         title="ヘルプ記事"
         description="よくある質問の答えを公開します。"
         toggle={
@@ -323,6 +324,7 @@ function OverviewExample() {
         settings={<ActionLink href="#edit">設定</ActionLink>}
       />
       <ExtensionCard
+        icon="feedback"
         title="フィードバック"
         description="利用者からの声を集めます。"
         toggle={

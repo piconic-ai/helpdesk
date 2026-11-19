@@ -84,3 +84,26 @@
     width: 100%;
   }
 }
+[aria-label='声の内訳'] [data-ui='list-row'] {
+  isolation: isolate;
+}
+[aria-label='声の内訳'] [data-ui='list-row'] > small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: end;
+  gap: var(--spacing-xs);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+[aria-label='声の内訳'] [data-ui='list-row'] strong {
+  overflow-wrap: anywhere;
+}
+.count-bar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--colors-surface-card);
+  pointer-events: none;
+  z-index: -1;
+}

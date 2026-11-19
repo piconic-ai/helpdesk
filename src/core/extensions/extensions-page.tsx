@@ -1,3 +1,4 @@
+import { glyph } from '../../ui/glyph'
 import { Stack } from '../../ui/layout'
 import {
   DetailPage,
@@ -70,6 +71,7 @@ function extensionSettings(entry: ExtensionEntry) {
   return (
     <ExtensionCard
       title={label}
+      icon={entry.icon}
       description={guides[entry.id]?.description ?? label}
       toggle={toggle}
       id={'extension-' + entry.id}
@@ -191,7 +193,7 @@ export function managementPage(
       {sections.length ? (
         sections
       ) : (
-        <EmptyState>
+        <EmptyState icon="search">
           条件に合う拡張機能はありません。検索条件や有効状態を変更してください。
         </EmptyState>
       )}
@@ -210,6 +212,7 @@ function operationField(
   number?: number,
 ) {
   if (key === 'changeId' && op.name.startsWith('snooze.')) return null
+  if (key === 'includeHistory' && op.name === 'metrics.report') return null
   if (key === 'number' && number)
     return <input type="hidden" name={key} value={number} />
   const required = op.inputSchema.required?.includes(key)
@@ -404,11 +407,12 @@ function panel(p: Panel, number?: number, data?: Details) {
   const summary = summaryFor(p, data)
   const title = extensionLabel(p.id) === p.id ? p.title : extensionLabel(p.id)
   return (
-    <ContextPanel title={title} number={number} extension={p.id}>
+    <ContextPanel icon={p.icon} title={title} number={number} extension={p.id}>
       {p.script && <script defer src={p.script}></script>}
       {summary && <PanelSummary>{summary}</PanelSummary>}
       {p.links.map((l) => (
         <p>
+          {l.icon && glyph(l.icon.name, l.icon.label)}
           <ActionLink href={l.href} variant="ghost">
             {l.label}
           </ActionLink>

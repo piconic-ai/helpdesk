@@ -6,6 +6,7 @@ import type { issueBoard } from '../extensions/issues/board-usecase'
 import { Stack } from '../ui/layout'
 import {
   IssueImpact,
+  IssueProducts,
   PendingIssues,
   IssueTable,
   IssueVoices,
@@ -23,7 +24,7 @@ import { ListFilters, matchesSearch, PageLinks } from '../ui/listing'
 import { ActionLink, Button } from '../ui/controls'
 
 type Row = Awaited<ReturnType<typeof issueBoard>>[number]
-type Contact = { name: string; subject: string }
+type Contact = { name: string; subject: string; email: string | null }
 const path = (row: Pick<Row, 'repository' | 'issue'>) =>
   '/issues/' + issueKey(row.repository, row.issue)
 function aggregate(rows: Row[], names: Map<string, string>) {
@@ -33,7 +34,10 @@ function aggregate(rows: Row[], names: Map<string, string>) {
     const voices = products.flatMap((p) => p.voices)
     return {
       ...first,
-      products,
+      productMarks: products.map((p) => ({
+        id: p.product,
+        name: names.get(p.product) ?? p.product,
+      })),
       count: voices.length,
       productNames: products
         .map((p) => names.get(p.product) ?? p.product)
@@ -170,11 +174,14 @@ export function issueDetailPage(
       title={issue.title}
       back={{ href: '/issues', label: '課題の一覧に戻る' }}
       description={
-        issue.productNames +
-        ' · ' +
-        { closed: '直した', open: '開いている', unknown: '状態を同期待ち' }[
-          issue.state
-        ]
+        <>
+          <IssueProducts products={issue.productMarks} detail /> ·{' '}
+          {
+            { closed: '直した', open: '開いている', unknown: '状態を同期待ち' }[
+              issue.state
+            ]
+          }
+        </>
       }
       action={
         <ActionLink href={issueUrl(issue.repository, issue.issue)}>
@@ -208,7 +215,10 @@ export function issueDetailPage(
             r.impact &&
             r.closedAt !== null && (
               <IssueImpact
-                name={names.get(r.product) ?? r.product}
+                product={{
+                  id: r.product,
+                  name: names.get(r.product) ?? r.product,
+                }}
                 before={r.impact.before}
                 after={r.impact.after}
                 days={Math.max(
@@ -225,7 +235,12 @@ export function issueDetailPage(
 }
 export function issueNewPage(
   frame: ConsoleFrame,
-  choices: { number: number; subject: string; productName: string }[],
+  choices: {
+    number: number
+    subject: string
+    product: string
+    productName: string
+  }[],
 ) {
   return shell(
     '課題を追加',
@@ -237,7 +252,7 @@ export function issueNewPage(
         {choices.length ? (
           <NewIssueForm action="/actions/issues.preview" choices={choices} />
         ) : (
-          <EmptyState>
+          <EmptyState icon="issues">
             起票できる会話はありません。起票先とトークンを設定したプロダクトの会話から追加できます。
           </EmptyState>
         )}

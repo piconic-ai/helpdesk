@@ -49,7 +49,7 @@ export function cannedSettings(
           ))}
         </RowList>
       ) : (
-        <EmptyState>
+        <EmptyState icon={hasTemplates ? 'search' : 'canned'}>
           {hasTemplates
             ? '条件に合う定型文はありません。'
             : '保存済みの定型文はありません。'}

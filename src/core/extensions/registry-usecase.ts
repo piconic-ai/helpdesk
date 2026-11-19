@@ -78,6 +78,7 @@ export async function management(ctx: Context) {
             )) ?? [])
           : [],
         id: i.extension.id,
+        icon: i.extension.icon,
         enabled: i.enabled,
         permissions: i.extension.permissions,
         secrets: i.extension.secrets ?? [],
@@ -108,6 +109,7 @@ export async function panels(
       )
       result.push({
         id: installed.extension.id,
+        icon: installed.extension.icon,
         slot,
         title: panel.title,
         script: panel.script,

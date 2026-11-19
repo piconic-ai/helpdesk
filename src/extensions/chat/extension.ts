@@ -46,6 +46,7 @@ export async function handOffQuestion(
 }
 export const chat: Extension = {
   id: 'chat',
+  icon: 'chat',
   requiresAI: true,
   permissions: ['external_fetch'],
   config,

@@ -134,7 +134,7 @@ dialog:modal:not(#nav-drawer) {
 }
 [data-ui='conversation-row'] .row-time,
 [data-ui='conversation-row'] .row-assignee {
-  flex: 1 0 auto;
+  flex: none;
   justify-content: end;
 }
 time,

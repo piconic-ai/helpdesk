@@ -1,0 +1,4 @@
+CREATE TABLE label_colors (
+  name TEXT PRIMARY KEY,
+  color INTEGER NOT NULL CHECK (color BETWEEN 0 AND 7)
+);

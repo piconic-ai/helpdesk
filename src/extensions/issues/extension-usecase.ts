@@ -26,6 +26,7 @@ const noticesInput = issueRef.extend({ product: z.string().min(1) })
 const withUrl = linked.extend({ url: z.url() })
 export const issues: Extension = {
   id: 'issues',
+  icon: 'issues',
   navigationCount: pendingIssueCount,
   async configurationGaps(ctx, products) {
     const missing = await Promise.all(

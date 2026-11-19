@@ -22,6 +22,7 @@ import {
 } from './articles-pages'
 export const articles: Extension = {
   id: 'articles',
+  icon: 'articles',
   permissions: [],
   config,
   async replyLinks(ctx, product) {

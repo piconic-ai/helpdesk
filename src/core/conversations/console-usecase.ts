@@ -1,3 +1,4 @@
+import { labelColors } from './label-colors-store'
 import { inboxSort } from './inbox-location'
 import { extensionContext } from '../extensions/context-usecase'
 import { listOperators, type Operator } from '../operators/operators-store'
@@ -76,12 +77,14 @@ export async function consoleFrame(
     products: choices,
     operators,
     labels,
+    labelColors: await labelColors(env.DB),
     approvalNumbers,
     openNumbers,
     counts,
     extensions: await Promise.all(
       (env.EXTENSIONS?.active ?? []).map(async (installed) => ({
         id: installed.extension.id,
+        icon: installed.extension.icon,
         slots: installed.extension.panels?.map((p) => p.slot) ?? [],
         count: await installed.extension.navigationCount?.(
           extensionContext(
@@ -147,7 +150,7 @@ export async function inboxMetadata(
 }
 export async function threadFiles(
   env: Bindings,
-  files: { key: string; filename: string }[],
+  files: { key: string; filename: string; mime: string }[],
 ) {
   if (!files.length) return []
   const owners = new Map(

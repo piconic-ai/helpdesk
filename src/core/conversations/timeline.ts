@@ -67,6 +67,15 @@ export function timelineChange(
 }
 
 type HistoryEvent = { kind: string; at: number; payload: string; actor: string }
+export function timelineLabel(e: { kind: string; payload: string }) {
+  if (e.kind !== 'label_changed' && e.kind !== 'rules.applied') return
+  try {
+    const fields = payload.parse(JSON.parse(e.payload))
+    return fields.name ?? fields.label
+  } catch {
+    return
+  }
+}
 function changeKey(e: HistoryEvent) {
   if (e.kind === 'assigned' || e.kind === 'status_changed') return e.kind
   if (e.kind !== 'label_changed') return null

@@ -1,5 +1,5 @@
 import { threadUrl } from './inbox-location'
-import { displayEvents, timelineChange } from './timeline'
+import { displayEvents, timelineChange, timelineLabel } from './timeline'
 import { ReplyComposer } from '@/components/ReplyComposer'
 import type { Child } from 'hono/jsx'
 import { ActionMenu, Popover, ActionLink, Input } from '../../ui/controls'
@@ -22,7 +22,14 @@ import {
   ThreadTimeline,
   TimelineEntry,
 } from '../../ui/thread-parts'
-import { Delivery } from '../../ui/inbox-parts'
+import {
+  Delivery,
+  channelIcon,
+  attachmentIcon,
+  LabelDot,
+} from '../../ui/inbox-parts'
+import { ContactAvatar } from '../../ui/operator-identity'
+import { ProductMark } from '../../ui/product-mark'
 import { adjacentOpen } from './inbox-location'
 import { actorIdentity } from '../operators/identity-page'
 import { actorSchema } from './state'
@@ -45,13 +52,6 @@ import {
 export { inboxPage } from './inbox-page'
 export { settingsPage } from './settings-page'
 export { shell } from './console-page'
-const deliveries: Record<string, string> = {
-  draft: '下書き',
-  awaiting_approval: '承認待ち',
-  queued: '送信待ち',
-  sent: '送信済み',
-  failed: '送信失敗',
-}
 type Names = ConsoleFrame['operators']
 type Details = Result<'get'>
 type Files = Awaited<ReturnType<typeof threadFiles>>
@@ -75,7 +75,7 @@ function message(
       kind={m.kind}
       header={
         <>
-          <h2>{label}</h2>
+          <h2>{messageHeading(m.kind, label, c.contact)}</h2>
           {stamp(m.created_at, now)}
         </>
       }
@@ -86,9 +86,7 @@ function message(
         ) : (
           <span>{actorIdentity(m.actor, names)}</span>
         )}
-        {m.delivery && (
-          <Delivery state={m.delivery}>{deliveries[m.delivery]}</Delivery>
-        )}
+        {m.delivery && <Delivery state={m.delivery} />}
       </MessageAuthor>
       {m.body && (!draft || !canSend) && <MessageText>{m.body}</MessageText>}
       {m.html && (
@@ -117,6 +115,36 @@ function message(
     </Message>
   )
 }
+function messageHeading(
+  kind: Details['messages'][number]['kind'],
+  label: string,
+  contact: string,
+) {
+  return kind === 'inbound' ? (
+    <>
+      <ContactAvatar name={label} email={contact} />
+      {label}
+    </>
+  ) : (
+    label
+  )
+}
+function changeSummary(
+  event: Details['events'][number],
+  names: Names,
+  colors: ConsoleFrame['labelColors'],
+) {
+  const text = timelineChange(event, names)
+  const name = timelineLabel(event)
+  return name ? (
+    <>
+      <LabelDot label={name} colors={colors} />
+      {text}
+    </>
+  ) : (
+    text
+  )
+}
 function attachmentList(files: Files) {
   if (!files.length) return null
   return (
@@ -127,7 +155,7 @@ function attachmentList(files: Files) {
             href={'/attachment?key=' + encodeURIComponent(f.key)}
             download={f.filename}
           >
-            {f.filename}
+            {attachmentIcon(f)} {f.filename}
           </a>
           {f.size !== undefined && <small>{fileSize(f.size)}</small>}
         </li>
@@ -215,6 +243,7 @@ function threadContext(
   panels: Child,
   now: number,
   names: Names,
+  colors: ConsoleFrame['labelColors'],
 ) {
   return (
     <ThreadPanel>
@@ -240,10 +269,10 @@ function threadContext(
               {stamp(e.at, now)}
               <span>
                 {' '}
-                {timelineChange(e, names) ??
+                {changeSummary(e, names, colors) ??
                   eventLabels[e.kind] ??
-                  e.kind} ·{' '}
-                {eventActor(e.actor, names)}
+                  e.kind}{' '}
+                · {eventActor(e.actor, names)}
               </span>
             </li>
           ))}
@@ -295,13 +324,23 @@ export function conversationPage(
       attributes={
         <AttributeRow>
           <code>#{c.number}</code>
-          <span>{info?.productName ?? c.product}</span>
+          <ProductMark
+            product={{ id: c.product, name: info?.productName ?? c.product }}
+            size="heading"
+          />
+          {channelIcon(c.origin)}
           {statusPicker(c)}
           {c.kind === 'inquiry' && assignment(c, frame)}
-          {labelPicker(c.number, data.labels, frame.labels)}
+          {labelPicker(c.number, data.labels, frame.labels, frame.labelColors)}
         </AttributeRow>
       }
-      aside={threadContext(data, panels.related, frame.now, names)}
+      aside={threadContext(
+        data,
+        panels.related,
+        frame.now,
+        names,
+        frame.labelColors,
+      )}
     >
       {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
       {holds.map((hold) => replyUndoForm(c.number, hold))}
@@ -319,7 +358,7 @@ export function conversationPage(
             ),
           })),
           ...displayEvents(data.events).flatMap((e) => {
-            const label = timelineChange(e, names)
+            const label = changeSummary(e, names, frame.labelColors)
             return label
               ? [
                   {

@@ -1,7 +1,8 @@
+import { ProductMark, productIconUrl } from './product-mark'
 import { raw } from 'hono/html'
 
 export function PublicShell(props: {
-  product: string
+  product: { id?: string; name: string }
   title: string
   content: string
   chat?: boolean
@@ -15,8 +16,11 @@ export function PublicShell(props: {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>
-          {props.title} · {props.product}
+          {props.title} · {props.product.name}
         </title>
+        {props.product.id && (
+          <link rel="icon" href={productIconUrl(props.product.id)} />
+        )}
         <link rel="stylesheet" href="/styles.css" />
         <link rel="stylesheet" href="/ui/public.css" />
         <link rel="stylesheet" href="/ui/layout.css" />
@@ -30,7 +34,16 @@ export function PublicShell(props: {
         )}
       </head>
       <body className="public-surface">
-        <header className="public-header">{props.product}</header>
+        <header className="public-header">
+          {props.product.id ? (
+            <ProductMark
+              product={{ id: props.product.id, name: props.product.name }}
+              size="public"
+            />
+          ) : (
+            props.product.name
+          )}
+        </header>
         <main className={props.chat ? 'chat-widget' : 'help-article'}>
           {raw(props.content)}
         </main>

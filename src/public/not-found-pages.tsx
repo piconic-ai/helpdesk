@@ -1,3 +1,4 @@
+import { ProductMark } from '../ui/product-mark'
 import { PageLinks } from '../ui/listing'
 import { paginateRows } from '../ui/pagination'
 import { ActionLink } from '../ui/controls'
@@ -23,7 +24,12 @@ export function missingPublicPage(
 
 type Destination = { label: string; path: string }
 export function helpLanding(
-  products: { name: string; links: Destination[]; matches: Destination[] }[],
+  products: {
+    id: string
+    name: string
+    links: Destination[]
+    matches: Destination[]
+  }[],
   query: string,
   page?: string,
 ) {
@@ -32,7 +38,10 @@ export function helpLanding(
   )
   const matches = paginateRows(
     products.flatMap((product) =>
-      product.matches.map((item) => ({ ...item, description: product.name })),
+      product.matches.map((item) => ({
+        ...item,
+        description: <ProductMark product={product} />,
+      })),
     ),
     page,
   )
@@ -59,17 +68,17 @@ export function helpLanding(
           }
         >
           {query && matches.total === 0 && (
-            <EmptyState>該当する記事はありません。</EmptyState>
+            <EmptyState icon="search">該当する記事はありません。</EmptyState>
           )}
           {query && matches.total > 0 && <PublicLinks items={matches.rows} />}
           {products.length ? (
             (query ? products : directory.rows).map((p) => (
-              <FormSection title={p.name}>
+              <FormSection title={<ProductMark product={p} size="heading" />}>
                 <PublicLinks items={p.links} />
               </FormSection>
             ))
           ) : (
-            <EmptyState>
+            <EmptyState icon="articles">
               ご利用のプロダクトの「お問い合わせ」または「ヘルプ」を開いてください。
             </EmptyState>
           )}

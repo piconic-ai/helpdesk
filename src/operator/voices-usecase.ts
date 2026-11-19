@@ -31,26 +31,66 @@ function cohort(
       ...extra,
     )
 }
-type Bucket = {
+type Bin = {
   dimension: 'product' | 'label' | 'month'
   value: string | null
   title: string
+  first: number
+  last: number
+  width: number
+  bin: number
   count: number
 }
+const jst = 9 * 3600000
 export async function voiceBuckets(db: D1Database, q: VoiceFilters) {
+  // Keep at most seven points per row, even for a report spanning many years.
   const result = await cohort(
     db,
     q,
     `
-    SELECT 'product' AS dimension,product AS value,productName AS title,COUNT(*) AS count FROM voices GROUP BY product
-    UNION ALL
-    SELECT 'label',labels.name,coalesce(labels.name,'ラベルなし'),COUNT(*) FROM voices LEFT JOIN labels USING(number) GROUP BY labels.name
-    UNION ALL
-    SELECT 'month',month,month,COUNT(*) FROM voices GROUP BY month
-    ORDER BY dimension,count DESC,title
+    , dates AS (
+      SELECT *, CAST((created_at+32400000)/86400000 AS INTEGER) AS received FROM voices
+    ), bounds AS (
+      SELECT coalesce(CAST((?4+32400000)/86400000 AS INTEGER),min(received)) AS start,
+        coalesce(CAST((?5-1+32400000)/86400000 AS INTEGER),max(received)) AS end FROM dates
+    ), dimensions AS (
+      SELECT 'product' AS dimension,product AS value,productName AS title,received,start AS first,end AS last
+        FROM dates CROSS JOIN bounds
+      UNION ALL
+      SELECT 'label',labels.name,coalesce(labels.name,'ラベルなし'),received,start,end
+        FROM dates CROSS JOIN bounds LEFT JOIN labels USING(number)
+      UNION ALL
+      SELECT 'month',month,month,received,
+        max(start,unixepoch(month||'-01')/86400),
+        min(end,unixepoch(month||'-01','+1 month')/86400-1)
+        FROM dates CROSS JOIN bounds
+    ), bins AS (
+      SELECT *,max(1,(last-first+7)/7) AS width FROM dimensions
+    )
+    SELECT dimension,value,title,first,last,width,(received-first)/width AS bin,count(*) AS count
+      FROM bins GROUP BY dimension,value,bin
   `,
-  ).all<Bucket>()
-  return result.results
+  ).all<Bin>()
+  const groups = Map.groupBy(result.results, (r) =>
+    JSON.stringify([r.dimension, r.value]),
+  )
+  return Array.from(groups.values(), (bins) => {
+    const { dimension, value, title, first, last, width } = bins[0]
+    const series = Array.from(
+      { length: Math.ceil((last - first + 1) / width) },
+      (_, i) => ({
+        from: (first + i * width) * day - jst,
+        to: Math.min(last + 1, first + (i + 1) * width) * day - jst,
+        value: 0,
+      }),
+    )
+    let count = 0
+    for (const bin of bins) {
+      series[bin.bin].value = bin.count
+      count += bin.count
+    }
+    return { dimension, value, title, count, series }
+  }).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'))
 }
 
 export async function voiceList(
@@ -73,13 +113,14 @@ export async function voiceList(
     db,
     q,
     `
-    SELECT number,subject,productName,kind,created_at AS at FROM voices
+    SELECT number,subject,product,productName,kind,created_at AS at FROM voices
     ORDER BY created_at DESC,number DESC LIMIT 20 OFFSET ?7`,
     (page - 1) * 20,
   ).all<{
     number: number
     subject: string
     productName: string
+    product: string
     kind: string
     at: number
   }>()

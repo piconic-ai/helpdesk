@@ -4,6 +4,7 @@ import { submissionSchema } from '../../core/intakes/intake'
 
 export const form = {
   id: 'form',
+  icon: 'form',
   permissions: [],
   config: z.object({}).strict(),
   intakes: [

@@ -120,7 +120,7 @@ export function tokensPage(
           ))}
         </RowList>
       ) : (
-        <EmptyState>
+        <EmptyState icon={tokens.length ? 'search' : 'tokens'}>
           {tokens.length
             ? '条件に合うトークンはありません。'
             : '発行済みのトークンはありません。'}

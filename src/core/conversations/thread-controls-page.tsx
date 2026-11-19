@@ -1,5 +1,6 @@
 import { Button, Input, Popover, Textarea, Field } from '../../ui/controls'
 import { ActionBar, Candidate, CandidateList, Notice } from '../../ui/patterns'
+import { LabelDot } from '../../ui/inbox-parts'
 import { DraftReview } from '../../ui/thread-parts'
 import { operatorAvatar } from '../operators/identity-page'
 import { action } from './console-page'
@@ -57,15 +58,27 @@ export function labelPicker(
   number: number,
   labels: { name: string }[],
   choices: string[],
+  colors: Record<string, number>,
 ) {
   const used = new Set(labels.map((l) => l.name))
   return (
     <Popover
       id="thread-labels"
       label={
-        labels.length
-          ? 'ラベル: ' + labels.map((l) => l.name).join('、')
-          : 'ラベルを選ぶ'
+        labels.length ? (
+          <>
+            ラベル:{' '}
+            {labels.map((l, index) => (
+              <>
+                {index ? '、' : ''}
+                <LabelDot label={l.name} colors={colors} />
+                {l.name}
+              </>
+            ))}
+          </>
+        ) : (
+          'ラベルを選ぶ'
+        )
       }
     >
       <CandidateList>
@@ -85,7 +98,11 @@ export function labelPicker(
                 aria-pressed={selected}
                 aria-label={name + (selected ? 'を外す' : 'を付ける')}
               >
-                <Candidate icon="#" selected={selected} label={name} />
+                <Candidate
+                  icon={<LabelDot label={name} colors={colors} />}
+                  selected={selected}
+                  label={name}
+                />
               </Button>
             </form>
           )

@@ -38,6 +38,7 @@ async function setDeadline(
 }
 export const snooze: Extension = {
   id: 'snooze',
+  icon: 'snooze',
   permissions: [],
   config: z.object({}).strict(),
   operations: [

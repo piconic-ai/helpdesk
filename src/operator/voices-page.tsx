@@ -1,6 +1,9 @@
+import { ProductMark, ProductSelect } from '../ui/product-mark'
+import { LabelDot } from '../ui/inbox-parts'
+import { CountBar, Sparkline } from '../ui/trends'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
-import { ActionLink, Button, Field, Input, NativeSelect } from '../ui/controls'
+import { ActionLink, Button, Field, Input } from '../ui/controls'
 import {
   ListPage,
   OverviewPage,
@@ -30,14 +33,11 @@ function VoiceFilterBar({
     <FilterBar>
       <form action={summary} method="get">
         <Field label="プロダクト">
-          <NativeSelect name="product">
-            <option value="">すべてのプロダクト</option>
-            {frame.products.map((p) => (
-              <option value={p.id} selected={q.product === p.id}>
-                {p.name}
-              </option>
-            ))}
-          </NativeSelect>
+          <ProductSelect
+            products={frame.products}
+            selected={q.product}
+            empty="すべてのプロダクト"
+          />
         </Field>
         <Field label="開始日">
           <Input
@@ -85,6 +85,10 @@ export function voicesOverview(
         <section aria-label="声の内訳">
           {(['label', 'product', 'month'] as const).map((dimension) => {
             const buckets = rows.filter((r) => r.dimension === dimension)
+            const max = buckets.reduce(
+              (highest, r) => Math.max(highest, r.count),
+              0,
+            )
             if (dimension === 'month')
               buckets.sort((a, b) => b.title.localeCompare(a.title))
             return (
@@ -97,8 +101,38 @@ export function voicesOverview(
                         : { [dimension]: r.value }
                     return (
                       <ListRow
-                        title={r.title}
-                        status={r.count + '件'}
+                        title={
+                          r.dimension === 'product' && r.value ? (
+                            <ProductMark
+                              product={{ id: r.value, name: r.title }}
+                            />
+                          ) : (
+                            <>
+                              {r.dimension === 'label' && r.value && (
+                                <LabelDot
+                                  label={r.value}
+                                  colors={frame.labelColors}
+                                />
+                              )}{' '}
+                              {r.title}
+                            </>
+                          )
+                        }
+                        status={
+                          <>
+                            <Sparkline
+                              label={r.title + 'の件数'}
+                              series={r.series}
+                              format={(value) => value + '件'}
+                            />{' '}
+                            {r.count}件
+                          </>
+                        }
+                        backdrop={
+                          dimension !== 'month' && (
+                            <CountBar count={r.count} max={max} />
+                          )
+                        }
                         href={voicePath(details, { ...q, ...filter })}
                       />
                     )
@@ -109,7 +143,7 @@ export function voicesOverview(
           })}
         </section>
       ) : (
-        <EmptyState>この条件で届いた声はありません。</EmptyState>
+        <EmptyState icon="voices">この条件で届いた声はありません。</EmptyState>
       )}
     </OverviewPage>,
     frame,
@@ -120,8 +154,8 @@ export function voicesResults(
   q: VoiceFilters,
   result: Results,
 ) {
+  const product = frame.products.find((p) => p.id === q.product)
   const conditions = [
-    frame.products.find((p) => p.id === q.product)?.name,
     q.unlabeled ? 'ラベルなし' : q.label,
     q.month,
     q.start && q.start + '以降',
@@ -133,9 +167,16 @@ export function voicesResults(
     '該当する声',
     <ListPage
       title="該当する声"
-      description={[conditions, result.total + '件']
-        .filter(Boolean)
-        .join(' · ')}
+      description={
+        <>
+          {product && (
+            <>
+              <ProductMark product={product} /> ·{' '}
+            </>
+          )}
+          {[conditions, result.total + '件'].filter(Boolean).join(' · ')}
+        </>
+      }
       back={{
         href: voicePath(summary, {
           product: q.product,
@@ -169,18 +210,22 @@ export function voicesResults(
               title={'#' + row.number + ' ' + row.subject}
               href={'/conversation/' + row.number}
               description={
-                row.productName +
-                ' · ' +
-                new Intl.DateTimeFormat('ja-JP', {
-                  timeZone: 'Asia/Tokyo',
-                }).format(row.at)
+                <>
+                  <ProductMark
+                    product={{ id: row.product, name: row.productName }}
+                  />{' '}
+                  ·{' '}
+                  {new Intl.DateTimeFormat('ja-JP', {
+                    timeZone: 'Asia/Tokyo',
+                  }).format(row.at)}
+                </>
               }
               status={row.kind === 'feedback' ? 'フィードバック' : '問い合わせ'}
             />
           ))}
         </RowList>
       ) : (
-        <EmptyState>この条件で届いた声はありません。</EmptyState>
+        <EmptyState icon="voices">この条件で届いた声はありません。</EmptyState>
       )}
     </ListPage>,
     frame,

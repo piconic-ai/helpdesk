@@ -1,3 +1,4 @@
+import { ProductMark, ProductSelect } from '../ui/product-mark'
 import { OutcomeCard } from '../ui/outcome-cards'
 import { ArticleListRow } from '../ui/article-list'
 import type {
@@ -54,18 +55,11 @@ export function productSelect(frame: ConsoleFrame, selected = '', all = false) {
   return (
     <label>
       プロダクト
-      <NativeSelect name="product" aria-label="プロダクト" required={!all}>
-        {all && (
-          <option value="" selected={!selected}>
-            すべてのプロダクト
-          </option>
-        )}
-        {frame.products.map((p) => (
-          <option value={p.id} selected={selected === p.id}>
-            {p.name}
-          </option>
-        ))}
-      </NativeSelect>
+      <ProductSelect
+        products={frame.products}
+        selected={selected}
+        empty={all ? 'すべてのプロダクト' : undefined}
+      />
     </label>
   )
 }
@@ -148,8 +142,14 @@ export function libraryPage(
                 new URLSearchParams({ product: a.product, id: a.id })
               }
               product={
-                frame.products.find((p) => p.id === a.product)?.name ??
-                a.product
+                <ProductMark
+                  product={
+                    frame.products.find((p) => p.id === a.product) ?? {
+                      id: a.product,
+                      name: a.product,
+                    }
+                  }
+                />
               }
               date={
                 a.updatedAt !== undefined ? (
@@ -174,7 +174,7 @@ export function libraryPage(
           ))}
         </RowList>
       ) : (
-        <EmptyState>
+        <EmptyState icon={items.length ? 'search' : 'articles'}>
           {items.length
             ? '条件に合う記事はありません。'
             : '記事はまだありません。'}
@@ -225,8 +225,14 @@ export function candidatesPage(
                   : '/articles/new?candidate=' + c.number
               }
               description={
-                frame.products.find((p) => p.id === c.product)?.name ??
-                c.product
+                <ProductMark
+                  product={
+                    frame.products.find((p) => p.id === c.product) ?? {
+                      id: c.product,
+                      name: c.product,
+                    }
+                  }
+                />
               }
               status={c.articleId ? '着手済み' : '記事を書き始める'}
               action={
@@ -243,7 +249,7 @@ export function candidatesPage(
           ))}
         </RowList>
       ) : (
-        <EmptyState>該当する記事の候補はありません。</EmptyState>
+        <EmptyState icon="search">該当する記事の候補はありません。</EmptyState>
       )}
     </ListPage>,
     frame,
@@ -267,6 +273,28 @@ function SourceReference({ source }: { source: CandidateSource }) {
     </FormSection>
   )
 }
+function articleProduct(
+  frame: ConsoleFrame,
+  data: Partial<Article>,
+  source?: CandidateSource | null,
+) {
+  if (!data.id && !source) return productSelect(frame, data.product)
+  const product = frame.products.find((p) => p.id === data.product)
+  return (
+    <>
+      {source && !data.id && (
+        <input type="hidden" name="number" value={source.number} />
+      )}
+      {data.id && <input type="hidden" name="id" value={data.id} />}
+      <input type="hidden" name="product" value={data.product} />
+      {product && (
+        <p>
+          <ProductMark product={product} />
+        </p>
+      )}
+    </>
+  )
+}
 export function editorPage(
   frame: ConsoleFrame,
   data: Partial<Article>,
@@ -281,18 +309,7 @@ export function editorPage(
     <form method="post" action="/articles/edit">
       {source && <SourceReference source={source} />}
       <FormSection title="記事の内容">
-        {source && !data.id && (
-          <input type="hidden" name="number" value={source.number} />
-        )}
-        {data.id || source ? (
-          <>
-            {data.id && <input type="hidden" name="id" value={data.id} />}
-            <input type="hidden" name="product" value={data.product} />
-            <p>{frame.products.find((p) => p.id === data.product)?.name}</p>
-          </>
-        ) : (
-          productSelect(frame, data.product)
-        )}
+        {articleProduct(frame, data, source)}
         <Field label="題名">
           <Input
             name="title"
@@ -439,7 +456,7 @@ export function guidePage(
         <ActionLink href="/metrics">集計画面を開く</ActionLink>
       )}
       {items.map((p) => (
-        <FormSection title={p.name}>
+        <FormSection title={<ProductMark product={p} size="heading" />}>
           {id === 'issues' ? (
             <form method="post" action="/extensions/issues/repository">
               <input type="hidden" name="product" value={p.id} />
@@ -512,15 +529,22 @@ export type MetricFilter = {
 }
 const outcomes = ['resolutionMs', 'firstContactRate', 'operatorMs']
 const counts = ['improvementRate', 'resolved', 'closed', 'measured']
+type MetricWindow = {
+  from: number
+  to: number
+  values: Record<string, number | null>
+}
 export function metricsPage(
   frame: ConsoleFrame,
   filter: MetricFilter,
   result: Record<string, number | null>,
-  previous: Record<string, number | null>,
+  history: MetricWindow[],
 ) {
+  const previous = history.at(-2)?.values ?? {}
+  const selected = frame.products.find((p) => p.id === filter.product)
   function compactChange(key: string) {
     if (result[key] == null || previous[key] == null) return '比較データなし'
-    return difference(key, result[key], previous[key])
+    return difference(key, result[key], previous[key] ?? null)
   }
   function card(key: string) {
     return (
@@ -528,6 +552,12 @@ export function metricsPage(
         id={key}
         title={fieldLabel(key)}
         value={metricValue(key, result[key])}
+        series={history.map(({ from, to, values }) => ({
+          from,
+          to,
+          value: values[key],
+        }))}
+        format={(value) => metricValue(key, value)}
         summary={
           key === 'operatorMs' && result[key] == null
             ? '会話を開き、返信して完了すると計測'
@@ -536,7 +566,7 @@ export function metricsPage(
         details={
           metricDefinition[key] +
           ' ' +
-          difference(key, result[key], previous[key])
+          difference(key, result[key], previous[key] ?? null)
         }
         change={
           key === 'improvementRate'
@@ -564,10 +594,10 @@ export function metricsPage(
     <FilterBar
       chips={
         <>
-          {filter.product && (
+          {selected && (
             <ActionLink variant="ghost" href={url({ product: '' })}>
               プロダクト：
-              {frame.products.find((p) => p.id === filter.product)?.name} ×
+              <ProductMark product={selected} /> ×
             </ActionLink>
           )}
           {filter.period !== '30' && (

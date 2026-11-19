@@ -145,6 +145,7 @@ test('F06-AC2 an existing issue links back to each conversation and can be found
     [
       {
         label: 'acme/desktop#42',
+        icon: { name: 'issue_open', label: '開いている' },
         href: 'https://github.com/acme/desktop/issues/42',
       },
       { label: '会話 #1', href: '/conversation/1' },

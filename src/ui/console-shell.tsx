@@ -1,3 +1,5 @@
+import { ProductMark } from './product-mark'
+import { glyph, type GlyphName } from './glyph'
 import { operatorAvatar } from './operator-identity'
 import type { Child } from 'hono/jsx'
 import { BfScripts } from '@barefootjs/hono/scripts'
@@ -43,47 +45,23 @@ export function stamp(at: number, now: number) {
     </time>
   )
 }
+function statusGlyph(value: string) {
+  switch (value) {
+    case 'open':
+    case 'closed':
+    case 'pending':
+    case 'spam':
+    case 'received':
+    case 'reviewed':
+      return glyph(value)
+  }
+}
 export function badge(value: string) {
   return (
     <span className={'status-badge status-' + value}>
+      {statusGlyph(value)}
       {statuses[value] ?? value}
     </span>
-  )
-}
-const symbols = {
-  open: 'M3 10 5 4h10l2 6v5H3z M3 10h4l1 2h4l1-2h4',
-  pending: 'M10 2.5a7.5 7.5 0 1 0 .01 0z M10 6v4l3 2',
-  mine: 'M10 3a3 3 0 1 0 .01 0z M4 16v-1a6 5 0 0 1 12 0v1',
-  closed: 'M3 10l4 4 10-10',
-  spam: 'M10 2l7 3v4c0 4-3 6-7 9-4-3-7-5-7-9V5z M10 6v4 M10 13v.2',
-  extensions: 'M3 3h5v5H3z M12 3h5v5h-5z M3 12h5v5H3z M12 12h5v5h-5z',
-  settings: 'M3 5h14 M3 10h14 M3 15h14 M7 3v4 M13 8v4 M8 13v4',
-  feedback: 'M3 3h14v10H9l-5 4v-4H3z',
-  approval: 'M5 2h10v3l-4 5 4 5v3H5v-3l4-5-4-5z',
-  articles: 'M3 3h6l1 1 1-1h6v12h-6l-1 1-1-1H3z M10 4v12',
-  issues: 'M10 2a8 8 0 1 0 .01 0z M10 6v5 M10 14v.2',
-  voices: 'M2 4h12v8H7l-4 3v-3H2z M15 8h3v8h-3v2l-3-2H9',
-  metrics: 'M3 3v14h14 M6 13v-3 M10 13V7 M14 13V4',
-  tokens: 'M11 8a4 4 0 1 1 3 3L7 18H3v-4z',
-  menu: 'M3 5h14 M3 10h14 M3 15h14',
-  close: 'M4 4l12 12 M16 4 4 16',
-  brand: 'M3 5h14v10H3z M3 6l7 5 7-5',
-}
-export function glyph(name: keyof typeof symbols) {
-  return (
-    <svg
-      aria-hidden="true"
-      width="16"
-      height="16"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      stroke-linejoin="round"
-      stroke-linecap="round"
-    >
-      <path d={symbols[name]} />
-    </svg>
   )
 }
 export function inboxUrl(query: Record<string, string>) {
@@ -93,7 +71,7 @@ export function inboxUrl(query: Record<string, string>) {
 function navItem(
   href: string,
   name: string,
-  icon: keyof typeof symbols,
+  icon: GlyphName,
   active: boolean,
   count?: number,
 ) {
@@ -120,12 +98,14 @@ function extensionMenu(frame: ConsoleFrame) {
     { id: 'issues' as const, path: '/issues', label: '課題' },
     {
       id: 'metrics' as const,
-      icon: 'voices' as const,
       path: '/voices',
       label: '声の集計',
     },
     { id: 'metrics' as const, path: '/metrics', label: '対応状況の集計' },
-  ].filter((route) => frame.extensions.some((ext) => ext.id === route.id))
+  ].flatMap((route) => {
+    const extension = frame.extensions.find((ext) => ext.id === route.id)
+    return extension ? [{ ...route, extension }] : []
+  })
   if (!routes.length) return null
   return (
     <nav className="sidebar-extensions" aria-label="有効な拡張">
@@ -134,10 +114,9 @@ function extensionMenu(frame: ConsoleFrame) {
         navItem(
           route.path,
           route.label,
-          route.icon ?? route.id,
+          route.extension.icon ?? 'extension',
           frame.path === route.path || frame.path.startsWith(route.path + '/'),
-          frame.extensions.find((ext) => ext.id === route.id)?.count ||
-            undefined,
+          route.extension.count || undefined,
         ),
       )}
     </nav>
@@ -147,6 +126,8 @@ function navigation(frame: ConsoleFrame) {
   const active =
     frame.path === '/' ? selectedView(frame.query, frame.operator.email) : ''
   const product = frame.query.product ?? ''
+  const feedback = frame.extensions.find((ext) => ext.id === 'feedback')
+  const selectedProduct = frame.products.find((p) => p.id === product)
   const person = frame.operators.find((o) => o.email === frame.operator.email)
   return (
     <>
@@ -170,8 +151,11 @@ function navigation(frame: ConsoleFrame) {
         <Popover
           id="product-switcher"
           label={
-            frame.products.find((p) => p.id === product)?.name ??
-            'すべてのプロダクト'
+            selectedProduct ? (
+              <ProductMark product={selectedProduct} />
+            ) : (
+              'すべてのプロダクト'
+            )
           }
         >
           <a href={inboxUrl({ ...frame.query, page: '', product: '' })}>
@@ -179,7 +163,7 @@ function navigation(frame: ConsoleFrame) {
           </a>
           {frame.products.map((p) => (
             <a href={inboxUrl({ ...frame.query, page: '', product: p.id })}>
-              {p.name}
+              <ProductMark product={p} />
             </a>
           ))}
         </Popover>
@@ -206,11 +190,11 @@ function navigation(frame: ConsoleFrame) {
           active === 'approval',
           frame.counts.approval,
         )}
-        {frame.extensions.some((ext) => ext.id === 'feedback') &&
+        {feedback &&
           navItem(
             inboxUrl({ view: 'feedback', product }),
             'フィードバック',
-            'feedback',
+            feedback.icon ?? 'extension',
             active === 'feedback',
             frame.counts.received,
           )}
@@ -264,7 +248,10 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
     <html lang="ja">
       <head>
         <meta charset="utf-8" />
-        <title>{title} · Helpdesk</title>
+        <title>
+          {frame && '(' + frame.counts.open + ') '}
+          {title} · Helpdesk
+        </title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="stylesheet" href="/styles.css" />
         <script type="module" src="/ui/barefoot-overlays.js"></script>

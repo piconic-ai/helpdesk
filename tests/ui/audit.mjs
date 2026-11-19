@@ -1,3 +1,4 @@
+import { inspectIdentity } from './identity-audit.mjs'
 import { inspectComposition } from './composition-audit.mjs'
 import { inspectSpacing } from './spacing-audit.mjs'
 import { inspectDesign } from './design-audit.mjs'
@@ -10,6 +11,7 @@ export async function installAudit(page) {
     ...(await page.evaluate(inspectDesign)),
     ...(await page.evaluate(inspectComposition)),
     ...(await page.evaluate(inspectSpacing)),
+    ...(await page.evaluate(inspectIdentity)),
   ]
   await page.evaluate((result) => {
     window.helpdeskDesignFindings = result

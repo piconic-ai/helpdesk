@@ -6,6 +6,7 @@ const edges = z.record(z.string().regex(/^[1-9]\d*$/), number)
 const input = z.object({ number, target: number })
 export const merge: Extension = {
   id: 'merge',
+  icon: 'merge',
   permissions: [],
   config: z.object({}).strict(),
   operations: [

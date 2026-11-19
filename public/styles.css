@@ -1270,3 +1270,102 @@ main
   justify-self: start;
   inline-size: min(100%, 32ch);
 }
+
+[data-glyph] {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.status-badge,
+[data-ui='extension-card'] h3,
+.extension-panel > h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-sm);
+}
+.empty-state > svg {
+  width: 28px;
+  height: 28px;
+}
+[data-identity-color='0'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-0);
+}
+[data-identity-color='1'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-1);
+}
+[data-identity-color='2'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-2);
+}
+[data-identity-color='3'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-3);
+}
+[data-identity-color='4'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-4);
+}
+[data-identity-color='5'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-5);
+}
+[data-identity-color='6'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-6);
+}
+[data-identity-color='7'] {
+  color: var(--colors-on-primary);
+  background-color: var(--identity-7);
+}
+
+.product-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  vertical-align: middle;
+}
+.product-mark img {
+  flex: none;
+  border-radius: var(--rounded-xs);
+}
+.product-mark-name {
+  min-width: 0;
+}
+[data-product-icon-form]:not(:has(option[value='emoji']:checked))
+  label:has(input[name='emoji']),
+[data-product-icon-form]:not(:has(option[value='image']:checked))
+  label:has(input[name='image']) {
+  display: none;
+}
+@media (max-width: 640px) {
+  .product-mark[data-compact] .product-mark-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@supports (appearance: base-select) {
+  select[data-product-select],
+  select[data-product-select]::picker(select) {
+    appearance: base-select;
+    gap: var(--spacing-xs);
+  }
+  select[data-product-select]::picker(select) {
+    background: var(--colors-canvas);
+    border: var(--layout-hairline-width) solid var(--colors-hairline);
+    border-radius: var(--rounded-md);
+  }
+  select[data-product-select] option {
+    padding: var(--spacing-xxs) var(--spacing-xs);
+  }
+}

@@ -1,3 +1,5 @@
+import { productIcon } from '../settings/product-icon-usecase'
+import { productIconSvg } from '../../ui/product-mark'
 import type { Bindings } from '../settings/bindings'
 import { Hono } from 'hono'
 import type { AppEnv } from '../operators/middleware'
@@ -26,7 +28,19 @@ async function articleOptions(
   )
   return { origins: policy?.origins ?? [], contact }
 }
+
 const app = new Hono<AppEnv>()
+app.get('/help/product-icon/:product', async (c) => {
+  const icon = await productIcon(c.env, c.req.param('product'))
+  if (!icon) return c.notFound()
+  if (icon.image)
+    return new Response(icon.image.body, {
+      headers: { 'Content-Type': 'image/png' },
+    })
+  return new Response(productIconSvg(icon.name, icon.emoji), {
+    headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
+  })
+})
 app.all('/help/:id/:product/:path{.*}?', async (c) => {
   const { id, product, path } = c.req.param()
   const item = c.env.EXTENSIONS?.active.find((x) => x.extension.id === id)

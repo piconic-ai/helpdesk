@@ -1,3 +1,9 @@
+import { trendScenes, seedTrendExamples } from './trend-scenes.mjs'
+import {
+  identityScenes,
+  setSceneIcon,
+  exposeIdentityControls,
+} from './identity-scenes.mjs'
 import { test, expect } from '@playwright/test'
 import { audit } from './audit.mjs'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -69,6 +75,8 @@ async function verifyViewport(browser, scene, origin, width) {
     })
     const done = await prepare(page, scene, origin, before)
     try {
+      if (identityScenes.includes(scene))
+        await exposeIdentityControls(page, scene.id)
       if (save) await capture(page, scene, width)
       if (!before && scene.action !== 'loading')
         await audit(page, scene.id, width)
@@ -88,6 +96,8 @@ const inventory = before
       ...compositionScreens,
       ...reviewScreens,
       ...nextIssuesScenes,
+      ...identityScenes,
+      ...trendScenes,
     ]
 for (const [index, scene] of inventory.entries()) {
   test(scene.group + ' / ' + scene.label, async ({ browser }) => {
@@ -104,6 +114,9 @@ for (const [index, scene] of inventory.entries()) {
     try {
       if (reviewScreens.includes(scene) || nextIssuesScenes.includes(scene))
         await seedReviewExamples(server.db, scene.extensions ?? [])
+      if (trendScenes.includes(scene)) await seedTrendExamples(server.db)
+      if (identityScenes.includes(scene))
+        await setSceneIcon(server.origin, scene.mode)
       for (const width of [1440, 1024, 375])
         await verifyViewport(browser, scene, server.origin, width)
     } finally {

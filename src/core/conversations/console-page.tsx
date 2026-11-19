@@ -1,3 +1,5 @@
+import { ProductSelect } from '../../ui/product-mark'
+export { glyph } from '../../ui/glyph'
 import type { Child } from 'hono/jsx'
 import type { ConsoleFrame } from './console-usecase'
 import { shell } from '../../ui/console-shell'
@@ -14,7 +16,6 @@ export {
   noteLabel,
   stamp,
   badge,
-  glyph,
   inboxUrl,
   selectedView,
   shell,
@@ -37,12 +38,27 @@ export function select(
   title: string,
   choices: Record<string, string>,
   value: string,
+  icon?: (key: string) => Child,
 ) {
+  if (name === 'product')
+    return (
+      <Field label={title}>
+        <ProductSelect
+          label={title}
+          products={Object.entries(choices)
+            .filter(([id]) => id)
+            .map(([id, name]) => ({ id, name }))}
+          selected={value}
+          empty={choices['']}
+        />
+      </Field>
+    )
   return (
     <Field label={title}>
       <NativeSelect name={name} aria-label={title}>
         {Object.entries(choices).map(([key, label]) => (
           <option value={key} selected={key === value}>
+            {icon?.(key)}
             {label}
           </option>
         ))}

@@ -254,9 +254,12 @@ it('keeps rule priority visible while filtering and rejects stale assignment cho
   }
   await submit('/extensions/rules/add', scoped)
   const view = await page('/extensions/rules?q=agent')
-  expect(view).toContain('Studio · すべての件名')
+  const titles = [...view.matchAll(/<strong>(.*?)<\/strong>/gs)].map(
+    ([, title]) => title.replace(/<[^>]+>/g, ''),
+  )
+  expect(titles).toContain('Studio · すべての件名')
   expect(view).toContain('2番目')
-  expect(view).not.toContain('全プロダクト · invoice')
+  expect(titles).not.toContain('全プロダクト · invoice')
   expect(await page('/extensions/rules?q=unmatched')).toContain(
     '条件に合うルールはありません。',
   )

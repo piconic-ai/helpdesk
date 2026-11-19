@@ -6,19 +6,26 @@ function openDialog(dialog, trigger) {
   if (document.querySelector('dialog[open]')) return
   const previousPopover = trigger?.closest(':popover-open')
   dialog.returnValue = ''
-  dialog.addEventListener(
-    'close',
-    () => {
-      if (
-        dialog.returnValue !== 'confirmed' &&
-        previousPopover?.isConnected &&
-        !previousPopover.matches(':popover-open')
-      )
-        previousPopover.showPopover()
-      trigger?.focus({ preventScroll: true })
-    },
-    { once: true },
-  )
+  const previousFocus = document.activeElement
+  dialog.onclose = () => {
+    // A queued close event can arrive after the user has moved on or reopened it.
+    if (dialog.open) return
+    const focused = document.activeElement
+    if (
+      focused !== document.body &&
+      focused !== previousFocus &&
+      focused !== trigger &&
+      !dialog.contains(focused)
+    )
+      return
+    if (
+      dialog.returnValue !== 'confirmed' &&
+      previousPopover?.isConnected &&
+      !previousPopover.matches(':popover-open')
+    )
+      previousPopover.showPopover()
+    trigger?.focus({ preventScroll: true })
+  }
   const { scrollX: left, scrollY: top } = window
   dialog.showModal()
   dialog.querySelector('button')?.focus({ preventScroll: true })
@@ -248,8 +255,10 @@ function showShortcutHelp(trigger) {
       shortcuts.addEventListener(
         'close',
         () => {
-          if (matchMedia('(max-width: 767px)').matches)
+          if (matchMedia('(max-width: 767px)').matches) {
             document.querySelector('[data-open-drawer]').click()
+            restore.focus({ preventScroll: true })
+          }
         },
         { once: true },
       )

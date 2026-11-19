@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: helpdesk
-description: A calm, monochrome operator console for answering customer email, with a quiet public help surface. White canvas, near-black actions, hairline dividers, and color reserved for conversation state. Based on the Cal.com design analysis from getdesign.md (MIT), with its marketing-page parts removed and application components added.
+description: A calm, monochrome operator console for answering customer email, with a quiet public help surface. White canvas, near-black actions, hairline dividers, and separate colors for state and identity. Based on the Cal.com design analysis from getdesign.md (MIT), with its marketing-page parts removed and application components added.
 
 colors:
   primary: "#111111"
@@ -27,6 +27,16 @@ colors:
   error-soft: "#fef2f2"
   note: "#92400e"
   note-soft: "#fef9c3"
+
+identity:
+  0: "#283655"
+  1: "#006b83"
+  2: "#2767a9"
+  3: "#4f429d"
+  4: "#793faf"
+  5: "#89416f"
+  6: "#50616a"
+  7: "#512e58"
 
 typography:
   title-lg:
@@ -312,7 +322,7 @@ components:
 
 helpdesk has two surfaces. The **operator console** is where a solo developer answers customer email between other work. The **public surface** is what customers see: help pages, a feedback form, and a small help chat.
 
-The console must answer one question at a glance: *what needs me now?* Everything else stays quiet. The system is monochrome so that the few colored things — a conversation waiting on the operator, a failed send, a reply waiting for approval — are impossible to miss.
+The console must answer one question at a glance: *what needs me now?* Everything else stays quiet. Status text and a pale fill identify events that need attention. Small identity marks distinguish people, products and labels.
 
 The public surface must feel sincere and plain. It reads like a well-set document, not a marketing page. Automated replies never dress up as a person.
 
@@ -321,9 +331,10 @@ The UI text is mostly Japanese. Every type decision below is made for mixed Japa
 ## Colors
 
 - **Action layer is monochrome.** `{colors.primary}` is used for the one primary action of a view (send, save) and for the `open` state. Use one primary action per independent task. A draft approval and a modal confirmation each have their own action group.
-- **Color means state, never decoration.** `{colors.error}` = something failed and needs the operator. `{colors.warning}` = waiting for a human decision (approval, quarantine). `{colors.success}` = a confirmation that just happened. `{colors.note}` = internal, never sent to the customer.
+- **Status colors pair text with a pale background.** `{colors.error}` = something failed and needs the operator. `{colors.warning}` = waiting for a human decision (approval, quarantine). `{colors.success}` = a confirmation that just happened. `{colors.note}` = internal, never sent to the customer.
 - **Semantic colors come in pairs.** Text in `{colors.error}` sits on `{colors.error-soft}`, and so on. Never put semantic text on `{colors.surface-card}`. All pairs meet WCAG AA for 13px text.
-- **Blue is for focus, links, and selection only.** `{colors.focus-ring}` outlines the focused element, `{colors.link}` marks links inside message bodies and articles, `{colors.selected}` fills the selected row.
+- **Interaction colors indicate focus, links and selection.** `{colors.focus-ring}` outlines the focused element, `{colors.link}` marks links inside message bodies and articles, `{colors.selected}` fills the selected row.
+- **Identity uses the eight swatches in the identity scale.** A product takes its color from its name, a person from their email address, and a label from its saved choice. Use these colors inside icons and small dots. Keep neighboring text, surfaces, borders and buttons on their existing tokens.
 - **State is never carried by color alone.** Every status has a text label; unread rows also use weight.
 
 ## Typography
@@ -384,7 +395,7 @@ Nothing else casts a shadow. No gradients, no glass, no dark surfaces.
 
 **Status badges** — `status-open` is the only filled dark badge: it marks the operator's turn. `status-pending` is gray, `status-closed` is plain muted text, `status-spam` uses the warning pair. Labels: 未対応 / 返信待ち / 完了 / 迷惑メール.
 
-**`label-chip`** — Gray, squared, never colored. Labels classify; they do not signal urgency.
+**`label-chip`** — Gray chip with a colored dot and the label name.
 
 **`avatar`** — 24px circle with a cropped account image or one initial. Unassigned shows a dashed 1px hairline circle, not a blank space.
 
@@ -417,12 +428,12 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 ### Feedback
 
 - **`banner-error`** / **`banner-success`** — Inline at the top of the main column. Errors stay until resolved; successes fade after a few seconds. No toast stacks.
-- **`empty-state`** — One sentence saying what the state means and, if there is one, the next action. 未対応 with nothing in it reads 未対応の問い合わせはありません。 No illustrations.
+- **`empty-state`** — One sentence saying what the state means and, if there is one, the next action. 未対応 with nothing in it reads 未対応の問い合わせはありません。 Use one outline symbol for the missing content or a magnifier for an empty search.
 - Loading uses the existing layout with `{colors.surface-card}` placeholder bars, not a spinner on a blank page.
 
 ### Public surface
 
-**`help-article`** — 680px column, `title-lg` heading, `reading` body, `{colors.link}` links. Header shows the product name only. Footer has one line: 解決しませんでしたか？ and a link to contact.
+**`help-article`** — 680px column, `title-lg` heading, `reading` body, `{colors.link}` links. The header pairs the product name with its 28px mark. Footer has one line: 解決しませんでしたか？ and a link to contact.
 
 **`chat-widget`** — 360px, raised. One text area and one button. The result includes the original question. An article list offers a handoff to the contact form. A submitted inquiry shows the confirmation 問い合わせを受け付けました（#123）. It never shows generated prose, a typing indicator, or a human name or avatar.
 
@@ -440,13 +451,41 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 - Reference tokens; never inline a hex value.
 
 ### Don't
-- Don't add a second accent color, gradients, dark sections, or illustrations.
-- Don't color labels, avatars, or navigation.
+- Reserve filled areas for actions, state feedback and identity marks.
+- Keep label chips and navigation surfaces neutral. Apply identity colors inside the small dot or avatar.
 - Don't use red for anything except failure and destructive confirmation.
 - Don't use cards for list rows, or shadows for anything that isn't floating.
 - Don't use negative letter-spacing, italics, or weights above 600.
 - Don't present automated output with a person's name or face.
 - Don't hide an action behind hover only; it must be reachable by keyboard and touch.
+
+## Product and person marks
+
+Use rounded squares for products and circles for people. Product marks measure 16px in lists, 20px in headings and 28px on public pages. An uploaded image or a single emoji can replace the product initial. The public favicon uses the same mark. An initial represents one grapheme, including combining sequences. Show a name beside each mark or give it a tooltip and an accessible name.
+
+The palette runs from 0 to 7 in the order shown in the identity scale above: 濃紺, 孔雀青, 青, 藍, 紫, 梅紫, 青灰, 葡萄. Keep identity colors inside product and person marks or label dots. The sender's address determines their initial color across surfaces. An operator can choose a label's color in settings. Gray label backgrounds and status color pairs retain their separate roles.
+
+### Symbol vocabulary
+
+Use a 16px outline with a 1.5px stroke in the surrounding text color. Reuse the same shape for the same concept. A neighboring text label names decorative symbols. Give a standalone symbol both a tooltip and an accessible name. Use up to five icons per line and show secondary details in the open conversation.
+
+| Meaning | Shape |
+| --- | --- |
+| Open / awaiting reply / completed / spam | Inbox tray / clock / check / shield |
+| Feedback received / reviewed | Tray with incoming flap / double check |
+| Mail / form / chat | Envelope / lined form / speech bubble |
+| Draft / awaiting approval / queued / sent / failed | Pencil / hourglass / queue and arrow / paper plane / warning triangle |
+| Customer or operator / agent / extension / system | Circular avatar / robot / puzzle piece / monitor |
+| Image / PDF / spreadsheet / archive / other file | Picture / folded page with curve / table / archive box / folded page |
+| Open issue / repaired issue / notification due | Circle with dot / circle with check / bell |
+| Unread / customer waiting over 24 or 72 hours | Leading dot / single or double exclamation |
+| Articles / canned replies / presence / snooze | Book / speech card with lines / two people / clock with sleep mark |
+| Auto acknowledgement / feedback / survey / export | Envelope with arrow / speech bubble / columns / download arrow |
+| Notification / spam / rules / merge | Bell / shield / branching lines / converging lines |
+| Issues / metrics / form / chat | Circled issue / chart / form / chat bubble |
+| Empty search / empty list | Magnifier / outline symbol for the list's content |
+
+In the inbox, start with selection, an unread dot, the sender avatar, sender and subject, and the product mark. On small screens the product name is available on the mark. The second line groups number, channel, message excerpt, indicators and labels. Time and assignee stay on the right. The browser tab starts with the number of open inquiries in the active scope. Metrics show the last seven equal-length reporting periods as a monochrome line. Leave a gap when a rate has no denominator. Voice counts use up to seven date intervals within the selected period, aligned to Japan Standard Time. Relative bars behind voice totals share a scale within each group, with its highest count at full width.
 
 ## Responsive Behavior
 
@@ -469,7 +508,6 @@ Touch targets are at least 44px on <768px. Every interactive element has a visib
 
 - Dark mode is not defined.
 - Motion is not defined beyond "fades are 150ms; nothing moves position".
-- The metrics screen's charts are not specified; use `{colors.ink}` for the main series and `{colors.muted}` for comparison until they are.
 - Colors and scales were adapted from an analysis of a public marketing site, not from an official design system.
 
 ## Daily operator workflows
@@ -489,7 +527,7 @@ Every operator and public screen uses a list, detail, edit, or overview template
 
 Use the BarefootJS button, input, native select, popover, dialog, menu, tabs and tooltip conventions for controls. Shared components own presentation. Setting rows are full-width links with a title, explanation, current value and directional indicator. Each metric card keeps the value with its period change and definition. Extension cards put the availability switch opposite the title, with settings below. The confirmation and settings views explain access permissions. Cards share the settings-card inset. The component gallery at `/dev/ui` is available in local development.
 
-Align the inbox checkbox with the middle of the row. Place the sender before the subject and use a subdued chip for the product. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation beside the heading.
+Align the inbox checkbox with the middle of the row. Place the sender before the subject and show its product mark. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation beside the heading.
 
 Use the focus ring on keyboard focus and a distinct hover, pressed and disabled appearance on controls. Fade the screen and popovers over 150ms without translating the content. Respect reduced motion. In the operator console, use navigation rows or buttons for destinations; reserve underlined links for running text. Group secondary commands in a menu.
 

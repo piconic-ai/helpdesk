@@ -1,3 +1,6 @@
+import type { Child } from 'hono/jsx'
+import { glyph } from '../../ui/glyph'
+import { ProductSelect, ProductMark } from '../../ui/product-mark'
 import type { coreOperations } from '../operations/catalog-usecase'
 import type { ConsoleFrame, inboxMetadata } from './console-usecase'
 import { action, shell, selectedView, statuses, inboxUrl } from './console-page'
@@ -26,6 +29,7 @@ import {
   InboxFilters,
   FilterPicker,
   FilterChip,
+  LabelDot,
   BulkBar,
   PageLinks,
 } from '../../ui/inbox-parts'
@@ -40,6 +44,7 @@ function selectFilter(
   choices: Record<string, string>,
   value: string,
   implicit?: string,
+  optionIcon?: (value: string) => Child,
 ) {
   return (
     <Field label={label}>
@@ -50,6 +55,7 @@ function selectFilter(
       >
         {Object.entries(choices).map(([key, text]) => (
           <option value={key} selected={key === value}>
+            {optionIcon?.(key)}
             {text}
           </option>
         ))}
@@ -58,9 +64,10 @@ function selectFilter(
   )
 }
 function chips(q: Query, frame: ConsoleFrame) {
+  const product = frame.products.find((p) => p.id === q.product)
   const labels: Record<string, string | undefined> = {
     query: q.query && '検索「' + q.query + '」',
-    product: frame.products.find((p) => p.id === q.product)?.name,
+    product: product?.name,
     assignee:
       frame.operators.find((op) => op.email === q.assignee)?.displayName ||
       q.assignee,
@@ -79,7 +86,18 @@ function chips(q: Query, frame: ConsoleFrame) {
       <FilterChip
         href={inboxUrl({ ...q, [key]: '', page: '' })}
         label={text!}
-      />
+        icon={
+          key === 'label' && (
+            <LabelDot label={text!} colors={frame.labelColors} />
+          )
+        }
+      >
+        {key === 'product' && product ? (
+          <ProductMark product={product} />
+        ) : (
+          text
+        )}
+      </FilterChip>
     ))
 }
 function filters(q: Query, frame: ConsoleFrame) {
@@ -107,16 +125,15 @@ function filters(q: Query, frame: ConsoleFrame) {
               statusChoices,
               status,
               q.status ? undefined : status,
+              statusIcon,
             )}
-          {selectFilter(
-            'product',
-            'プロダクト',
-            {
-              '': 'すべて',
-              ...Object.fromEntries(frame.products.map((p) => [p.id, p.name])),
-            },
-            q.product ?? '',
-          )}
+          <Field label="プロダクト">
+            <ProductSelect
+              products={frame.products}
+              selected={q.product}
+              empty="すべて"
+            />
+          </Field>
           {!feedback && (
             <>
               <Input type="hidden" name="assignee" value={q.assignee ?? ''} />
@@ -164,6 +181,9 @@ function filters(q: Query, frame: ConsoleFrame) {
               ...Object.fromEntries(frame.labels.map((l) => [l, l])),
             },
             q.label ?? '',
+            undefined,
+            (name) =>
+              name && <LabelDot label={name} colors={frame.labelColors} />,
           )}
         </FilterPicker>
         <NativeSelect
@@ -189,6 +209,21 @@ function filters(q: Query, frame: ConsoleFrame) {
     </FilterBar>
   )
 }
+function emptyInbox(q: Query, view: string) {
+  const filtered = hasInboxFilter(q, view)
+  return (
+    <EmptyState
+      icon={filtered ? 'search' : view === 'feedback' ? 'feedback' : 'open'}
+    >
+      {filtered
+        ? '条件に一致する問い合わせはありません。'
+        : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
+    </EmptyState>
+  )
+}
+function hasInboxFilter(q: Query, view: string) {
+  return !!(q.product || q.label || q.query || (q.assignee && view !== 'mine'))
+}
 export function inboxPage(
   rows: Result<'list'>,
   failures: Result<'failures'>,
@@ -199,12 +234,6 @@ export function inboxPage(
 ) {
   const view = selectedView(q, frame.operator.email)
   const title = statuses[view] ?? '受信箱'
-  const noMatch = !!(
-    q.product ||
-    q.label ||
-    q.query ||
-    (q.assignee && view !== 'mine')
-  )
   return shell(
     title,
     <div data-inbox-view="">
@@ -255,11 +284,7 @@ export function inboxPage(
                 )}
               </>
             ) : (
-              <EmptyState>
-                {noMatch
-                  ? '条件に一致する問い合わせはありません。'
-                  : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
-              </EmptyState>
+              emptyInbox(q, view)
             )}
           </div>
           <div data-inbox-loading="" hidden>
@@ -321,6 +346,7 @@ function bulkBar(frame: ConsoleFrame, view: string) {
                 data-change="add"
                 data-value={label}
               >
+                <LabelDot label={label} colors={frame.labelColors} />
                 {label}
               </Button>
             ))
@@ -364,4 +390,18 @@ const feedbackStatuses = {
   reviewed: statuses.reviewed,
   spam: statuses.spam,
   all: statuses.all,
+}
+
+function statusIcon(name: string) {
+  switch (name) {
+    case 'open':
+    case 'pending':
+    case 'closed':
+    case 'spam':
+    case 'received':
+    case 'reviewed':
+      return glyph(name)
+    default:
+      return null
+  }
 }

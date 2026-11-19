@@ -76,6 +76,7 @@ export async function helpDestinations(
             path: publicPath(a.product, a.id),
           }))
         : [],
+      id: p.id,
       name: p.name,
       links: directoryLinks(
         p.id,

@@ -1,9 +1,13 @@
+import { ProductIconForm } from '../settings/product-icon-page'
+import { ProductMark } from '../../ui/product-mark'
 import {
   listRows,
   ListFilters,
   matchesSearch,
   PageLinks,
 } from '../../ui/listing'
+import { identityColorNames, identityColor } from '../../ui/identity-color'
+import { LabelDot } from '../../ui/inbox-parts'
 import { Dialog } from '../../ui/controls'
 import {
   ListPage,
@@ -27,12 +31,14 @@ import type { ConsoleFrame } from './console-usecase'
 const titles = {
   mailboxes: 'プロダクトと窓口',
   operators: '運営者',
+  labels: 'ラベルの色',
   retention: '保存期間',
   deletion: '連絡先のデータ削除',
 }
 export const settingsSections = z.enum([
   'mailboxes',
   'operators',
+  'labels',
   'retention',
   'deletion',
 ])
@@ -89,6 +95,12 @@ export function settingsPage(
       title: titles.operators,
       description: '運営者の表示名と権限を変更します。',
       value: data.operators.length + '人',
+    },
+    {
+      href: '/settings/labels',
+      title: titles.labels,
+      description: 'ラベルを見分ける点の色を選びます。',
+      value: frame.labels.length + '件',
     },
     {
       href: '/settings/retention',
@@ -153,7 +165,7 @@ export function settingsPage(
         </FormSection>
       )}
       {!settings.length && !dataManagement.length && (
-        <EmptyState>
+        <EmptyState icon="search">
           条件に合う設定項目はありません。検索条件を解除すると、すべての項目を表示できます。
         </EmptyState>
       )}
@@ -186,17 +198,26 @@ function mailboxes(data: Data, domains: string[], frame: ConsoleFrame) {
         <FormSection title="登録済みの窓口">
           <RowList>
             {data.mailboxes.map((m) => (
-              <ListRow title={m.name} description={<code>{m.address}</code>} />
+              <ListRow
+                title={
+                  <ProductMark product={{ id: m.product, name: m.name }} />
+                }
+                description={<code>{m.address}</code>}
+              />
             ))}
           </RowList>
         </FormSection>
       )}
       {frame.products.map((p) => (
-        <FormSection title={p.name + ' のメール差出人'}>
+        <FormSection title={<ProductMark product={p} size="heading" />}>
+          <Disclosure title="プロダクトのアイコンを変更">
+            <ProductIconForm product={p} />
+          </Disclosure>
           <form
             method="post"
             action={'/settings/senders/' + encodeURIComponent(p.id)}
           >
+            <h3>メール差出人</h3>
             {field(
               'senderName',
               '差出人名',
@@ -321,7 +342,7 @@ function deletion(contacts: Contact[]) {
     <FormSection id="forget" title="相手を選んでデータを削除">
       <p>指定した相手の会話、メール原文、添付ファイルを削除します。</p>
       {!contacts.length ? (
-        <EmptyState>削除できる連絡先はありません。</EmptyState>
+        <EmptyState icon="mine">削除できる連絡先はありません。</EmptyState>
       ) : (
         <form action="/actions/forget" method="post" data-forget="">
           <Field label="削除する相手">
@@ -368,9 +389,48 @@ function deletion(contacts: Contact[]) {
     </FormSection>
   )
 }
+function labelSettings(frame: ConsoleFrame) {
+  if (!frame.labels.length)
+    return (
+      <EmptyState icon="tag">
+        会話にラベルを付けると、ここで色を選べます。
+      </EmptyState>
+    )
+  return frame.labels.map((label) => (
+    <FormSection
+      title={
+        <>
+          <LabelDot label={label} colors={frame.labelColors} />
+          {label}
+        </>
+      }
+    >
+      <form method="post" action="/settings/labels">
+        <Input type="hidden" name="label" value={label} />
+        <Field label={label + 'の色'}>
+          <NativeSelect name="color" aria-label={label + 'の色'}>
+            {identityColorNames.map((name, index) => (
+              <option
+                value={index}
+                selected={
+                  (frame.labelColors[label] ?? identityColor(label)) === index
+                }
+              >
+                <LabelDot label={name} color={index} />
+                {name}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Button>色を保存</Button>
+      </form>
+    </FormSection>
+  ))
+}
 const notices: Record<Section, string> = {
   mailboxes: '窓口を登録しました。',
   operators: '運営者の情報を保存しました。',
+  labels: 'ラベルの色を保存しました。',
   retention: '保存期間を変更しました。',
   deletion: '選択した相手のデータを削除しました。',
 }
@@ -389,13 +449,18 @@ export function settingsSectionPage(
   const content = {
     mailboxes: () => mailboxes(data, domains, frame),
 
+    labels: () => labelSettings(frame),
     retention: () => retention(data),
     deletion: () => deletion(contacts),
   }
   const notice = (saved === 'yes' ||
-    (section === 'mailboxes' && saved === 'sender')) && (
+    (section === 'mailboxes' && (saved === 'sender' || saved === 'icon'))) && (
     <Notice kind="success">
-      {saved === 'sender' ? 'メールの差出人を保存しました。' : notices[section]}
+      {saved === 'icon'
+        ? 'プロダクトのアイコンを保存しました。'
+        : saved === 'sender'
+          ? 'メールの差出人を保存しました。'
+          : notices[section]}
     </Notice>
   )
   const back = { href: '/settings', label: '設定に戻る' }
@@ -427,7 +492,7 @@ export function settingsSectionPage(
         {list.rows.length ? (
           operators(data, list.rows)
         ) : (
-          <EmptyState>条件に合う運営者はいません。</EmptyState>
+          <EmptyState icon="search">条件に合う運営者はいません。</EmptyState>
         )}
       </ListPage>
     ) : (

@@ -27,7 +27,7 @@ export function PublicSearch(props: { label: string; query: string }) {
 }
 
 export function PublicLinks(props: {
-  items: { label: string; path: string; description?: string }[]
+  items: { label: string; path: string; description?: Child }[]
   newTab?: boolean
 }) {
   return (

@@ -56,6 +56,7 @@ async function postWebhook(
 }
 export const notify: Extension = {
   id: 'notify',
+  icon: 'notify',
   secrets: ['NOTIFY_WEBHOOK_URL'],
   config: settings,
   permissions: ['external_fetch', 'read_body', 'send'],

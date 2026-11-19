@@ -28,6 +28,7 @@ import {
 import {
   mailboxInput,
   settingsContacts,
+  changeLabelColor,
   sendingDomains,
 } from '../settings/console-settings-usecase'
 import { enableHostedIntake } from '../intakes/hosted-policy-usecase'
@@ -150,7 +151,7 @@ app.get('/settings', async (c) => {
   return c.render(settingsPage(doctor.issues, frame, settings, tokens.length))
 })
 app.get(
-  '/settings/:section{mailboxes|operators|retention|deletion}',
+  '/settings/:section{mailboxes|operators|labels|retention|deletion}',
   async (c) => {
     const ctx = context(c)
     const section = settingsSections.parse(c.req.param('section'))
@@ -167,6 +168,12 @@ app.get(
     )
   },
 )
+app.post('/settings/labels', async (c) => {
+  const ctx = context(c)
+  authorize(ctx, 'admin', scopes)
+  await changeLabelColor(ctx, await c.req.parseBody())
+  return c.redirect('/settings/labels?saved=yes', 303)
+})
 app.post('/settings/mailboxes', async (c) => {
   const ctx = context(c)
   const data = await run(ctx, 'settings', {})

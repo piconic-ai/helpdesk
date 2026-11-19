@@ -1,3 +1,4 @@
+import { Sparkline, type TrendPoint } from './trends'
 import { Tooltip } from '@/components/PatternTooltip'
 import { MetricCard } from './patterns'
 import { Button } from './controls'
@@ -9,6 +10,8 @@ export function OutcomeCard({
   change,
   summary,
   details,
+  series,
+  format,
 }: {
   title: string
   id: string
@@ -16,11 +19,14 @@ export function OutcomeCard({
   change: string
   summary: string
   details: string
+  series: TrendPoint[]
+  format: (value: number) => string
 }) {
   return (
     <MetricCard
       title={title}
       value={value}
+      trend={<Sparkline series={series} label={title} format={format} />}
       change={change}
       definition={
         <>

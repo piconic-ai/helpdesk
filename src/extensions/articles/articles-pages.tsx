@@ -39,7 +39,7 @@ export function articleIndex(
             }))}
           />
         ) : (
-          <EmptyState>該当する記事はありません。</EmptyState>
+          <EmptyState icon="search">該当する記事はありません。</EmptyState>
         )}
       </ListPage>,
     ),

@@ -50,6 +50,7 @@ async function lookup(ctx: ExtensionContext, product: string, path: string) {
 }
 export const survey: Extension = {
   id: 'survey',
+  icon: 'survey',
   permissions: ['send'],
   config: surveyConfig,
   subscribers: [{ kind: 'status_changed', run: invite }],

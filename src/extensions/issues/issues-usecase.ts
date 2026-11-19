@@ -1,4 +1,9 @@
-import { rememberIssue, synchronizeIssue } from './board-usecase'
+import { issueKey, sentNotices } from './outcomes'
+import {
+  loadIssueState,
+  rememberIssue,
+  synchronizeIssue,
+} from './board-usecase'
 import { z } from 'zod'
 import type { ExtensionContext } from '../../core/extensions/extension'
 import {
@@ -154,25 +159,59 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
   if (!number) return []
   const links = await loadLinks(ctx, 'link/')
   const mine = links.filter((link) => link.number === number)
-  const addresses = new Map<string, string>()
-  for (const issue of mine) {
-    addresses.set(
-      issueUrl(issue.repository, issue.issue),
-      issue.repository + '#' + issue.issue,
-    )
+  if (!mine.length) return []
+  const states = await Promise.all(
+    mine.map((link) => loadIssueState(ctx, link.repository, link.issue)),
+  )
+  const closed = states.some((state) => state?.state === 'closed')
+  const [notices, contact] = closed
+    ? await Promise.all([
+        ctx.events().then((events) => sentNotices(events)),
+        ctx.contact(number),
+      ])
+    : ([new Map<string, Map<number, number>>(), null] as const)
+  const addresses = new Map<
+    string,
+    {
+      label: string
+      icon?: {
+        name: 'issue_open' | 'issue_fixed' | 'issue_notify'
+        label: string
+      }
+    }
+  >()
+  mine.forEach((issue, i) => {
+    const key = issueKey(issue.repository, issue.issue)
+    const state = states[i]
+    const latest = notices.get(key)?.get(number) ?? -1
+    const pending =
+      state?.closedAt != null &&
+      latest < state.closedAt &&
+      contact?.status !== 'received' &&
+      contact?.status !== 'reviewed'
+    const icon =
+      state?.state === 'open'
+        ? ({ name: 'issue_open', label: '開いている' } as const)
+        : pending
+          ? ({ name: 'issue_notify', label: '知らせる待ち' } as const)
+          : state?.state === 'closed'
+            ? ({ name: 'issue_fixed', label: '直した' } as const)
+            : undefined
+    addresses.set(issueUrl(issue.repository, issue.issue), {
+      label: issue.repository + '#' + issue.issue,
+      icon,
+    })
     for (const sibling of links) {
       if (
-        sibling.repository === issue.repository &&
-        sibling.issue === issue.issue &&
+        issueKey(sibling.repository, sibling.issue) === key &&
         sibling.number !== number
       )
-        addresses.set(
-          '/conversation/' + sibling.number,
-          '会話 #' + sibling.number,
-        )
+        addresses.set('/conversation/' + sibling.number, {
+          label: '会話 #' + sibling.number,
+        })
     }
-  }
-  return Array.from(addresses, ([href, label]) => ({ href, label }))
+  })
+  return Array.from(addresses, ([href, link]) => ({ href, ...link }))
 }
 async function expirePreviews(ctx: ExtensionContext) {
   for (const { key, value } of await ctx.list('preview/')) {

@@ -72,6 +72,7 @@ export function jsonLines(
 const input = z.object({ unmask: z.boolean().default(false) })
 export const exportExtension: Extension = {
   id: 'export',
+  icon: 'export',
   permissions: ['read_body'],
   config: z.object({}),
   operations: [

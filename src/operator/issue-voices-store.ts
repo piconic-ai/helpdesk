@@ -3,7 +3,7 @@ export async function issueVoiceSummaries(db: D1Database, numbers: number[]) {
   const { results } = await db
     .prepare(
       `SELECT c.number, COALESCE(NULLIF(c.contact_name,''),NULLIF(c.contact,''),'匿名') AS name,
-       c.subject,p.name AS productName
+       c.product,c.subject,NULLIF(c.contact,'') AS email,p.name AS productName
      FROM conversations c JOIN products p ON p.id=c.product
      WHERE c.number IN (SELECT value FROM json_each(?))
      ORDER BY c.created_at DESC,c.number DESC`,
@@ -11,8 +11,10 @@ export async function issueVoiceSummaries(db: D1Database, numbers: number[]) {
     .bind(JSON.stringify(numbers))
     .all<{
       number: number
+      email: string | null
       name: string
       subject: string
+      product: string
       productName: string
     }>()
   return results

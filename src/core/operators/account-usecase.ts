@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { Bindings } from '../settings/bindings'
-import { avatarImage } from './avatar'
+import { saveAvatarImage } from './avatar-storage-usecase'
 import { saveProfile, saveSender } from './account-store'
 
 export const displayName = z
@@ -18,13 +18,7 @@ export async function updateAccount(
   name: string,
   file: File | null,
 ) {
-  const key = file ? crypto.randomUUID() : null
-  if (key && file) {
-    const bytes = await avatarImage(file)
-    await env.RAW.put('avatars/' + key, bytes, {
-      httpMetadata: { contentType: 'image/png' },
-    })
-  }
+  const key = file ? await saveAvatarImage(env.RAW, 'avatars/', file) : null
   const old = await saveProfile(env.DB, email, name, key)
   if (key && old) await env.RAW.delete('avatars/' + old)
 }

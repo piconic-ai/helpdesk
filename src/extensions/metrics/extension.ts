@@ -5,6 +5,7 @@ import { calculate } from './calculate'
 const input = z
   .object({
     product: z.string().default(''),
+    includeHistory: z.boolean().optional(),
     from: z.coerce.number().int().nonnegative().default(0),
     to: z.coerce.number().int().positive().default(Number.MAX_SAFE_INTEGER),
   })
@@ -20,8 +21,14 @@ const result = z.object({
   closed: z.int(),
   measured: z.int(),
 })
+export const reportResult = result.extend({
+  history: z
+    .array(z.object({ from: z.number(), to: z.number(), values: result }))
+    .optional(),
+})
 export const metrics: Extension = {
   id: 'metrics',
+  icon: 'metrics',
   permissions: [],
   config: z.object({}).strict(),
   subscribers: [
@@ -56,14 +63,29 @@ export const metrics: Extension = {
         'Measure resolution time, first-contact resolution operator time and improvement notifications delivered. Use epoch milliseconds for from and to.',
       permission: 'read',
       input,
-      output: result,
+      output: reportResult,
       async run(ctx, value) {
-        const { product, from, to } = input.parse(value)
+        const { product, from, to, includeHistory } = input.parse(value)
         const [events, voices] = await Promise.all([ctx.events(), ctx.voices()])
-        return {
-          ...calculate(events, product, from, to),
-          ...improvementRate(voices, events, product, from, to),
+        const period = (start: number, end: number) => ({
+          ...calculate(events, product, start, end),
+          ...improvementRate(voices, events, product, start, end),
+        })
+        const current = period(from, to)
+        if (!includeHistory) return current
+        const history = []
+        const duration = to - from
+        for (let back = 6; back >= 0; back--) {
+          const end = to - back * duration
+          if (end <= 0) continue
+          const start = Math.max(0, end - duration)
+          history.push({
+            from: start,
+            to: end,
+            values: back ? period(start, end) : current,
+          })
         }
+        return { ...current, history }
       },
     },
   ],

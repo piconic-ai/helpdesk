@@ -10,6 +10,7 @@ const submission = z.object({
 })
 export const feedback: Extension = {
   id: 'feedback',
+  icon: 'feedback',
   permissions: [],
   config: z.object({}).strict(),
   intakes: [

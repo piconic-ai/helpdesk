@@ -191,3 +191,23 @@ test('ショートカット一覧とモバイルメニューに一度に一つ�
   await page.keyboard.press('Escape')
   await expect(menu).toBeFocused()
 })
+
+test('閉じた直後に別のリンクへ移動すると、そのリンクにフォーカスが残る', async ({
+  page,
+}) => {
+  await page.locator('#navigation .brand').focus()
+  await page.keyboard.press('?')
+  const dialog = page.locator('#keyboard-help')
+  await expect(dialog).toBeVisible()
+  const destination = page.getByRole('link', { name: '設定', exact: true })
+  await destination.evaluate(
+    (link) =>
+      new Promise((resolve) => {
+        const modal = document.querySelector('dialog:modal')
+        modal.addEventListener('close', () => resolve(), { once: true })
+        modal.close()
+        link.focus()
+      }),
+  )
+  await expect(destination).toBeFocused()
+})

@@ -6,7 +6,7 @@ source = File.read(File.join(root, 'DESIGN.md')).split(/^---$/, 3).fetch(1)
 design = YAML.safe_load(source)
 variables = {}
 
-%w[colors rounded spacing layout].each do |group|
+%w[colors identity rounded spacing layout].each do |group|
   design.fetch(group).each { |key, value| variables["#{group}-#{key}"] = value }
 end
 design.fetch('typography').each do |name, type|
@@ -21,9 +21,16 @@ end
 
 css = "/* Generated from DESIGN.md by scripts/design-tokens.rb. */\n:root {\n" +
       variables.map { |key, value| "  --#{key}: #{value};\n" }.join + "}\n"
-path = File.join(root, 'public/ui/tokens.css')
-if ARGV == ['--check']
-  abort 'Run ruby scripts/design-tokens.rb to refresh public/ui/tokens.css' unless File.read(path) == css
-else
-  File.write(path, css)
+palette = design.fetch('identity').values.map { |hex| "  '#{hex}'," }.join("\n")
+outputs = {
+  'public/ui/tokens.css' => css,
+  'src/ui/identity-palette.ts' => "// Generated from DESIGN.md by scripts/design-tokens.rb.\nexport const identityPalette = [\n#{palette}\n] as const\n",
+}
+outputs.each do |relative, content|
+  path = File.join(root, relative)
+  if ARGV == ['--check']
+    abort "Run ruby scripts/design-tokens.rb to refresh #{relative}" unless File.read(path) == content
+  else
+    File.write(path, content)
+  end
 end

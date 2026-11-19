@@ -217,9 +217,12 @@ test('同じ課題に複数のプロダクトから届いた声をまとめ、�
   await expect(table).toContainText('2件')
   await table.getByRole('link', { name: '領収書の一括ダウンロード' }).click()
   await expect(
-    page.getByRole('heading', { name: 'Slideの修正前後（目安）' }),
+    page.getByRole('heading', {
+      name: 'Slide の修正前後（目安）',
+      exact: true,
+    }),
   ).toBeVisible()
   await expect(
-    page.getByRole('heading', { name: 'Deskの修正前後（目安）' }),
+    page.getByRole('heading', { name: 'Desk の修正前後（目安）', exact: true }),
   ).toBeVisible()
 })

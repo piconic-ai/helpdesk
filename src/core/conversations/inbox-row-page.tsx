@@ -1,11 +1,14 @@
 import type { ConsoleFrame, inboxMetadata } from './console-usecase'
 import { inboxSearch, threadUrl } from './inbox-location'
 import type { Result } from './inbox-page'
+import { ProductMark } from '../../ui/product-mark'
+import { ContactAvatar } from '../../ui/operator-identity'
 import { ConversationRow } from '../../ui/patterns'
 import { Button, Input } from '../../ui/controls'
 import {
   inboxIcon as icon,
   RowHeadline,
+  channelIcon,
   RowPreview,
   RowLabels,
   QuickActions,
@@ -20,13 +23,6 @@ import { operatorAvatar } from '../operators/identity-page'
 
 type Row = Result<'list'>[number]
 type Metadata = Awaited<ReturnType<typeof inboxMetadata>>
-function messageKind(kind: string | null, delivery: string | null) {
-  if (kind === 'note') return 'メモ'
-  if (kind !== 'outbound') return '受信'
-  return delivery === 'awaiting_approval' || delivery === 'draft'
-    ? '承認待ち'
-    : '返信'
-}
 function elapsed(at: number, now: number) {
   const minutes = Math.max(0, Math.floor((now - at) / 60_000))
   if (minutes < 1) return '1分未満'
@@ -42,10 +38,11 @@ function clock(
   if (row.status.kind !== 'open' || m.lastInbound === null)
     return stamp(m.at, now)
   const text = elapsed(m.lastInbound, now)
+  const hours = (now - m.lastInbound) / 3600000
   return (
     <WaitingTime
       at={m.lastInbound}
-      overdue={now - m.lastInbound > 86400000}
+      severity={hours > 72 ? 2 : hours > 24 ? 1 : 0}
       label={'最後の受信から' + text}
     >
       {text}待ち
@@ -95,6 +92,32 @@ function quickActions(row: Row, frame: ConsoleFrame) {
     </QuickActions>
   )
 }
+type RowDetails = NonNullable<ReturnType<Metadata['get']>>
+function rowMarks(m: RowDetails, approval: boolean, mixed: boolean) {
+  const marks = []
+  if (m.failed) marks.push(<Delivery state="failed">送信失敗</Delivery>)
+  if (approval)
+    marks.push(
+      <Delivery state="awaiting_approval" compact>
+        承認待ち
+      </Delivery>,
+    )
+  if (!approval && !m.failed && m.previewDelivery)
+    marks.push(<Delivery state={m.previewDelivery} compact />)
+  if (approval && m.previewDelivery === 'draft')
+    marks.push(<Delivery state="draft" compact />)
+  if (m.previewKind === 'note') marks.push(icon('メモ'))
+  if (m.hasFiles) marks.push(icon('添付あり'))
+  if (m.messages >= 3)
+    marks.push(
+      <RowCount>
+        {icon('やりとり', m.messages + '通のやりとり')}
+        {m.messages}
+      </RowCount>,
+    )
+  // Channel and assignee occupy the first two of the five available cues.
+  return marks.slice(0, 3 - Number(mixed))
+}
 export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
   const m = meta.get(row.number)
   if (!m) return null
@@ -103,29 +126,21 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       ? row.assignment.to
       : undefined
   const profile = frame.operators.find((op) => op.email === assignee)
-  const labels = m.labels
   const sender = m.name || row.contact || '匿名'
   const mixed = inboxStatus(frame.query) === 'all'
+  const marks = rowMarks(m, frame.approvalNumbers.has(row.number), mixed)
   const preview = (
     <RowPreview
       number={row.number}
       text={m.preview}
-      icon={
-        m.previewKind && icon(messageKind(m.previewKind, m.previewDelivery))
-      }
+      icon={channelIcon(row.origin)}
     >
-      {m.messages >= 3 && (
-        <RowCount>
-          {icon('やりとり', m.messages + '通のやりとり')}
-          {m.messages}
-        </RowCount>
-      )}
-      {!!m.hasFiles && icon('添付あり')}
-      {frame.approvalNumbers.has(row.number) && (
-        <Delivery state="awaiting_approval">承認待ち</Delivery>
-      )}
-      {!!m.failed && <Delivery state="failed">送信失敗</Delivery>}
-      <RowLabels labels={labels} />
+      {marks}
+      <RowLabels
+        labels={m.labels}
+        colors={frame.labelColors}
+        limit={Math.min(2, 3 - marks.length - Number(mixed))}
+      />
       {mixed && badge(row.status.kind)}
     </RowPreview>
   )
@@ -133,6 +148,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
     <ConversationRow
       number={row.number}
       read={!m.unread}
+      contact={<ContactAvatar name={m.name} email={row.contact} />}
       href={threadUrl(row.number, inboxSearch(frame.query))}
       selection={
         <Input
@@ -145,7 +161,14 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
         <RowHeadline
           sender={sender}
           subject={row.subject}
-          product={!frame.query.product ? m.productName : undefined}
+          product={
+            !frame.query.product && (
+              <ProductMark
+                product={{ id: row.product, name: m.productName }}
+                compact
+              />
+            )
+          }
         />
       }
       preview={preview}

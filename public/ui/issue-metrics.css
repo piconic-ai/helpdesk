@@ -7,7 +7,7 @@
 [data-ui-page='overview']
   [aria-label='集計結果']
   [data-ui='metric-card']
-  > strong {
+  strong {
   font-size: var(--typography-title-lg-fontSize);
 }
 [data-ui-page='overview']
@@ -22,7 +22,7 @@
 [data-ui-page='overview']
   [aria-label='集計の内訳']
   [data-ui='metric-card']
-  > strong {
+  strong {
   font-size: var(--typography-title-sm-fontSize);
 }
 [data-ui='metric-card'] [data-slot='tooltip'] button {
@@ -59,4 +59,19 @@
   [data-ui-page='overview'] [aria-label='集計結果'] > [data-ui='metrics'] {
     grid-template-columns: 1fr;
   }
+}
+.trend {
+  flex: none;
+  align-self: center;
+  color: var(--colors-body);
+}
+.trend-baseline {
+  stroke: var(--colors-hairline);
+}
+.metric-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
 }

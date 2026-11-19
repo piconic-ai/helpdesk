@@ -398,3 +398,113 @@
     padding-block-start: 0;
   }
 }
+
+[data-ui='conversation-row'] .conversation-row:has(.row-identity) {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--spacing-xs);
+}
+[data-ui='conversation-row'] .row-identity {
+  grid-area: 1 / 1 / span 2;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+}
+[data-ui='conversation-row'] .row-identity ~ span {
+  grid-column: 2;
+}
+.read-marker {
+  display: inline-flex;
+  width: var(--spacing-xs);
+}
+.unread-dot,
+.label-dot {
+  display: inline-block;
+  width: var(--spacing-xs);
+  height: var(--spacing-xs);
+  border-radius: var(--rounded-pill);
+  flex: none;
+}
+.unread-dot {
+  background: var(--colors-ink);
+}
+.label-dot {
+  vertical-align: middle;
+}
+.inbox-item .row-product {
+  background: transparent;
+  padding: 0;
+}
+.row-top .row-time time,
+[class^='delivery-'],
+[data-ui='message'] header h2,
+.attachments a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+}
+.row-bottom .label-dot {
+  width: var(--spacing-xxs);
+  height: var(--spacing-xxs);
+}
+.row-bottom .label-chip .label-dot {
+  vertical-align: 0.15em;
+}
+@media (max-width: 767px) {
+  [data-ui='conversation-row'] .row-top,
+  [data-ui='conversation-row'] .row-bottom {
+    gap: var(--spacing-xxs);
+  }
+  .row-bottom [class^='delivery-'] {
+    max-width: 7em;
+  }
+}
+
+select:has(option svg, option .label-dot),
+select:has(option svg, option .label-dot)::picker(select) {
+  appearance: base-select;
+  gap: var(--spacing-xs);
+}
+select:has(option svg, option .label-dot) option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.inbox-item .row-time {
+  min-width: 8ch;
+}
+.inbox-item .row-labels {
+  flex: none;
+}
+@media (max-width: 767px) {
+  .inbox-item .row-time {
+    min-width: 0;
+  }
+  .inbox-item .row-bottom .row-labels {
+    max-width: 6.5em;
+  }
+  .inbox-item .row-bottom .label-chip {
+    max-width: 4em;
+  }
+  .inbox-item .row-bottom .row-preview {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .row-bottom:has(.status-badge) .delivery-label {
+    position: absolute;
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .row-bottom:has(.status-badge) .row-labels {
+    flex: 0 1 auto;
+    max-width: 4.5em;
+  }
+  .row-bottom:has(.status-badge) .label-chip {
+    padding-inline: var(--spacing-xxs);
+  }
+}

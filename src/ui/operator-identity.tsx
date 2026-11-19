@@ -1,6 +1,12 @@
+import { glyph } from './glyph'
+import { identityColor, initial } from './identity-color'
 import { extensionLabel } from '../core/extensions/extension-labels'
 import type { Actor } from '../core/conversations/state'
-type Profile = { displayName: string; avatarKey?: string | null }
+type Profile = {
+  displayName: string
+  email?: string
+  avatarKey?: string | null
+}
 export function operatorAvatar(profile?: Profile, email?: string) {
   const name = profile?.displayName || email?.split('@')[0]
   const label = name ? '担当者 ' + name : '担当なし'
@@ -15,14 +21,12 @@ export function operatorAvatar(profile?: Profile, email?: string) {
         height={24}
       />
     )
-  const initial =
-    name &&
-    Array.from(
-      new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(name),
-    )[0]?.segment
   return (
     <span
       className={'avatar' + (name ? '' : ' avatar-unassigned')}
+      data-identity-color={
+        name ? identityColor(email || profile?.email || name) : undefined
+      }
       role="img"
       aria-label={label}
       title={name || '担当なし'}
@@ -30,15 +34,34 @@ export function operatorAvatar(profile?: Profile, email?: string) {
       <span
         className="avatar-letter"
         aria-hidden="true"
-        data-initial={initial}
+        data-initial={name && initial(name)}
       />
     </span>
   )
 }
-const icons = {
-  agent: 'M4 6h12v9H4z M10 6V3 M7 9v2 M13 9v2 M7 13h6',
-  extension: 'M4 4h5a2 2 0 1 1 4 0h3v5a2 2 0 1 0 0 4v3H4z',
-  system: 'M3 4h14v10H3z M7 17h6 M10 14v3',
+export function ContactAvatar({
+  name,
+  email,
+}: {
+  name?: string | null
+  email?: string | null
+}) {
+  const label = name || email || '匿名'
+  return (
+    <span
+      className="avatar contact-avatar"
+      role="img"
+      aria-label={'差出人 ' + label}
+      title={label}
+      data-identity-color={identityColor(email || label)}
+    >
+      <span
+        className="avatar-letter"
+        aria-hidden="true"
+        data-initial={initial(label)}
+      />
+    </span>
+  )
 }
 export function actorIdentity(
   actor: Actor,
@@ -67,17 +90,7 @@ export function actorIdentity(
           ' の代理）'
   return (
     <span className="actor-identity">
-      <svg
-        aria-hidden="true"
-        width="16"
-        height="16"
-        viewBox="0 0 20 20"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-      >
-        <path d={icons[actor.kind]} />
-      </svg>
+      {glyph(actor.kind)}
       {label}
     </span>
   )

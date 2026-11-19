@@ -9,6 +9,7 @@ import { shouldQuarantine } from '../spam/classify'
 
 export const autoAck: Extension = {
   id: 'auto-ack',
+  icon: 'auto_ack',
   permissions: ['send'],
   config: z.object({}).strict(),
   subscribers: [

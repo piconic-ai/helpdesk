@@ -3,6 +3,7 @@ import type { Extension } from '../../core/extensions/extension'
 import { shouldQuarantine } from './classify'
 export const spam: Extension = {
   id: 'spam',
+  icon: 'spam',
   permissions: [],
   config: z.object({}).strict(),
   subscribers: [

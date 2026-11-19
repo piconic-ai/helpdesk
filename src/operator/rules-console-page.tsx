@@ -1,3 +1,5 @@
+import { LabelDot } from '../ui/inbox-parts'
+import { ProductMark } from '../ui/product-mark'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import type { storedRules } from '../extensions/rules/extension'
 import { select } from '../core/conversations/console-page'
@@ -51,6 +53,7 @@ export function rulesSettings(
           ...Object.fromEntries(frame.labels.map((l) => [l, l])),
         },
         rule.label ?? '',
+        (name) => name && <LabelDot label={name} colors={frame.labelColors} />,
       )}
       {select(
         'assignee',
@@ -73,7 +76,7 @@ export function rulesSettings(
         上から順に適用します。複数の担当者指定が一致すると、最後の指定が優先されます。
       </p>
       {!rules.length && (
-        <EmptyState>
+        <EmptyState icon={total ? 'search' : 'rules'}>
           {total
             ? '条件に合うルールはありません。'
             : '保存済みのルールはありません。'}
@@ -84,13 +87,32 @@ export function rulesSettings(
           {rules.map(({ key, rule, index }) => (
             <ListRow
               title={
-                (products[rule.product ?? ''] ?? '全プロダクト') +
-                ' · ' +
-                (rule.subjectContains || 'すべての件名')
+                <>
+                  {rule.product ? (
+                    <ProductMark
+                      product={{
+                        id: rule.product,
+                        name: products[rule.product] ?? rule.product,
+                      }}
+                    />
+                  ) : (
+                    '全プロダクト'
+                  )}{' '}
+                  · {rule.subjectContains || 'すべての件名'}
+                </>
               }
-              description={[rule.label, people[rule.assignee ?? '']]
-                .filter(Boolean)
-                .join('・')}
+              description={
+                <>
+                  {rule.label && (
+                    <>
+                      <LabelDot label={rule.label} colors={frame.labelColors} />
+                      {rule.label}
+                    </>
+                  )}
+                  {rule.label && rule.assignee && '・'}
+                  {people[rule.assignee ?? '']}
+                </>
+              }
               status={index + 1 + '番目'}
               action={
                 <Disclosure title="編集">

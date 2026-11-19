@@ -1,3 +1,7 @@
+import { createElement } from 'hono/jsx'
+import { glyph } from './glyph'
+import { ProductMark } from './product-mark'
+import { ContactAvatar } from './operator-identity'
 import type { Child } from 'hono/jsx'
 import { Stack, Cluster } from './layout'
 import { stamp } from './console-shell'
@@ -7,8 +11,31 @@ import { EmptyState, FormSection } from './patterns'
 type IssueSummary = {
   title: string
   href: string
-  productNames: string
+  productMarks: { id: string; name: string }[]
   count: number
+}
+export function IssueProducts({
+  products,
+  detail = false,
+}: {
+  products: IssueSummary['productMarks']
+  detail?: boolean
+}) {
+  const shown = detail ? products : products.slice(0, 5)
+  return (
+    <span className="issue-products">
+      {Array.from({ length: Math.ceil(shown.length / 5) }, (_, line) => (
+        <span className="issue-products-line">
+          {shown.slice(line * 5, line * 5 + 5).map((product) => (
+            <ProductMark product={product} size={detail ? 'heading' : 'list'} />
+          ))}
+        </span>
+      ))}
+      {shown.length < products.length && (
+        <small>ほか{products.length - shown.length}件</small>
+      )}
+    </span>
+  )
 }
 export function PendingIssues({
   issues,
@@ -24,14 +51,14 @@ export function PendingIssues({
       aria-labelledby="pending-issues"
     >
       <h2 id="pending-issues">
-        知らせる待ち <small>{issues.length}件</small>
+        {glyph('issue_notify')} 知らせる待ち <small>{issues.length}件</small>
       </h2>
       <ul className="issue-pending" data-layout="stack" data-gap="md">
         {issues.map((issue) => (
           <li data-layout="cluster" data-gap="sm">
             <Stack className="issue-summary" gap="xs">
               <a href={issue.href}>{issue.title}</a>
-              <span>{issue.productNames}</span>
+              <IssueProducts products={issue.productMarks} />
               <p>
                 {issue.count}件の声のうち{issue.remaining}
                 件にまだ知らせていません。
@@ -71,7 +98,8 @@ export function IssueTable({
     >
       <Cluster className="issue-section-heading">
         <h2 id={id}>
-          {heading} <small>{total}件</small>
+          {glyph(closed ? 'issue_fixed' : 'issue_open')} {heading}{' '}
+          <small>{total}件</small>
         </h2>
         {!closed && issues.length > 0 && <small>声が多い順</small>}
       </Cluster>
@@ -99,7 +127,9 @@ export function IssueTable({
                   <a href={r.href}>{r.title}</a>
                   {r.awaitingSync && <small>状態を同期待ち</small>}
                 </th>
-                <td data-label="プロダクト">{r.productNames}</td>
+                <td data-label="プロダクト">
+                  <IssueProducts products={r.productMarks} />
+                </td>
                 <td data-label="声">{r.count}件</td>
                 {closed ? (
                   <>
@@ -118,7 +148,9 @@ export function IssueTable({
           </tbody>
         </table>
       ) : (
-        <EmptyState>{heading}課題はありません。</EmptyState>
+        <EmptyState icon={closed ? 'issue_fixed' : 'issue_open'}>
+          {heading}課題はありません。
+        </EmptyState>
       )}
     </section>
   )
@@ -140,16 +172,23 @@ type ImpactPeriod = { total: number; linked: number; share: number | null }
 export function IssueImpact({
   before,
   after,
-  name,
+  product,
   days,
 }: {
   before: ImpactPeriod
   after: ImpactPeriod
-  name: string
+  product: { id: string; name: string }
   days: number
 }) {
   return (
-    <FormSection title={name + 'の修正前後（目安）'}>
+    <FormSection
+      title={
+        <>
+          <ProductMark product={product} size="heading" />
+          の修正前後（目安）
+        </>
+      }
+    >
       <div className="issue-impact">
         <div>
           <span>直す前 30日</span>
@@ -174,6 +213,7 @@ export function IssueVoices({
   voices: {
     number: number
     name?: string
+    email?: string | null
     subject?: string
     href: string
     delivery: string
@@ -194,7 +234,8 @@ export function IssueVoices({
           <li>
             <a href={v.href}>
               <span className="issue-number">#{v.number}</span>
-              <span>
+              <ContactAvatar name={v.name} email={v.email} />
+              <span className="issue-voice-caption">
                 <strong>{v.name}</strong>
                 <span>{v.subject}</span>
               </span>
@@ -211,7 +252,12 @@ export function NewIssueForm({
   choices,
   action,
 }: {
-  choices: { number: number; subject: string; productName: string }[]
+  choices: {
+    number: number
+    subject: string
+    product: string
+    productName: string
+  }[]
   action: string
 }) {
   return (
@@ -223,11 +269,14 @@ export function NewIssueForm({
       method="post"
     >
       <Field label="もとになる会話">
-        <NativeSelect name="number" required>
+        <NativeSelect name="number" required data-product-select="">
+          <button type="button">{createElement('selectedcontent', {})}</button>
           <option value="">会話を選ぶ</option>
           {choices.map((c) => (
             <option value={c.number}>
-              #{c.number} {c.productName} · {c.subject}
+              #{c.number}{' '}
+              <ProductMark product={{ id: c.product, name: c.productName }} /> ·{' '}
+              {c.subject}
             </option>
           ))}
         </NativeSelect>

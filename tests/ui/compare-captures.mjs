@@ -1,3 +1,5 @@
+import { trendScenes } from './trend-scenes.mjs'
+import { identityScenes } from './identity-scenes.mjs'
 import { readdir, writeFile, access } from 'node:fs/promises'
 import { basename, relative, resolve } from 'node:path'
 import { screens } from './screens.mjs'
@@ -16,6 +18,8 @@ const titles = new Map(
     ...compositionScreens,
     ...reviewScreens,
     ...nextIssuesScenes,
+    ...identityScenes,
+    ...trendScenes,
   ]
     .map((s) => [s.id, s.group + ' · ' + s.label])
     .concat([

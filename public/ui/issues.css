@@ -111,7 +111,7 @@
   padding-block: var(--spacing-sm);
   flex-wrap: nowrap;
 }
-.issue-voices a > span:nth-child(2) {
+.issue-voices .issue-voice-caption {
   display: grid;
   min-width: 0;
   flex: 1;
@@ -178,4 +178,19 @@
   [data-issue-picker] > summary {
     min-height: 44px;
   }
+}
+
+.issue-section h2 > svg {
+  vertical-align: -0.1em;
+}
+.issue-products {
+  display: inline-grid;
+  gap: var(--spacing-xxs);
+  vertical-align: middle;
+}
+.issue-products-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
 }

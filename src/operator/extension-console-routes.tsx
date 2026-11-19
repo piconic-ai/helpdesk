@@ -31,6 +31,7 @@ import {
   publicGuides,
   permissionText,
 } from '../core/extensions/extension-guides'
+import { reportResult } from '../extensions/metrics/extension'
 import { voiceFilters } from './voice-filters'
 import { voiceBuckets, voiceList } from './voices-usecase'
 import { voicesOverview, voicesResults } from './voices-page'
@@ -255,20 +256,14 @@ app.get('/metrics', async (c) => {
       : to - Number(period) * day
   if (from < 0 || from >= to)
     return c.text('開始日と終了日を確認してください。', 400)
-  const report = async (start: number, end: number) =>
-    z.record(z.string(), z.number().nullable()).parse(
-      await invoke(context(c), scopes, 'metrics.report', {
-        product,
-        from: start,
-        to: end,
-      }),
-    )
-  const [result, previous] = await Promise.all([
-    report(from, to),
-    from > 0
-      ? report(Math.max(0, from - (to - from)), from)
-      : Object.fromEntries([]),
-  ])
+  const { history = [], ...result } = reportResult.parse(
+    await invoke(context(c), scopes, 'metrics.report', {
+      product,
+      from,
+      to,
+      includeHistory: true,
+    }),
+  )
   const iso = (time: number) =>
     new Date(time + japanOffset).toISOString().slice(0, 10)
   return c.render(
@@ -276,7 +271,7 @@ app.get('/metrics', async (c) => {
       state,
       { product, period, start: iso(from), end: iso(to - day) },
       result,
-      previous,
+      history,
     ),
   )
 })

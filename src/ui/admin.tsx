@@ -1,3 +1,4 @@
+import { glyph, type GlyphName } from './glyph'
 import type { Child, JSX } from 'hono/jsx'
 import { ActionLink, Button } from './controls'
 import { ActionBar } from './patterns'
@@ -43,12 +44,14 @@ export function PanelForm(
 }
 export function ContextPanel({
   title,
+  icon,
   extension,
   number,
   children,
 }: {
   title: string
   extension: string
+  icon?: GlyphName
   number?: number
   children: Child
 }) {
@@ -59,7 +62,10 @@ export function ContextPanel({
       data-extension={extension}
       id={'extension-' + extension}
     >
-      <h2>{title}</h2>
+      <h2>
+        {glyph(icon ?? 'extension')}
+        {title}
+      </h2>
       {children}
     </section>
   )

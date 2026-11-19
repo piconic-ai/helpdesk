@@ -1,3 +1,4 @@
+import { glyph, type GlyphName } from './glyph'
 import type { Child } from 'hono/jsx'
 import { PageBody, Stack, Grid, Cluster } from './layout'
 import { ActionLink } from './controls'
@@ -88,10 +89,16 @@ export function ListRow({
   title,
   href,
   newTab,
+  backdrop,
   description,
   status,
   action,
-}: Heading & { href?: string; newTab?: boolean; status?: Child }) {
+}: Heading & {
+  href?: string
+  newTab?: boolean
+  status?: Child
+  backdrop?: Child
+}) {
   const caption = (
     <>
       <strong>{title}</strong>
@@ -113,10 +120,12 @@ export function ListRow({
       )}
       {status && <small>{status}</small>}
       {action}
+      {backdrop}
     </li>
   )
 }
 export function ConversationRow({
+  contact,
   headline,
   preview,
   time,
@@ -127,6 +136,7 @@ export function ConversationRow({
   read,
   number,
 }: {
+  contact?: Child
   headline: Child
   preview: Child
   time: Child
@@ -141,6 +151,21 @@ export function ConversationRow({
     <li data-ui="conversation-row" className="inbox-item" data-number={number}>
       {selection && <label className="row-select">{selection}</label>}
       <a className={'conversation-row' + (read ? '' : ' unread')} href={href}>
+        {contact && (
+          <span className="row-identity">
+            <span className="read-marker">
+              {!read && (
+                <span
+                  className="unread-dot"
+                  role="img"
+                  aria-label="未読"
+                  title="未読"
+                />
+              )}
+            </span>
+            {contact}
+          </span>
+        )}
         <span className="row-top">
           {headline}
           <span className="row-time">{time}</span>
@@ -182,16 +207,25 @@ export function MetricCard({
   value,
   change,
   definition,
+  trend,
 }: {
   title: Child
   value: Child
   change: Child
   definition: Child
+  trend?: Child
 }) {
   return (
     <Stack as="article" data-ui="metric-card">
       <h2>{title}</h2>
-      <strong>{value}</strong>
+      {trend ? (
+        <div className="metric-value">
+          <strong>{value}</strong>
+          {trend}
+        </div>
+      ) : (
+        <strong>{value}</strong>
+      )}
       <small>{change}</small>
       <p>{definition}</p>
     </Stack>
@@ -250,6 +284,7 @@ export function Candidate({
 }
 export function ExtensionCard({
   id,
+  icon,
   extension,
   title,
   description,
@@ -258,6 +293,7 @@ export function ExtensionCard({
 }: {
   id?: string
   extension?: string
+  icon?: GlyphName
   title: Child
   description: Child
   toggle: Child
@@ -271,7 +307,10 @@ export function ExtensionCard({
       data-ui="extension-card"
     >
       <header>
-        <h3 title={typeof title === 'string' ? title : undefined}>{title}</h3>
+        <h3 title={typeof title === 'string' ? title : undefined}>
+          {glyph(icon ?? 'extension')}
+          {title}
+        </h3>
         {toggle}
       </header>
       <p>{description}</p>
@@ -293,9 +332,13 @@ export function Notice({
     </div>
   )
 }
-export const EmptyState = ({ children }: Content) => (
+export const EmptyState = ({
+  children,
+  icon = 'open',
+}: Content & { icon?: GlyphName }) => (
   <div data-ui="empty" className="empty-state">
-    {children}
+    {glyph(icon)}
+    <div>{children}</div>
   </div>
 )
 export const LoadingState = ({ label = '読み込み中' }: { label?: string }) => (
