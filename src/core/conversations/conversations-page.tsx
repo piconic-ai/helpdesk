@@ -1,3 +1,4 @@
+import { embeddingPage } from '../intakes/intake'
 import { threadUrl } from './inbox-location'
 import { displayEvents, timelineChange, timelineLabel } from './timeline'
 import { ReplyComposer } from '@/components/ReplyComposer'
@@ -238,6 +239,15 @@ function eventActor(actor: string, names: Names) {
     return '記録なし'
   }
 }
+function pageAtIntake(events: Details['events']) {
+  const intake = events.find((event) => event.kind === 'conversation_opened')
+  if (!intake) return
+  try {
+    return embeddingPage(JSON.parse(intake.payload)?.sourcePage)
+  } catch {
+    return
+  }
+}
 function threadContext(
   data: Details,
   panels: Child,
@@ -245,8 +255,14 @@ function threadContext(
   names: Names,
   colors: ConsoleFrame['labelColors'],
 ) {
+  const sourcePage = pageAtIntake(data.events)
   return (
     <ThreadPanel>
+      {sourcePage && (
+        <FormSection title="チャットを開いたページ">
+          <p>{sourcePage}</p>
+        </FormSection>
+      )}
       {panels}
       <FormSection title="この相手の問い合わせ">
         {data.history.length ? (

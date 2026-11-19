@@ -5,6 +5,25 @@
   const textField = (el) =>
     el instanceof HTMLInputElement && ['text', 'search'].includes(el.type)
 
+  function changedSinceRender(field) {
+    if (field instanceof HTMLSelectElement) {
+      const options = [...field.options]
+      if (field.multiple)
+        return options.some(
+          (option) => option.selected !== option.defaultSelected,
+        )
+      const initial =
+        options.findLast((option) => option.defaultSelected) ??
+        (field.size <= 1
+          ? options.find((option) => option.matches(':enabled'))
+          : undefined)
+      return field.selectedOptions[0] !== initial
+    }
+    if (['checkbox', 'radio'].includes(field.type))
+      return field.checked !== field.defaultChecked
+    return field.value !== field.defaultValue
+  }
+
   function submit(form) {
     if (!form.reportValidity()) return
     const destination = new URL(form.action || location.pathname, location.href)
@@ -62,6 +81,14 @@
       clearTimeout(timer)
       if (!composing) submit(form)
     })
+    // The browser accepts edits before this deferred script attaches its listeners.
+    const changed = [
+      ...form.querySelectorAll(
+        'input[name]:enabled, select[name]:enabled, textarea[name]:enabled',
+      ),
+    ].filter(changedSinceRender)
+    for (const field of changed) delete field.dataset.implicitValue
+    if (changed.length) schedule()
     addEventListener('pagehide', () => clearTimeout(timer))
   }
   const saved = sessionStorage.getItem(storageKey)

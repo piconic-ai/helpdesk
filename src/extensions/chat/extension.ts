@@ -38,6 +38,7 @@ export async function handOffQuestion(
     email: data.email,
     name: data.name,
     origin: 'chat',
+    ...(data.sourcePage && { sourcePage: data.sourcePage }),
     product,
     body: data.question,
     subject: data.question.trim().slice(0, 96),

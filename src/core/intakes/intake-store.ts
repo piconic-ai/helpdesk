@@ -28,9 +28,14 @@ export async function open(db: D1Database, i: Intake, a: Action) {
       .bind(a.id, i.body, actor, a.now),
     db
       .prepare(
-        "INSERT INTO events(number,kind,actor,payload,at) SELECT number,'conversation_opened',?,json_object('origin',?),? FROM messages WHERE id=?",
+        "INSERT INTO events(number,kind,actor,payload,at) SELECT number,'conversation_opened',?,?,? FROM messages WHERE id=?",
       )
-      .bind(actor, i.origin, a.now, a.id),
+      .bind(
+        actor,
+        JSON.stringify({ origin: i.origin, sourcePage: i.sourcePage }),
+        a.now,
+        a.id,
+      ),
     receiveEvent(db, a, true),
   ])
   return z.object({ number: z.int().positive() }).parse(conversation.results[0])

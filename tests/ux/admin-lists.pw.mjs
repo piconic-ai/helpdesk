@@ -1,6 +1,41 @@
-import { test, expect } from './harness.mjs'
+import { test, expect, editFiltersWhileLoading } from './harness.mjs'
 
 test.use({ extensions: ['articles', 'metrics'] })
+test('読み込み中に変更した検索と選択を一度に反映し、入力だけでも検索できる', async ({
+  page,
+  scene,
+}) => {
+  const requests = []
+  page.on('request', (request) => {
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame())
+      requests.push(new URL(request.url()).search)
+  })
+  await editFiltersWhileLoading(
+    page,
+    scene.origin + '/extensions',
+    async () => {
+      await page
+        .getByRole('searchbox', { name: '拡張機能を検索' })
+        .fill('articles')
+      await page.getByLabel('有効状態').selectOption('enabled')
+    },
+  )
+  await expect(page).toHaveURL(/q=articles&filter=enabled$/)
+  await expect(page.locator('[data-extension]')).toHaveCount(1)
+  expect(requests).toEqual(['', '?q=articles&filter=enabled'])
+
+  const search = page.getByRole('searchbox', { name: '設定項目を検索' })
+  await editFiltersWhileLoading(
+    page,
+    scene.origin + '/settings?q=削除',
+    async () => {
+      await search.fill('')
+    },
+  )
+  await expect(page).toHaveURL(scene.origin + '/settings')
+  await expect(page.getByRole('link', { name: /^保存期間/ })).toBeVisible()
+  await expect(search).toBeFocused()
+})
 test('記事の検索・公開状態・ページ送りを URL から復元し、更新日と評価を読む', async ({
   page,
   scene,

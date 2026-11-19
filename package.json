@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm build && wrangler dev",
+    "dev:widget": "pnpm build && node examples/widget/demo.mjs",
     "dev:demo": "pnpm build && node tests/ui/demo.mjs",
     "build": "vite build && unocss && wrangler deploy --dry-run --outdir dist/worker",
     "test": "vitest run",

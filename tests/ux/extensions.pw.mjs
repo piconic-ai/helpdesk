@@ -208,7 +208,7 @@ test.describe('公開画面の埋め込み', () => {
     const fronts = [
       ['form', 'お問い合わせ'],
       ['feedback', 'フィードバック'],
-      ['chat', 'ヘルプチャット'],
+      ['chat', 'Slide'],
       ['articles', 'ヘルプ記事'],
     ]
     for (const [id, heading] of fronts) {
@@ -217,11 +217,13 @@ test.describe('公開画面の埋め込み', () => {
         has: page.getByRole('heading', { name: 'Slide', exact: true }),
       })
       const html = await product.getByLabel('埋め込みコード').inputValue()
-      expect(html).toContain('<iframe')
+      expect(html).toContain(id === 'chat' ? '<script' : '<iframe')
       await page.route(scene.origin + '/example-embed', (route) =>
         route.fulfill({ contentType: 'text/html; charset=utf-8', body: html }),
       )
       await page.goto(scene.origin + '/example-embed')
+      if (id === 'chat')
+        await page.getByRole('button', { name: 'ヘルプ', exact: true }).click()
       await expect(
         page.frameLocator('iframe').getByRole('heading', { level: 1 }),
       ).toContainText(heading)

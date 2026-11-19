@@ -5,7 +5,7 @@ import type { Context } from '../operations/catalog-usecase'
 import { authorize } from '../operations/catalog'
 
 export async function hostedPolicy(
-  env: Bindings,
+  env: Pick<Bindings, 'DB' | 'PUBLIC_INTAKES'>,
   product: string,
   origin: string,
 ): Promise<IntakePolicy | undefined> {

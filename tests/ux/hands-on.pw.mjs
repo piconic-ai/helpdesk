@@ -218,8 +218,9 @@ async function publicVoices(page, scene) {
   await customer.goto(scene.origin + '/help/chat/slide')
   await customer.getByLabel('質問').fill(question)
   await button(customer, '質問する').click()
-  const opened = customer.waitForEvent('popup')
   await customer.getByRole('link', { name: /領収書を発行する/ }).click()
+  const opened = customer.waitForEvent('popup')
+  await customer.getByRole('link', { name: '新しいタブで開く' }).click()
   const article = await opened
   await expect(article.getByRole('heading', { level: 1 })).toHaveText(
     '領収書を発行する',
@@ -227,7 +228,8 @@ async function publicVoices(page, scene) {
   await button(article, 'いいえ').click()
   await expect(article.getByRole('status')).toContainText('評価')
   await article.close()
-  await button(customer, '解決しなかったので問い合わせる').click()
+  await button(customer, 'やりとりに戻る').click()
+  await button(customer, '解決しなかった').click()
   await customerContact(customer)
   await button(customer, '送信').click()
   const receipt = customer.getByRole('status')

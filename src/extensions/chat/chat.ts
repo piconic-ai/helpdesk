@@ -7,6 +7,7 @@ export const articleCandidate = z.object({
 export const score = z.object({ id: z.string(), score: z.number().finite() })
 export const question = z.object({
   email: z.email(),
+  sourcePage: z.string().max(4096).optional(),
   name: z.string().trim().min(1).max(200).optional(),
   question: z
     .string()

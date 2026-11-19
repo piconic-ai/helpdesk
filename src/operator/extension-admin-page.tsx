@@ -1,3 +1,4 @@
+import { WidgetSettings } from './widget-settings-page'
 import { ProductMark, ProductSelect } from '../ui/product-mark'
 import { OutcomeCard } from '../ui/outcome-cards'
 import { ArticleListRow } from '../ui/article-list'
@@ -455,6 +456,12 @@ export function guidePage(
       {id === 'metrics' && (
         <ActionLink href="/metrics">集計画面を開く</ActionLink>
       )}
+      {id === 'chat' && (
+        <>
+          <link rel="stylesheet" href="/ui/widget-settings.css" />
+          <script defer src="/ui/widget-settings.js" />
+        </>
+      )}
       {items.map((p) => (
         <FormSection title={<ProductMark product={p} size="heading" />}>
           {id === 'issues' ? (
@@ -477,19 +484,27 @@ export function guidePage(
               <p>
                 <code>{p.url}</code>
               </p>
-              {id !== 'chat' && (
-                <p>登録済みのサイトに次のコードを貼り付けてください。</p>
+              {id === 'chat' && p.publicSettings?.widget ? (
+                <WidgetSettings
+                  product={p}
+                  url={p.url}
+                  options={p.publicSettings.widget}
+                />
+              ) : (
+                <>
+                  <p>登録済みのサイトに次のコードを貼り付けてください。</p>
+                  <label>
+                    埋め込みコード
+                    <Textarea readonly rows={3}>
+                      {'<iframe src="' +
+                        p.url +
+                        '" title="' +
+                        extensionLabel(id) +
+                        '" width="100%" height="540" loading="lazy"></iframe>'}
+                    </Textarea>
+                  </label>
+                </>
               )}
-              <label>
-                埋め込みコード
-                <Textarea readonly rows={3}>
-                  {'<iframe src="' +
-                    p.url +
-                    '" title="' +
-                    extensionLabel(id) +
-                    '" width="100%" height="540" loading="lazy"></iframe>'}
-                </Textarea>
-              </label>
             </>
           ) : p.configured ? (
             <p>

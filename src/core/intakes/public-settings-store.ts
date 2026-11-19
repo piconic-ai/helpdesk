@@ -14,6 +14,15 @@ export async function chatEmbedSites(db: D1Database, product: string) {
     .map((r) => r.setting)
 }
 
+export async function readChatWidgetValue(db: D1Database, product: string) {
+  return db
+    .prepare(
+      "SELECT value FROM public_help_settings WHERE product=? AND setting='chat_widget'",
+    )
+    .bind(product)
+    .first<string>('value')
+}
+
 export async function savePublicSetting(
   db: D1Database,
   product: string,

@@ -3,13 +3,42 @@ import { authorize } from '../operations/catalog'
 import type { Context } from '../operations/catalog-usecase'
 import {
   chatEmbedSites,
+  readChatWidgetValue,
   restorePublicSetting,
   savePublicSetting,
 } from './public-settings-store'
+import { chatWidgetSchema, defaultChatWidget } from './chat-widget'
 import { exactOrigin } from './intake'
 import { readPublicProduct } from '../../public/product-store'
 
 export const embedSites = chatEmbedSites
+
+export async function chatWidgetSettings(db: D1Database, product: string) {
+  const stored = await readChatWidgetValue(db, product)
+  return stored ? chatWidgetSchema.parse(JSON.parse(stored)) : defaultChatWidget
+}
+
+export async function editChatWidget(
+  ctx: Context,
+  product: string,
+  fields: unknown,
+) {
+  authorize(ctx, 'admin', new Set(['admin']))
+  if (!(await readPublicProduct(ctx.env.DB, product))) return null
+  const parsed = chatWidgetSchema.safeParse(fields)
+  if (!parsed.success) return null
+  return savePublicSetting(
+    ctx.env.DB,
+    product,
+    'chat_widget',
+    JSON.stringify(parsed.data),
+    ctx.uuid(),
+    {
+      actor: JSON.stringify(ctx.actor),
+      now: ctx.now,
+    },
+  )
+}
 
 export async function editPublicSetting(
   ctx: Context,

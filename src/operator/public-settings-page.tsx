@@ -1,6 +1,8 @@
 import { SaveActions } from '../ui/admin'
 import { Button, Input } from '../ui/controls'
+import type { ChatWidget } from '../core/intakes/chat-widget'
 export type PublicSettings = {
+  widget?: ChatWidget
   responseTime: string
   inheritedSites: string[]
   sites: string[]

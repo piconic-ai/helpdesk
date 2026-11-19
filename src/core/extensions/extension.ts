@@ -9,6 +9,7 @@ export type IntakeInput = {
   subject: string
   body: string
   origin: 'form' | 'chat'
+  sourcePage?: string
 } & ({ kind?: 'inquiry'; email: string } | { kind: 'feedback'; email?: string })
 export type ExtensionEvent = {
   id: number

@@ -88,9 +88,15 @@ app.use('*', async (c, next) => {
         "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     )
   c.header('X-Content-Type-Options', 'nosniff')
-  c.header('Referrer-Policy', 'same-origin')
+  if (!c.res.headers.has('Referrer-Policy'))
+    c.header('Referrer-Policy', 'same-origin')
   c.header('X-Robots-Tag', 'noindex, nofollow')
-  c.header('Cache-Control', 'no-store')
+  c.header(
+    'Cache-Control',
+    c.req.path === '/widget.js' && c.res.status === 200
+      ? 'public, max-age=300'
+      : 'no-store',
+  )
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   c.header('Strict-Transport-Security', 'max-age=31536000')
 })
@@ -98,6 +104,7 @@ for (const asset of [
   '/extension-assets/*',
   '/components/*',
   '/ui/*',
+  '/widget.js',
   '/styles.css',
   '/uno.css',
 ])

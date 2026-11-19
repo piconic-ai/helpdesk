@@ -290,6 +290,12 @@ it('registers chat embedding sites without expanding the intake API or changing 
   expect((await register(trusted)).status).toBe(303)
   const chatPage = await app.request(origin + '/help/chat/shop', {}, env)
   expect(chatPage.headers.get('Content-Security-Policy')).toContain(trusted)
+  const framed = await app.request(
+    origin + '/help/chat/shop?embed=1&parent=' + encodeURIComponent(trusted),
+    {},
+    env,
+  )
+  expect(framed.headers.get('Referrer-Policy')).toBe('no-referrer')
   const formPage = await app.request(origin + '/help/form/shop', {}, env)
   expect(formPage.headers.get('Content-Security-Policy')).not.toContain(trusted)
   const api = await app.request(

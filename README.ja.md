@@ -6,4 +6,4 @@
 
 まずローカルでサンプルメールを受信して返信を試してください。自分の Cloudflare アカウントで使う場合は、セルフホストの手順に沿って窓口のドメインと Access を設定します。
 
-[ローカル開発手順](docs/dev/development.md)・[セルフホスト](docs/dev/self-hosting.md)・[CLI と MCP](docs/dev/machine-access.md)・[拡張の作り方](docs/dev/extensions.md)・[English](README.md)
+[ヘルプチャットの埋め込み](docs/dev/embedding.md) · [ローカル開発手順](docs/dev/development.md)・[セルフホスト](docs/dev/self-hosting.md)・[CLI と MCP](docs/dev/machine-access.md)・[拡張の作り方](docs/dev/extensions.md)・[English](README.md)

@@ -1,3 +1,5 @@
+import { widgetPosition, widgetLabel } from '../core/intakes/chat-widget'
+import { widgetPreviewPage } from './widget-settings-page'
 import { issueBoardRoutes } from './issue-board-routes'
 import { automaticMailRoutes } from './automatic-mail-routes'
 import { listRows, type ListWindow } from '../ui/listing'
@@ -45,6 +47,8 @@ import { article, articleKey, publicPath } from '../extensions/articles/article'
 import { repository } from '../extensions/issues/issues'
 import { configuredRepository } from '../extensions/issues/issues-usecase'
 import {
+  chatWidgetSettings,
+  editChatWidget,
   editPublicSetting,
   undoPublicSetting,
   embedSites,
@@ -282,6 +286,42 @@ const publicSettingNotices: Record<string, string> = {
     '設定が更新されたため、保存できませんでした。現在の内容を確認してからもう一度編集してください。',
   saved: '公開受付の設定を保存しました。',
 }
+app.get('/extensions/chat/preview/:product', async (c) => {
+  authorize(context(c), 'admin', scopes)
+  if (!active(c, 'chat')) return c.notFound()
+  const product = await publicProduct(c.env, c.req.param('product'))
+  if (!product?.mailbox) return c.notFound()
+  const origin = new URL(c.req.url).origin
+  const saved = await chatWidgetSettings(c.env.DB, product.id)
+  const options = z
+    .object({ position: widgetPosition, label: widgetLabel })
+    .safeParse({
+      position: c.req.query('position') ?? saved.position,
+      label: c.req.query('label') ?? saved.label,
+    })
+  if (!options.success)
+    return c.text('ボタンの位置と文言を確認してください。', 400)
+  c.header(
+    'Content-Security-Policy',
+    "default-src 'none'; script-src 'self'; style-src 'self'; frame-src 'self'; frame-ancestors 'self'; img-src 'self'; base-uri 'none'",
+  )
+  return c.html(widgetPreviewPage(origin, product, options.data))
+})
+app.post('/extensions/chat/widget-settings', async (c) => {
+  if (!active(c, 'chat')) return c.notFound()
+  const fields = await c.req.parseBody()
+  const token = await editChatWidget(
+    context(c),
+    String(fields.product ?? ''),
+    fields,
+  )
+  if (token === null)
+    return c.text('ボタンの位置・文言・説明文を確認してください。', 400)
+  return c.redirect(
+    '/extensions/chat?publicSettings=saved' + (token ? '&undo=' + token : ''),
+    303,
+  )
+})
 app.post(
   '/extensions/:id{chat|form}/:setting{embed-sites|public-settings}',
   async (c) => {
@@ -354,6 +394,10 @@ async function guidePortals(
             ? {
                 responseTime:
                   (await publicProduct(c.env, p.id))?.responseTime ?? '',
+                widget:
+                  id === 'chat'
+                    ? await chatWidgetSettings(c.env.DB, p.id)
+                    : undefined,
                 inheritedSites:
                   policy?.origins.filter((site) => site !== origin) ?? [],
                 sites: id === 'chat' ? await embedSites(c.env.DB, p.id) : [],

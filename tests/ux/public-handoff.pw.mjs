@@ -20,9 +20,12 @@ test('J12 チャットで読んだ記事で解決できない質問をそのま�
   ).toBeVisible()
   await expect(page.getByText(question, { exact: true })).toBeVisible()
   await capture(page, 'J12', '01-articles', '元の質問と関連記事を読む')
-  await page
-    .getByRole('button', { name: '解決しなかったので問い合わせる' })
-    .click()
+  const article = page.getByRole('link', { name: '領収書を発行する' })
+  await article.click()
+  await expect(page.locator('#chat-reading article')).not.toBeEmpty()
+  await page.getByRole('button', { name: 'やりとりに戻る' }).click()
+  await expect(article).toBeFocused()
+  await page.getByRole('button', { name: '解決しなかった' }).click()
   await customerContact(page)
   await capture(page, 'J12', '02-handoff', '質問を引き継いで返信先を入力する')
   await page.getByRole('button', { name: '送信', exact: true }).click()
@@ -78,10 +81,12 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
   page,
   scene,
 }) => {
-  const chat = scene.origin + '/help/chat/slide'
+  let snippet = ''
   const server = createServer((_req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-    res.end('<iframe src="' + chat + '" title="ヘルプチャット"></iframe>')
+    res.end(
+      '<!doctype html><html lang="ja"><body>' + snippet + '</body></html>',
+    )
   })
   await new Promise((resolve, reject) =>
     server.once('error', reject).listen(0, '127.0.0.1', resolve),
@@ -101,7 +106,9 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
     await expect(slide.getByLabel('返信の目安')).toHaveValue('')
     await slide.getByLabel('返信の目安').fill('2営業日以内')
     await slide.getByRole('button', { name: '返信の目安を保存' }).click()
+    snippet = await slide.getByLabel('埋め込みコード').inputValue()
     await page.goto(site)
+    await page.getByRole('button', { name: 'ヘルプ', exact: true }).click()
     const frame = page.frameLocator('iframe')
     await frame.getByLabel('質問').fill('契約について相談したいです')
     await frame.getByRole('button', { name: '質問する' }).click()
@@ -115,9 +122,10 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
     await slide.getByRole('button', { name: site + ' を解除' }).click()
     const refusal = page.waitForEvent(
       'requestfailed',
-      (req) => req.url() === chat,
+      (req) => new URL(req.url()).pathname === '/help/chat/slide',
     )
     await page.goto(site)
+    await page.getByRole('button', { name: 'ヘルプ', exact: true }).click()
     await refusal
     await expect(frame.getByRole('heading')).toHaveCount(0)
   } finally {

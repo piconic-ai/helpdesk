@@ -37,17 +37,16 @@ test.describe('公開受付', () => {
       page.getByRole('link', { name: '領収書を発行する' }),
     ).toBeVisible()
     await capture(page, 'J6', '01-articles', 'ユーザーに関連記事が表示される')
+    await page.getByRole('link', { name: '領収書を発行する' }).click()
     const [article] = await Promise.all([
       page.waitForEvent('popup'),
-      page
-        .getByRole('link', { name: '領収書を発行する（新しいタブ）' })
-        .click(),
+      page.getByRole('link', { name: '新しいタブで開く' }).click(),
     ])
     await expect(article.getByRole('heading', { level: 1 })).toHaveText(
       '領収書を発行する',
     )
     await article.close()
-    await page.getByRole('link', { name: '別の質問をする' }).click()
+    await page.getByRole('button', { name: 'やりとりに戻る' }).click()
     const question = 'カタログの印刷について相談したいです'
     await ask(question)
     await customerContact(page)
@@ -66,7 +65,9 @@ test.describe('公開受付', () => {
     const row = page.getByRole('link', { name: new RegExp(question) })
     await expect(row).toContainText(number)
     await row.click()
-    await expect(page.getByRole('main')).toContainText(question)
+    await expect(page.locator('article.message-inbound')).toHaveText(
+      /領収書を発行できますか？[\s\S]*カタログの印刷について相談したいです/,
+    )
     await capture(
       page,
       'J6',

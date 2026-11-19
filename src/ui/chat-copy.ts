@@ -1,0 +1,67 @@
+const japanese = {
+  help: 'のヘルプ',
+  intro:
+    '困っていることを書いてください。関連するヘルプ記事を自動で探します。問い合わせとして送った後に、担当者が内容を読みます。',
+  question: '質問',
+  ask: '質問する',
+  conversation: 'これまでのやりとり',
+  related: '関連する記事',
+  noMatch: 'ヘルプ記事を探しましたが、質問に合う記事は見つかりませんでした。',
+  instructions: '担当者にこれまでの質問を送ります。返信先を入力してください。',
+  solved: '解決した',
+  unresolved: '解決しなかった',
+  solvedNotice: '記事で解決したことを記録しました。',
+  email: '連絡先メールアドレス',
+  name: 'お名前（任意）',
+  send: '送信',
+  cancel: '質問に戻る',
+  receipt: '問い合わせを受け付けました',
+  replyTo: '返信先',
+  estimate: '返信の目安',
+  back: 'やりとりに戻る',
+  external: '新しいタブで開く',
+  directory: 'ヘルプ記事の一覧',
+  feedback: '返信不要のご意見',
+  form: '問い合わせフォーム',
+  retry:
+    '送信できませんでした。入力した内容を確認して、もう一度お試しください。',
+  rate: '送信を確認できませんでした。時間をおいて、もう一度お試しください。',
+  articleError:
+    '記事を読み込めませんでした。もう一度開くか、新しいタブでお読みください。',
+  tooLong:
+    'これまでの質問が長くなりました。先に問い合わせとして送るか、別のページで新しく質問してください。',
+}
+const english: typeof japanese = {
+  help: ' help',
+  intro:
+    'Describe what you need help with. We automatically look for relevant help articles. A team member reads your messages when you submit an inquiry.',
+  question: 'Question',
+  ask: 'Ask',
+  conversation: 'Conversation',
+  related: 'Related articles',
+  noMatch: 'We searched the help articles and could not find a match.',
+  instructions:
+    'Send your questions to our team. Enter the email address where you would like a reply.',
+  solved: 'Solved',
+  unresolved: 'Still need help',
+  solvedNotice: 'Recorded that the article helped you resolve your question.',
+  email: 'Contact email',
+  name: 'Name (optional)',
+  send: 'Send',
+  cancel: 'Back to questions',
+  receipt: 'Inquiry received',
+  replyTo: 'Reply to',
+  estimate: 'Expected response time',
+  back: 'Back to conversation',
+  external: 'Open in a new tab',
+  directory: 'Help articles',
+  feedback: 'Leave feedback',
+  form: 'Contact form',
+  retry: 'Your message could not be sent. Check the details and try again.',
+  rate: 'We could not verify your submission. Please wait and try again.',
+  articleError:
+    'The article could not be loaded. Try again or open it in a new tab.',
+  tooLong:
+    'The conversation has reached its limit. Submit your questions or start a new page.',
+}
+export const chatCopy = { ja: japanese, en: english }

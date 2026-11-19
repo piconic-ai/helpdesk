@@ -1,6 +1,7 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { z } from 'zod'
+import type { Installed } from '../core/extensions/registry'
 import type { AppEnv } from '../core/operators/middleware'
 import { verifyIntake } from '../core/intakes/intake-usecase'
 import type { IntakePolicy } from '../core/intakes/intake'
@@ -20,7 +21,12 @@ import {
   type Fields,
   type FormKind,
 } from './intake-pages'
-import { embedSites } from '../core/intakes/public-settings-usecase'
+import { chatDocument } from '../ui/chat-document'
+import { chatTurn } from './chat-turn-usecase'
+import {
+  embedSites,
+  chatWidgetSettings,
+} from '../core/intakes/public-settings-usecase'
 import { acceptsHostedSubmissions, contactDestination } from './contact'
 import { publicProduct } from './product-usecase'
 import { publicDocument, publicPolicy } from './layout-pages'
@@ -92,18 +98,57 @@ function submittedFields(data: FormData) {
   return fields
 }
 
-async function intakeCsp(
-  db: D1Database,
-  product: string,
-  kind: FormKind,
+function intakeCsp(origins: string[], kind: FormKind, policy: IntakePolicy) {
+  const scripts = []
+  if (kind === 'chat') scripts.push("'self'")
+  if (policy.turnstileSecretBinding)
+    scripts.push('https://challenges.cloudflare.com')
+  return [
+    publicPolicy(origins),
+    scripts.length && 'script-src ' + scripts.join(' '),
+    (kind === 'chat' || policy.turnstileSecretBinding) && "connect-src 'self'",
+    policy.turnstileSecretBinding &&
+      'frame-src https://challenges.cloudflare.com',
+  ]
+    .filter(Boolean)
+    .join('; ')
+}
+
+type Product = NonNullable<Awaited<ReturnType<typeof publicProduct>>>
+type Render = (
+  page: { title: string; html: string },
+  status?: 200 | 400 | 403 | 503,
+) => Response | Promise<Response>
+
+async function chatEntry(
+  c: Context<AppEnv>,
+  info: Product,
   policy: IntakePolicy,
+  origins: string[],
 ) {
-  const sites = kind === 'chat' ? await embedSites(db, product) : []
-  return (
-    publicPolicy([...policy.origins, ...sites]) +
-    (policy.turnstileSecretBinding
-      ? "; script-src https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self'"
-      : '')
+  const embedded = c.req.query('embed') === '1'
+  if (embedded) c.header('Referrer-Policy', 'no-referrer')
+  const parent = embedded ? c.req.query('parent') || '' : ''
+  if (embedded && !origins.includes(parent)) {
+    c.header('Content-Security-Policy', publicPolicy())
+    return c.text('埋め込み先が登録されていません。', 403)
+  }
+  const active = new Set(c.env.EXTENSIONS?.active.map((i) => i.extension.id))
+  const settings = await chatWidgetSettings(c.env.DB, info.id)
+  return c.html(
+    chatDocument({
+      product: info,
+      parent,
+      lang: /^en(?:-|$)/i.test(c.req.query('lang') ?? '') ? 'en' : 'ja',
+      introduction: settings.introduction,
+      publicKey: policy.publicKey,
+      siteKey: policy.turnstileSecretBinding
+        ? policy.turnstileSiteKey
+        : undefined,
+      articles: active.has('articles'),
+      form: active.has('form'),
+      feedback: active.has('feedback'),
+    }),
   )
 }
 
@@ -141,12 +186,29 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
       }),
       status,
     )
-  c.header(
-    'Content-Security-Policy',
-    await intakeCsp(c.env.DB, product, kind, policy),
-  )
+  const origins =
+    kind === 'chat'
+      ? [...policy.origins, ...(await embedSites(c.env.DB, product))]
+      : policy.origins
+  c.header('Content-Security-Policy', intakeCsp(origins, kind, policy))
   if (!acceptsHostedSubmissions(policy)) return render(intakeUnavailable(), 503)
-  if (c.req.method === 'GET') return render(intakePage(kind, policy))
+  if (c.req.method === 'GET') {
+    if (kind === 'chat') return chatEntry(c, info, policy, origins)
+    return render(intakePage(kind, policy))
+  }
+  return submitHosted(c, kind, info, installed, intake, policy, render)
+})
+async function submitHosted(
+  c: Context<AppEnv>,
+  kind: FormKind,
+  info: Product,
+  installed: Installed,
+  intake: Intake,
+  policy: IntakePolicy,
+  render: Render,
+) {
+  const product = info.id
+  const origin = new URL(c.req.url).origin
   if (c.req.header('origin') !== origin)
     return render(
       intakePage(
@@ -196,6 +258,8 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
         ),
         403,
       )
+    if (kind === 'chat' && c.req.header('accept') === 'application/json')
+      return c.json(await chatTurn(ctx, product, data, info.responseTime))
     return render(
       await submit(
         kind,
@@ -230,5 +294,5 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
       503,
     )
   }
-})
+}
 export { app as hostedIntakeRoutes }

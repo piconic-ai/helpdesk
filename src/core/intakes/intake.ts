@@ -22,6 +22,7 @@ export const submissionSchema = z
 const intakeFields = submissionSchema.extend({
   product: z.string().min(1),
   origin: z.enum(['form', 'chat']),
+  sourcePage: z.string().max(4096).optional().catch(undefined),
 })
 export const intakeSchema = z.union([
   intakeFields.extend({ kind: z.literal('inquiry').default('inquiry') }),
@@ -51,3 +52,16 @@ export const intakePolicySchema = z.object({
 })
 export type IntakePolicy = z.output<typeof intakePolicySchema>
 export type Intake = z.output<typeof intakeSchema>
+
+// A page address is operator context. It never establishes the customer's identity.
+export function embeddingPage(value: unknown) {
+  if (typeof value !== 'string' || !URL.canParse(value)) return
+  const url = new URL(value)
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password
+  )
+    return
+  return url.origin + url.pathname
+}

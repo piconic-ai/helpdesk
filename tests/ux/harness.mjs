@@ -116,3 +116,21 @@ export async function confirmSubmission(page) {
   await expect(dialog).toBeVisible()
   await dialog.locator('[data-commit]').click()
 }
+
+export async function editFiltersWhileLoading(page, url, edit) {
+  const loading = Promise.withResolvers()
+  await page.route(
+    '**/ui/live-filters.js',
+    async (route) => {
+      await loading.promise
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  try {
+    await page.goto(url, { waitUntil: 'commit' })
+    await edit()
+  } finally {
+    loading.resolve()
+  }
+}

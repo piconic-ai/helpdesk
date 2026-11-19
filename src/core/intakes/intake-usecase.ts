@@ -1,3 +1,6 @@
+import type { Bindings } from '../settings/bindings'
+import { chatEmbedSites } from './public-settings-store'
+import { hostedPolicy } from './hosted-policy-usecase'
 import { z } from 'zod'
 import {
   actorSchema,
@@ -6,6 +9,7 @@ import {
 } from '../conversations/state'
 import {
   intakeSchema,
+  embeddingPage,
   submissionSchema,
   keyedDraftId,
   type IntakePolicy,
@@ -13,7 +17,7 @@ import {
 import { open, append, draft, contactInfo, consumeWindow } from './intake-store'
 import { verifyTurnstile } from './turnstile-client'
 
-type Env = { DB: D1Database }
+type Env = Pick<Bindings, 'DB' | 'PUBLIC_INTAKES'>
 function action(actor: unknown, now: number) {
   return {
     id: crypto.randomUUID(),
@@ -21,13 +25,26 @@ function action(actor: unknown, now: number) {
     now: instantSchema.parse(now),
   }
 }
-export function openIntake(
+async function registeredSourcePage(env: Env, product: string, value?: string) {
+  const page = embeddingPage(value)
+  if (!page) return
+  const origin = new URL(page).origin
+  if ((await chatEmbedSites(env.DB, product)).includes(origin)) return page
+  if (await hostedPolicy(env, product, origin)) return page
+}
+
+export async function openIntake(
   env: Env,
   input: unknown,
   actor: unknown,
   now: number,
 ) {
-  return open(env.DB, intakeSchema.parse(input), action(actor, now))
+  const intake = intakeSchema.parse(input)
+  intake.sourcePage =
+    intake.origin === 'chat'
+      ? await registeredSourcePage(env, intake.product, intake.sourcePage)
+      : undefined
+  return open(env.DB, intake, action(actor, now))
 }
 export function addInboundMessage(
   env: Env,

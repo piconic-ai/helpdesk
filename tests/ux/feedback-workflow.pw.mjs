@@ -1,6 +1,22 @@
-import { capture, expect, test } from './harness.mjs'
+import { capture, editFiltersWhileLoading, expect, test } from './harness.mjs'
 
 test.use({ extensions: ['feedback'] })
+
+test('フィルターの読み込み中に選んだフィードバックの並び順も反映する', async ({
+  page,
+  scene,
+}) => {
+  const order = page.getByRole('combobox', { name: '並び順' })
+  await editFiltersWhileLoading(
+    page,
+    scene.origin + '/?view=feedback',
+    async () => {
+      await order.selectOption('unreviewed')
+    },
+  )
+  await expect(page).toHaveURL(/sort=unreviewed/)
+  await expect(order).toHaveValue('unreviewed')
+})
 
 test('W2 連絡先を空にして意見を送り、一覧で確認・取り消し・並べ替えができる', async ({
   page,

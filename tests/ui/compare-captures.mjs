@@ -1,3 +1,4 @@
+import { widgetScenes, widgetSettingsScenes } from './widget-scenes.mjs'
 import { trendScenes } from './trend-scenes.mjs'
 import { identityScenes } from './identity-scenes.mjs'
 import { readdir, writeFile, access } from 'node:fs/promises'
@@ -20,6 +21,8 @@ const titles = new Map(
     ...nextIssuesScenes,
     ...identityScenes,
     ...trendScenes,
+    ...widgetScenes,
+    ...widgetSettingsScenes,
   ]
     .map((s) => [s.id, s.group + ' · ' + s.label])
     .concat([

@@ -31,7 +31,7 @@ export const guides: Record<string, { description: string; start: string }> = {
     description:
       '質問に合う記事を探し、該当記事がない場合は担当者に引き継ぎます。',
     start:
-      'ヘルプ記事を有効にして記事を公開し、チャットでその内容を質問してください。Workers AI の AI バインディングが必要です。',
+      '埋め込み先のサイトを登録し、そのページの HTML に埋め込みコードを貼り付けてください。関連記事の案内には、公開したヘルプ記事と Workers AI の AI バインディングを使用します。',
   },
   metrics: {
     description: '期間とプロダクトごとの対応件数や解決時間を表示します。',

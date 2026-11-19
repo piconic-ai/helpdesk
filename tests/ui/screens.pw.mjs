@@ -1,3 +1,4 @@
+import { widgetSettingsScenes, exposeWidgetSettings } from './widget-scenes.mjs'
 import { trendScenes, seedTrendExamples } from './trend-scenes.mjs'
 import {
   identityScenes,
@@ -77,6 +78,8 @@ async function verifyViewport(browser, scene, origin, width) {
     try {
       if (identityScenes.includes(scene))
         await exposeIdentityControls(page, scene.id)
+      if (widgetSettingsScenes.includes(scene))
+        await exposeWidgetSettings(page, scene)
       if (save) await capture(page, scene, width)
       if (!before && scene.action !== 'loading')
         await audit(page, scene.id, width)
@@ -98,6 +101,7 @@ const inventory = before
       ...nextIssuesScenes,
       ...identityScenes,
       ...trendScenes,
+      ...widgetSettingsScenes,
     ]
 for (const [index, scene] of inventory.entries()) {
   test(scene.group + ' / ' + scene.label, async ({ browser }) => {
@@ -109,7 +113,9 @@ for (const [index, scene] of inventory.entries()) {
           ? 23382
           : scene.id.startsWith('guide-')
             ? 23400 + index
-            : 0,
+            : widgetSettingsScenes.includes(scene)
+              ? 23930 + widgetSettingsScenes.indexOf(scene)
+              : 0,
     })
     try {
       if (reviewScreens.includes(scene) || nextIssuesScenes.includes(scene))
