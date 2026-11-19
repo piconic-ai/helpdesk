@@ -190,3 +190,37 @@ test('J4 エージェントの下書きを直して承認し、別の下書き�
     '承認した返信だけを送り、不要な下書きを破棄する',
   )
 })
+
+test('送信予定の間に相手が返信すると、文面が下書きに戻り会話に理由が出る', async ({
+  page,
+  scene,
+}) => {
+  const subject = '折り返しの日時を相談したい'
+  const original = '<appointment-original@example.net>'
+  await scene.receive({
+    subject,
+    body: '午後を希望します。',
+    messageId: original,
+  })
+  await page.goto(scene.origin)
+  await page.getByRole('link', { name: new RegExp(subject) }).click()
+  const body = '午後2時にお電話します。'
+  await compose(page).fill(body)
+  await page.getByRole('button', { name: '送信して完了' }).click()
+  await expect(page.locator('[data-undo-reply]').first()).toBeVisible()
+  await scene.receive({
+    subject,
+    body: '午前中に変更できますか。',
+    messageId: '<appointment-change@example.net>',
+    inReplyTo: original,
+  })
+  await page.reload()
+  const returned = page.locator('article.message-outbound')
+  await expect(returned).toContainText(
+    '相手から新しいメッセージが届いたため、送信を止めました',
+  )
+  await expect(
+    returned.getByRole('textbox', { name: '下書きの本文' }),
+  ).toHaveValue(body)
+  await expect(page.locator('[data-undo-reply]')).toHaveCount(0)
+})

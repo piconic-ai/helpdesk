@@ -75,7 +75,11 @@ export function deliveryStates(events: ExtensionEvent[]) {
   const states = new Map<string, string>()
   for (const e of events)
     if (typeof e.payload.message === 'string') {
-      if (e.kind.startsWith('reply_')) states.set(e.payload.message, e.kind)
+      if (e.kind.startsWith('reply_'))
+        states.set(
+          e.payload.message,
+          e.kind === 'reply_held' ? 'reply_drafted' : e.kind,
+        )
       else if (
         e.kind === 'issues.notice_drafted' &&
         !states.has(e.payload.message)

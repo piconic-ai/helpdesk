@@ -335,7 +335,7 @@ it('W1: only the author can undo a held message before delivery; closing and not
   ).toBe(0)
 })
 
-it('W1: an expired hold sends once; a customer reply during the grace period keeps the conversation open', async () => {
+it('W1: an expired hold sends once; a customer reply stops it and restores the draft', async () => {
   for (const inbound of [false, true]) {
     const number = await receive()
     const { id } = await queueReply(local, {
@@ -348,7 +348,7 @@ it('W1: an expired hold sends once; a customer reply during the grace period kee
     })
     if (inbound)
       await local.DB.prepare(
-        "INSERT INTO events(number,kind,actor,at) VALUES(?,'message_received',?,101)",
+        "INSERT INTO events(number,kind,actor,at,payload) VALUES(?,'message_received',?,101,json_object('category','human'))",
       )
         .bind(number, JSON.stringify({ kind: 'system' }))
         .run()
@@ -361,7 +361,15 @@ it('W1: an expired hold sends once; a customer reply during the grace period kee
       deliverReply(env, id, 5100),
       deliverReply(env, id, 5100),
     ])
-    expect(send).toHaveBeenCalledTimes(1)
+    expect(send).toHaveBeenCalledTimes(inbound ? 0 : 1)
+    if (inbound) {
+      expect(await state(id)).toMatchObject({ delivery: 'draft' })
+      expect(
+        await local.DB.prepare('SELECT body FROM messages WHERE id=?')
+          .bind(id)
+          .first('body'),
+      ).toBe('My reply')
+    }
     expect(
       await local.DB.prepare('SELECT status FROM conversations WHERE number=?')
         .bind(number)

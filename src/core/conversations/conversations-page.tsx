@@ -60,6 +60,15 @@ export { shell } from './console-page'
 type Names = ConsoleFrame['operators']
 type Details = Result<'get'>
 type Files = Awaited<ReturnType<typeof threadFiles>>
+function deliveryNotice(held: boolean, failure: string | null) {
+  if (held)
+    return (
+      <Notice kind="info">
+        相手から新しいメッセージが届いたため、送信を止めました。下書きを確認してください。
+      </Notice>
+    )
+  return failure ? <Notice kind="error">{failure}</Notice> : null
+}
 function message(
   m: Details['messages'][number],
   data: Details,
@@ -67,6 +76,7 @@ function message(
   name: string,
   names: Names,
   now: number,
+  held: boolean,
 ) {
   const c = data.conversation
   const draft = m.delivery === 'draft' || m.delivery === 'awaiting_approval'
@@ -105,7 +115,7 @@ function message(
         </>
       )}
       {attachmentList(files)}
-      {m.reason && <Notice kind="error">{m.reason}</Notice>}
+      {deliveryNotice(held, m.reason)}
       {canSend &&
         m.delivery === 'failed' &&
         !data.uncertain.includes(m.id) &&
@@ -221,6 +231,7 @@ const eventLabels: Record<string, string> = {
   conversation_opened: '会話を開始',
   message_received: 'メールを受信',
   reply_undone: '返信の送信を取り消し',
+  reply_held: '相手から新しいメッセージが届いたため、送信を止めました。',
   reply_discarded: '下書きを破棄',
   reply_drafted: '下書きを作成',
   reply_queued: '返信を送信待ちに変更',
@@ -312,6 +323,11 @@ export function conversationPage(
   holds: Awaited<ReturnType<typeof pendingReplyUndos>> = [],
   offerToWrite = false,
 ) {
+  const held = new Set(
+    data.events
+      .filter((e) => e.kind === 'reply_held')
+      .map((e) => JSON.parse(e.payload).message),
+  )
   const c = data.conversation
   const product = frame.products.find((p) => p.id === c.product)
   const sender = senderLabel(
@@ -388,6 +404,7 @@ export function conversationPage(
               info?.name || c.contact || '匿名',
               names,
               frame.now,
+              m.delivery === 'draft' && held.has(m.id),
             ),
           })),
           ...displayEvents(data.events).flatMap((e) => {
