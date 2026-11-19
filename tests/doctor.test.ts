@@ -87,3 +87,20 @@ it('F20-AC4 the first administrator sees both onboarding steps and can register 
     if (issue) expect(report.issues.join(' ')).toContain(issue)
   }
 })
+
+it('rejects a demo GitHub service during production initialization', async () => {
+  const production = {
+    ...env,
+    LOCAL_OPERATOR: undefined,
+    ENVIRONMENT: 'production',
+    DEMO_GITHUB: env.ASSETS,
+  }
+  const response = await app.request('http://local/issues', {}, production)
+  expect(response.status).toBe(500)
+  expect(await response.text()).toContain(
+    'DEMO_GITHUB requires a local service binding',
+  )
+  await expect(
+    worker.scheduled({ scheduledTime: 0 } as ScheduledController, production),
+  ).rejects.toThrow(/DEMO_GITHUB/)
+})

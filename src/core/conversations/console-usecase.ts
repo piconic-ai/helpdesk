@@ -71,6 +71,7 @@ export async function consoleFrame(
       counts.mine++
   }
   return {
+    demoGithub: !!env.DEMO_GITHUB,
     path,
     query,
     operator,

@@ -1,43 +1,104 @@
-import { resolvedExample } from '../ui/review-issue-seed.mjs'
-// In-process HTTP service for the test Worker's external GitHub binding.
-export function createGithub() {
+// This service runs in the Miniflare host. No request is forwarded to the network.
+import { resolvedExample, finishedExample } from '../ui/review-issue-seed.mjs'
+
+export function createGithub(demo = false) {
   const created = []
   const comments = []
-  let closed = false
-  const issue = () => ({
-    number: 42,
-    title: created.at(-1)?.title ?? '領収書の一括ダウンロード',
-    state: closed ? 'closed' : 'open',
-    closed_at: closed ? '2026-11-18T04:00:00Z' : null,
-  })
+  const repositories = new Map()
+  let latest
+  function issuesFor(repo) {
+    if (!repositories.has(repo)) {
+      const seeds =
+        repo === 'example/helpdesk'
+          ? [
+              {
+                number: 42,
+                title: '領収書の一括ダウンロード',
+                state: 'open',
+                closed_at: null,
+              },
+              resolvedExample,
+            ]
+          : []
+      if (demo && repo === 'example/helpdesk') seeds.push(finishedExample)
+      repositories.set(
+        repo,
+        new Map(
+          seeds.map((issue) => [issue.number, { ...issue, comments: [] }]),
+        ),
+      )
+    }
+    return repositories.get(repo)
+  }
+  function close(issue, at) {
+    if (issue.state === 'closed') return
+    issue.state = 'closed'
+    issue.closed_at = at
+  }
+  async function collection(request, issues) {
+    if (request.method === 'GET')
+      return Response.json(
+        [...issues.values()]
+          .reverse()
+          .sort(
+            (a, b) => Number(b.state === 'open') - Number(a.state === 'open'),
+          ),
+      )
+    if (request.method === 'POST') {
+      const post = await request.json()
+      const issue = {
+        number: Math.max(0, ...issues.keys()) + 1,
+        title: post.title,
+        body: post.body,
+        state: 'open',
+        closed_at: null,
+        comments: [],
+      }
+      issues.set(issue.number, issue)
+      latest = issue
+      created.push(post)
+      return Response.json(issue, { status: 201 })
+    }
+    return new Response(null, { status: 405 })
+  }
+  async function fetch(request) {
+    const url = new URL(request.url)
+    const match =
+      /^\/repos\/([^/]+\/[^/]+)\/issues(?:\/(\d+)(\/comments)?)?$/.exec(
+        url.pathname,
+      )
+    if (url.hostname !== 'api.github.com' || !match)
+      return new Response(null, { status: 404 })
+    const [, repo, number, isComment] = match
+    const issues = issuesFor(repo.toLowerCase())
+    if (!number) return collection(request, issues)
+    const issue = issues.get(Number(number))
+    if (!issue) return new Response(null, { status: 404 })
+    if (isComment && request.method === 'POST') {
+      const comment = await request.json()
+      issue.comments.push(comment)
+      comments.push(comment)
+      return Response.json(comment, { status: 201 })
+    }
+    if (request.method === 'GET')
+      return Response.json(isComment ? issue.comments : issue)
+    if (demo && !isComment && request.method === 'PATCH') {
+      const change = await request.json()
+      if (change.state !== 'closed') return new Response(null, { status: 400 })
+      close(issue, change.closed_at)
+      return Response.json(issue)
+    }
+    return new Response(null, { status: 405 })
+  }
   return {
     created,
     comments,
+    fetch,
     close() {
-      closed = true
-    },
-    async fetch(request) {
-      const { hostname, pathname } = new URL(request.url)
-      if (hostname !== 'api.github.com')
-        return new Response('Unknown host', { status: 404 })
-      if (/\/issues$/.test(pathname) && request.method === 'POST') {
-        created.push(await request.json())
-        return Response.json(issue(), { status: 201 })
-      }
-      if (/\/issues\/42\/comments$/.test(pathname)) {
-        if (request.method === 'POST') {
-          comments.push(await request.json())
-          return Response.json(comments.at(-1), { status: 201 })
-        }
-        return Response.json(comments)
-      }
-      if (/\/issues\/43$/.test(pathname)) return Response.json(resolvedExample)
-      if (/\/issues\/43\/comments$/.test(pathname))
-        return Response.json(request.method === 'POST' ? {} : [])
-      if (/\/issues\/42$/.test(pathname)) return Response.json(issue())
-      if (/\/issues$/.test(pathname))
-        return Response.json([issue(), resolvedExample])
-      return new Response('Unknown GitHub endpoint', { status: 404 })
+      close(
+        latest ?? issuesFor('example/helpdesk').get(42),
+        resolvedExample.closed_at,
+      )
     },
   }
 }

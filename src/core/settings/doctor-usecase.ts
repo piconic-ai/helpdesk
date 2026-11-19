@@ -27,6 +27,13 @@ export function requireBindings(env: Bindings) {
       ? []
       : [`Configure the ${name} binding in Wrangler's ${field}.`],
   )
+  if (
+    env.DEMO_GITHUB !== undefined &&
+    (env.ENVIRONMENT !== 'local' || !hasMethods(env.DEMO_GITHUB, ['fetch']))
+  )
+    issues.push(
+      'DEMO_GITHUB requires a local service binding and ENVIRONMENT=local.',
+    )
   if (env.LOCAL_OPERATOR && env.ENVIRONMENT !== 'local')
     issues.push(
       'LOCAL_OPERATOR requires ENVIRONMENT=local. Remove LOCAL_OPERATOR from deployed Workers.',

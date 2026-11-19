@@ -5,7 +5,14 @@ export const resolvedExample = {
   closed_at: '2026-11-18T04:00:00Z',
 }
 
-export async function seedReviewIssues(db) {
+export const finishedExample = {
+  number: 44,
+  title: '請求明細のダウンロードを改善する',
+  state: 'closed',
+  closed_at: '2026-11-11T05:00:00Z',
+}
+
+export async function seedReviewIssues(db, demo = false) {
   const repo = 'example/helpdesk'
   const at = Date.parse(resolvedExample.closed_at)
   const actor = JSON.stringify({ kind: 'extension', id: 'issues' })
@@ -29,11 +36,38 @@ export async function seedReviewIssues(db) {
       closedAt: at,
     }),
   ]
-  for (const [number, issue] of [
-    [11, 42],
-    [1, 43],
-    [6, 43],
-  ]) {
+  const links = demo
+    ? [
+        [4, 42],
+        [7, 42],
+        [11, 42],
+        [2, 43],
+        [5, 43],
+        [8, 44],
+        [4, 44],
+      ]
+    : [
+        [11, 42],
+        [1, 43],
+        [6, 43],
+      ]
+  if (demo) {
+    const closedAt = Date.parse(finishedExample.closed_at)
+    statements.push(
+      write('issue/' + repo + '/44', {
+        title: finishedExample.title,
+        state: 'closed',
+        closedAt,
+      }),
+      log(
+        null,
+        'issues.closed',
+        { repository: repo, issue: 44, closedAt },
+        closedAt,
+      ),
+    )
+  }
+  for (const [number, issue] of links) {
     statements.push(
       write('link/' + repo + '/' + issue + '/' + number, {
         repository: repo,
@@ -51,14 +85,28 @@ export async function seedReviewIssues(db) {
       at,
     ),
   )
-  for (const [number, sent] of [
-    [1, false],
-    [6, true],
-  ]) {
-    const link = 'link/' + repo + '/43/' + number
+  const notices = demo
+    ? [
+        [2, 43, false],
+        [5, 43, true],
+        [8, 44, true],
+        [4, 44, true],
+      ]
+    : [
+        [1, 43, false],
+        [6, 43, true],
+      ]
+  for (const [number, issue, sent] of notices) {
+    addNotice(number, issue, sent)
+  }
+  await db.batch(statements)
+
+  function addNotice(number, issue, sent) {
+    const closedAt = issue === 44 ? Date.parse(finishedExample.closed_at) : at
+    const link = 'link/' + repo + '/' + issue + '/' + number
     const id = 'draft/' + JSON.stringify([number, 'issues:' + link])
     statements.push(
-      write('notified/' + link, at),
+      write('notified/' + link, closedAt),
       db
         .prepare(
           "INSERT INTO messages(id,number,kind,body,delivery,actor,approval,provider_id,sent_at,created_at) VALUES(?,?,'outbound',?,?,?,?,?,?,?)",
@@ -70,14 +118,14 @@ export async function seedReviewIssues(db) {
           sent ? 'sent' : 'draft',
           actor,
           sent ? approval : null,
-          sent ? 'simulation-receipt-6@example.test' : null,
+          sent ? 'simulation-receipt-' + number + '@example.test' : null,
           sent ? at + 2000 : null,
           at + 1000,
         ),
       log(
         number,
         'issues.notice_drafted',
-        { repository: repo, issue: 43, message: id },
+        { repository: repo, issue, message: id },
         at + 1000,
       ),
     )
@@ -91,5 +139,4 @@ export async function seedReviewIssues(db) {
         ),
       )
   }
-  await db.batch(statements)
 }

@@ -289,11 +289,12 @@ export async function startScene(
     embedOrigin,
     secondAdmin = false,
     githubToken = true,
+    demoIssues = false,
   } = {},
 ) {
   const simulationKey = crypto.randomUUID()
   const peerCookie = secondAdmin ? crypto.randomUUID() : undefined
-  const github = createGithub()
+  const github = createGithub(demoIssues)
   const notifications = []
   const runtime = new Miniflare(
     convertV4MiniflareOptions({
@@ -335,6 +336,7 @@ export async function startScene(
         }
         return github.fetch(request)
       },
+      serviceBindings: demoIssues ? { DEMO_GITHUB: github.fetch } : {},
       host: '127.0.0.1',
       port,
       bindings: {

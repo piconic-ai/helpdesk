@@ -59,6 +59,7 @@ export function extensionContext(
     })
   }
   return {
+    demoGithub: !!c.env.DEMO_GITHUB,
     enabledBy: installed.enabledBy,
     previousSuggestion: (input) => previousSuggestion(c.env.DB, input),
     presentSuggestion: (input) => presentSuggestion(c.env.DB, input, c.now),
@@ -147,6 +148,8 @@ export function extensionContext(
     },
     request: (url, init) => {
       requirePermission('external_fetch')
+      if (c.env.DEMO_GITHUB && new URL(url).hostname === 'api.github.com')
+        return c.env.DEMO_GITHUB.fetch(url, { ...init, redirect: 'manual' })
       return externalRequest(url, init)
     },
     secret: (name) => {

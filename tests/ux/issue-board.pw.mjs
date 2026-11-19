@@ -39,6 +39,12 @@ test('W4 課題の優先順位・詳細・検索の境界と既存の題の同�
   await expect(
     main.getByRole('link', { name: 'GitHub で開く' }),
   ).toHaveAttribute('href', /issues\/43$/)
+  await expect(main.getByRole('button', { name: /デモ用/ })).toHaveCount(0)
+  const blocked = await page.request.post(
+    scene.origin + '/issues/example/helpdesk/42/demo-close',
+    { headers: { Origin: scene.origin } },
+  )
+  expect(blocked.status()).toBe(404)
   await expect(main).toContainText('直す前')
   await expect(main).toContainText('直した後')
   await expect(main).toContainText('1日ぶん')

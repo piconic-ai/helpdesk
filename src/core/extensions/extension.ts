@@ -40,6 +40,7 @@ export type Voice = {
   kind: 'inquiry' | 'feedback'
 }
 export type ExtensionContext = {
+  demoGithub?: boolean
   previousSuggestion: (
     input: PreviousInput,
   ) => Promise<PreviousSuggestion | null>

@@ -1,14 +1,7 @@
-import { startScene } from '../../tests/ui/seed.mjs'
+import { startDemo } from '../../tests/ui/demo-scene.mjs'
 import { registerProduct, serveProduct } from './server.mjs'
 
-const desk = await startScene(
-  ['articles', 'chat', 'form', 'feedback', 'metrics'],
-  '.',
-  {
-    port: Number(process.env.HELPDESK_DEMO_PORT ?? 8788),
-    tickingClock: true,
-  },
-)
+const desk = await startDemo(Number(process.env.HELPDESK_DEMO_PORT ?? 8788))
 let product
 try {
   product = await serveProduct(

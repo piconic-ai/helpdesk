@@ -1,0 +1,52 @@
+import { startScene } from './seed.mjs'
+import { seedReviewExamples } from './review-screens.mjs'
+import { seedReviewIssues } from './review-issue-seed.mjs'
+
+export async function startDemo(port = 0) {
+  const demo = await startScene(
+    [
+      'articles',
+      'auto-ack',
+      'chat',
+      'form',
+      'feedback',
+      'survey',
+      'issues',
+      'canned',
+      'snooze',
+      'merge',
+      'rules',
+      'notify',
+      'spam',
+      'metrics',
+    ],
+    '.',
+    { tickingClock: true, port, demoIssues: true },
+  )
+  try {
+    await seedReviewExamples(demo.db, ['articles'])
+    await seedReviewIssues(demo.db, true)
+    await demo.db.batch([
+      demo.db
+        .prepare('INSERT INTO issues_data(key,value) VALUES(?,?)')
+        .bind(
+          'repository/desk',
+          JSON.stringify({ repo: 'example/desk', origin: demo.origin }),
+        ),
+      demo.db
+        .prepare(
+          'INSERT INTO operator_profiles(email,display_name) VALUES(?,?)',
+        )
+        .bind('sato@example.com', '佐藤 優'),
+      demo.db
+        .prepare(
+          'INSERT INTO operator_profiles(email,display_name) VALUES(?,?)',
+        )
+        .bind('mori@example.com', '森 直子'),
+    ])
+    return demo
+  } catch (error) {
+    await demo.stop()
+    throw error
+  }
+}

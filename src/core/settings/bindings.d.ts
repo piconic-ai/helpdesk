@@ -8,6 +8,7 @@ export interface Bindings {
   SENDING_DOMAINS?: string
   EXTENSIONS?: Registry
   NOTIFY_WEBHOOK_URL?: string
+  DEMO_GITHUB?: Pick<Fetcher, 'fetch'>
   GITHUB_TOKEN?: string
   PUBLIC_INTAKES?: Record<string, unknown>
   AI?: Ai

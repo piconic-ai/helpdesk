@@ -101,7 +101,11 @@ export function issueBoardPage(
     '課題',
     <ListPage
       title="課題"
-      description="声をもとに直すことを決め、直したら声の主に知らせます。"
+      description={
+        frame.demoGithub
+          ? 'デモ用の模擬 GitHub で起票と通知を試せます。'
+          : '声をもとに直すことを決め、直したら声の主に知らせます。'
+      }
       action={<ActionLink href="/issues/new">課題を追加</ActionLink>}
       footer={<PageLinks path="/issues" query={query} {...page} />}
       filters={
@@ -175,6 +179,7 @@ export function issueDetailPage(
       back={{ href: '/issues', label: '課題の一覧に戻る' }}
       description={
         <>
+          {frame.demoGithub && 'デモ用の模擬 GitHub · '}
           <IssueProducts products={issue.productMarks} detail /> ·{' '}
           {
             { closed: '直した', open: '開いている', unknown: '状態を同期待ち' }[
@@ -184,9 +189,17 @@ export function issueDetailPage(
         </>
       }
       action={
-        <ActionLink href={issueUrl(issue.repository, issue.issue)}>
-          GitHub で開く
-        </ActionLink>
+        frame.demoGithub ? (
+          issue.state === 'open' && (
+            <form method="post" action={path(issue) + '/demo-close'}>
+              <Button>課題を閉じる（デモ用）</Button>
+            </form>
+          )
+        ) : (
+          <ActionLink href={issueUrl(issue.repository, issue.issue)}>
+            GitHub で開く
+          </ActionLink>
+        )
       }
     >
       <Stack gap="lg">
@@ -248,6 +261,7 @@ export function issueNewPage(
       title="課題を追加"
       back={{ href: '/issues', label: '課題の一覧に戻る' }}
     >
+      {frame.demoGithub && <p>デモ用の模擬 GitHub に起票します。</p>}
       <FormSection title="起票する内容">
         {choices.length ? (
           <NewIssueForm action="/actions/issues.preview" choices={choices} />

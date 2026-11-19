@@ -53,6 +53,15 @@ export async function rememberIssue(
   return state
 }
 
+export async function refreshIssueState(
+  ctx: ExtensionContext,
+  repository: string,
+  issue: number,
+) {
+  const remote = await githubIssue(ctx, repository, { read: issue })
+  return rememberIssue(ctx, repository, remote)
+}
+
 export async function loadIssueState(
   ctx: ExtensionContext,
   repo: string,
@@ -155,8 +164,7 @@ export async function synchronizeIssue(
   voices: Map<number, Voice>,
 ) {
   const { repository, issue } = links[0]
-  const remote = await githubIssue(ctx, repository, { read: issue })
-  const state = await rememberIssue(ctx, repository, remote)
+  const state = await refreshIssueState(ctx, repository, issue)
   if (state.closedAt === null) return
   const states = deliveryStates(await ctx.events())
   for (const link of links)

@@ -1,6 +1,7 @@
 import { issueKey, sentNotices } from './outcomes'
 import {
   loadIssueState,
+  refreshIssueState,
   rememberIssue,
   synchronizeIssue,
 } from './board-usecase'
@@ -76,7 +77,7 @@ export async function previewIssue(ctx: ExtensionContext, input: unknown) {
   })
   return proposal
 }
-async function saveLink(ctx: ExtensionContext, link: Linked) {
+async function saveLink(ctx: ExtensionContext, link: Linked, origin: string) {
   const key = linkPrefix(link.repository, link.issue) + link.number
   await ctx.create(key, link)
   await ctx.emit(
@@ -85,7 +86,12 @@ async function saveLink(ctx: ExtensionContext, link: Linked) {
     { repository: link.repository, issue: link.issue },
     key,
   )
-  return { ...link, url: issueUrl(link.repository, link.issue) }
+  return {
+    ...link,
+    url: ctx.demoGithub
+      ? new URL('/issues/' + issueKey(link.repository, link.issue), origin).href
+      : issueUrl(link.repository, link.issue),
+  }
 }
 export async function createIssue(ctx: ExtensionContext, input: unknown) {
   const by = operator(ctx)
@@ -97,7 +103,7 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
     proposal.expiresAt < ctx.now
   )
     throw new Error('Preview this issue again before creating it')
-  const { repo } = await issueDestination(
+  const { repo, origin } = await issueDestination(
     ctx,
     (await ctx.contact(number)).product,
   )
@@ -113,11 +119,15 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
     create: { title: proposal.title, body: proposal.body },
   })
   await rememberIssue(ctx, repo, remote, proposal.title)
-  const saved = await saveLink(ctx, {
-    number,
-    repository: repo,
-    issue: remote.number,
-  })
+  const saved = await saveLink(
+    ctx,
+    {
+      number,
+      repository: repo,
+      issue: remote.number,
+    },
+    origin,
+  )
   await ctx.remove('preview/' + confirmation)
   return saved
 }
@@ -132,8 +142,7 @@ export async function linkIssue(ctx: ExtensionContext, input: unknown) {
   if (!(await ctx.get(key))) {
     if (!ctx.secret('GITHUB_TOKEN'))
       throw new Error('Configure GITHUB_TOKEN for the issues extension')
-    const remote = await githubIssue(ctx, repo, { read: issue })
-    await rememberIssue(ctx, repo, remote)
+    await refreshIssueState(ctx, repo, issue)
     const body = '[#' + number + '](' + origin + '/conversation/' + number + ')'
     if (await ctx.create('backlink/' + key, true)) {
       await linkComment(ctx, repo, issue, body)
@@ -144,7 +153,7 @@ export async function linkIssue(ctx: ExtensionContext, input: unknown) {
       )
     }
   }
-  return saveLink(ctx, { repository: repo, number, issue })
+  return saveLink(ctx, { repository: repo, number, issue }, origin)
 }
 async function loadLinks(ctx: ExtensionContext, prefix: string) {
   const rows = await ctx.list(prefix)
@@ -197,10 +206,15 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
           : state?.state === 'closed'
             ? ({ name: 'issue_fixed', label: '直した' } as const)
             : undefined
-    addresses.set(issueUrl(issue.repository, issue.issue), {
-      label: issue.repository + '#' + issue.issue,
-      icon,
-    })
+    addresses.set(
+      ctx.demoGithub
+        ? '/issues/' + key
+        : issueUrl(issue.repository, issue.issue),
+      {
+        label: issue.repository + '#' + issue.issue,
+        icon,
+      },
+    )
     for (const sibling of links) {
       if (
         issueKey(sibling.repository, sibling.issue) === key &&

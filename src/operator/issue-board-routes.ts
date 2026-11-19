@@ -6,7 +6,10 @@ import { invoke } from '../core/operations/runtime-usecase'
 import { extensionContext } from '../core/extensions/context-usecase'
 import { consoleFrame } from '../core/conversations/console-usecase'
 import { issueCreationChoices, issueDetail } from './issue-board-usecase'
-import { issueBoard } from '../extensions/issues/board-usecase'
+import {
+  issueBoard,
+  refreshIssueState,
+} from '../extensions/issues/board-usecase'
 import {
   configuredRepository,
   issueDestination,
@@ -60,6 +63,34 @@ routes.get('/issues/:owner/:repo/:issue', async (c) => {
       c.req.query('drafts'),
     ),
   )
+})
+routes.post('/issues/:owner/:repo/:issue/demo-close', async (c) => {
+  const service = c.env.DEMO_GITHUB
+  const api = enabled(c)
+  if (!service || !api) return c.notFound()
+  const ref = issueRef.safeParse({
+    repository: c.req.param('owner') + '/' + c.req.param('repo'),
+    issue: c.req.param('issue'),
+  })
+  if (!ref.success) return c.notFound()
+  const { repository, issue } = ref.data
+  if (!(await api.get('issue/' + issueKey(repository, issue))))
+    return c.notFound()
+  const response = await service.fetch(
+    'https://api.github.com/repos/' + repository + '/issues/' + issue,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        state: 'closed',
+        closed_at: new Date(api.now).toISOString(),
+      }),
+    },
+  )
+  if (!response.ok)
+    return c.text('模擬 GitHub の課題を閉じられませんでした。', 502)
+  // Read back the remote change. Operators create and approve notices in the usual workflow.
+  await refreshIssueState(api, repository, issue)
+  return c.redirect('/issues', 303)
 })
 routes.get('/issues/choices/:number', async (c) => {
   const api = enabled(c)

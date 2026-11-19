@@ -523,6 +523,13 @@ function guideProduct(id: string, p: Portal) {
     </FormSection>
   )
 }
+function githubConnectionDescription(demo: boolean, items: Portal[]) {
+  return demo
+    ? 'デモ用の模擬 GitHub に接続しています。トークンとリポジトリはローカルの例示データです。'
+    : items.some((p) => p.tokenReady)
+      ? 'GITHUB_TOKEN は設定済みです。対象リポジトリの Issues に読み書きできるトークンを使用します。'
+      : 'GITHUB_TOKEN は未設定です。Worker のシークレットに、対象リポジトリの Issues に読み書きできるトークンを設定してください。'
+}
 export function guidePage(
   id: string,
   frame: ConsoleFrame,
@@ -581,11 +588,7 @@ export function guidePage(
         {guides[id]?.start ?? '設定後、対象の画面で動作を確認してください。'}
       </p>
       {id === 'issues' && (
-        <p>
-          {items.some((p) => p.tokenReady)
-            ? 'GITHUB_TOKEN は設定済みです。対象リポジトリの Issues に読み書きできるトークンを使用します。'
-            : 'GITHUB_TOKEN は未設定です。Worker のシークレットに、対象リポジトリの Issues に読み書きできるトークンを設定してください。'}
-        </p>
+        <p>{githubConnectionDescription(frame.demoGithub, items)}</p>
       )}
       {guideLink(id)}
       {Object.hasOwn(publicGuides, id) && (

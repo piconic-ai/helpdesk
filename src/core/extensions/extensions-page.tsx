@@ -282,6 +282,12 @@ function mergeTargets(data: Details) {
       item.mailbox === data.conversation.mailbox && item.kind === 'inquiry',
   )
 }
+function issueLink(link: { href: string }) {
+  return (
+    link.href.startsWith('https://github.com/') ||
+    link.href.startsWith('/issues/')
+  )
+}
 function actionsFor(p: Panel, data?: Details) {
   if (!data) return p.operations
   const c = data.conversation
@@ -300,10 +306,7 @@ function actionsFor(p: Panel, data?: Details) {
       case 'issues.create':
         return false
       case 'issues.impact':
-        return (
-          c.kind === 'inquiry' &&
-          p.links.some((l) => l.href.startsWith('https://github.com/'))
-        )
+        return c.kind === 'inquiry' && p.links.some(issueLink)
       case 'merge.combine':
         return c.kind === 'inquiry' && mergeTargets(data).length > 0
       case 'snooze.resume':
@@ -348,11 +351,9 @@ function formField(
       <label>
         Issue
         <NativeSelect name="issue">
-          {p.links
-            .filter((l) => l.href.startsWith('https://github.com/'))
-            .map((l) => (
-              <option value={l.href.split('/').at(-1)}>{l.label}</option>
-            ))}
+          {p.links.filter(issueLink).map((l) => (
+            <option value={l.href.split('/').at(-1)}>{l.label}</option>
+          ))}
         </NativeSelect>
       </label>
     )
@@ -423,11 +424,7 @@ function summaryFor(p: Panel, data?: Details) {
     case 'presence':
       return '閲覧状況を確認中…'
     case 'issues':
-      return (
-        '関連付けた Issue　' +
-        p.links.filter((l) => l.href.startsWith('https://github.com/')).length +
-        '件'
-      )
+      return '関連付けた Issue　' + p.links.filter(issueLink).length + '件'
     case 'snooze':
       return 'この会話は保留されていません。'
     case 'merge':
