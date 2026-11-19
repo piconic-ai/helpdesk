@@ -9,7 +9,19 @@ import type { Context, Scope } from '../../core/operations/catalog-usecase'
 import { issues } from './extension-usecase'
 import { preview } from './issues'
 import { issueDestination, panelLinks } from './issues-usecase'
-import { issueBoard, synchronizeIssue } from './board-usecase'
+import { issueBoard, issueNotice, synchronizeIssue } from './board-usecase'
+
+test.each([
+  ['決済のエラー', 'ご報告'],
+  ['印刷も追加してほしいです', 'ご要望'],
+  ['更新はいつですか？', 'お問い合わせ'],
+])('uses the inquiry to introduce the notice: %s', (body, opening) => {
+  const notice = issueNotice('明細に更新日を表示', '契約の更新について', body)
+  expect(notice).toContain(opening)
+  expect(notice).toContain('明細に更新日を表示')
+  expect(notice).toContain('契約の更新について')
+  expect(notice).not.toContain(body)
+})
 
 const repo = 'acme/desktop',
   origin = 'https://helpdesk.example'

@@ -168,9 +168,18 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
     await voices
       .getByRole('link', { name: new RegExp('#' + number + ' .*承認待ち') })
       .click()
+    await expect(page).toHaveURL(
+      new RegExp('/conversation/' + number + '(?:\\?|$)'),
+    )
+    const subject = await page.getByRole('heading', { level: 1 }).innerText()
     const draft = page
       .locator('article.message-outbound')
-      .filter({ hasText: 'お知らせいただいた問題の修正が完了しました' })
+      .filter({ hasText: title })
+    const wording = await draft
+      .getByRole('textbox', { name: '下書きの本文' })
+      .inputValue({ timeout: 5000 })
+    expect(wording).toContain(subject)
+    expect(wording).toContain(title)
     await draft.getByRole('button', { name: '承認して送信' }).click()
     await dialog.getByRole('button', { name: '承認して送信' }).click()
     await expect(async () => {

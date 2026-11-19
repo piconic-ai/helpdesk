@@ -125,10 +125,30 @@ function noticeAttempt(
     prepared: false,
   }
 }
+export function issueNotice(title: string, subject: string, inquiry: string) {
+  const text = subject + '\n' + inquiry
+  const introduction =
+    /不具合|エラー|失敗|できません|できない|届かない|\b(?:bug|error|broken)\b/i.test(
+      text,
+    )
+      ? '不具合をご報告いただき、ありがとうございます。'
+      : /要望|ほしい|欲しい|追加して|改善して|\bfeature request\b/i.test(text)
+        ? 'ご要望をお寄せいただき、ありがとうございます。'
+        : 'お問い合わせいただき、ありがとうございます。'
+  return (
+    introduction +
+    '\n\n「' +
+    subject +
+    '」に関連して、「' +
+    title +
+    '」への対応が完了しました。'
+  )
+}
+
 async function closureDraft(
   ctx: ExtensionContext,
   link: Linked,
-  closedAt: number,
+  { title, closedAt }: { title: string; closedAt: number },
   states: Map<string, string>,
   manual = false,
 ) {
@@ -140,9 +160,13 @@ async function closureDraft(
   const message = keyedDraftId(link.number, 'issues:' + attempt.key)
   const status = states.get(message)
   if (status === 'reply_discarded' || !status) {
+    const [contact, inquiry] = await Promise.all([
+      ctx.contact(link.number),
+      ctx.inboundBody(link.number),
+    ])
     await ctx.draft(
       link.number,
-      'お知らせいただいた問題の修正が完了しました。ご報告いただき、ありがとうございます。',
+      issueNotice(title, contact.subject, inquiry),
       attempt.key,
     )
   } else if (attempt.prepared) {
@@ -169,7 +193,12 @@ export async function synchronizeIssue(
   const states = deliveryStates(await ctx.events())
   for (const link of links)
     if (voices.get(link.number)?.kind === 'inquiry')
-      await closureDraft(ctx, link, state.closedAt, states)
+      await closureDraft(
+        ctx,
+        link,
+        { title: state.title, closedAt: state.closedAt },
+        states,
+      )
 }
 
 export async function draftIssueNotices(
@@ -199,7 +228,16 @@ export async function draftIssueNotices(
 
   let ready = 0
   for (const link of targets)
-    if (await closureDraft(ctx, link, state.closedAt, states, true)) ready++
+    if (
+      await closureDraft(
+        ctx,
+        link,
+        { title: state.title, closedAt: state.closedAt },
+        states,
+        true,
+      )
+    )
+      ready++
   return ready
 }
 

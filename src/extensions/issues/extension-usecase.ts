@@ -39,7 +39,7 @@ export const issues: Extension = {
     return missing.filter((name): name is string => name !== null)
   },
   secrets: ['GITHUB_TOKEN'],
-  permissions: ['external_fetch'],
+  permissions: ['external_fetch', 'read_body'],
   config: configSchema,
   operations: [
     impactOperation,
