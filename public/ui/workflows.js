@@ -5,12 +5,16 @@ const permitted = new WeakSet()
 function openDialog(dialog, trigger) {
   if (document.querySelector('dialog[open]')) return
   const previousPopover = trigger?.closest(':popover-open')
+  // A native dialog preserves its ancestor popovers when entering the top layer.
+  const parent = previousPopover ?? document.body
+  if (dialog.parentNode !== parent) parent.append(dialog)
   dialog.returnValue = ''
   const previousFocus = document.activeElement
   dialog.onclose = () => {
     // A queued close event can arrive after the user has moved on or reopened it.
     if (dialog.open) return
     const focused = document.activeElement
+    if (dialog.parentNode !== document.body) document.body.append(dialog)
     if (
       focused !== document.body &&
       focused !== previousFocus &&
@@ -33,9 +37,17 @@ function openDialog(dialog, trigger) {
     window.scrollTo({ left, top, behavior: 'instant' })
 }
 
-function confirmAction(trigger, title, description, verb, commit) {
+function confirmAction(
+  trigger,
+  title,
+  description,
+  verb,
+  commit,
+  cancel = 'キャンセル',
+) {
   confirmation.querySelector('h2').textContent = title
   confirmation.querySelector('p').textContent = description
+  confirmation.querySelector('[data-close-modal]').textContent = cancel
   const button = confirmation.querySelector('[data-commit]')
   button.textContent = verb
   const destructive =
@@ -249,6 +261,7 @@ async function reviewIssue(form, trigger) {
         )
         submit.submit()
       },
+      '入力内容を修正する',
     )
   } catch {
     window.helpdeskToast(

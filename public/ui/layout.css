@@ -286,10 +286,22 @@ form:has(input[name='role']) > small {
   height: var(--layout-touch-target);
   padding: var(--spacing-xs);
 }
-[data-mobile-reply-link] {
+[data-mobile-reply-link],
+.thread-activity {
   display: none;
 }
 @media (max-width: 767px) {
+  .thread-activity {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--layout-touch-target);
+    white-space: nowrap;
+  }
+  .message-author:target {
+    scroll-margin-block-start: calc(
+      3 * var(--layout-touch-target) + var(--spacing-sm)
+    );
+  }
   .thread-toolbar [data-mobile-reply-link] {
     display: inline-flex;
     align-items: center;

@@ -1,5 +1,39 @@
 import { expect, test } from './harness.mjs'
 
+test('狭い会話画面では最新の対応と未達の返信へ先頭から移動できる', async ({
+  page,
+  scene,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  for (const [number, name] of [
+    [2, '送信済みの返信へ'],
+    [3, '内部メモへ'],
+    [4, '送信失敗の返信へ'],
+  ]) {
+    await page.goto(scene.origin + '/conversation/' + number)
+    const link = page.getByRole('link', { name, exact: true })
+    await expect(link).toBeInViewport()
+    await link.click()
+    const target = page.locator(':target')
+    await expect(target).toBeInViewport()
+    expect(
+      await target.evaluate((el) => {
+        const rect = el.getBoundingClientRect()
+        return el.contains(
+          document.elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          ),
+        )
+      }),
+    ).toBe(true)
+    if (number === 4)
+      await expect(
+        page.getByRole('button', { name: '再送', exact: true }),
+      ).toBeInViewport()
+  }
+})
+
 test('W1 送信して完了を取り消すと本文と状態を復元し、相手への配送も発生しない', async ({
   page,
   scene,

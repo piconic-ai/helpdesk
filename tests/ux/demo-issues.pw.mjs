@@ -92,6 +92,9 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
     /山田 花|customer1@example.net|経理に提出/,
   )
   expect(demo.github.created).toEqual([])
+  await dialog.getByRole('button', { name: '入力内容を修正する' }).click()
+  await expect(panel.getByLabel('公開する要約')).toHaveValue(summary)
+  await panel.getByRole('button', { name: '起票内容を確認' }).click()
   await dialog.getByRole('button', { name: '確認した内容で起票' }).click()
   await expect
     .poll(() => demo.github.created)
@@ -111,7 +114,17 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
       .getByRole('combobox', { name: '課題', exact: true })
       .locator('option'),
   ).toHaveText([new RegExp(title)])
-  await second.getByRole('button', { name: '既存の課題と紐づける' }).click()
+  const linkButton = second.getByRole('button', {
+    name: '既存の課題と紐づける',
+  })
+  const drawer = page.locator('#related-info')
+  await linkButton.click()
+  await expect(dialog).toBeVisible()
+  await expect(drawer).toBeVisible()
+  await dialog.getByRole('button', { name: 'キャンセル' }).click()
+  await expect(linkButton).toBeFocused()
+  await expect(second.getByLabel('題で探す')).toHaveValue(title)
+  await linkButton.click()
   await dialog.getByRole('button', { name: '既存の課題と紐づける' }).click()
   await expect
     .poll(() => demo.github.comments)
@@ -168,4 +181,40 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   await expect(waiting).toHaveCount(0)
   await rate('50%')
   expect(external).toEqual([])
+})
+
+test('デモの確認ページで公開する要約を修正し、確認後の内容だけを起票する', async ({
+  browser,
+  demo,
+}) => {
+  const page = await browser.newPage({ javaScriptEnabled: false })
+  try {
+    await page.goto(demo.origin + '/issues/new')
+    await page.locator('select[name=number]').selectOption('3')
+    await page.getByLabel('タイトル').fill('Desk の一覧を改善する')
+    await page.getByLabel('公開する要約').fill('変更前の要約')
+    await page.getByRole('button', { name: '起票内容を確認' }).click()
+    await page.getByText('入力内容を修正する', { exact: true }).click()
+    await expect(page.getByLabel('公開する要約')).toHaveValue('変更前の要約')
+    await page.getByLabel('公開する要約').fill('公開する要約を修正しました。')
+    await page.getByRole('button', { name: '起票内容を確認' }).click()
+    await expect(page.locator('[data-public-target]')).toContainText(
+      'example/desk',
+    )
+    expect(demo.github.created).toHaveLength(0)
+    await page.getByRole('button', { name: '確認した内容で起票' }).click()
+    await expect
+      .poll(() => demo.github.created)
+      .toEqual([
+        {
+          title: 'Desk の一覧を改善する',
+          body:
+            '公開する要約を修正しました。\n\n[#3](' +
+            demo.origin +
+            '/conversation/3)',
+        },
+      ])
+  } finally {
+    await page.close()
+  }
 })

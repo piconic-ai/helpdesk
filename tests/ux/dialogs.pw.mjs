@@ -117,7 +117,7 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
   await inspectModal(
     page,
     issues.getByRole('button', { name: '起票内容を確認' }),
-    { content: '検索条件が保存されません。' },
+    { content: '検索条件が保存されません。', first: '入力内容を修正する' },
   )
   expect(scene.github.created).toHaveLength(0)
   await page.goto(scene.origin + '/extensions/issues/link/1')

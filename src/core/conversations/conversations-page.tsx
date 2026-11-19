@@ -24,6 +24,7 @@ import {
   ThreadToolbar,
   ReplyArea,
   ThreadTimeline,
+  ThreadActivity,
   TimelineEntry,
 } from '../../ui/thread-parts'
 import {
@@ -84,7 +85,7 @@ function message(
         </>
       }
     >
-      <MessageAuthor>
+      <MessageAuthor id={'message-author-' + m.id}>
         {m.kind === 'inbound' ? (
           <code>{c.contact}</code>
         ) : (
@@ -132,6 +133,7 @@ function messageHeading(
     label
   )
 }
+
 function changeSummary(
   event: Details['events'][number],
   names: Names,
@@ -320,6 +322,9 @@ export function conversationPage(
   )
   const names = frame.operators
   const info = metadata.get(c.number)
+  const activity =
+    data.messages.findLast((m) => m.delivery === 'failed') ??
+    data.messages.at(-1)
   const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
   const { next, previous } = adjacentOpen(frame.openNumbers, c.number)
   const search = frame.query.inbox ?? ''
@@ -358,6 +363,7 @@ export function conversationPage(
           {statusPicker(c)}
           {c.kind === 'inquiry' && assignment(c, frame)}
           {labelPicker(c.number, data.labels, frame.labels, frame.labelColors)}
+          {activity && <ThreadActivity message={activity} />}
         </AttributeRow>
       }
       aside={threadContext(

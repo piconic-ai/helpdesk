@@ -248,6 +248,30 @@ export function IssueVoices({
   )
 }
 
+export function IssuePostFields({
+  title,
+  summary,
+}: {
+  title?: string
+  summary?: string
+}) {
+  return (
+    <>
+      <Field label="タイトル">
+        <Input name="title" value={title} required maxlength={200} />
+      </Field>
+      <Field
+        label="公開する要約"
+        description="氏名・メールアドレスなどの個人情報は含めないでください。"
+      >
+        <Textarea name="summary" required maxlength={2000} rows={3}>
+          {summary}
+        </Textarea>
+      </Field>
+    </>
+  )
+}
+
 export function NewIssueForm({
   choices,
   action,
@@ -283,15 +307,7 @@ export function NewIssueForm({
           ))}
         </NativeSelect>
       </Field>
-      <Field label="タイトル">
-        <Input name="title" required maxlength={200} />
-      </Field>
-      <Field
-        label="公開する要約"
-        description="氏名・メールアドレスなどの個人情報は含めないでください。"
-      >
-        <Textarea name="summary" required maxlength={2000} rows={3} />
-      </Field>
+      <IssuePostFields />
       <Button>起票内容を確認</Button>
     </form>
   )

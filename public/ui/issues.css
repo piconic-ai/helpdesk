@@ -200,3 +200,6 @@
   flex-wrap: wrap;
   gap: var(--spacing-xs);
 }
+#issue-post-review:has(details[open]) > form[action='/actions/issues.create'] {
+  display: none;
+}

@@ -178,7 +178,7 @@ export const WaitingTime = ({
     {children}
   </time>
 )
-const deliveryLabels = {
+export const deliveryLabels = {
   draft: '下書き',
   awaiting_approval: '承認待ち',
   queued: '送信待ち',

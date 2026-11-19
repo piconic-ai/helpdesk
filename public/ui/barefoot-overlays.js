@@ -46,8 +46,11 @@ function menuItems(menu) {
   )
 }
 function navigateMenu(event) {
-  const menu = event.target.closest(panelSelector)
-  if (!menu || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key))
+  const menu = event.target.closest(panelSelector + ', dialog:modal')
+  if (
+    !menu?.matches(panelSelector) ||
+    !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)
+  )
     return
   const items = menuItems(menu)
   if (!items.length) return
@@ -164,7 +167,7 @@ function prepareSearch(panel) {
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || event.defaultPrevented) return
-  const panel = event.target.closest(panelSelector)
+  const panel = event.target.closest(panelSelector + ', dialog:modal')
   if (!panel?.matches(':popover-open')) return
   event.preventDefault()
   event.stopPropagation()

@@ -2,10 +2,35 @@ import type { Child } from 'hono/jsx'
 import { ActionLink, Button } from './controls'
 import { Stack } from './layout'
 import { Message } from './patterns'
+import { Delivery, deliveryLabels, type DeliveryState } from './inbox-parts'
 type Content = { children?: Child }
-export const MessageAuthor = ({ children }: Content) => (
-  <div className="message-author">{children}</div>
+export const MessageAuthor = ({ children, id }: Content & { id?: string }) => (
+  <div id={id} className="message-author">
+    {children}
+  </div>
 )
+export function ThreadActivity({
+  message: entry,
+}: {
+  message: { id: string; kind: string; delivery?: DeliveryState | null }
+}) {
+  if (entry.kind !== 'note' && !entry.delivery) return null
+  return (
+    <a
+      className="thread-activity"
+      href={'#message-author-' + encodeURIComponent(entry.id)}
+    >
+      {entry.delivery ? (
+        <Delivery state={entry.delivery}>
+          {deliveryLabels[entry.delivery] + 'の返信へ'}
+        </Delivery>
+      ) : (
+        '内部メモへ'
+      )}
+    </a>
+  )
+}
+
 export const MessageText = ({ children }: Content) => (
   <p className="message-body">{children}</p>
 )

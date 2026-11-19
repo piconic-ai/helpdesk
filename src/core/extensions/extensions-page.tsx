@@ -1,4 +1,5 @@
 import { metricValue } from '../../ui/metric-value'
+import { IssuePostFields } from '../../ui/issue-board'
 import { glyph } from '../../ui/glyph'
 import { Stack } from '../../ui/layout'
 import {
@@ -621,7 +622,7 @@ export function issuePreview(
       title="起票内容を確認"
       back={{ href: '/conversation/' + result.number, label: '会話に戻る' }}
     >
-      <FormSection title={result.title}>
+      <FormSection id="issue-post-review" title={result.title}>
         <p data-public-target="">
           {frame.demoGithub ? '模擬 GitHub の投稿先：' : '投稿先：'}
           {result.repository}
@@ -645,6 +646,13 @@ export function issuePreview(
           <Input name="number" type="hidden" value={result.number} />
           <Button variant="default">確認した内容で起票</Button>
         </form>
+        <Disclosure title="入力内容を修正する">
+          <PanelForm method="post" action="/actions/issues.preview">
+            <Input name="number" type="hidden" value={result.number} />
+            <IssuePostFields title={result.title} summary={result.summary} />
+            <Button>起票内容を確認</Button>
+          </PanelForm>
+        </Disclosure>
       </FormSection>
     </DetailPage>,
     frame,
