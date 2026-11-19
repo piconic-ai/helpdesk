@@ -213,7 +213,15 @@ function mailboxPage(
             {field('name', 'プロダクト名', '', 'text', true)}
             {addressFields(domains)}
             <MailboxPolicies extensions={frame.extensions} />
-            <SaveActions verb="窓口を登録" cancel={path} primary />
+            <SaveActions
+              verb={
+                frame.extensions.some((e) => e.permitsMail)
+                  ? '自動送信を承認して窓口を登録'
+                  : '窓口を登録'
+              }
+              cancel={path}
+              primary
+            />
           </form>
         </FormSection>
       </EditPage>
@@ -235,6 +243,7 @@ function mailboxPage(
               <ListRow
                 href={path + '?edit=' + encodeURIComponent(p.id)}
                 title={<ProductMark product={p} />}
+                status={<span aria-hidden="true">›</span>}
                 description={data.mailboxes
                   .filter((m) => m.product === p.id)
                   .map((m) => m.address)
@@ -250,9 +259,12 @@ function mailboxPage(
       </ListPage>
     )
   return (
-    <EditPage title={product.name} back={back}>
+    <EditPage
+      title={<ProductMark product={product} size="heading" />}
+      back={back}
+    >
       {notice}
-      <FormSection title={<ProductMark product={product} size="heading" />}>
+      <FormSection title="アイコンとメール差出人">
         <Disclosure title="プロダクトのアイコンを変更">
           <ProductIconForm product={product} />
         </Disclosure>
@@ -312,9 +324,20 @@ function MailboxPolicies({ extensions }: Pick<ConsoleFrame, 'extensions'>) {
       <p>窓口を登録すると、次の自動送信を承認します。</p>
       <RowList>
         {sending.map((item) => (
-          <li>
-            {extensionLabel(item.id)}
-            {policies[item.id] && '：' + policies[item.id]}
+          <li data-layout="stack" data-gap="xs">
+            <span>
+              {extensionLabel(item.id)}
+              {policies[item.id] && '：' + policies[item.id]}
+            </span>
+            <ActionLink
+              href={'/extensions/' + item.id}
+              variant="ghost"
+              target="_blank"
+              rel="noopener"
+            >
+              {item.id === 'notify' ? '通知先を確認' : '送信する文面を確認'}
+              （新しいタブ）
+            </ActionLink>
           </li>
         ))}
       </RowList>

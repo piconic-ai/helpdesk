@@ -19,6 +19,7 @@ const symbols = {
   menu: 'M3 5h14 M3 10h14 M3 15h14',
   close: 'M4 4l12 12 M16 4 4 16',
   brand: 'M3 5h14v10H3z M3 6l7 5 7-5',
+  products: 'M2 6l8-4 8 4-8 4z M2 10l8 4 8-4 M2 14l8 4 8-4',
   received: 'M3 4h14v12H3z M3 9h4l2 3h2l2-3h4',
   reviewed: 'M2 10l3 3 7-8 M8 13l2 2 8-9',
   mail: 'M2.5 4h15v12h-15z M3 5l7 5 7-5',

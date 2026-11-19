@@ -7,6 +7,7 @@ import { action, shell, selectedView, statuses, inboxUrl } from './console-page'
 import { inboxSearch, inboxSort, inboxStatus } from './inbox-location'
 import { conversationRow } from './inbox-row-page'
 import { operatorAvatar } from '../operators/identity-page'
+import { Stack } from '../../ui/layout'
 import {
   Button,
   Input,
@@ -74,7 +75,8 @@ function chips(q: Query, frame: ConsoleFrame) {
       frame.operators.find((op) => op.email === q.assignee)?.displayName ||
       q.assignee,
     label: q.label,
-    status: q.status && statuses[q.status],
+    status:
+      q.status === 'all' ? 'すべての状態' : q.status && statuses[q.status],
     sort:
       q.sort === 'unreviewed'
         ? '未確認を先に'
@@ -137,11 +139,14 @@ function filters(q: Query, frame: ConsoleFrame) {
             />
           </Field>
           {!feedback && (
-            <>
+            <Stack className="assignee-filter" gap="xs">
+              <span>担当者</span>
               <Input type="hidden" name="assignee" value={q.assignee ?? ''} />
               <FilterPicker
                 id="filter-assignee"
-                label={'担当者 ' + (person?.displayName ?? 'すべて')}
+                variant="outline"
+                accessibleName={'担当者 ' + (person?.displayName ?? 'すべて')}
+                label={person?.displayName ?? 'すべて'}
               >
                 <CandidateList>
                   <Button
@@ -173,7 +178,7 @@ function filters(q: Query, frame: ConsoleFrame) {
                   ))}
                 </CandidateList>
               </FilterPicker>
-            </>
+            </Stack>
           )}
           {selectFilter(
             'label',

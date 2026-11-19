@@ -17,7 +17,13 @@
     if (!tools || node.hidden) return
     node.style.removeProperty('bottom')
     const toast = node.getBoundingClientRect()
-    const bar = tools.getBoundingClientRect()
+    const editor = tools.closest('.composer')?.getBoundingClientRect()
+    const bar =
+      node.matches('[role=alert], [data-undo-reply]') &&
+      editor &&
+      editor.top >= toast.height + 8
+        ? editor
+        : tools.getBoundingClientRect()
     if (
       toast.top < bar.bottom &&
       toast.bottom > bar.top &&

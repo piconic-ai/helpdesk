@@ -120,7 +120,8 @@ function submissionDetails(form, trigger) {
   if (action === '/actions/issues.link')
     return [
       label,
-      form.dataset.repo +
+      (form.dataset.demo === 'true' ? '模擬 GitHub の ' : '') +
+        form.dataset.repo +
         ' の「' +
         form.elements.issue.selectedOptions[0].textContent.trim() +
         '」に、この会話へのリンクをコメントとして投稿します。\n' +

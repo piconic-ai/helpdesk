@@ -50,7 +50,13 @@ async function section(page, scene, before) {
       .first()
       .locator('[data-slot=popover-trigger]')
       .first()
-    if (await trigger.count()) await trigger.click()
+    if (await trigger.count()) {
+      await trigger.click()
+      const opened = page.locator(
+        '[id="' + (await trigger.getAttribute('popovertarget')) + '"]',
+      )
+      await opened.locator(':focus').first().waitFor({ state: 'visible' })
+    }
   }
 }
 

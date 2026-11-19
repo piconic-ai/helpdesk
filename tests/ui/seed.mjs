@@ -382,7 +382,11 @@ export async function startScene(
     const origin = (await runtime.ready).origin
     const bootstrap = await fetch(origin + '/extensions')
     if (!bootstrap.ok) throw new Error(await bootstrap.text())
-    await extensionData(DB, extensions, origin)
+    await extensionData(
+      DB,
+      extensions,
+      demoIssues ? origin : 'https://helpdesk.example.test',
+    )
     async function receive({
       subject,
       body,

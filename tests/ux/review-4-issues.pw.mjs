@@ -197,7 +197,12 @@ test('同じ課題に複数のプロダクトから届いた声をまとめ、�
 }) => {
   await scene.db
     .prepare("INSERT INTO issues_data VALUES('repository/desk',?)")
-    .bind(JSON.stringify({ repo: 'example/helpdesk', origin: scene.origin }))
+    .bind(
+      JSON.stringify({
+        repo: 'example/helpdesk',
+        origin: 'https://helpdesk.example.test',
+      }),
+    )
     .run()
   for (const number of [1, 3]) {
     await page.goto(scene.origin + '/extensions/issues/link/' + number)

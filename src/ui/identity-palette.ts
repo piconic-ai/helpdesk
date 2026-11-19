@@ -1,11 +1,11 @@
 // Generated from DESIGN.md by scripts/design-tokens.rb.
 export const identityPalette = [
-  '#011a5b',
-  '#1a737d',
-  '#1f122f',
-  '#783460',
-  '#6a3313',
-  '#60811d',
-  '#463019',
-  '#5b5b5b',
+  '#202764',
+  '#0f535f',
+  '#5a0287',
+  '#a6026f',
+  '#925800',
+  '#667f32',
+  '#321d00',
+  '#141414',
 ] as const

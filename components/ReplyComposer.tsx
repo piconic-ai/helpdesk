@@ -390,6 +390,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
               className="button-quiet"
               hidden={note()}
               aria-expanded={preview()}
+              disabled={!interactive()}
               onClick={togglePreview}
             >
               プレビュー

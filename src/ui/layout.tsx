@@ -10,6 +10,7 @@ type Arrangement = {
     | 'aside'
     | 'label'
     | 'main'
+    | 'span'
   gap?: 'xs' | 'sm' | 'md' | 'lg'
   children?: Child
 } & Partial<

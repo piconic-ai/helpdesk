@@ -105,6 +105,7 @@ routes.get('/issues/choices/:number', async (c) => {
   const { repo, origin } = await issueDestination(api, product)
   return c.json({
     repo,
+    demo: api.demoGithub,
     backlink: origin + '/conversation/' + number,
     choices: await issueChoices(api, repo),
   })

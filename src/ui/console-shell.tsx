@@ -74,6 +74,7 @@ function navItem(
   icon: GlyphName,
   active: boolean,
   count?: number,
+  compactName?: string,
 ) {
   return (
     <a
@@ -84,6 +85,11 @@ function navItem(
     >
       {glyph(icon)}
       <span>{name}</span>
+      {compactName && (
+        <small className="nav-compact-name" aria-hidden="true">
+          {compactName}
+        </small>
+      )}
       {count !== undefined && <span className="sidebar-count">{count}</span>}
     </a>
   )
@@ -118,6 +124,11 @@ function extensionMenu(frame: ConsoleFrame) {
           route.extension.icon ?? 'extension',
           frame.path === route.path || frame.path.startsWith(route.path + '/'),
           route.extension.count || undefined,
+          route.id === 'metrics'
+            ? route.path === '/voices'
+              ? '声'
+              : '対応'
+            : undefined,
         ),
       )}
     </nav>
@@ -156,7 +167,10 @@ function navigation(frame: ConsoleFrame) {
               {selectedProduct ? (
                 <ProductMark product={selectedProduct} />
               ) : (
-                'すべてのプロダクト'
+                <>
+                  {glyph('products')}
+                  <span>すべてのプロダクト</span>
+                </>
               )}
             </span>
           }
@@ -224,7 +238,11 @@ function navigation(frame: ConsoleFrame) {
             className="sidebar-item sidebar-account"
             href="/account"
             aria-current={frame.path === '/account' ? 'page' : undefined}
-            title="アカウント"
+            title={
+              person?.displayName
+                ? person.displayName + ' のアカウント'
+                : 'アカウント'
+            }
           >
             <span aria-hidden="true">
               {operatorAvatar(person, frame.operator.email)}

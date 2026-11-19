@@ -13,6 +13,7 @@ export default defineConfig({
   use: {
     viewport: { width: 1440, height: 900 },
     locale: 'ja-JP',
+    launchOptions: { args: ['--lang=ja-JP', '--accept-lang=ja-JP'] },
     timezoneId: 'Asia/Tokyo',
     reducedMotion: 'reduce',
   },

@@ -185,12 +185,16 @@ test('狭い一覧でも最新の文を読めて、行の操作が担当者と�
     await row.hover()
     const preview = await row.locator('.row-preview').boundingBox()
     const actions = await row.locator('.row-actions').boundingBox()
-    const metadata = await row.locator('.row-assignee').boundingBox()
     expect(preview.width).toBeGreaterThanOrEqual(110)
-    expect(
-      actions.y >= metadata.y + metadata.height ||
-        actions.x >= metadata.x + metadata.width,
-    ).toBe(true)
+    for (const part of await row
+      .locator('.row-assignee:visible, .row-owner')
+      .all()) {
+      const metadata = await part.boundingBox()
+      expect(
+        actions.y >= metadata.y + metadata.height ||
+          actions.x >= metadata.x + metadata.width,
+      ).toBe(true)
+    }
   }
 })
 
@@ -204,6 +208,50 @@ test('単一の会話を選ぶと、一括担当メニューにも現在の担�
   await expect(
     page.locator('#bulk-assignee').getByRole('button', { name: '佐藤 優' }),
   ).toHaveAttribute('aria-pressed', 'true')
+})
+
+test.describe('通常の受信箱', () => {
+  test.use({ demo: false })
+  test('すべての会話で待ち時間と状態を重ねずに表示する', async ({
+    page,
+    scene,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto(scene.origin + '/?status=all')
+    const row = page.locator('.inbox-item[data-number="4"]')
+    const status = await row.locator('.status-badge').boundingBox()
+    const time = await row.locator('.row-time:visible').boundingBox()
+    expect(
+      time.y + time.height <= status.y ||
+        status.y + status.height <= time.y ||
+        time.x + time.width <= status.x ||
+        status.x + status.width <= time.x,
+    ).toBe(true)
+  })
+})
+
+test('畳んだナビでもプロダクト選択と自分のアカウントを絵で識別できる', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 812 })
+  for (const selector of [
+    '.app-sidebar .sidebar-account .avatar',
+    '.app-sidebar button[popovertarget="product-switcher"] :is(svg,img)',
+  ]) {
+    const mark = page.locator(selector).first()
+    await expect(mark).toBeVisible()
+    expect((await mark.boundingBox()).width).toBeGreaterThanOrEqual(16)
+    expect(
+      await mark.evaluate((el) => {
+        const r = el.getBoundingClientRect()
+        const hit = document.elementFromPoint(
+          r.x + r.width / 2,
+          r.y + r.height / 2,
+        )
+        return !!hit && el.closest('a,button') === hit.closest('a,button')
+      }),
+    ).toBe(true)
+  }
 })
 
 test('拡張の設定操作と保存期間の選択肢を横並びで読み取れる', async ({
@@ -272,10 +320,10 @@ test('短い会話の操作と担当表示が余分な段を作らず、混在�
     await page.setViewportSize({ width, height: 812 })
     const row = page.locator('.inbox-item[data-number="7"]')
     expect((await row.boundingBox()).height).toBeLessThanOrEqual(
-      width === 375 ? 84 : 65,
+      width === 375 ? 68 : 65,
     )
-    const wait = await row.locator('.row-time').boundingBox()
-    const avatar = await row.locator('.row-assignee .avatar').boundingBox()
+    const wait = await row.locator('.row-time:visible').boundingBox()
+    const avatar = await row.locator('.row-owner .avatar').boundingBox()
     expect(
       Math.abs(wait.x + wait.width - avatar.x - avatar.width),
     ).toBeLessThan(3)
@@ -352,4 +400,26 @@ test('同じ位置に置き換わる知らせも、ポインターが離れて�
   await page.mouse.move(1, 1)
   await page.clock.fastForward(5500)
   await expect(notice).toBeHidden()
+})
+
+test('質問を受け付けた後は入力の案内を消し、最初に受付番号を読める', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/help/chat/slide')
+  await page.getByLabel('質問', { exact: true }).fill('配送が遅れています')
+  await page.getByRole('button', { name: '質問する' }).click()
+  const contact = page.getByRole('button', { name: '担当者に問い合わせる' })
+  if (await contact.isVisible()) await contact.click()
+  const unresolved = page.getByRole('button', { name: '解決しなかった' })
+  if (await unresolved.isVisible()) await unresolved.click()
+  await page.getByLabel('連絡先メールアドレス').fill('chat@example.test')
+  await page.getByRole('button', { name: '送信', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText(
+    '問い合わせを受け付けました',
+  )
+  await expect(page.getByText(/困っていることを書いてください/)).toBeHidden()
+  expect((await page.locator('.chat-receipt').boundingBox()).y).toBeLessThan(
+    (await page.locator('#chat-turns').boundingBox()).y,
+  )
 })

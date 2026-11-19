@@ -119,6 +119,7 @@ export function labelTable(rows: Row[], colors: Record<string, number>) {
                   >
                     <Input type="hidden" name="action" value="rename" />
                     <Input type="hidden" name="label" value={row.name} />
+                    <p className="label-current-name">現在の名前：{row.name}</p>
                     <Field label="新しい名前（20字まで）">
                       <Input
                         name="name"

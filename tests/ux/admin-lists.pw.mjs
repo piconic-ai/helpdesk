@@ -1,6 +1,37 @@
 import { test, expect, editFiltersWhileLoading } from './harness.mjs'
 
 test.use({ extensions: ['articles', 'metrics'] })
+test('検索の読み込み中に選び直した文字はそのまま置き換えられる', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/settings')
+  const search = page.getByRole('searchbox', { name: '設定項目を検索' })
+  const loading = Promise.withResolvers()
+  await page.route(
+    '**/ui/live-filters.js',
+    async (route) => {
+      await loading.promise
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  try {
+    await search.fill('削除')
+    await page.waitForURL((url) => url.searchParams.get('q') === '削除', {
+      waitUntil: 'commit',
+    })
+    await search.press('ControlOrMeta+a')
+  } finally {
+    loading.resolve()
+  }
+  await page.waitForLoadState('load')
+  await page.keyboard.insertText('該当しない設定')
+  await expect(search).toHaveValue('該当しない設定')
+  await expect(
+    page.getByRole('link', { name: '検索：該当しない設定 を解除' }),
+  ).toBeVisible()
+})
 test('読み込み中に変更した検索と選択を一度に反映し、入力だけでも検索できる', async ({
   page,
   scene,

@@ -35,6 +35,7 @@ for (const picker of document.querySelectorAll('[data-issue-picker]')) {
       const data = await response.json()
       form.dataset.repo = data.repo
       form.dataset.backlink = data.backlink
+      form.dataset.demo = String(data.demo === true)
       choices = data.choices
       filter()
     } catch {

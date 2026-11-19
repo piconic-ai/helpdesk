@@ -92,7 +92,7 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await confirmSubmission(page)
   await expect
     .poll(() => scene.github.comments)
-    .toEqual([{ body: '[#1](' + scene.origin + '/conversation/1)' }])
+    .toEqual([{ body: '[#1](https://helpdesk.example.test/conversation/1)' }])
   await expect(
     page.locator('[data-extension=issues] a[href*="github.com"]'),
   ).toContainText('42')

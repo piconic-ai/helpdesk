@@ -99,6 +99,8 @@
   const saved = sessionStorage.getItem(storageKey)
   if (!saved) return
   sessionStorage.removeItem(storageKey)
+  // An operator can focus a field and select text before this script loads.
+  if (document.activeElement && document.activeElement !== document.body) return
   try {
     const focus = JSON.parse(saved)
     if (focus.url !== location.href) return

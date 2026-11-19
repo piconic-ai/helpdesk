@@ -464,10 +464,6 @@
   align-items: center;
   gap: var(--spacing-xxs);
 }
-.row-bottom .label-dot {
-  width: var(--spacing-xxs);
-  height: var(--spacing-xxs);
-}
 .row-bottom .label-chip .label-dot {
   vertical-align: 0.15em;
 }

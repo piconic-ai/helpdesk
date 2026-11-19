@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
   snapshotPathTemplate:
-    '{testDir}/../../docs/reports/loop/round-11/screens/{arg}{ext}',
+    '{testDir}/../../docs/reports/loop/round-12/screens/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
   updateSnapshots: 'none',
@@ -15,7 +15,9 @@ export default defineConfig({
   use: {
     browserName: 'chromium',
     // Software compositing also works on virtual runners without a display.
-    launchOptions: { args: ['--disable-gpu'] },
+    launchOptions: {
+      args: ['--disable-gpu', '--lang=ja-JP', '--accept-lang=ja-JP'],
+    },
     locale: 'ja-JP',
     timezoneId: 'Asia/Tokyo',
     deviceScaleFactor: 1,

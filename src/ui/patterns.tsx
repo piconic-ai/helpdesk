@@ -133,6 +133,7 @@ export function ConversationRow({
   preview,
   time,
   assignee,
+  owner,
   selection,
   actions,
   href,
@@ -144,6 +145,7 @@ export function ConversationRow({
   preview: Child
   time: Child
   assignee?: Child
+  owner?: Child
   selection?: Child
   actions?: Child
   href: string
@@ -171,12 +173,18 @@ export function ConversationRow({
         )}
         <span className="row-top">
           {headline}
-          <span className="row-time">{time}</span>
+          {!owner && <span className="row-time">{time}</span>}
         </span>
         <span className="row-bottom">
           {preview}
           <span className="row-assignee">{assignee}</span>
         </span>
+        {owner && (
+          <span className="row-owner">
+            <span className="row-time">{time}</span>
+            {owner}
+          </span>
+        )}
       </a>
       {actions}
     </li>

@@ -15,7 +15,7 @@ const surfaces = [
   ['/voices', 'main', 16],
   ['/metrics?product=slide', 'main', 16],
   ['/articles', 'main [data-ui=article-list-row]', 16],
-  ['/settings/mailboxes?edit=slide', 'main h2', 20],
+  ['/settings/mailboxes?edit=slide', 'main h1', 20],
   ['/extensions/issues', 'main h2', 20],
   ['/extensions/chat', 'main h2', 20],
   ['/help/', 'main h2', 20],
@@ -28,7 +28,10 @@ const surfaces = [
 async function revealForm(page, scene) {
   await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
   const group = page.locator('section.settings-card').filter({
-    has: page.getByRole('heading', { name: 'Slide', exact: true }),
+    has: page.getByRole('heading', {
+      name: 'アイコンとメール差出人',
+      exact: true,
+    }),
   })
   await group.getByText('プロダクトのアイコンを変更', { exact: true }).click()
   return group.locator('form[data-product-icon-form]')

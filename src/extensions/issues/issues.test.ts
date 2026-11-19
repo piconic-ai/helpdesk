@@ -297,20 +297,24 @@ test('external article and issue requests reject redirects without forwarding cr
   }
 })
 
-test('GitHub posts require a non-local HTTPS conversation URL in production', async () => {
-  const api = extensionContext(ctx, enabled.active[0])
-  for (const origin of [
-    'http://helpdesk.example',
-    'https://127.0.0.1',
-    'https://localhost',
-  ]) {
-    const production = {
-      ...api,
-      local: false,
-      config: { repositories: { app: repo }, helpdeskOrigin: origin },
+test.each([true, false])(
+  'real GitHub posts require a public HTTPS link even when local=%s',
+  async (local) => {
+    const api = extensionContext(ctx, enabled.active[0])
+    for (const origin of [
+      'http://helpdesk.example',
+      'https://127.0.0.1',
+      'https://localhost',
+    ]) {
+      const actualGithub = {
+        ...api,
+        local,
+        demoGithub: false,
+        config: { repositories: { app: repo }, helpdeskOrigin: origin },
+      }
+      await expect(issueDestination(actualGithub, 'app')).rejects.toThrow(
+        'public HTTPS',
+      )
     }
-    await expect(issueDestination(production, 'app')).rejects.toThrow(
-      'public HTTPS',
-    )
-  }
-})
+  },
+)

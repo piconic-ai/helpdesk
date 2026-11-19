@@ -113,10 +113,12 @@ it('keeps identity dots separated in Lab and by lightness in simulated vision', 
       expect(deltaE(normal, semantic)).toBeGreaterThan(15)
     for (const b of identityPalette.slice(index + 1)) {
       expect(deltaE(normal, lab(b, simulations[0]))).toBeGreaterThan(15)
-      for (const simulation of simulations)
-        expect(
-          Math.abs(lab(a, simulation)[0] - lab(b, simulation)[0]),
-        ).toBeGreaterThan(3)
+      for (const simulation of simulations) {
+        const first = lab(a, simulation)
+        const second = lab(b, simulation)
+        expect(Math.abs(first[0] - second[0])).toBeGreaterThan(4)
+        expect(deltaE(first, second)).toBeGreaterThan(11)
+      }
     }
   }
 })

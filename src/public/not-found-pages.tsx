@@ -2,7 +2,13 @@ import { ProductMark } from '../ui/product-mark'
 import { PageLinks } from '../ui/listing'
 import { paginateRows } from '../ui/pagination'
 import { ActionLink } from '../ui/controls'
-import { DetailPage, ListPage, EmptyState, FormSection } from '../ui/patterns'
+import {
+  ActionBar,
+  DetailPage,
+  ListPage,
+  EmptyState,
+  FormSection,
+} from '../ui/patterns'
 import { PublicLinks, PublicSearch } from '../ui/public-forms'
 import { publicDocument } from './layout-pages'
 
@@ -16,7 +22,9 @@ export function missingPublicPage(
     html: String(
       <DetailPage title={title}>
         <p>アドレスを確認するか、ヘルプからお探しください。</p>
-        <ActionLink href={back}>ヘルプに戻る</ActionLink>
+        <ActionBar>
+          <ActionLink href={back}>ヘルプに戻る</ActionLink>
+        </ActionBar>
       </DetailPage>,
     ),
   })
@@ -54,7 +62,7 @@ export function helpLanding(
       title,
       html: String(
         <ListPage
-          title={title}
+          title={query ? '記事の検索結果' : 'プロダクトから探す'}
           description={
             query
               ? '記事 ' + matches.total + '件'

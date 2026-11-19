@@ -65,7 +65,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
   await expect.poll(() => scene.github.created.length).toBe(1)
   expect(scene.github.created[0].body).toContain(summary)
   expect(scene.github.created[0].body).toContain(
-    scene.origin + '/conversation/1',
+    'https://helpdesk.example.test/conversation/1',
   )
   await expect(
     page.locator('[data-extension="issues"] a[href*="github.com"]'),
@@ -261,7 +261,19 @@ test('記事の選択は返信欄の操作が利用可能になってから開�
     await page.goto(scene.origin + '/conversation/1', { waitUntil: 'commit' })
     const attach = page.getByRole('button', { name: '記事を添える' })
     await expect(attach).toBeDisabled({ timeout: 1500 })
+    const preview = page.getByRole('button', {
+      name: 'プレビュー',
+      exact: true,
+    })
+    await expect(preview).toBeDisabled({ timeout: 1500 })
+    const reply = page.getByLabel('返信', { exact: true })
+    await reply.fill('読み込み中に入力した返信')
     release()
+    await preview.click()
+    await expect(
+      page.getByRole('region', { name: '返信のプレビュー' }),
+    ).toContainText('読み込み中に入力した返信')
+    await preview.click()
     await attach.click()
     const title = page.locator('#reply-articles li button').first()
     await title.click()

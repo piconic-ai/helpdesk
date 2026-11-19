@@ -61,7 +61,7 @@ export function chatDocument(options: Options) {
               >
                 <div id="chat-history">
                   {options.introduction && <p>{options.introduction}</p>}
-                  <p>{copy.intro}</p>
+                  <p id="chat-intro">{copy.intro}</p>
                   <div
                     id="chat-turns"
                     aria-label={copy.conversation}

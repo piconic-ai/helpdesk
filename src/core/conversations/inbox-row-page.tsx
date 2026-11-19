@@ -52,14 +52,16 @@ function clock(
 function quickActions(row: Row, frame: ConsoleFrame) {
   if (
     row.kind === 'feedback' &&
-    row.status.kind === 'received' &&
+    (row.status.kind === 'received' || row.status.kind === 'reviewed') &&
     frame.extensions.some((ext) => ext.id === 'feedback')
   ) {
     return (
       <FeedbackRowAction>
         {action(
-          'feedback.review',
-          '確認済みにする',
+          row.status.kind === 'received'
+            ? 'feedback.review'
+            : 'feedback.unreview',
+          row.status.kind === 'received' ? '確認済みにする' : '未確認に戻す',
           <Input type="hidden" name="inbox" value={inboxSearch(frame.query)} />,
           row.number,
         )}
@@ -192,12 +194,8 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       }
       preview={preview}
       time={clock(row, m, frame.now)}
-      assignee={
-        <>
-          {details}
-          {operatorAvatar(profile, assignee)}
-        </>
-      }
+      assignee={details}
+      owner={operatorAvatar(profile, assignee)}
       actions={quickActions(row, frame)}
     />
   )

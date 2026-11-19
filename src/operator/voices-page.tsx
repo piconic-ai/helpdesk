@@ -1,6 +1,7 @@
 import { ProductMark, ProductSelect } from '../ui/product-mark'
 import { LabelDot } from '../ui/inbox-parts'
 import { CountBar, Sparkline } from '../ui/trends'
+import { Cluster } from '../ui/layout'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
 import { ActionLink, Button, Field, Input } from '../ui/controls'
@@ -156,8 +157,9 @@ export function voicesResults(
 ) {
   const product = frame.products.find((p) => p.id === q.product)
   const conditions = [
+    !product && 'すべてのプロダクト',
     q.unlabeled ? 'ラベルなし' : q.label,
-    q.month,
+    !q.month && !q.start && !q.end ? '全期間' : q.month,
     q.start && q.start + '以降',
     q.end && q.end + 'まで',
   ]
@@ -210,15 +212,16 @@ export function voicesResults(
               title={'#' + row.number + ' ' + row.subject}
               href={'/conversation/' + row.number}
               description={
-                <>
+                <Cluster as="span" className="voice-result-meta" gap="xs">
                   <ProductMark
                     product={{ id: row.product, name: row.productName }}
-                  />{' '}
-                  ·{' '}
-                  {new Intl.DateTimeFormat('ja-JP', {
-                    timeZone: 'Asia/Tokyo',
-                  }).format(row.at)}
-                </>
+                  />
+                  <time datetime={new Date(row.at).toISOString()}>
+                    {new Intl.DateTimeFormat('ja-JP', {
+                      timeZone: 'Asia/Tokyo',
+                    }).format(row.at)}
+                  </time>
+                </Cluster>
               }
               status={row.kind === 'feedback' ? 'フィードバック' : '問い合わせ'}
             />

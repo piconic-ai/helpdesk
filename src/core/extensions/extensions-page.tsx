@@ -622,7 +622,10 @@ export function issuePreview(
       back={{ href: '/conversation/' + result.number, label: '会話に戻る' }}
     >
       <FormSection title={result.title}>
-        <p data-public-target="">投稿先：{result.repository}</p>
+        <p data-public-target="">
+          {frame.demoGithub ? '模擬 GitHub の投稿先：' : '投稿先：'}
+          {result.repository}
+        </p>
         <BodyText>{result.summary}</BodyText>
         <p data-public-link="">
           掲載するリンク：

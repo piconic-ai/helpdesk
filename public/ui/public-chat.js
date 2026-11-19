@@ -90,6 +90,7 @@ function appendTurn(text, response) {
   turns.querySelectorAll('.chat-choices').forEach((choices) => choices.remove())
   questions.push(text)
   ask.reset()
+  ask.querySelector('[type=submit]').className = 'button-secondary'
   contact?.remove()
   contact = null
   const group = element('section', null, { class: 'chat-turn' })
@@ -127,7 +128,10 @@ function showMatches(
   const list = element('ul', null)
   const heading = element('h2', copy.related, { tabindex: '-1' })
   result.append(heading, list)
-  if (needsHuman) result.prepend(button(copy.contactFirst, () => showContact()))
+  if (needsHuman)
+    result.prepend(
+      button(copy.contactFirst, () => showContact(), 'button-primary'),
+    )
   let selected = items[0]
   items.forEach((item) => {
     const link = element('a', item.title, { href: item.url })
@@ -255,7 +259,9 @@ function showReceipt(form, receipt) {
     dl.append(element('dt', copy.estimate), element('dd', receipt.responseTime))
   const summary = element('section', null, { class: 'chat-receipt' })
   summary.append(name, dl)
-  form.replaceWith(summary)
+  form.remove()
+  history.prepend(summary)
+  document.querySelector('#chat-intro').hidden = true
   contact = null
   ask.hidden = true
   document.querySelector('#chat-verification').hidden = true

@@ -29,14 +29,14 @@ colors:
   note-soft: "#fef9c3"
 
 identity:
-  0: "#011a5b"
-  1: "#1a737d"
-  2: "#1f122f"
-  3: "#783460"
-  4: "#6a3313"
-  5: "#60811d"
-  6: "#463019"
-  7: "#5b5b5b"
+  0: "#202764"
+  1: "#0f535f"
+  2: "#5a0287"
+  3: "#a6026f"
+  4: "#925800"
+  5: "#667f32"
+  6: "#321d00"
+  7: "#141414"
 
 typography:
   title-lg:
@@ -388,7 +388,7 @@ Nothing else casts a shadow. No gradients, no glass, no dark surfaces.
 
 **`conversation-row`** — Two lines, 64px, hairline below.
 
-- Line 1: sender name (`body-strong` if unread, else `body`), then subject truncated with an ellipsis, then right-aligned time in `caption` `{colors.muted}`.
+- Line 1 starts with the product mark and name, followed by the sender's full display name and さん, then the subject. Use `body-strong` for unread senders and `body` for read senders. Preserve both names when space is tight. Ellipsize the subject and excerpt. Set the right-aligned time in `caption` `{colors.muted}`.
 - Line 2: `#123` in `code` `{colors.muted}`, a one-line body preview in `{colors.muted}`, then label chips (max 2, then "+n") and indicators; the assignee avatar is right-aligned. Show the status only in mixed-status views.
 - The two-line content is one link; selection and quick-action buttons are adjacent controls. Hover fills `{colors.surface-soft}`. Selected uses `conversation-row-selected`.
 - A row with a failed send shows `delivery-failed` in place of the preview's trailing space. This is the one place a red element may appear in the list.
@@ -401,7 +401,7 @@ Nothing else casts a shadow. No gradients, no glass, no dark surfaces.
 
 ### Conversation view
 
-Header: subject in `title-lg`, `#123` in `code`, product name, then status badge and assignee control. Actions on the right: 完了にする (secondary), and a menu for 迷惑メール and other operations. Extension panels render in the right context panel, one card per extension.
+The sticky toolbar above the subject contains the return link, context, closure, other actions and previous/next controls. Below it, show the subject in `title-lg`, then the number in `code`, product, channel, status, assignee and labels. Extension panels render in the right context panel, one card per extension.
 
 **`message-inbound`** — White with a hairline. Header row: sender name `body-strong`, address in `code` `{colors.muted}`, time right-aligned. HTML mail renders inside the sandboxed frame with the same 16px / 1.75 reading style; a quiet line above offers 外部の画像を表示.
 
@@ -485,7 +485,7 @@ Use a 16px outline with a 1.5px stroke in the surrounding text color. Reuse the 
 | Issues / metrics / form / chat | Circled issue / chart / form / chat bubble |
 | Empty search / empty list | Magnifier / outline symbol for the list's content |
 
-In the inbox, start with selection, an unread dot, the sender avatar, sender and subject, and the product mark. On small screens the product name is available on the mark. The second line groups number, channel, message excerpt, indicators and labels. Time and assignee stay on the right. The browser tab starts with the number of open inquiries in the active scope. Metrics show the last seven equal-length reporting periods as a monochrome line. Leave a gap when a rate has no denominator. Voice counts use up to seven date intervals within the selected period, aligned to Japan Standard Time. Relative bars behind voice totals share a scale within each group, with its highest count at full width.
+In the inbox, place selection, the unread indicator and the sender avatar before the row link’s text. The link identifies the product first, then the sender and subject. Keep the product name visible at all three widths. The second line groups number, channel, message excerpt, indicators and labels. Time and assignee stay on the right. The browser tab starts with the number of open inquiries in the active scope. Metrics show the last seven equal-length reporting periods as a monochrome line. Leave a gap when a rate has no denominator. Voice counts use up to seven date intervals within the selected period, aligned to Japan Standard Time. Relative bars behind voice totals share a scale within each group, with its highest count at full width.
 
 ## Responsive Behavior
 

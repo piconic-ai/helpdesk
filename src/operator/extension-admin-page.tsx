@@ -486,6 +486,13 @@ function portalControls(id: string, p: Portal) {
       <p>
         <code>{p.url}</code>
       </p>
+      {['localhost', '127.0.0.1', '[::1]'].includes(
+        new URL(p.url).hostname,
+      ) && (
+        <p>
+          このURLと埋め込みコードは、この端末で試せます。公開サイトに貼り付けるコードは、公開先のヘルプデスクでコピーしてください。
+        </p>
+      )}
       {id === 'chat' && p.publicSettings?.widget ? (
         <WidgetSettings
           product={p}

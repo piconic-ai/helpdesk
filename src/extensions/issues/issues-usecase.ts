@@ -53,7 +53,7 @@ export async function issueDestination(ctx: ExtensionContext, product: string) {
   const destination = productRepo(await repositoryConfig(ctx, product), product)
   const url = new URL(destination.origin)
   if (
-    !ctx.local &&
+    !(ctx.local && ctx.demoGithub) &&
     (url.protocol !== 'https:' ||
       /^(?:127\.|0\.0\.0\.0$|\[::1\]$|(?:.*\.)?localhost$)/i.test(url.hostname))
   ) {

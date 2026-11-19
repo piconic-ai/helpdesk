@@ -85,7 +85,10 @@ test('差出人名の設定と運営者名の公開可否が別プロダクト�
 }) => {
   await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
   const policy = page.locator('section.settings-card').filter({
-    has: page.getByRole('heading', { name: 'Slide', exact: true }),
+    has: page.getByRole('heading', {
+      name: 'アイコンとメール差出人',
+      exact: true,
+    }),
   })
   await policy.getByLabel('差出人名').fill('Slide サポート')
   await expect(policy.getByRole('checkbox')).not.toBeChecked()

@@ -48,9 +48,12 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
     .getByRole('listitem')
     .filter({ has: page.getByRole('link', { name: new RegExp(body) }) })
   await expect(row).toContainText('匿名')
+  await page.setViewportSize({ width: 375, height: 812 })
+  const previousHeight = (await row.boundingBox()).height
   await row.getByRole('button', { name: '確認済みにする' }).click()
   await expect(page).toHaveURL(/\?view=feedback/)
   await expect(row).toContainText('確認済み')
+  expect((await row.boundingBox()).height).toBe(previousHeight)
   await choose(page, '並び順', { label: '未確認を先に' })
   await expect(page.locator('a.conversation-row').first()).not.toContainText(
     body,

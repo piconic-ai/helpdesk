@@ -103,6 +103,8 @@ test('ラベルの色を保存し、会話と一覧と絞り込みから同じ�
     'data-identity-color',
     '4',
   )
+  await expect(label.locator('.label-dot')).toHaveCSS('width', '8px')
+  await expect(label.locator('.label-dot')).toHaveCSS('height', '8px')
   await page.getByRole('button', { name: '絞り込み', exact: true }).click()
   await expect(
     page.locator('button[data-choice="経理"] .label-dot'),

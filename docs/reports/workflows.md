@@ -34,7 +34,7 @@
 
 クリック・入力・移動の回数と表示待ちは各周の手順別の表に記録した。複数の業務で同じシナリオを使う場合は、各業務に含めている。
 
-[操作改善の第11周](loop/round-11/walk.md)・[第10周](loop/round-10/walk.md)・[第9周](loop/round-9/walk.md)・[第8周の追試](loop/round-8/retry/walk.md)・[第7周](loop/round-7/walk.md)・[第1周](loop/round-1/walk.md)・[第2周](loop/round-2/walk.md)・[第3周](loop/round-3/walk.md)・[第4周](loop/round-4/walk.md)・[第5周](loop/round-5/walk.md)・[第6周](loop/round-6/walk.md)・[第6周の全手順の再検証](loop/round-6/retry/walk.md)・[指摘と修正のまとめ](loop/summary.md)
+[操作改善の第12周](loop/round-12/retry/walk.md)・[第11周](loop/round-11/walk.md)・[第10周](loop/round-10/walk.md)・[第9周](loop/round-9/walk.md)・[第8周の追試](loop/round-8/retry/walk.md)・[第7周](loop/round-7/walk.md)・[第1周](loop/round-1/walk.md)・[第2周](loop/round-2/walk.md)・[第3周](loop/round-3/walk.md)・[第4周](loop/round-4/walk.md)・[第5周](loop/round-5/walk.md)・[第6周](loop/round-6/walk.md)・[第6周の全手順の再検証](loop/round-6/retry/walk.md)・[指摘と修正のまとめ](loop/summary.md)
 
 
 ### 判断に迷う表示と該当手順
@@ -49,3 +49,5 @@
 | W3・会話から記事を書く | 編集時の改行と公開時の改行が異なり、読者が見る本文を比較し直す必要があった。 | 同じ本文構造とスタイルで表示する。[第9周](loop/round-9.md) |
 | W4・作る課題と通知を確認する | 起票した事実と、顧客に知らせを送った事実を区別するため、通知の作成者と承認者を確認した。 | 下書きと承認済みの履歴を区別し、実際の承認記録から表示する。[第10周の会話](loop/round-10/desk.md) |
 | W5・窓口を登録する | 自動送信の承認文の機能名が拡張一覧と異なり、承認の対象を見直す必要があった。 | 一覧の名称を共用し、窓口の登録前に条件とともに表示する。[第10周の設定](loop/round-10/settings.md) |
+
+第12周では検索語を選び直した直後の読み込みと、返信プレビューの初期化を遅らせて操作した。検索語の前に古い語が残る現象と、プレビューの最初のクリックが無効になる現象を再現した。通常の会話と承認つきの会話の両方で、送信の手順を再検証した。[第12周の記録](loop/round-12.md)

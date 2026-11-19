@@ -1,4 +1,5 @@
 import { RowHeadline, RowPreview, RowLabels, inboxIcon } from './inbox-parts'
+import { operatorAvatar } from './operator-identity'
 import { BfScripts } from '@barefootjs/hono/scripts'
 import { ReplyComposer } from '@/components/ReplyComposer'
 import { Tooltip } from '@/components/PatternTooltip'
@@ -170,7 +171,11 @@ function ExampleChoices() {
           data-gallery-choice={name}
           aria-pressed={i === 0}
         >
-          <Candidate label={name} icon={name[0]} selected={i === 0} />
+          <Candidate
+            label={name}
+            icon={operatorAvatar(i === 2 ? undefined : { displayName: name })}
+            selected={i === 0}
+          />
         </Button>
       ))}
     </CandidateList>
