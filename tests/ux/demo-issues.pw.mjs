@@ -65,7 +65,7 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   }
   await board()
   await main.getByRole('link', { name: '課題を追加' }).click()
-  const choices = main.getByLabel('もとになる会話')
+  const choices = main.locator('select[name=number]')
   await expect(
     choices.locator('option').filter({ hasText: 'Desk' }).first(),
   ).toBeAttached()
@@ -81,7 +81,7 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
     return page.locator('[data-extension=issues]')
   }
   const panel = await related(1)
-  await panel.getByText('Issue を起票する', { exact: true }).click()
+  await panel.getByText('課題を起票する', { exact: true }).click()
   await panel.getByLabel('タイトル').fill(title)
   await panel.getByLabel('公開する要約').fill(summary)
   await panel.getByRole('button', { name: '起票内容を確認' }).click()
@@ -104,15 +104,15 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   )
 
   const second = await related(6)
-  await second.getByText('既存の Issue を選ぶ', { exact: true }).click()
+  await second.getByText('既存の課題を選ぶ', { exact: true }).click()
   await second.getByLabel('題で探す').fill(title)
   await expect(
     second
       .getByRole('combobox', { name: '課題', exact: true })
       .locator('option'),
   ).toHaveText([new RegExp(title)])
-  await second.getByRole('button', { name: '既存の Issue と紐づける' }).click()
-  await dialog.getByRole('button', { name: '既存の Issue と紐づける' }).click()
+  await second.getByRole('button', { name: '既存の課題と紐づける' }).click()
+  await dialog.getByRole('button', { name: '既存の課題と紐づける' }).click()
   await expect
     .poll(() => demo.github.comments)
     .toEqual([{ body: '[#6](' + demo.origin + '/conversation/6)' }])

@@ -28,24 +28,19 @@ async function section(page, scene, before) {
         exact: true,
       }),
     })
-  if (
-    !before &&
-    (await target
+  if (!before) {
+    const containers = await target
       .first()
-      .locator('xpath=ancestor::*[@id="related-info"]')
-      .count())
-  ) {
-    const opener = page.getByRole('button', { name: '関連情報', exact: true })
-    if (await opener.isVisible()) await opener.click()
-  }
-  if (
-    !before &&
-    (await target
-      .first()
-      .locator('xpath=ancestor::*[@id="thread-actions"]')
-      .count())
-  ) {
-    await page.getByRole('button', { name: 'その他の操作' }).click()
+      .locator('xpath=ancestor-or-self::*[@id]')
+      .evaluateAll((els) => els.map((el) => el.id))
+    for (const [id, name] of [
+      ['related-info', '関連情報'],
+      ['thread-actions', 'その他の操作'],
+      ['reply-templates', '定型文を選ぶ'],
+    ]) {
+      if (containers.includes(id))
+        await page.getByRole('button', { name, exact: true }).click()
+    }
   }
   await reveal(target.first())
   if (!before) {
@@ -287,10 +282,14 @@ async function changeMetricPeriod(page, before) {
 async function takeAction(page, action, before) {
   if (action === 'issue-preview' || action === 'operation-result')
     await operationDocument(page, action)
-  if (action === 'approve-dialog')
-    await page
-      .getByRole('button', { name: '承認して送信', exact: true })
-      .click()
+  if (action === 'approval-ready' || action === 'approve-dialog') {
+    const approve = page.getByRole('button', {
+      name: '承認して送信',
+      exact: true,
+    })
+    await approve.scrollIntoViewIfNeeded()
+    if (action === 'approve-dialog') await approve.click()
+  }
   if (action === 'context') {
     const opener = page.getByRole('button', { name: '関連情報', exact: true })
     if (await opener.isVisible()) await opener.click()

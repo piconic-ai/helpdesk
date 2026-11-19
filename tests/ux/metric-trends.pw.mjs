@@ -48,7 +48,7 @@ test('集計の推移は日本時間の受付・完了件数を示し、対象�
       '/metrics?period=custom&start=2025-06-04&end=2025-06-04&product=slide',
   )
   const main = page.getByRole('main')
-  await expect(main.locator('article svg.trend')).toHaveCount(8)
+  await expect(main.locator('article svg.trend')).toHaveCount(7)
   const selfResolution = main.getByRole('img', {
     name: /^待たずに解決できた割合の推移/,
   })
@@ -67,9 +67,9 @@ test('集計の推移は日本時間の受付・完了件数を示し、対象�
     scene.origin +
       '/metrics?period=custom&start=2025-06-04&end=2025-06-04&product=desk',
   )
-  await expect(time).toHaveAccessibleName(/記録がありません/)
+  await expect(time).toHaveCount(0)
   await expect(time.locator('circle')).toHaveCount(0)
-  await expect(selfResolution).toHaveAccessibleName(/記録がありません/)
+  await expect(selfResolution).toHaveCount(0)
   await expect(selfResolution.locator('circle')).toHaveCount(0)
   await page.goto(scene.origin + '/voices?start=2025-06-02&end=2025-06-04')
   const products = main
@@ -186,31 +186,24 @@ test('375pxの集計条件で長いプロダクト名と期間の選択値を全
     .bind(name, 'slide')
     .run()
   await page.setViewportSize({ width: 375, height: 812 })
-  const product = page.getByRole('combobox', {
-    name: 'プロダクト',
-    exact: true,
-  })
+  const product = page.getByRole('button', { name: /^プロダクト：/ })
   for (const path of [
     '/metrics?product=slide&period=custom&start=2026-11-01&end=2026-11-18',
     '/voices?product=slide',
   ]) {
     await page.goto(scene.origin + path)
-    await expect(product).toHaveValue('slide')
-    const selected = product.locator('selectedcontent .product-mark-name')
+    await expect(product).toContainText(name)
+    const selected = product.locator('.product-mark-name')
     await expect(selected).toHaveText(name)
     expect(
       await selected.evaluate((label) => {
-        const select = label.closest('select').getBoundingClientRect()
-        const icon = label
-          .closest('[data-slot=native-select-wrapper]')
-          .querySelector('svg[data-slot=native-select-icon]')
-          .getBoundingClientRect()
+        const select = label.closest('button').getBoundingClientRect()
         const text = document.createRange()
         text.selectNodeContents(label)
         return [...text.getClientRects()].every(
           (line) =>
             line.left >= select.left &&
-            line.right <= icon.left &&
+            line.right <= select.right &&
             line.top >= select.top &&
             line.bottom <= select.bottom,
         )

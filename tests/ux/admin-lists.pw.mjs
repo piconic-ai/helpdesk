@@ -87,6 +87,7 @@ test('設定項目の窓口数と保存期間が実際の変更後の値に変�
     main.getByRole('link', { name: /^プロダクトと窓口/ }),
   ).toContainText('窓口 2件')
   await retention.click()
+  await page.getByLabel('日数を指定').check()
   await page.getByRole('spinbutton').fill('15')
   await page.getByRole('button', { name: '保存期間を変更' }).click()
   await page.getByRole('link', { name: /設定に戻る/ }).click()

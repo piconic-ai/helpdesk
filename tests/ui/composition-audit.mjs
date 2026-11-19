@@ -3,14 +3,17 @@ export function inspectComposition() {
   const problems = []
   const main = document.querySelector('main')
   const templates = main?.querySelectorAll('[data-ui-page]')
-  if (templates?.length !== 1)
+  const expected = document.body.dataset.ui === 'gallery' ? 4 : 1
+  if (templates?.length !== expected)
     return [
-      'Expected one page template in main, found ' + (templates?.length ?? 0),
+      'Expected ' +
+        expected +
+        ' page templates in main, found ' +
+        (templates?.length ?? 0),
     ]
-  const template = templates[0]
   const visible = (el) =>
     el.checkVisibility() && el.getBoundingClientRect().width > 0
-  function checkAlignment() {
+  function checkAlignment(template) {
     const title = template.querySelector('[data-ui=heading] h1')
     const body = template.querySelector('[data-ui=body]')
     if (
@@ -22,7 +25,7 @@ export function inspectComposition() {
     )
       problems.push('Page heading and body must share a left edge')
   }
-  function checkColumnWidth() {
+  function checkColumnWidth(template) {
     const body = template.querySelector('[data-ui=body]')
     const max = { detail: 760, edit: 560 }[template.dataset.uiPage]
     if (max && body?.getBoundingClientRect().width > max + 1)
@@ -149,8 +152,10 @@ export function inspectComposition() {
         problems.push('Duplicate dropdown arrow on ' + select.name)
     }
   }
-  checkAlignment()
-  checkColumnWidth()
+  for (const template of templates) {
+    checkAlignment(template)
+    checkColumnWidth(template)
+  }
   checkInsets()
   if (!document.body.matches('.public-surface')) {
     checkNavigation()

@@ -64,7 +64,7 @@ const extensionScreens = [
   {
     ...panel('feedback', 'conversation', 'Feedback'),
     url: '/conversation/10',
-    after: '.heading-actions form[action="/actions/feedback.review"]',
+    after: '.thread-toolbar form[action="/actions/feedback.review"]',
     label: 'フィードバックの確認',
   },
   {
@@ -171,6 +171,7 @@ export const screens = [
     [7, 'attachment', '添付あり'],
   ].map(([n, id, label]) =>
     screen('会話', 'thread-' + id, label, '/conversation/' + n, thread, {
+      action: n === 5 ? 'approval-ready' : undefined,
       mobile: n === 1,
       tablet: n === 1,
     }),
@@ -197,7 +198,7 @@ export const screens = [
       beforeUrl: '/settings',
       before: 'section',
       beforeHeading: 'Mailboxes',
-      after: '#mailboxes',
+      after: 'main [data-ui=row-list]',
     },
   ),
   screen('設定', 'operators', '運営者', '/settings/operators', settings, {
@@ -218,7 +219,7 @@ export const screens = [
     '設定',
     'invalid',
     '入力エラー',
-    '/settings/mailboxes',
+    '/settings/mailboxes?new=yes',
     '入力した内容を保持し、修正方法を欄の近くに表示します。',
     { action: 'invalid', beforeUrl: '/settings' },
   ),

@@ -122,7 +122,7 @@ export async function panels(
         content: await panel.content?.(api, number),
         links: (await panel.links?.(api, number)) ?? [],
         choices: (await panel.choices?.(api)) ?? {},
-        choiceLabels: (await panel.choiceLabels?.(api)) ?? {},
+        choiceLabels: (await panel.choiceLabels?.(api, number)) ?? {},
         operations: operations.filter((o) => names.includes(o.name)),
       })
     }

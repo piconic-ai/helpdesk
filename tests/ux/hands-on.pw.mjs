@@ -1,9 +1,9 @@
+import { choose } from './choice.mjs'
 import { chapter } from './handbook.mjs'
 import { customerContact } from './customer.mjs'
-import { allExtensionIds } from '../ui/daily-screens.mjs'
 import { capture, confirmSubmission, expect, test } from './harness.mjs'
 
-test.use({ channel: 'chromium', extensions: allExtensionIds })
+test.use({ channel: 'chromium', demo: true })
 
 const button = (page, name) => page.getByRole('button', { name, exact: true })
 const row = (page, n) =>
@@ -29,9 +29,7 @@ async function readInbox(page, scene) {
     .getByRole('link', { name: 'すべてのプロダクト', exact: true })
     .click()
   await expect(rows).toHaveCount(total)
-  await expect(page.getByRole('combobox', { name: '並び順' })).toHaveValue(
-    'waiting',
-  )
+  await expect(page.locator('select[name=sort]')).toHaveValue('waiting')
   const waits = await rows
     .locator('time')
     .evaluateAll((times) => times.map((time) => Date.parse(time.dateTime)))
@@ -49,7 +47,9 @@ async function readInbox(page, scene) {
   )
   const search = page.getByRole('searchbox', { name: '問い合わせを検索' })
   await search.fill('領収書')
-  await expect(page).toHaveURL(/query=/)
+  await page.waitForURL((url) => url.searchParams.get('query') === '領収書', {
+    waitUntil: 'load',
+  })
   await expect(row(page, 1)).toBeVisible()
   await expect(row(page, 4)).toHaveCount(0)
   await search.fill('')
@@ -61,7 +61,7 @@ async function readInbox(page, scene) {
   await expect(row(page, 4)).toBeVisible()
   await page.getByRole('link', { name: '佐藤 優を外す' }).click()
   await button(page, '絞り込み').click()
-  await page.getByRole('combobox', { name: 'ラベル' }).selectOption('請求')
+  await choose(page, 'ラベル', '請求')
   await expect(page).toHaveURL(/label=/)
   await expect(row(page, 4)).toBeVisible()
   await expect(row(page, 6)).toHaveCount(0)
@@ -72,7 +72,9 @@ async function answer(page) {
   await row(page, 6).click()
   await button(page, '担当者を選ぶ').click()
   await button(page, '佐藤 優').click()
-  await expect(page.locator('main [role=status]').first()).toContainText('担当')
+  await expect(
+    page.getByRole('status').filter({ hasText: '担当' }),
+  ).toBeVisible()
   await button(page, 'ラベルを選ぶ').click()
   await button(page, '請求を付ける').click()
   await expect(page.locator('[data-ui=attributes]')).toContainText('請求')
@@ -284,7 +286,7 @@ async function issueAndMetrics(page, scene, number) {
     .click()
   await row(page, number).click()
   const panel = page.locator('[data-extension=issues]')
-  await button(panel, 'Issue を起票する').click()
+  await button(panel, '課題を起票する').click()
   const summary = '領収書の発行手順を見つけやすくします。'
   await panel.getByLabel('タイトル').fill('領収書を見つけやすくする')
   await panel.getByLabel('公開する要約').fill(summary)
@@ -302,14 +304,18 @@ async function issueAndMetrics(page, scene, number) {
     .getByRole('link', { name: /未対応/ })
     .click()
   await row(page, 1).click()
-  await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
-  await button(page, '既存の Issue と紐づける').click()
+  await page.getByText('既存の課題を選ぶ', { exact: true }).click()
+  await page.getByLabel('題で探す').fill('領収書を見つけやすくする')
+  await expect(
+    page.getByRole('combobox', { name: '課題', exact: true }).locator('option'),
+  ).toHaveText([/領収書を見つけやすくする/])
+  await button(page, '既存の課題と紐づける').click()
   await confirmSubmission(page)
   const articles = page.locator('[data-extension=articles]')
-  await button(articles, '記事の候補に追加').click()
+  await button(articles, '記事候補を書く').click()
   await articles.getByLabel('記事にする内容').fill('領収書発行の案内')
   await button(articles.locator('form'), '記事の候補に追加').click()
-  await page.getByRole('link', { name: '課題', exact: true }).click()
+  await page.getByRole('link', { name: /^課題(?:\s*\d+)?$/ }).click()
   await page
     .getByRole('link', { name: '領収書を見つけやすくする', exact: true })
     .click()
@@ -326,9 +332,7 @@ async function issueAndMetrics(page, scene, number) {
   ]) {
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
   }
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption('slide')
+  await choose(page, 'プロダクト', 'slide')
   await page.waitForURL(
     (url) =>
       url.pathname === '/metrics' &&
@@ -354,6 +358,7 @@ async function settings(page) {
   await expect(page.getByRole('main')).toContainText('support@example.com')
   await page.getByRole('link', { name: '設定に戻る' }).click()
   await page.getByRole('link', { name: /^保存期間/ }).click()
+  await page.getByRole('radio', { name: '日数を指定' }).check()
   await expect(page.getByRole('spinbutton')).toBeVisible()
   await record(page, '10-retention', '本文の保存期間を確認')
   await page.getByRole('link', { name: '設定に戻る' }).click()
@@ -381,13 +386,6 @@ test('ハンズオンの例示データで #6 の回答から内部メモ・再�
   scene,
 }) => {
   test.slow()
-  await scene.db
-    .prepare(
-      'INSERT INTO operator_profiles(email, display_name) VALUES(?,?),(?,?)',
-    )
-    .bind('sato@example.com', '佐藤 優', 'mori@example.com', '森 直子')
-    .run()
-  await page.reload()
   await test.step(chapter('H01', '絞り込み'), () => readInbox(page, scene))
   await test.step(chapter('H02', '記事を添える', '送信して完了'), () =>
     answer(page),

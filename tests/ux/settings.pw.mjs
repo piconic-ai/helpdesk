@@ -134,6 +134,7 @@ test('J9 窓口を作成し、拡張の案内から新プロダクトの公開�
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
   await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
   await page.getByLabel('プロダクト名', { exact: true }).fill('Catalog')
   await page.getByLabel('窓口アドレスの先頭').first().fill('catalog')
   await page
@@ -235,12 +236,12 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
   await operator.getByLabel('権限').selectOption({ label: '管理者' })
   await operator.getByRole('button', { name: '運営者を保存' }).click()
   await editor.locator('summary').click()
-  await expect(editor.locator('summary')).toContainText('森 直子')
+  await expect(editor.locator('summary')).toHaveAccessibleName('編集：森 直子')
   await expect(operator.getByLabel('表示名')).toHaveValue('森 直子')
   await expect(operator.getByLabel('権限')).toHaveValue('admin')
   await page.reload()
   await editor.locator('summary').click()
-  await expect(editor.locator('summary')).toContainText('森 直子')
+  await expect(editor.locator('summary')).toHaveAccessibleName('編集：森 直子')
   await expect(operator.getByLabel('表示名')).toHaveValue('森 直子')
   await capture(
     page,
@@ -250,9 +251,8 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
   )
   await page.getByRole('link', { name: '設定に戻る' }).click()
   await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
-  const form = page
-    .locator('form')
-    .filter({ has: page.getByRole('button', { name: '窓口を登録' }) })
+  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
+  const form = page.locator('form[action="/settings/mailboxes"]')
   await form.getByRole('button', { name: '窓口を登録' }).click()
   await expect(form.getByLabel('プロダクト名')).toBeFocused()
   await expect(form.getByLabel('プロダクト名')).toHaveAccessibleDescription(

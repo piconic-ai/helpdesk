@@ -535,15 +535,7 @@ app.get('/extensions/:id', async (c) => {
   let list: ListWindow | undefined
   let content =
     id === 'notify' ? (
-      <>
-        <p>{await installed.extension.settingsSummary?.(api)}</p>
-        <p>メール通知の設定例</p>
-        <code>
-          {
-            '{ extension: notify, enabled: true, settings: { email: "support@example.com" } }'
-          }
-        </code>
-      </>
+      <p>{await installed.extension.settingsSummary?.(api)}</p>
     ) : (
       extensionPanels(sections)
     )

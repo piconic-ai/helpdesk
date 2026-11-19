@@ -1,3 +1,4 @@
+import { extensionLabel } from '../extensions/extension-labels'
 import { ProductIconForm } from '../settings/product-icon-page'
 import { ProductMark } from '../../ui/product-mark'
 import {
@@ -6,9 +7,8 @@ import {
   matchesSearch,
   PageLinks,
 } from '../../ui/listing'
-import { identityColorNames, identityColor } from '../../ui/identity-color'
-import { LabelDot } from '../../ui/inbox-parts'
-import { Dialog } from '../../ui/controls'
+import { labelTable, addLabel } from '../../ui/label-directory'
+import { ActionLink, Dialog } from '../../ui/controls'
 import {
   ListPage,
   EditPage,
@@ -31,7 +31,7 @@ import type { ConsoleFrame } from './console-usecase'
 const titles = {
   mailboxes: 'プロダクトと窓口',
   operators: '運営者',
-  labels: 'ラベルの色',
+  labels: 'ラベル',
   retention: '保存期間',
   deletion: '連絡先のデータ削除',
 }
@@ -99,7 +99,8 @@ export function settingsPage(
     {
       href: '/settings/labels',
       title: titles.labels,
-      description: 'ラベルを見分ける点の色を選びます。',
+      description:
+        '名前と色、使われている件数を確認し、会話のラベルを管理します。',
       value: frame.labels.length + '件',
     },
     {
@@ -179,7 +180,13 @@ function addressFields(domains: string[]) {
   return (
     <>
       <Field label="窓口アドレスの先頭">
-        <Input name="local" required pattern="[^@\s]+" maxlength={64} />
+        <Input
+          name="local"
+          required
+          pattern="[^@\s]+"
+          title="空白と @ を除き、アドレスの @ より前の部分を入力してください。"
+          maxlength={64}
+        />
       </Field>
       {select(
         'domain',
@@ -190,78 +197,128 @@ function addressFields(domains: string[]) {
     </>
   )
 }
-function mailboxes(data: Data, domains: string[], frame: ConsoleFrame) {
-  const cancel = '/settings'
-  return (
-    <>
-      {data.mailboxes.length > 0 && (
-        <FormSection title="登録済みの窓口">
+function mailboxPage(
+  data: Data,
+  domains: string[],
+  frame: ConsoleFrame,
+  notice: ReturnType<typeof Notice> | false,
+) {
+  const path = '/settings/mailboxes'
+  const back = { href: path, label: 'プロダクトと窓口に戻る' }
+  if (frame.query.new === 'yes')
+    return (
+      <EditPage title="新しいプロダクトと窓口" back={back}>
+        <FormSection title="窓口を登録" id="mailboxes">
+          <form method="post" action={path}>
+            {field('name', 'プロダクト名', '', 'text', true)}
+            {addressFields(domains)}
+            <MailboxPolicies extensions={frame.extensions} />
+            <SaveActions verb="窓口を登録" cancel={path} primary />
+          </form>
+        </FormSection>
+      </EditPage>
+    )
+  const product = frame.products.find((p) => p.id === frame.query.edit)
+  if (!product)
+    return (
+      <ListPage
+        title={titles.mailboxes}
+        back={{ href: '/settings', label: '設定に戻る' }}
+        action={
+          <ActionLink href={path + '?new=yes'}>プロダクトを追加</ActionLink>
+        }
+      >
+        {notice}
+        {frame.products.length ? (
           <RowList>
-            {data.mailboxes.map((m) => (
+            {frame.products.map((p) => (
               <ListRow
-                title={
-                  <ProductMark product={{ id: m.product, name: m.name }} />
-                }
-                description={<code>{m.address}</code>}
+                href={path + '?edit=' + encodeURIComponent(p.id)}
+                title={<ProductMark product={p} />}
+                description={data.mailboxes
+                  .filter((m) => m.product === p.id)
+                  .map((m) => m.address)
+                  .join('、')}
               />
             ))}
           </RowList>
-        </FormSection>
-      )}
-      {frame.products.map((p) => (
-        <FormSection title={<ProductMark product={p} size="heading" />}>
-          <Disclosure title="プロダクトのアイコンを変更">
-            <ProductIconForm product={p} />
-          </Disclosure>
-          <form
-            method="post"
-            action={'/settings/senders/' + encodeURIComponent(p.id)}
-          >
-            <h3>メール差出人</h3>
-            {field(
-              'senderName',
-              '差出人名',
-              p.senderName ?? p.name,
-              'text',
-              true,
-            )}
-            <label>
-              <Input
-                type="checkbox"
-                name="showOperator"
-                checked={p.showOperator}
-              />{' '}
-              返信した運営者の表示名を差出人に含める
-            </label>
-            <SaveActions verb="差出人を保存" cancel={cancel} />
-          </form>
-        </FormSection>
-      ))}
-      <FormSection title="新しいプロダクトと窓口" id="mailboxes">
-        <form action="/settings/mailboxes" method="post">
-          {field('name', 'プロダクト名', '', 'text', true)}
-          {addressFields(domains)}
-          <small>現在有効な拡張の自動送信ポリシーが承認されます。</small>
-          <SaveActions verb="窓口を登録" cancel={cancel} primary />
+        ) : (
+          <EmptyState icon="mail">
+            プロダクトを追加して窓口を登録してください。
+          </EmptyState>
+        )}
+      </ListPage>
+    )
+  return (
+    <EditPage title={product.name} back={back}>
+      {notice}
+      <FormSection title={<ProductMark product={product} size="heading" />}>
+        <Disclosure title="プロダクトのアイコンを変更">
+          <ProductIconForm product={product} />
+        </Disclosure>
+        <form
+          method="post"
+          action={'/settings/senders/' + encodeURIComponent(product.id)}
+        >
+          <h3>メール差出人</h3>
+          {field(
+            'senderName',
+            '差出人名',
+            product.senderName ?? product.name,
+            'text',
+            true,
+          )}
+          <label>
+            <Input
+              type="checkbox"
+              name="showOperator"
+              checked={product.showOperator}
+            />{' '}
+            返信した運営者の表示名を差出人に含める
+          </label>
+          <SaveActions verb="差出人を保存" cancel={path} />
         </form>
       </FormSection>
-      {data.mailboxes.length > 0 && (
-        <Disclosure title="登録済みのプロダクトに窓口を追加">
-          <form action="/settings/mailboxes" method="post">
-            {select(
-              'product',
-              'プロダクト',
-              Object.fromEntries(
-                data.mailboxes.map((m) => [m.product, m.name]),
-              ),
-              data.mailboxes[0].product,
-            )}
+      <FormSection title="登録済みの窓口">
+        {data.mailboxes
+          .filter((m) => m.product === product.id)
+          .map((m) => (
+            <p>{m.address}</p>
+          ))}
+        <Disclosure title="このプロダクトに窓口を追加">
+          <form method="post" action={path}>
+            <Input type="hidden" name="product" value={product.id} />
             {addressFields(domains)}
-            <SaveActions verb="窓口を追加" cancel={cancel} />
+            <SaveActions verb="窓口を追加" cancel={path} />
           </form>
         </Disclosure>
-      )}
-    </>
+      </FormSection>
+    </EditPage>
+  )
+}
+function MailboxPolicies({ extensions }: Pick<ConsoleFrame, 'extensions'>) {
+  const sending = extensions.filter((item) => item.permitsMail)
+  const policies: Record<string, string> = {
+    'auto-ack':
+      '相手から最初の問い合わせを受け付けたとき、受付メールを返します。',
+    survey: '問い合わせを完了すると、対象の相手に回答を依頼します。',
+    notify:
+      'メール通知先が設定されている場合、新着と担当者の割り当てをその通知先に知らせます。',
+  }
+  if (!sending.length)
+    return <small>この窓口で自動送信する拡張はありません。</small>
+  return (
+    <div>
+      <p>窓口を登録すると、次の自動送信を承認します。</p>
+      <RowList>
+        {sending.map((item) => (
+          <li>
+            {extensionLabel(item.id)}
+            {policies[item.id] && '：' + policies[item.id]}
+          </li>
+        ))}
+      </RowList>
+    </div>
   )
 }
 function operators(data: Data, visible: Data['operators']) {
@@ -274,7 +331,7 @@ function operators(data: Data, visible: Data['operators']) {
           description={<code>{o.email}</code>}
           status={o.role === 'admin' ? '管理者' : '担当者'}
           action={
-            <Disclosure title={'編集：' + o.displayName}>
+            <Disclosure title="編集" accessibleName={'編集：' + o.displayName}>
               <section aria-label={o.email}>
                 {action(
                   'role',
@@ -318,17 +375,35 @@ function retention(data: Data) {
   return (
     <FormSection title="完了した会話の保存期間" id="retention">
       <form action="/actions/retention" method="post">
-        <Field
-          label="完了後に本文を保持する日数"
-          description="0 を指定すると無期限で保存します。"
-        >
+        <fieldset data-retention-mode="">
+          <legend>保持する期間</legend>
+          <label>
+            <Input
+              type="radio"
+              name="retentionMode"
+              value="unlimited"
+              checked={!data.retentionDays}
+            />
+            無期限
+          </label>
+          <label>
+            <Input
+              type="radio"
+              name="retentionMode"
+              value="limited"
+              checked={!!data.retentionDays}
+            />
+            日数を指定
+          </label>
+        </fieldset>
+        <Field label="完了後に本文を保持する日数">
           <Input
             name="days"
             type="number"
-            min="0"
+            min="1"
             max="36500"
             required
-            value={data.retentionDays}
+            value={data.retentionDays || 30}
           />
         </Field>
         <SaveActions verb="保存期間を変更" cancel="/settings" primary />
@@ -388,50 +463,27 @@ function deletion(contacts: Contact[]) {
     </FormSection>
   )
 }
-function labelSettings(frame: ConsoleFrame) {
-  if (!frame.labels.length)
-    return (
-      <EmptyState icon="tag">
-        会話にラベルを付けると、ここで色を選べます。
-      </EmptyState>
-    )
-  return frame.labels.map((label) => (
-    <FormSection
-      title={
-        <>
-          <LabelDot label={label} colors={frame.labelColors} />
-          {label}
-        </>
-      }
-    >
-      <form method="post" action="/settings/labels">
-        <Input type="hidden" name="label" value={label} />
-        <Field label={label + 'の色'}>
-          <NativeSelect name="color" aria-label={label + 'の色'}>
-            {identityColorNames.map((name, index) => (
-              <option
-                value={index}
-                selected={
-                  (frame.labelColors[label] ?? identityColor(label)) === index
-                }
-              >
-                <LabelDot label={name} color={index} />
-                {name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-        <Button>色を保存</Button>
-      </form>
-    </FormSection>
-  ))
-}
 const notices: Record<Section, string> = {
   mailboxes: '窓口を登録しました。',
   operators: '運営者の情報を保存しました。',
-  labels: 'ラベルの色を保存しました。',
+  labels: 'ラベルを更新しました。',
   retention: '保存期間を変更しました。',
   deletion: '選択した相手のデータを削除しました。',
+}
+function settingsNotice(section: Section, saved?: string) {
+  return (
+    (saved === 'yes' ||
+      (section === 'mailboxes' &&
+        (saved === 'sender' || saved === 'icon'))) && (
+      <Notice toast kind="success">
+        {saved === 'icon'
+          ? 'プロダクトのアイコンを保存しました。'
+          : saved === 'sender'
+            ? 'メールの差出人を保存しました。'
+            : notices[section]}
+      </Notice>
+    )
+  )
 }
 export function settingsSectionPage(
   section: Section,
@@ -440,33 +492,29 @@ export function settingsSectionPage(
   contacts: Contact[],
   frame: ConsoleFrame,
   saved: string | undefined,
+  labels: { name: string; count: number }[],
 ) {
   const list = listRows(data.operators, frame.query, (person) => ({
     text: person.displayName + ' ' + person.email,
     filter: person.role,
   }))
   const content = {
-    mailboxes: () => mailboxes(data, domains, frame),
-
-    labels: () => labelSettings(frame),
     retention: () => retention(data),
     deletion: () => deletion(contacts),
   }
-  const notice = (saved === 'yes' ||
-    (section === 'mailboxes' && (saved === 'sender' || saved === 'icon'))) && (
-    <Notice kind="success">
-      {saved === 'icon'
-        ? 'プロダクトのアイコンを保存しました。'
-        : saved === 'sender'
-          ? 'メールの差出人を保存しました。'
-          : notices[section]}
-    </Notice>
-  )
+  const notice = settingsNotice(section, saved)
   const back = { href: '/settings', label: '設定に戻る' }
   const title = titles[section]
   return shell(
     title,
-    section === 'operators' ? (
+    section === 'mailboxes' ? (
+      mailboxPage(data, domains, frame, notice)
+    ) : section === 'labels' ? (
+      <ListPage title={title} back={back} action={addLabel()}>
+        {notice}
+        {labelTable(labels, frame.labelColors)}
+      </ListPage>
+    ) : section === 'operators' ? (
       <ListPage
         title={title}
         description={list.total + '人'}

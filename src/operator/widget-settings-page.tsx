@@ -1,3 +1,4 @@
+import { DetailPage } from '../ui/patterns'
 import { html } from 'hono/html'
 import { Button, Input, Textarea, NativeSelect } from '../ui/controls'
 import { Disclosure, SaveActions } from '../ui/admin'
@@ -36,11 +37,13 @@ export function widgetPreviewPage(
           <title>{product.name} のチャットの見本</title>
           <link rel="stylesheet" href="/styles.css" />
           <link rel="stylesheet" href="/ui/widget-settings.css" />
+          <link rel="stylesheet" href="/ui/layout.css" />
         </head>
         <body data-widget-preview="">
           <main>
-            <h1>{product.name}</h1>
-            <p>ヘルプボタンを押して、チャットの見え方を確認できます。</p>
+            <DetailPage title={product.name}>
+              <p>ヘルプボタンを押して、チャットの見え方を確認できます。</p>
+            </DetailPage>
           </main>
           {widgetScript(origin, product.id, options)}
         </body>
@@ -79,7 +82,6 @@ export function WidgetSettings({
           <Button type="button" data-copy-snippet="">
             コードをコピー
           </Button>
-          <span role="status" aria-live="polite" data-copy-result=""></span>
         </div>
         <Disclosure title="ボタンと最初の説明文を編集">
           <form

@@ -6,8 +6,14 @@ test('thread commands, context and approval preserve the reading position', asyn
 }) => {
   const scene = await startScene(['issues', 'articles', 'canned', 'snooze'])
   try {
-    for (const width of [375, 1199, 1200, 1440]) {
-      await page.setViewportSize({ width, height: 750 })
+    for (const [width, height] of [
+      [375, 750],
+      [375, 812],
+      [1199, 750],
+      [1200, 750],
+      [1440, 750],
+    ]) {
+      await page.setViewportSize({ width, height })
       await page.goto(scene.origin + '/conversation/5')
       const panel = page.getByRole('region', { name: '会話の関連情報' })
       const trigger = page.getByRole('button', {
@@ -23,7 +29,8 @@ test('thread commands, context and approval preserve the reading position', asyn
         await expect(panel).toBeHidden()
         await expect(trigger).toBeFocused()
       } else {
-        await expect(trigger).toBeHidden()
+        await trigger.click()
+        await expect(panel).toBeFocused()
         const body = await page.locator('[data-ui="body"]').boundingBox()
         expect((await panel.boundingBox()).x).toBeGreaterThan(
           body.x + body.width,
@@ -34,6 +41,20 @@ test('thread commands, context and approval preserve the reading position', asyn
           .getByRole('region', { name: '返信欄' })
           .getByRole('button', { name: '定型文を選ぶ' }),
       ).toBeVisible()
+      const canned = page.getByRole('button', { name: '定型文を選ぶ' })
+      await canned.click()
+      const anchor = await canned.boundingBox()
+      const menu = await page.locator('#reply-templates').boundingBox()
+      expect(
+        Math.max(
+          anchor.y - menu.y - menu.height,
+          menu.y - anchor.y - anchor.height,
+        ),
+      ).toBeLessThanOrEqual(8)
+      expect(
+        Math.min(menu.x + menu.width, anchor.x + anchor.width),
+      ).toBeGreaterThan(Math.max(menu.x, anchor.x))
+      await page.keyboard.press('Escape')
       await page.getByRole('button', { name: 'その他の操作' }).click()
       await page.getByRole('button', { name: 'スヌーズ', exact: true }).click()
       await expect(page.getByLabel('再表示日時（日本時間）')).toBeVisible()

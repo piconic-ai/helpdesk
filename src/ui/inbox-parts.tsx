@@ -1,7 +1,7 @@
 import type { Child } from 'hono/jsx'
 import { identityColor } from './identity-color'
 import { glyph } from './glyph'
-import { Popover } from './controls'
+import { Input, Popover } from './controls'
 type Content = { children?: Child }
 export const InboxFilters = ({ children }: Content) => (
   <form
@@ -15,7 +15,7 @@ export const InboxFilters = ({ children }: Content) => (
   </form>
 )
 export const BulkBar = ({ children }: Content) => (
-  <section hidden className="inbox-bulk" aria-label="まとめて操作">
+  <section aria-hidden="true" className="inbox-bulk" aria-label="まとめて操作">
     {children}
   </section>
 )
@@ -43,6 +43,7 @@ export const FilterChip = ({
 )
 export const FilterPicker = Popover
 export function RowHeadline({
+  kind,
   sender,
   subject,
   product,
@@ -50,16 +51,29 @@ export function RowHeadline({
   sender: string
   subject: string
   product?: Child
+  kind?: 'feedback' | 'inquiry'
 }) {
   return (
     <>
-      <span className="row-sender" title={sender}>
-        {sender}
+      <span className="row-origin">
+        {product && <span className="row-product">{product}</span>}
+        {kind && (
+          <span className="sr-only">
+            {kind === 'feedback' ? 'への、' : 'に関する、'}
+          </span>
+        )}
+        <span className="row-sender" title={sender + 'さん'}>
+          {sender}さん
+        </span>
       </span>
+      {kind && (
+        <span className="sr-only">
+          からの{kind === 'feedback' ? 'フィードバック' : '問い合わせ'}。件名、
+        </span>
+      )}
       <span className="row-subject" title={subject}>
         {subject}
       </span>
-      {product && <span className="row-product">{product}</span>}
     </>
   )
 }
@@ -240,3 +254,24 @@ export function attachmentIcon(file: { filename: string; mime: string }) {
     return glyph('archive', '圧縮ファイル')
   return glyph('file', 'ファイル')
 }
+
+export const InboxTools = ({ children }: Content) => (
+  <div className="inbox-tools">{children}</div>
+)
+export const SelectAll = () => (
+  <label className="inbox-list-heading">
+    <Input type="checkbox" data-select-all="" /> すべて選択
+  </label>
+)
+export const LabelChip = ({
+  name,
+  colors,
+}: {
+  name: string
+  colors: Record<string, number>
+}) => (
+  <span className="label-chip">
+    <LabelDot label={name} colors={colors} />
+    {name}
+  </span>
+)

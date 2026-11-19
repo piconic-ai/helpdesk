@@ -45,6 +45,9 @@ productIconRoutes.post(
         400,
       )
     }
-    return c.redirect('/settings/mailboxes?saved=icon', 303)
+    return c.redirect(
+      '/settings/mailboxes?saved=icon&edit=' + encodeURIComponent(product),
+      303,
+    )
   },
 )

@@ -6,13 +6,44 @@
   const inbox = document.querySelector('[data-inbox-view]')
   const bar = inbox?.querySelector('.inbox-bulk')
   const boxes = [...document.querySelectorAll('.row-select input')]
+  const all = inbox?.querySelector('[data-select-all]')
   const selected = () =>
     boxes.filter((box) => box.checked).map((box) => Number(box.value))
+  function bulkLabelStates() {
+    const sets = boxes
+      .filter((box) => box.checked)
+      .map((box) => new Set(JSON.parse(box.dataset.labels)))
+    for (const button of bar.querySelectorAll('[data-bulk-label]')) {
+      const count = sets.filter((labels) =>
+        labels.has(button.dataset.bulkLabel),
+      ).length
+      button.setAttribute(
+        'aria-pressed',
+        count ? (count === sets.length ? 'true' : 'mixed') : 'false',
+      )
+    }
+  }
   function refresh() {
     if (!bar) return
+    bulkLabelStates()
+    const assignees = new Set(
+      boxes.filter((box) => box.checked).map((box) => box.dataset.assignee),
+    )
+    for (const candidate of bar.querySelectorAll('[data-change="assign"]'))
+      candidate.setAttribute(
+        'aria-pressed',
+        String(assignees.size === 1 && assignees.has(candidate.dataset.value)),
+      )
     const size = selected().length
-    bar.hidden = !size
-    bar.querySelector('[data-selected-count]').textContent = size + '件を選択'
+    bar.inert = !size
+    bar.setAttribute('aria-hidden', String(!size))
+    const filters = inbox.querySelector('[data-ui=filters]')
+    filters.inert = !!size
+    if (all) {
+      all.checked = boxes.length > 0 && size === boxes.length
+      all.indeterminate = size > 0 && size < boxes.length
+    }
+    bar.querySelector('[data-selected-count]').textContent = size + '件を選択中'
   }
   const verbs = {
     assign: '担当者を変更しました。',
@@ -23,22 +54,6 @@
     marked_spam: '迷惑メールにしました。',
     unmarked_spam: '迷惑メールを解除しました。',
     undo: '元に戻しました。',
-  }
-  function banner(text, error = false) {
-    const host =
-      inbox ??
-      document.querySelector('.thread-header') ??
-      document.querySelector('main')
-    let node = host.querySelector('[data-change-notice]')
-    if (!node) {
-      node = document.createElement('p')
-      node.dataset.changeNotice = ''
-      host.querySelector('.page-header')?.after(node)
-    }
-    node.className = error ? 'banner-error' : 'banner-success'
-    node.setAttribute('role', error ? 'alert' : 'status')
-    node.replaceChildren(text)
-    return node
   }
   let pending = false
   async function perform(change, notice) {
@@ -80,7 +95,7 @@
       if (target.href === location.href) location.reload()
       else location.replace(target)
     } catch (error) {
-      banner(error.message, true)
+      window.helpdeskToast(error.message, true)
       pending = false
     }
   }
@@ -95,13 +110,13 @@
     for (const box of boxes)
       box.checked = receipt.selected.includes(Number(box.value))
     refresh()
-    const result = banner(receipt.message)
+    const result = window.helpdeskToast(receipt.message)
     const items = [...document.querySelectorAll('.inbox-item')]
     if (receipt.focus && items.length) {
       const next =
         items.find((item) => item.dataset.number === receipt.focus) ??
         items[Math.min(receipt.position, items.length - 1)]
-      next?.querySelector('.conversation-row')?.focus()
+      next?.querySelector('.conversation-row')?.focus({ preventScroll: true })
     }
     if (receipt.token) {
       const undo = document.createElement('button')
@@ -110,6 +125,70 @@
       undo.textContent = '元に戻す'
       undo.addEventListener('click', () => perform({ token: receipt.token }))
       result.append(' ', undo)
+    }
+  }
+  async function toggleLabel(form, change) {
+    if (pending) return
+    pending = true
+    try {
+      const response = await fetch('/inbox/change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(change),
+      })
+      if (!response.ok)
+        throw new Error(
+          'ラベルを更新できませんでした。もう一度お試しください。',
+        )
+      const { token, count } = await response.json()
+      const updated = await fetch(location.href)
+      if (!updated.ok)
+        throw new Error(
+          'ラベルは更新されました。画面を更新して確認してください。',
+        )
+      const doc = new DOMParser().parseFromString(
+        await updated.text(),
+        'text/html',
+      )
+      const trigger = document.querySelector('[popovertarget=thread-labels]')
+      trigger.replaceChildren(
+        ...doc.querySelector('[popovertarget=thread-labels]').childNodes,
+      )
+      const panel = form.closest('[popover]')
+      const query = panel.querySelector('[data-menu-search]')?.value
+      panel.replaceChildren(...doc.getElementById('thread-labels').childNodes)
+      panel.dispatchEvent(
+        new CustomEvent('helpdesk:menu-updated', { bubbles: true }),
+      )
+      const search = panel.querySelector('[data-menu-search]')
+      if (search && query) {
+        search.value = query
+        search.dispatchEvent(new Event('input'))
+      }
+      const timeline = document.querySelector('#thread-messages')
+      const records = doc.querySelectorAll('#thread-messages .timeline-entry')
+      const previous = timeline.querySelectorAll('.timeline-entry').length
+      if (records.length > previous)
+        timeline.append(
+          records[records.length - 1].closest('article').cloneNode(true),
+        )
+      const next = [...panel.querySelectorAll('form')].find(
+        (item) => item.elements.label?.value === change.label,
+      )
+      next?.querySelector('button')?.focus({ preventScroll: true })
+      const message = window.helpdeskToast(verbs[change.action])
+      if (count) {
+        const undo = document.createElement('button')
+        undo.type = 'button'
+        undo.textContent = '元に戻す'
+        undo.className = 'button-quiet'
+        undo.onclick = () => perform({ token })
+        message.append(undo)
+      }
+    } catch (error) {
+      window.helpdeskToast(error.message, true)
+    } finally {
+      pending = false
     }
   }
   function fieldChange(action, numbers, value) {
@@ -126,27 +205,115 @@
       )
     )
       return
-    const path = new URL(form.action).pathname
+    const path = form.getAttribute('action')
     const f = new FormData(form)
     let action = 'assign'
     if (path === '/actions/status') action = f.get('event')
     if (path === '/actions/label') action = f.get('action')
     event.preventDefault()
-    perform(
-      fieldChange(
-        action,
-        [Number(f.get('number'))],
-        f.get('email') ?? f.get('label'),
-      ),
-      true,
+    const change = fieldChange(
+      action,
+      [Number(f.get('number'))],
+      f.get('email') ?? f.get('label'),
     )
+    if (form.closest('#thread-labels')) void toggleLabel(form, change)
+    else perform(change, true)
   })
   restoreReceipt()
   if (!inbox) return
-  for (const box of boxes) box.addEventListener('change', refresh)
+  let anchor
+  all?.addEventListener('change', () => {
+    for (const box of boxes) box.checked = all.checked
+    anchor = undefined
+    refresh()
+  })
+  for (const [index, box] of boxes.entries()) {
+    box.addEventListener('click', (event) => {
+      if (event.shiftKey && anchor !== undefined)
+        for (const item of boxes.slice(
+          Math.min(anchor, index),
+          Math.max(anchor, index) + 1,
+        ))
+          item.checked = box.checked
+      anchor = index
+      refresh()
+    })
+    box.addEventListener('change', refresh)
+  }
+  document.addEventListener('keydown', (event) => {
+    if (
+      event.defaultPrevented ||
+      event.key !== 'Escape' ||
+      document.querySelector('dialog[open], :popover-open') ||
+      !selected().length
+    )
+      return
+    for (const box of boxes) box.checked = false
+    refresh()
+    all?.focus({ preventScroll: true })
+  })
+  refresh()
   function quick(button) {
     const id = Number(button.closest('[data-number]').dataset.number)
     perform(fieldChange(button.dataset.quick, [id], operator))
+  }
+  async function toggleBulkLabel(button) {
+    if (pending) return
+    pending = true
+    try {
+      const label = button.dataset.bulkLabel
+      const action =
+        button.getAttribute('aria-pressed') === 'true' ? 'remove' : 'add'
+      const response = await fetch('/inbox/change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, numbers: selected(), label }),
+      })
+      if (!response.ok)
+        throw new Error(
+          'ラベルを変更できませんでした。もう一度お試しください。',
+        )
+      const { token, count } = await response.json()
+      const receipt = {
+        path: pageKey,
+        token,
+        message: count + '件 · ' + verbs[action],
+        selected: selected(),
+      }
+      sessionStorage.setItem(key, JSON.stringify(receipt))
+      const latest = await fetch(location.href)
+      if (!latest.ok)
+        throw new Error(
+          'ラベルを変更しました。画面を更新して確認してください。',
+        )
+      const doc = new DOMParser().parseFromString(
+        await latest.text(),
+        'text/html',
+      )
+      const updated = [...doc.querySelectorAll('.row-select input')]
+      if (
+        updated.map((box) => box.value).join(',') !==
+        boxes.map((box) => box.value).join(',')
+      ) {
+        location.reload()
+        return
+      }
+      updated.forEach((box, index) => {
+        boxes[index].dataset.labels = box.dataset.labels
+        const other = box
+          .closest('.inbox-item')
+          .querySelector('.conversation-row')
+        boxes[index]
+          .closest('.inbox-item')
+          .querySelector('.conversation-row')
+          .replaceChildren(...other.childNodes)
+      })
+      restoreReceipt()
+    } catch (error) {
+      window.helpdeskToast(error.message, true)
+    } finally {
+      pending = false
+    }
   }
   function chooseFilter(button) {
     const form = button.form
@@ -163,6 +330,7 @@
     }
     if (button.hasAttribute('data-filter-assignee')) chooseFilter(button)
     if (button.hasAttribute('data-quick')) quick(button)
+    if (button.hasAttribute('data-bulk-label')) void toggleBulkLabel(button)
     if (button.hasAttribute('data-change'))
       perform(
         fieldChange(button.dataset.change, selected(), button.dataset.value),

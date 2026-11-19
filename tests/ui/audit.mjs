@@ -23,7 +23,9 @@ export async function installAudit(page) {
       const primaryGroups = new Map()
       for (const el of surface.querySelectorAll('.button-primary')) {
         if (!el.checkVisibility()) continue
-        const group = el.closest('.draft-review') ?? surface
+        const group =
+          el.closest('.draft-review, [data-ui="gallery"] main > section') ??
+          surface
         primaryGroups.set(group, (primaryGroups.get(group) ?? 0) + 1)
       }
       return {

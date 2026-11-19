@@ -244,8 +244,15 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
         chat: kind === 'chat',
         turnstile,
         contact:
-          status >= 400
-            ? contactDestination(product, info.mailbox, false)
+          status >= 400 || kind === 'feedback'
+            ? contactDestination(
+                product,
+                info.mailbox,
+                status < 400 &&
+                  !!c.env.EXTENSIONS?.active.some(
+                    (ext) => ext.extension.id === 'form',
+                  ),
+              )
             : undefined,
       }),
       status,
@@ -305,6 +312,23 @@ async function submitHosted(
     )
   const fields = submittedFields(data)
   const now = Date.now()
+  if (kind === 'form' && data.get('intent') === 'edit') {
+    return render(
+      intakePage(
+        kind,
+        policy,
+        {
+          subject: fields.subject,
+          body: fields.body,
+          email: fields.email,
+          submissionId: fields.submissionId,
+        },
+        false,
+        '',
+        true,
+      ),
+    )
+  }
   const requestContact = fields.handoff === 'yes' || Boolean(fields.email)
   const ctx = extensionContext(
     {
@@ -326,13 +350,10 @@ async function submitHosted(
     )
     if (!allowed)
       return render(
-        intakePage(
-          kind,
-          policy,
-          fields,
-          requestContact,
-          '送信を確認できませんでした。時間をおいて、もう一度お試しください。',
-        ),
+        intakePage(kind, policy, fields, requestContact, {
+          retry:
+            '送信を確認できませんでした。時間をおいて、もう一度お試しください。',
+        }),
         403,
       )
     if (
@@ -369,13 +390,9 @@ async function submitHosted(
         400,
       )
     return render(
-      intakePage(
-        kind,
-        policy,
-        fields,
-        requestContact,
-        '受付に失敗しました。時間をおいて、もう一度お試しください。',
-      ),
+      intakePage(kind, policy, fields, requestContact, {
+        retry: '受付に失敗しました。時間をおいて、もう一度お試しください。',
+      }),
       503,
     )
   }

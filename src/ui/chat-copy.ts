@@ -26,7 +26,7 @@ const japanese = {
   form: '問い合わせフォーム',
   mail: 'メールで問い合わせる',
   retry:
-    '送信できませんでした。入力した内容を確認して、もう一度お試しください。',
+    '送信できませんでした。入力した内容は残っています。接続を確認して、もう一度お試しください。',
   rate: '送信を確認できませんでした。時間をおいて、もう一度お試しください。',
   articleError:
     '記事を読み込めませんでした。もう一度開くか、新しいタブでお読みください。',
@@ -61,7 +61,8 @@ const english: typeof japanese = {
   feedback: 'Leave feedback',
   form: 'Contact form',
   mail: 'Contact us by email',
-  retry: 'Your message could not be sent. Check the details and try again.',
+  retry:
+    'Your message could not be sent. Your input is saved on this page. Check the connection and try again.',
   rate: 'We could not verify your submission. Please wait and try again.',
   articleError:
     'The article could not be loaded. Try again or open it in a new tab.',

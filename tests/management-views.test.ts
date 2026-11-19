@@ -74,7 +74,10 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   expect(empty).toContain('最初の窓口を登録してください。')
   expect(empty).toContain('条件に合う設定項目はありません。')
   expect(empty).not.toContain('href="/settings/deletion"')
-  expect(await page('/settings/mailboxes')).toContain('窓口のメールアドレス')
+  expect(await page('/settings/mailboxes')).toContain('プロダクトを追加')
+  expect(await page('/settings/mailboxes?new=yes')).toContain(
+    '窓口のメールアドレス',
+  )
 
   const created = await submit('/settings/mailboxes', {
     name: 'Studio',
@@ -92,9 +95,9 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   expect(badDomain).toContain('送信ドメインをカンマ区切りで指定してください。')
   env.SENDING_DOMAINS = 'example.org'
   expect(await page('/settings')).not.toContain('初期設定が必要です')
-  const mailboxSettings = await page('/settings/mailboxes')
+  const mailboxSettings = await page('/settings/mailboxes?edit=' + product)
   expect(mailboxSettings).toContain('窓口アドレスの先頭')
-  expect(mailboxSettings).toContain('登録済みのプロダクトに窓口を追加')
+  expect(mailboxSettings).toContain('このプロダクトに窓口を追加')
   await submit('/settings/mailboxes', {
     product: product!,
     local: 'returns',

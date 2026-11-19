@@ -8,6 +8,7 @@ type Heading = { title: Child; description?: Child; action?: Child }
 type Page = Heading &
   Content & {
     back?: { href: string; label: string }
+    toolbar?: Child
     filters?: Child
     attributes?: Child
     aside?: Child
@@ -30,6 +31,7 @@ export function PageHeading({ title, description, action }: Heading) {
 }
 function Template({
   kind,
+  toolbar,
   title,
   description,
   action,
@@ -43,6 +45,7 @@ function Template({
 }: Page & { kind: 'list' | 'detail' | 'edit' | 'overview' }) {
   return (
     <PageBody data-ui-page={kind} data-contact={contact}>
+      {toolbar}
       <Stack
         gap="sm"
         className={contact !== undefined ? 'thread-header' : 'pattern-intro'}
@@ -321,10 +324,12 @@ export function ExtensionCard({
 export function Notice({
   kind,
   children,
-}: Content & { kind: 'success' | 'error' | 'info' }) {
+  toast = false,
+}: Content & { kind: 'success' | 'error' | 'info'; toast?: boolean }) {
   return (
     <div
       data-ui="notice"
+      data-toast={toast ? '' : undefined}
       className={'banner-' + kind}
       role={kind === 'error' ? 'alert' : 'status'}
     >

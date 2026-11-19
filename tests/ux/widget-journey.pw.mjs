@@ -69,6 +69,12 @@ test(
         page,
         child.getByRole('button', { name: '解決しなかった' }),
       )
+      await expect(
+        child.getByRole('button', { name: '解決した', exact: true }),
+      ).toHaveCount(0)
+      await expect(
+        child.getByRole('button', { name: '解決しなかった' }),
+      ).toHaveCount(0)
       await focusByTab(page, child.getByLabel('連絡先メールアドレス'))
       await page.keyboard.insertText('example-billing@example.net')
       await activate(

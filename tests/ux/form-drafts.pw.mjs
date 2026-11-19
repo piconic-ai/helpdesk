@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect, confirmSubmission } from './harness.mjs'
 
 test.use({ extensions: ['articles', 'rules', 'canned', 'chat', 'form'] })
@@ -30,7 +31,7 @@ test('新しい記事を離れてプレビューに戻り、公開したら次�
   await expect(page.getByLabel('本文')).toBeEmpty()
 })
 
-test('同じ画面の複数の窓口フォームを区別し、成功したフォームだけを消す', async ({
+test('新規と既存プロダクトの窓口フォームを区別し、成功したフォームだけを消す', async ({
   page,
   scene,
 }) => {
@@ -40,22 +41,26 @@ test('同じ画面の複数の窓口フォームを区別し、成功したフ�
     .filter({ has: page.getByLabel('プロダクト名', { exact: true }) })
   const existing = page
     .locator('details')
-    .filter({ hasText: '登録済みのプロダクトに窓口を追加' })
-  await page.goto(path)
+    .filter({ hasText: 'このプロダクトに窓口を追加' })
+  await page.goto(path + '?new=yes')
   await fresh.getByLabel('プロダクト名').fill('新規登録の途中')
   await fresh.getByLabel('窓口アドレスの先頭').fill('new-window')
+  await page.goto(path + '?edit=slide')
   await existing.locator('summary').click()
   await existing.getByLabel('窓口アドレスの先頭').fill('add-window')
   await page.goto(scene.origin + '/settings')
-  await page.goto(path)
+  await page.goto(path + '?edit=slide')
   await existing.locator('summary').click()
   await expect(existing.getByLabel('窓口アドレスの先頭')).toHaveValue(
     'add-window',
   )
+  await page.goto(path + '?new=yes')
   await expect(fresh.getByLabel('窓口アドレスの先頭')).toHaveValue('new-window')
   await fresh.getByRole('button', { name: '窓口を登録' }).click()
   await expect(page.getByRole('status')).toContainText('登録')
+  await page.goto(path + '?new=yes')
   await expect(fresh.getByLabel('窓口アドレスの先頭')).toBeEmpty()
+  await page.goto(path + '?edit=slide')
   await existing.locator('summary').click()
   await expect(existing.getByLabel('窓口アドレスの先頭')).toHaveValue(
     'add-window',
@@ -136,7 +141,7 @@ test('定型文の編集中の下書きと新規作成、振り分けルール�
   const templates = scene.origin + '/extensions/canned'
   await page.goto(templates)
   const existing = page.locator('details').filter({
-    has: page.locator('summary').filter({ hasText: 'お問い合わせの受付' }),
+    has: page.getByLabel('編集：お問い合わせの受付', { exact: true }),
   })
   await existing.locator('summary').click()
   await existing.getByLabel('定型文の本文').fill('過去の定型文を編集中')
@@ -145,7 +150,7 @@ test('定型文の編集中の下書きと新規作成、振り分けルール�
   await page.goto(scene.origin + '/extensions/rules')
   const rule = page.locator('form[action="/extensions/rules/add"]').last()
   await rule.getByLabel('件名に含む言葉').fill('請求')
-  await rule.getByLabel('付けるラベル').selectOption({ label: '領収書' })
+  await choose(rule, '付けるラベル', { label: '領収書' })
   await page.goto(templates)
   await existing.locator('summary').click()
   await expect(existing.getByLabel('定型文の本文')).toHaveValue(
@@ -154,7 +159,9 @@ test('定型文の編集中の下書きと新規作成、振り分けルール�
   await page.getByRole('button', { name: '定型文を作成' }).click()
   await expect(page.getByLabel('定型文の本文').last()).toBeEmpty()
   await page.goto(scene.origin + '/extensions/rules')
-  await expect(rule.getByLabel('付けるラベル')).toHaveValue('領収書')
+  await expect(
+    rule.getByRole('button', { name: '付けるラベル：領収書' }),
+  ).toBeVisible()
   await expect(rule.getByLabel('件名に含む言葉')).toHaveValue('請求')
   await rule.getByRole('button', { name: 'ルールを保存' }).click()
   await expect(rule.getByLabel('件名に含む言葉')).toBeEmpty()
@@ -165,15 +172,17 @@ test('フォームの取り消しは、そのフォームの下書きだけを�
   scene,
 }) => {
   const path = scene.origin + '/settings/mailboxes'
-  await page.goto(path)
+  await page.goto(path + '?new=yes')
   const add = page
     .locator('form')
     .filter({ has: page.getByRole('button', { name: '窓口を登録' }) })
   const sender = page.locator('form[action="/settings/senders/slide"]')
   await add.getByLabel('プロダクト名').fill('残す窓口')
+  await page.goto(path + '?edit=slide')
   await sender.getByLabel('差出人名').fill('取り消す差出人')
   await sender.getByRole('link', { name: '取り消し', exact: true }).click()
-  await page.goto(path)
+  await page.goto(path + '?edit=slide')
   await expect(sender.getByLabel('差出人名')).toHaveValue('Slide')
+  await page.goto(path + '?new=yes')
   await expect(add.getByLabel('プロダクト名')).toHaveValue('残す窓口')
 })

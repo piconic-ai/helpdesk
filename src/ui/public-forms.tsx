@@ -1,6 +1,6 @@
 import type { Child } from 'hono/jsx'
 import { ActionLink, Button, Field, Input } from './controls'
-import { FilterBar, ListRow, RowList } from './patterns'
+import { FilterBar, ListRow, Notice, RowList } from './patterns'
 
 export function PublicSearch(props: { label: string; query: string }) {
   return (
@@ -94,5 +94,16 @@ export function ReceiptDetails(props: {
         </>
       ))}
     </dl>
+  )
+}
+
+export function IntakeError({ error }: { error: string | { retry: string } }) {
+  if (!error) return null
+  if (typeof error === 'string') return <Notice kind="error">{error}</Notice>
+  return (
+    <details open className="public-retry-notice banner-error" data-toast="">
+      <summary role="button">閉じる</summary>
+      <p role="alert">{error.retry}</p>
+    </details>
   )
 }

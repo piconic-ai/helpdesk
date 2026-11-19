@@ -93,9 +93,22 @@ function quickActions(row: Row, frame: ConsoleFrame) {
   )
 }
 type RowDetails = NonNullable<ReturnType<Metadata['get']>>
+function previewAuthor(m: RowDetails) {
+  if (m.previewKind === 'inbound') return '相手の文'
+  if (m.previewKind === 'note') return '内部メモ'
+  return m.previewDelivery === 'draft' ||
+    m.previewDelivery === 'awaiting_approval'
+    ? '下書き'
+    : '返信'
+}
 function rowMarks(m: RowDetails, approval: boolean, mixed: boolean) {
   const marks = []
-  if (m.failed) marks.push(<Delivery state="failed">送信失敗</Delivery>)
+  if (m.failed)
+    marks.push(
+      <Delivery state="failed">
+        {m.previewDelivery === 'failed' ? '送信失敗' : '別の返信で送信失敗'}
+      </Delivery>,
+    )
   if (approval)
     marks.push(
       <Delivery state="awaiting_approval" compact>
@@ -107,7 +120,7 @@ function rowMarks(m: RowDetails, approval: boolean, mixed: boolean) {
   if (approval && m.previewDelivery === 'draft')
     marks.push(<Delivery state="draft" compact />)
   if (m.previewKind === 'note') marks.push(icon('メモ'))
-  if (m.hasFiles) marks.push(icon('添付あり'))
+
   if (m.messages >= 3)
     marks.push(
       <RowCount>
@@ -128,14 +141,21 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
   const profile = frame.operators.find((op) => op.email === assignee)
   const sender = m.name || row.contact || '匿名'
   const mixed = inboxStatus(frame.query) === 'all'
-  const marks = rowMarks(m, frame.approvalNumbers.has(row.number), mixed)
+  const approval = frame.approvalNumbers.has(row.number)
+  const marks = rowMarks(m, approval, mixed)
+  const previewSource =
+    (approval || m.previewKind === 'note') && previewAuthor(m)
   const preview = (
     <RowPreview
-      sender={sender}
       number={row.number}
-      text={m.preview}
+      text={previewSource ? previewSource + ' · ' + m.preview : m.preview}
       icon={channelIcon(row.origin)}
     >
+      {m.hasFiles && icon('添付あり')}
+    </RowPreview>
+  )
+  const details = (
+    <>
       {marks}
       <RowLabels
         labels={m.labels}
@@ -143,7 +163,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
         limit={Math.min(2, 3 - marks.length - Number(mixed))}
       />
       {mixed && badge(row.status.kind)}
-    </RowPreview>
+    </>
   )
   return (
     <ConversationRow
@@ -154,27 +174,30 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       selection={
         <Input
           type="checkbox"
+          data-assignee={assignee ?? ''}
+          data-labels={JSON.stringify(m.labels)}
           aria-label={'#' + row.number + 'を選択'}
           value={row.number}
         />
       }
       headline={
         <RowHeadline
+          kind={row.kind}
           sender={sender}
           subject={row.subject}
           product={
-            !frame.query.product && (
-              <ProductMark
-                product={{ id: row.product, name: m.productName }}
-                compact
-              />
-            )
+            <ProductMark product={{ id: row.product, name: m.productName }} />
           }
         />
       }
       preview={preview}
       time={clock(row, m, frame.now)}
-      assignee={operatorAvatar(profile, assignee)}
+      assignee={
+        <>
+          {details}
+          {operatorAvatar(profile, assignee)}
+        </>
+      }
       actions={quickActions(row, frame)}
     />
   )

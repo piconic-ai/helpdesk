@@ -27,14 +27,21 @@ export function Disclosure({
   title,
   children,
   command = false,
+  accessibleName,
 }: {
   title: Child
   children: Child
   command?: boolean
+  accessibleName?: string
 }) {
   return (
     <details className={command ? 'thread-command' : undefined}>
-      <summary role={command ? 'button' : undefined}>{title}</summary>
+      <summary
+        aria-label={accessibleName}
+        role={command ? 'button' : undefined}
+      >
+        {title}
+      </summary>
       {children}
     </details>
   )
@@ -86,10 +93,10 @@ export function ArticlePreview({
   children: Child
 }) {
   return (
-    <article className="help-article">
+    <section className="help-article" data-article-preview="">
       <h2>{title}</h2>
-      {children}
-    </article>
+      <article>{children}</article>
+    </section>
   )
 }
 export function BodyText({ children }: { children: Child }) {

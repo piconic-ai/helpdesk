@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect, capture } from './harness.mjs'
 test.use({ extensions: ['articles', 'feedback', 'metrics'] })
 
@@ -20,9 +21,7 @@ test('A3 声を受付期間・プロダクト・ラベル別に集計し、同�
     ...[1, 2, 3, 9, 10].map((number) => label.bind(number, '新しい受付')),
   ])
   await page.goto(scene.origin + '/voices')
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption('slide')
+  await choose(page, 'プロダクト', 'slide')
   await page.getByLabel('開始日').fill(date)
   await page.getByLabel('終了日').fill(date)
   await page.getByRole('button', { name: '集計する' }).click()
@@ -70,7 +69,7 @@ test('A4 元の会話を見ながら候補を記事にし、候補一覧から�
   await page.goto(scene.origin + '/conversation/1')
   const panel = page.locator('[data-extension="articles"]')
   await panel
-    .getByRole('button', { name: '記事の候補に追加', exact: true })
+    .getByRole('button', { name: '記事候補を書く', exact: true })
     .click()
   await panel.getByLabel('記事にする内容').fill(topic)
   await panel
@@ -107,9 +106,9 @@ test('A4 元の会話を見ながら候補を記事にし、候補一覧から�
     '元の質問を参照しながら公開用の手順だけを書く',
   )
   await page.getByRole('button', { name: 'プレビュー' }).click()
-  await expect(page.locator('article.help-article')).not.toContainText(
-    '経理に提出するため',
-  )
+  await expect(
+    page.locator('[data-article-preview] article'),
+  ).not.toContainText('経理に提出するため')
   await expect(page.getByRole('blockquote')).toBeVisible()
   await page.getByRole('button', { name: '下書きを保存' }).click()
   await expect(page.getByText('下書きを保存しました。')).toBeVisible()

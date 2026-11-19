@@ -7,6 +7,7 @@ export async function readHtml(env: Bindings, id: string) {
   if (body === null) return null
   return sanitize(body, {
     allowedTags: [
+      'img',
       'p',
       'br',
       'blockquote',
@@ -33,7 +34,21 @@ export async function readHtml(env: Bindings, id: string) {
       'h3',
       'hr',
     ],
-    allowedAttributes: {},
+    allowedAttributes: { img: ['alt', 'data-remote-image'] },
+    transformTags: {
+      img: (_, attributes): sanitize.Tag => {
+        const url = URL.parse(attributes.src ?? '')
+        return url?.protocol === 'https:' && !url.username && !url.password
+          ? {
+              tagName: 'img',
+              attribs: {
+                alt: attributes.alt ?? '',
+                'data-remote-image': url.href,
+              },
+            }
+          : { tagName: 'span', attribs: {}, text: attributes.alt ?? '' }
+      },
+    },
   })
 }
 export async function download(env: Bindings, key: string) {

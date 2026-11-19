@@ -15,6 +15,7 @@ export function inspectDesign() {
   const problems = new Set(),
     sizes = new Set()
   const components = [
+    ['.switch-track,input[role=switch]', 'switch'],
     ['.status-badge', 'status-open'],
     ['.label-chip,.delivery-failed,.delivery-awaiting-approval', 'label-chip'],
     ['.message-inbound', 'message-inbound'],

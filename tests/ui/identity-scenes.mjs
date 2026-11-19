@@ -6,7 +6,7 @@ export const identityScenes = [
   {
     id: 'product-icon-settings',
     label: 'プロダクトのアイコンを設定',
-    url: '/settings/mailboxes',
+    url: '/settings/mailboxes?edit=slide',
   },
   {
     id: 'product-switcher',

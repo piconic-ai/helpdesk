@@ -275,11 +275,11 @@ const entries = [
   ],
   [
     'mailbox-add',
-    '登録済みのプロダクトに窓口を追加する',
-    '/settings/mailboxes',
+    'このプロダクトに窓口を追加する',
+    '/settings/mailboxes?edit=slide',
     [],
     async (page) => {
-      await openDisclosure(page, '登録済みのプロダクトに窓口を追加')
+      await openDisclosure(page, 'このプロダクトに窓口を追加')
       await button(page, '窓口を追加').scrollIntoViewIfNeeded()
     },
   ],
@@ -288,14 +288,14 @@ const entries = [
     '運営者の登録内容を編集する',
     '/settings/operators',
     [],
-    (page) => openDisclosure(page, '編集：'),
+    (page) => openDisclosure(page, '編集'),
   ],
   [
     'canned-edit',
     '定型返信を編集する',
     '/extensions/canned',
     ['canned'],
-    (page) => openDisclosure(page, '編集：'),
+    (page) => openDisclosure(page, '編集'),
   ],
   [
     'rule-edit',

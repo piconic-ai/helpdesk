@@ -8,7 +8,7 @@ import { invoke, describe } from '../../core/operations/runtime-usecase'
 import type { Context, Scope } from '../../core/operations/catalog-usecase'
 import { issues } from './extension-usecase'
 import { preview } from './issues'
-import { panelLinks } from './issues-usecase'
+import { issueDestination, panelLinks } from './issues-usecase'
 import { issueBoard, synchronizeIssue } from './board-usecase'
 
 const repo = 'acme/desktop',
@@ -144,11 +144,11 @@ test('F06-AC2 an existing issue links back to each conversation and can be found
   expect(await panelLinks(extensionContext(ctx, enabled.active[0]), 2)).toEqual(
     [
       {
-        label: 'acme/desktop#42',
+        label: 'Improve search（acme/desktop#42）',
         icon: { name: 'issue_open', label: '開いている' },
         href: 'https://github.com/acme/desktop/issues/42',
       },
-      { label: '会話 #1', href: '/conversation/1' },
+      { label: '会話 #1 Confidential subject', href: '/conversation/1' },
     ],
   )
 })
@@ -294,5 +294,23 @@ test('external article and issue requests reject redirects without forwarding cr
     expect(request.mock.calls[0][1]?.redirect).toBe('manual')
   } finally {
     request.mockRestore()
+  }
+})
+
+test('GitHub posts require a non-local HTTPS conversation URL in production', async () => {
+  const api = extensionContext(ctx, enabled.active[0])
+  for (const origin of [
+    'http://helpdesk.example',
+    'https://127.0.0.1',
+    'https://localhost',
+  ]) {
+    const production = {
+      ...api,
+      local: false,
+      config: { repositories: { app: repo }, helpdeskOrigin: origin },
+    }
+    await expect(issueDestination(production, 'app')).rejects.toThrow(
+      'public HTTPS',
+    )
   }
 })

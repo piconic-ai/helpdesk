@@ -79,15 +79,17 @@ test('ラベルの色を保存し、会話と一覧と絞り込みから同じ�
   scene,
 }) => {
   await page.goto(scene.origin + '/settings')
-  await page.getByRole('link', { name: /ラベルの色/ }).click()
-  const section = page
-    .getByRole('heading', { name: '経理', exact: true })
-    .locator('..')
-  const choice = section.getByRole('combobox', { name: '経理の色' })
-  await expect(choice.getByRole('option')).toHaveCount(8)
-  await choice.selectOption('4')
-  await section.getByRole('button', { name: '色を保存' }).click()
-  await expect(choice).toHaveValue('4')
+  await page.getByRole('link', { name: /^ラベル/ }).click()
+  const section = page.getByRole('row').filter({
+    has: page.getByRole('button', { name: '経理の色を変更', exact: true }),
+  })
+  await section.getByRole('button', { name: '経理の色を変更' }).click()
+  const choices = section.locator('.swatches button')
+  await expect(choices).toHaveCount(8)
+  await choices.nth(4).click()
+  await expect(
+    section.locator('button[popovertarget^="label-color-"] .label-dot'),
+  ).toHaveAttribute('data-identity-color', '4')
   await page.goto(scene.origin + '/conversation/1')
   await page.getByRole('button', { name: /ラベル: / }).click()
   await expect(
@@ -103,14 +105,10 @@ test('ラベルの色を保存し、会話と一覧と絞り込みから同じ�
   )
   await page.getByRole('button', { name: '絞り込み', exact: true }).click()
   await expect(
-    page
-      .getByRole('combobox', { name: 'ラベル', exact: true })
-      .locator('option[value="経理"] .label-dot'),
+    page.locator('button[data-choice="経理"] .label-dot'),
   ).toHaveAttribute('data-identity-color', '4')
   await expect(
-    page
-      .getByRole('combobox', { name: '状態', exact: true })
-      .locator('option[value="pending"] svg'),
+    page.locator('button[data-choice="pending"] svg'),
   ).toHaveAttribute('data-glyph', 'pending')
 })
 

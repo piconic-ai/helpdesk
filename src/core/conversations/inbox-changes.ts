@@ -1,3 +1,4 @@
+import { labelName } from './labels'
 import { z } from 'zod'
 import { instantSchema, inquiryStatusSchema } from './state'
 import { transition } from './transitions'
@@ -11,7 +12,12 @@ export const bulkInput = z.discriminatedUnion('action', [
   }),
   z.object({
     numbers,
-    action: z.enum(['add', 'remove']),
+    action: z.literal('add'),
+    label: labelName,
+  }),
+  z.object({
+    numbers,
+    action: z.literal('remove'),
     label: z.string().trim().min(1).max(200),
   }),
   z.object({

@@ -1,3 +1,6 @@
+import { registeredScreens, routeScenes } from './route-inventory.mjs'
+import { behaviorScenes, saveExampleNote } from './behavior-scenes.mjs'
+import { startDemo } from './demo-scene.mjs'
 import { loopScenes, exposeLoopScene, seedLoopScene } from './loop-scenes.mjs'
 import {
   suggestionScenes,
@@ -89,6 +92,7 @@ async function verifyViewport(browser, scene, origin, width) {
       if (widgetSettingsScenes.includes(scene))
         await exposeWidgetSettings(page, scene)
       if (loopScenes.includes(scene)) await exposeLoopScene(page, scene)
+      if (behaviorScenes.includes(scene)) await scene.expose?.(page)
       if (save) await capture(page, scene, width)
       if (!before && scene.action !== 'loading')
         await audit(page, scene.id, width)
@@ -100,7 +104,7 @@ async function verifyViewport(browser, scene, origin, width) {
   }
 }
 
-const inventory = before
+const curated = before
   ? screens
   : [
       ...screens,
@@ -113,7 +117,9 @@ const inventory = before
       ...widgetSettingsScenes,
       ...suggestionScenes,
       ...loopScenes,
+      ...behaviorScenes,
     ]
+const inventory = before ? curated : [...curated, ...routeScenes(curated)]
 // Use a stable visible hostname and port wherever the installation snippet is captured.
 function scenePort(scene, index) {
   if (loopScenes.includes(scene)) return 24000 + loopScenes.indexOf(scene)
@@ -126,10 +132,13 @@ function scenePort(scene, index) {
 }
 for (const [index, scene] of inventory.entries()) {
   test(scene.group + ' / ' + scene.label, async ({ browser }) => {
-    const server = await startScene(scene.extensions, source, {
-      emptyInbox: scene.emptyInbox,
-      port: scenePort(scene, index),
-    })
+    const server =
+      scene.demo || scene.registered
+        ? await startDemo(25600 + index)
+        : await startScene(scene.extensions, source, {
+            emptyInbox: scene.emptyInbox,
+            port: scenePort(scene, index),
+          })
     try {
       if (reviewScreens.includes(scene) || nextIssuesScenes.includes(scene))
         await seedReviewExamples(server.db, scene.extensions ?? [])
@@ -139,6 +148,14 @@ for (const [index, scene] of inventory.entries()) {
       if (trendScenes.includes(scene)) await seedTrendExamples(server.db)
       if (identityScenes.includes(scene))
         await setSceneIcon(server.origin, scene.mode)
+      if (scene.url.includes('notice=note')) {
+        const page = await browser.newPage()
+        try {
+          await saveExampleNote(page, server.origin)
+        } finally {
+          await page.close()
+        }
+      }
       for (const width of [1440, 1024, 375])
         await verifyViewport(browser, scene, server.origin, width)
     } finally {
@@ -153,5 +170,25 @@ test('キーボードだけで受信箱から返信・完了まで操作でき�
     await keyboardFlow(page, server.origin)
   } finally {
     await server.stop()
+  }
+})
+
+test('every registered screen and installed extension has a browser capture', async () => {
+  const demo = await startDemo()
+  try {
+    const response = await fetch(demo.origin + '/extensions')
+    const html = await response.text()
+    const extensions = [...html.matchAll(/data-extension="([a-z-]+)"/g)].map(
+      (m) => '/extensions/' + m[1],
+    )
+    expect(extensions.length).toBeGreaterThan(0)
+    const paths = new Set(inventory.map((s) => s.url))
+    expect(
+      [...registeredScreens(), ...extensions].filter(
+        (path) => !paths.has(path),
+      ),
+    ).toEqual([])
+  } finally {
+    await demo.stop()
   }
 })

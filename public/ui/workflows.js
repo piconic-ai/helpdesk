@@ -38,7 +38,8 @@ function confirmAction(trigger, title, description, verb, commit) {
   confirmation.querySelector('p').textContent = description
   const button = confirmation.querySelector('[data-commit]')
   button.textContent = verb
-  const destructive = trigger.classList.contains('button-danger')
+  const destructive =
+    trigger.classList.contains('button-danger') || verb === '下書きを破棄'
   button.classList.toggle('button-primary', !destructive)
   button.classList.toggle('button-danger', destructive)
   button.onclick = () => {
@@ -47,6 +48,45 @@ function confirmAction(trigger, title, description, verb, commit) {
   }
   openDialog(confirmation, trigger)
 }
+
+function displaySwatch(form, selected) {
+  const panel = form.closest('[popover]')
+  const trigger = document.querySelector(
+    '[popovertarget="' + CSS.escape(panel.id) + '"]',
+  )
+  trigger.querySelector('.label-dot').dataset.identityColor = selected.value
+  for (const swatch of form.querySelectorAll('button'))
+    swatch.setAttribute('aria-pressed', String(swatch === selected))
+  panel.hidePopover()
+  trigger.focus({ preventScroll: true })
+  window.helpdeskToast('ラベルの色を変更しました。')
+}
+document.addEventListener('submit', async (event) => {
+  const form = event.target
+  if (form.getAttribute('action') !== '/settings/labels' || !event.submitter)
+    return
+  event.preventDefault()
+  if (form.getAttribute('aria-busy') === 'true') return
+  form.setAttribute('aria-busy', 'true')
+  const selected = event.submitter
+  try {
+    const response = await fetch(form.getAttribute('action'), {
+      method: 'POST',
+      body: new FormData(form, selected),
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) throw new Error()
+    if (form.matches('.swatches')) displaySwatch(form, selected)
+    else location.assign('/settings/labels?saved=yes')
+  } catch {
+    window.helpdeskToast(
+      'ラベルを更新できませんでした。同じ名前の有無と使用件数を確認して、もう一度お試しください。',
+      true,
+    )
+  } finally {
+    form.removeAttribute('aria-busy')
+  }
+})
 
 function submissionDetails(form, trigger) {
   const action = new URL(
@@ -65,7 +105,18 @@ function submissionDetails(form, trigger) {
         form.elements.body.value,
     ]
   if (action === '/actions/discard' && !form.closest('.banner-success'))
-    return [label, 'この会話から下書き1件を削除します。']
+    return [
+      label,
+      '会話 #' +
+        form.elements.number.value +
+        ' の下書き1件を削除します。\n' +
+        (
+          form.closest('.draft-review')?.querySelector('textarea')?.value ||
+          form.closest('article')?.querySelector('.message-body')
+            ?.textContent ||
+          ''
+        ).slice(0, 200),
+    ]
   if (action === '/actions/issues.link')
     return [
       label,
@@ -73,7 +124,15 @@ function submissionDetails(form, trigger) {
         ' の「' +
         form.elements.issue.selectedOptions[0].textContent.trim() +
         '」に、この会話へのリンクをコメントとして投稿します。\n' +
-        form.dataset.backlink,
+        '会話 #' +
+        form.elements.number.value +
+        ' · ' +
+        new URL(form.dataset.backlink).host +
+        (['localhost', '127.0.0.1', '[::1]'].includes(
+          new URL(form.dataset.backlink).hostname,
+        )
+          ? '（この端末で開けます）'
+          : ''),
     ]
   if (action === '/actions/merge.combine')
     return [
@@ -85,16 +144,40 @@ function submissionDetails(form, trigger) {
         '」に統合します。',
     ]
   if (action === '/actions/feedback.convert')
-    return [label, 'このフィードバックを返信できる問い合わせに変更します。']
+    return [
+      label,
+      'フィードバック #' +
+        form.elements.number.value +
+        '「' +
+        document.querySelector('h1').textContent.trim() +
+        '」を返信できる問い合わせに変更します。',
+    ]
   return settingsConfirmation(action, form, trigger, label)
 }
 
 function settingsConfirmation(action, form, trigger, label) {
+  if (form.dataset.labelImpact !== undefined) {
+    const target = form.elements.namedItem('target')
+    return [
+      label,
+      '「' +
+        form.elements.label.value +
+        '」を使用する会話は' +
+        form.dataset.labelImpact +
+        '件です。' +
+        (target
+          ? '「' + target.value + '」にまとめます。'
+          : 'すべてからこのラベルを外して削除します。'),
+    ]
+  }
   if (action === '/extensions/rules/remove')
     return [label, form.dataset.ruleSummary + ' の振り分けルールを削除します。']
   if (form.elements.enabled?.value === 'yes' && form.dataset.permissions)
     return [
-      trigger.getAttribute('aria-label'),
+      form.closest('[data-extension]').querySelector('h3').textContent +
+        (form.elements.enabled.value === 'yes'
+          ? 'を有効にする'
+          : 'を無効にする'),
       (form.dataset.publicIntake
         ? '全プロダクトで機能が使えるようになります。受付はプロダクトごとに開始します。\n'
         : '') +
@@ -103,7 +186,10 @@ function settingsConfirmation(action, form, trigger, label) {
     ]
   if (form.elements.enabled?.value === 'no')
     return [
-      trigger.getAttribute('aria-label'),
+      form.closest('[data-extension]').querySelector('h3').textContent +
+        (form.elements.enabled.value === 'yes'
+          ? 'を有効にする'
+          : 'を無効にする'),
       form.closest('[data-extension]').querySelector('h3').textContent +
         'を無効にします。設定は保持され、再度有効にするまで新しい処理は停止します。',
     ]
@@ -132,13 +218,16 @@ async function reviewIssue(form, trigger) {
     if (!create) throw new Error()
     const content = create.closest('section')
     const fields = new FormData(create)
+    trigger.disabled = false
+    trigger.focus({ preventScroll: true })
     confirmAction(
       trigger,
       '起票内容を確認',
       [
-        content.querySelector('p').textContent,
+        content.querySelector('[data-public-target]').textContent,
         content.querySelector('h2').textContent,
         content.querySelector('pre').textContent,
+        content.querySelector('[data-public-link]').textContent,
       ].join('\n'),
       '確認した内容で起票',
       () => {
@@ -161,14 +250,10 @@ async function reviewIssue(form, trigger) {
       },
     )
   } catch {
-    let error = form.querySelector('[role=alert]')
-    if (!error) {
-      error = document.createElement('p')
-      error.setAttribute('role', 'alert')
-      form.append(error)
-    }
-    error.textContent =
-      '起票内容を取得できませんでした。入力内容を確認してもう一度お試しください。'
+    window.helpdeskToast(
+      '起票内容を取得できませんでした。入力内容を確認してもう一度お試しください。',
+      true,
+    )
   } finally {
     trigger.disabled = false
   }
@@ -279,7 +364,7 @@ document.addEventListener('keydown', (event) => {
   if (editing || event.metaKey || event.ctrlKey || event.altKey) return
   if (event.key === '?') openDialog(shortcuts, document.activeElement)
   if (event.key === 'u') {
-    document.querySelector('.thread-header > a')?.click()
+    document.querySelector('.thread-toolbar > a')?.click()
     return
   }
   if (!composer) return

@@ -64,7 +64,7 @@ export const issues: Extension = {
       permission: 'write',
       humanOnly: true,
       input: previewInput,
-      output: preview,
+      output: preview.extend({ summary: z.string(), conversationUrl: z.url() }),
       run: previewIssue,
     },
     {

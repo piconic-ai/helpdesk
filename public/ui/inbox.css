@@ -86,9 +86,6 @@
   background: var(--colors-surface-soft);
   border-radius: var(--rounded-md);
 }
-.inbox-bulk[hidden] {
-  display: none;
-}
 .inbox-pagination {
   display: flex;
   justify-content: center;
@@ -173,7 +170,8 @@
 .row-select input:checked {
   opacity: 1;
 }
-.row-select:has(input:checked) {
+.inbox-item:has(.row-select input:checked),
+.inbox-item:has(.row-select input:checked) .conversation-row {
   background: var(--colors-selected);
 }
 .row-product {
@@ -315,6 +313,10 @@
   gap: var(--spacing-xs);
   overflow: visible;
   background: var(--colors-canvas);
+}
+.composer.composer-note,
+.composer.composer-note .composer-field textarea {
+  background: var(--colors-note-soft);
 }
 .composer-field {
   display: block;

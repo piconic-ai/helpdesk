@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect } from './harness.mjs'
 import { fixedTime } from '../ui/seed.mjs'
 
@@ -47,15 +48,13 @@ test('記事ごとの提示・閲覧・解決を読み、記事が無かった�
   await expect(
     page.getByRole('heading', { name: '記事が無かった質問' }),
   ).toBeVisible()
-  await page.getByRole('combobox', { name: 'プロダクト' }).selectOption('slide')
+  await choose(page, 'プロダクト', 'slide')
   await expect(page.getByText('別製品の質問')).toHaveCount(0)
   await page
     .getByRole('link', { name: 'この質問から記事を書く：' + question })
     .click()
   await expect(page.getByLabel('題名')).toHaveValue(question)
-  await expect(page.getByRole('combobox', { name: 'プロダクト' })).toHaveValue(
-    'slide',
-  )
+  await expect(page.locator('select[name=product]')).toHaveValue('slide')
   await page
     .getByLabel('本文', { exact: true })
     .fill('印刷ダイアログで倍率を指定します。')
@@ -66,8 +65,6 @@ test('記事ごとの提示・閲覧・解決を読み、記事が無かった�
     has: page.getByRole('heading', { name: '待たずに解決できた割合' }),
   })
   await expect(rate).toContainText('0件 / 3件')
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption('desk')
+  await choose(page, 'プロダクト', 'desk')
   await expect(rate).toContainText('データなし')
 })

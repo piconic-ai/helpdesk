@@ -141,7 +141,12 @@ export function rulesSettings(
                 <Disclosure title="編集">
                   {editor(key, rule)}
                   <ActionBar>
-                    <form action="/extensions/rules/move" method="post">
+                    <form
+                      action="/extensions/rules/move"
+                      method="post"
+                      data-layout="cluster"
+                      data-gap="xs"
+                    >
                       <input
                         type="hidden"
                         name="revision"

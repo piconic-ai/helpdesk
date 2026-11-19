@@ -17,6 +17,7 @@ export function publicDocument(
   page: { title: string; html: string },
   options: {
     contact?: string
+    article?: boolean
     chat?: boolean
     turnstile?: boolean
     search?: boolean

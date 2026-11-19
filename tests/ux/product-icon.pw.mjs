@@ -15,7 +15,7 @@ const surfaces = [
   ['/voices', 'main', 16],
   ['/metrics?product=slide', 'main', 16],
   ['/articles', 'main [data-ui=article-list-row]', 16],
-  ['/settings/mailboxes', 'main h2', 20],
+  ['/settings/mailboxes?edit=slide', 'main h2', 20],
   ['/extensions/issues', 'main h2', 20],
   ['/extensions/chat', 'main h2', 20],
   ['/help/', 'main h2', 20],
@@ -26,7 +26,7 @@ const surfaces = [
   ['/help/feedback/slide', '.public-header', 28],
 ]
 async function revealForm(page, scene) {
-  await page.goto(scene.origin + '/settings/mailboxes')
+  await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
   const group = page.locator('section.settings-card').filter({
     has: page.getByRole('heading', { name: 'Slide', exact: true }),
   })

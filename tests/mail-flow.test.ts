@@ -76,6 +76,7 @@ afterAll(async () => {
 async function registerMailbox(page: Page) {
   await page.goto(origin + '/settings')
   await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
   await page.getByLabel('プロダクト名').fill('Shop')
   await page.getByLabel('窓口のメールアドレス').fill('support@example.com')
   await page.getByRole('button', { name: '窓口を登録' }).click()
@@ -125,6 +126,18 @@ async function inspectMail(page: Page) {
   )
   const policy = frameResponse.headers()['content-security-policy']
   expect(policy).toContain("default-src 'none'")
+  const remote = frame.locator('img[data-remote-image]')
+  expect(await remote.getAttribute('src')).toBeNull()
+  const imageUrl = await remote.getAttribute('data-remote-image')
+  expect(imageUrl).toBe('https://tracker.example/pixel')
+  let requested = false
+  await page.route(imageUrl!, async (route) => {
+    requested = true
+    expect(route.request().headers().referer).toBeUndefined()
+    await route.fulfill({ status: 204 })
+  })
+  await frame.getByRole('button', { name: '外部の画像を表示' }).click()
+  await expect.poll(() => requested).toBe(true)
   expect(policy).toMatch(/script-src 'nonce-[^']+';/)
   await expect
     .poll(async () => {
@@ -165,7 +178,9 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
     const reply = 'Open your order and choose Receipt.'
     await page.getByLabel('返信', { exact: true }).fill(reply)
     await page.getByRole('button', { name: 'プレビュー' }).click()
-    await page.locator('pre').filter({ hasText: reply }).waitFor()
+    const preview = page.locator('.reply-preview')
+    await preview.getByText(reply, { exact: true }).waitFor()
+    expect(await preview.innerText()).toContain('support@example.com')
     await page.getByRole('button', { name: '送信', exact: true }).click()
     await page.getByRole('button', { name: '取り消す' }).waitFor()
     expect(await page.getByRole('dialog').count()).toBe(0)
@@ -177,7 +192,7 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
         },
         { timeout: 15_000 },
       )
-      .toMatch(/返信待ち[\s\S]*support@example\.com/)
+      .toContain('返信待ち')
     await expect
       .poll(
         async () => {

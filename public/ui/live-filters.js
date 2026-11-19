@@ -67,7 +67,12 @@
       if (textField(event.target)) schedule()
     })
     form.addEventListener('input', (event) => {
-      if (textField(event.target) && !composing && !event.isComposing)
+      if (
+        textField(event.target) &&
+        event.target.name &&
+        !composing &&
+        !event.isComposing
+      )
         schedule()
     })
     form.addEventListener('change', (event) => {

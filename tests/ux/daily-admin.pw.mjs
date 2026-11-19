@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
 test.use({ extensions: ['rules', 'canned', 'issues', 'metrics'] })
@@ -12,8 +13,8 @@ test('保存したルールを編集・並べ替え、適用した会話の履�
     ['領収', '請求'],
   ]) {
     await add.getByLabel('件名に含む言葉').fill(word)
-    await add.getByLabel('付けるラベル').selectOption({ label })
-    await add.getByRole('button').click()
+    await choose(add, '付けるラベル', { label })
+    await add.getByRole('button', { name: 'ルールを保存' }).click()
   }
   const rows = page.locator('[data-list=rules] li')
   const receipt = rows.filter({
@@ -55,7 +56,7 @@ test('保存したルールを編集・並べ替え、適用した会話の履�
   await expect(rows).toHaveCount(1)
 })
 
-test('定型返信を表示名で作成・編集して会話に適用し、既存の Issue を選んで紐づける', async ({
+test('定型返信を表示名で作成・編集して会話に適用し、既存の課題を選んで紐づける', async ({
   page,
   scene,
 }) => {
@@ -68,7 +69,7 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
     .getByLabel('定型文の本文')
     .fill('{{name}} 様、ご連絡ありがとうございます。')
   await newTemplate.getByRole('button').click()
-  await page.locator('summary').filter({ hasText: '入金のご案内' }).click()
+  await page.getByLabel('編集：入金のご案内', { exact: true }).click()
   const edit = page.locator('details[open] form')
   await edit
     .getByLabel('定型文の本文')
@@ -76,17 +77,17 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await edit.getByRole('button').click()
   await page.goto(scene.origin + '/conversation/1')
   const canned = page.locator('[data-extension=canned]')
-  await canned.getByRole('button', { name: '定型文を選ぶ' }).click()
+  await page.getByRole('button', { name: '定型文を選ぶ' }).click()
   await canned.getByRole('radio', { name: /入金のご案内/ }).check()
   await canned.locator('form').getByRole('button').click()
   await expect(page.getByRole('textbox', { name: '下書きの本文' })).toHaveValue(
     '山田 花 様、入金を確認しました。',
   )
-  await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
+  await page.getByText('既存の課題を選ぶ', { exact: true }).click()
   await page
     .getByRole('combobox', { name: '課題', exact: true })
     .selectOption({ label: '#42 領収書の一括ダウンロード' })
-  await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
+  await page.getByRole('button', { name: '既存の課題と紐づける' }).click()
   await expect(page.getByRole('dialog')).toContainText('example/helpdesk')
   await confirmSubmission(page)
   await expect

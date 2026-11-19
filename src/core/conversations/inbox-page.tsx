@@ -31,6 +31,8 @@ import {
   FilterChip,
   LabelDot,
   BulkBar,
+  InboxTools,
+  SelectAll,
   PageLinks,
 } from '../../ui/inbox-parts'
 export type Result<K extends keyof typeof coreOperations> = Awaited<
@@ -177,7 +179,7 @@ function filters(q: Query, frame: ConsoleFrame) {
             'label',
             'ラベル',
             {
-              '': 'すべて',
+              '': 'すべてのラベル',
               ...Object.fromEntries(frame.labels.map((l) => [l, l])),
             },
             q.label ?? '',
@@ -215,9 +217,33 @@ function emptyInbox(q: Query, view: string) {
     <EmptyState
       icon={filtered ? 'search' : view === 'feedback' ? 'feedback' : 'open'}
     >
-      {filtered
-        ? '条件に一致する問い合わせはありません。'
-        : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
+      <span>
+        {filtered
+          ? '条件に一致する問い合わせはありません。'
+          : (emptyView[view] ?? '受け付けた問い合わせはありません。')}
+      </span>
+      {filtered && (
+        <ActionLink
+          href={inboxUrl({
+            ...q,
+            product: '',
+            label: '',
+            query: '',
+            assignee: '',
+          })}
+          variant="ghost"
+        >
+          絞り込みを解除
+        </ActionLink>
+      )}
+      {!filtered && view !== 'all' && (
+        <ActionLink
+          variant="ghost"
+          href={inboxUrl({ ...q, view: '', status: 'all' })}
+        >
+          すべての会話を見る
+        </ActionLink>
+      )}
     </EmptyState>
   )
 }
@@ -240,7 +266,12 @@ export function inboxPage(
       <ListPage
         title={title}
         description={page.total + ' 件'}
-        filters={filters(q, frame)}
+        filters={
+          <InboxTools>
+            {filters(q, frame)}
+            {rows.length > 0 && bulkBar(frame, view)}
+          </InboxTools>
+        }
       >
         {view === 'feedback' && feedbackNotice(q)}
         {failures.length > 0 && (
@@ -257,7 +288,7 @@ export function inboxPage(
           <div data-inbox-content="">
             {rows.length ? (
               <>
-                {bulkBar(frame, view)}
+                <SelectAll />
                 <RowList>
                   {rows.map((row) => conversationRow(row, meta, frame))}
                 </RowList>
@@ -300,10 +331,14 @@ function feedbackNotice(q: Query) {
   const number = Number(q.changed)
   if (!Number.isSafeInteger(number) || number <= 0) return null
   if (q.notice === 'feedback.unreview')
-    return <Notice kind="success">#{number} を未確認に戻しました。</Notice>
+    return (
+      <Notice toast kind="success">
+        #{number} を未確認に戻しました。
+      </Notice>
+    )
   if (q.notice !== 'feedback.review') return null
   return (
-    <Notice kind="success">
+    <Notice toast kind="success">
       #{number} を確認済みにしました。
       {action(
         'feedback.unreview',
@@ -318,7 +353,10 @@ function feedbackNotice(q: Query) {
 function bulkBar(frame: ConsoleFrame, view: string) {
   return (
     <BulkBar>
-      <strong data-selected-count="">0件を選択</strong>
+      <strong data-selected-count="">0件を選択中</strong>
+      <Button type="button" variant="ghost" data-clear-selection="">
+        選択を解除
+      </Button>
       <ActionBar>
         {view !== 'feedback' && (
           <FilterPicker id="bulk-assignee" label="担当者を選ぶ">
@@ -343,8 +381,9 @@ function bulkBar(frame: ConsoleFrame, view: string) {
               <Button
                 type="button"
                 variant="ghost"
-                data-change="add"
-                data-value={label}
+                data-bulk-label={label}
+                aria-label={label}
+                aria-pressed="false"
               >
                 <LabelDot label={label} colors={frame.labelColors} />
                 {label}
@@ -353,17 +392,27 @@ function bulkBar(frame: ConsoleFrame, view: string) {
           ) : (
             <p>選べるラベルはまだありません。</p>
           )}
+          <small data-mixed-label-hint="">
+            −
+            は一部の会話に付いています。選ぶと、選択中のすべての会話に付きます。
+          </small>
+          <a href="/settings/labels">ラベルを管理</a>
         </FilterPicker>
-        {view !== 'feedback' && (
+        {view !== 'feedback' && frame.query.status !== 'spam' && (
           <Button type="button" data-change="closed">
             完了にする
           </Button>
         )}
-        <Button type="button" variant="ghost" data-change="marked_spam">
-          迷惑メールにする
-        </Button>
-        <Button type="button" variant="ghost" data-clear-selection="">
-          選択を解除
+        <Button
+          type="button"
+          variant="ghost"
+          data-change={
+            frame.query.status === 'spam' ? 'unmarked_spam' : 'marked_spam'
+          }
+        >
+          {frame.query.status === 'spam'
+            ? '迷惑メールを解除'
+            : '迷惑メールにする'}
         </Button>
       </ActionBar>
     </BulkBar>

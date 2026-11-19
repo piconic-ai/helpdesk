@@ -40,12 +40,13 @@ function clampDropdownMenuPosition(
 function menuItems(menu) {
   return [...menu.querySelectorAll(focusable)].filter(
     (item) =>
-      item.getClientRects().length &&
+      item.checkVisibility() &&
+      (!menu.matches('[popover]') || item.closest('[popover]') === menu) &&
       item.getAttribute('aria-disabled') !== 'true',
   )
 }
 function navigateMenu(event) {
-  const menu = event.target.closest('[data-slot="dropdown-menu-content"]')
+  const menu = event.target.closest(panelSelector)
   if (!menu || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key))
     return
   const items = menuItems(menu)
@@ -83,7 +84,11 @@ document.addEventListener(
     positions.get(panel)?.()
     positions.delete(panel)
     if (!open) return
-    if (!hasAnchorPositioning) {
+    prepareSearch(panel)
+    const scope = trigger.closest(
+      '[data-slot="popover"], [data-slot="dropdown-menu"]',
+    )
+    if (!hasAnchorPositioning || !scope?.contains(panel)) {
       const update = () => {
         const pos = clampDropdownMenuPosition(
           trigger.getBoundingClientRect(),
@@ -96,15 +101,15 @@ document.addEventListener(
       }
       positions.set(panel, trackPosition(update))
     }
-    if (panel.dataset.slot === 'dropdown-menu-content')
-      menuItems(panel)[0]?.focus()
+    if (!panel.contains(document.activeElement))
+      menuItems(panel)[0]?.focus({ preventScroll: true })
   },
   true,
 )
 document.addEventListener('keydown', navigateMenu)
 document.addEventListener('keydown', (event) => {
-  if (event.key !== 'ArrowDown') return
-  const trigger = event.target.closest('[data-slot="dropdown-menu-trigger"]')
+  if (event.defaultPrevented || event.key !== 'ArrowDown') return
+  const trigger = event.target.closest('[popovertarget]')
   if (!trigger) return
   const panel = document.getElementById(trigger.getAttribute('popovertarget'))
   if (!panel || panel.matches(':popover-open')) return
@@ -130,3 +135,114 @@ document.addEventListener('keydown', (event) => {
     first?.focus()
   }
 })
+
+document.addEventListener('helpdesk:menu-updated', (event) =>
+  prepareSearch(event.target),
+)
+function prepareSearch(panel) {
+  if (panel.querySelector(':scope > [data-menu-search]')) return
+  const options = menuItems(panel).filter(
+    (item) =>
+      item.matches('button,a[href]') &&
+      !item.matches('[popovertarget], a[href="/settings/labels"]'),
+  )
+  if (options.length <= 8) return
+  const search = document.createElement('input')
+  search.type = 'search'
+  search.dataset.menuSearch = ''
+  search.placeholder = '候補を絞り込む'
+  search.setAttribute('aria-label', search.placeholder)
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLocaleLowerCase()
+    for (const option of options)
+      option.hidden = !(option.getAttribute('aria-label') || option.textContent)
+        .toLocaleLowerCase()
+        .includes(q)
+  })
+  panel.prepend(search)
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || event.defaultPrevented) return
+  const panel = event.target.closest(panelSelector)
+  if (!panel?.matches(':popover-open')) return
+  event.preventDefault()
+  event.stopPropagation()
+  panel.hidePopover()
+  document
+    .querySelector('[popovertarget="' + CSS.escape(panel.id) + '"]')
+    ?.focus({ preventScroll: true })
+})
+
+// A native select retains form serialization and validity. Rich choices use the shared popup.
+function richChoice(select, index) {
+  const wrap = select.parentElement
+  const wrapper = document.createElement('span')
+  wrapper.dataset.slot = 'popover'
+  const trigger = document.createElement('button')
+  trigger.type = 'button'
+  trigger.className = 'button-secondary'
+  trigger.dataset.slot = 'popover-trigger'
+  const panel = document.createElement('div')
+  panel.id = 'choice-menu-' + index
+  panel.popover = 'auto'
+  panel.dataset.slot = 'popover-content'
+  trigger.setAttribute('popovertarget', panel.id)
+  trigger.setAttribute('aria-controls', panel.id)
+  trigger.setAttribute('aria-expanded', 'false')
+  const label =
+    select.getAttribute('aria-label') ||
+    select.labels?.[0]?.querySelector('[data-slot=field-label]')?.textContent ||
+    select.name
+  function display() {
+    const selected = select.selectedOptions[0]
+    trigger.replaceChildren(
+      ...Array.from(selected?.childNodes || [], (node) => node.cloneNode(true)),
+    )
+    trigger.setAttribute(
+      'aria-label',
+      label + '：' + (trigger.textContent.trim() || '選択'),
+    )
+    for (const button of panel.querySelectorAll('[data-choice]'))
+      button.setAttribute(
+        'aria-pressed',
+        String(button.dataset.choice === select.value),
+      )
+  }
+  for (const opt of select.options) {
+    const item = document.createElement('button')
+    item.type = 'button'
+    item.className = 'button-quiet'
+    item.dataset.choice = opt.value
+    item.disabled = opt.disabled
+    item.append(...Array.from(opt.childNodes, (node) => node.cloneNode(true)))
+    item.setAttribute('aria-label', opt.textContent.trim())
+    item.addEventListener('click', () => {
+      select.value = opt.value
+      display()
+      panel.hidePopover()
+      trigger.focus({ preventScroll: true })
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    panel.append(item)
+  }
+  if (select.name === 'label') {
+    const manage = document.createElement('a')
+    manage.href = '/settings/labels'
+    manage.textContent = 'ラベルを管理'
+    panel.append(manage)
+  }
+  select.addEventListener('helpdesk:restore-choice', display)
+  select.addEventListener('change', display)
+  select.addEventListener('invalid', () => trigger.focus())
+  trigger.disabled = select.disabled
+  display()
+  wrapper.append(trigger, panel)
+  wrap.after(wrapper)
+  wrap.hidden = true
+}
+document
+  .querySelectorAll(
+    'select[data-product-select],select:has(option .label-dot, option svg),form[data-live-filters] select[name=sort]',
+  )
+  .forEach(richChoice)

@@ -274,9 +274,11 @@ export function NewIssueForm({
           <option value="">会話を選ぶ</option>
           {choices.map((c) => (
             <option value={c.number}>
-              #{c.number}{' '}
-              <ProductMark product={{ id: c.product, name: c.productName }} /> ·{' '}
-              {c.subject}
+              <span className="choice-reference">
+                #{c.number}{' '}
+                <ProductMark product={{ id: c.product, name: c.productName }} />
+              </span>{' '}
+              <span data-choice-subject="">{c.subject}</span>
             </option>
           ))}
         </NativeSelect>

@@ -40,6 +40,7 @@ export type Voice = {
   kind: 'inquiry' | 'feedback'
 }
 export type ExtensionContext = {
+  local?: boolean
   demoGithub?: boolean
   previousSuggestion: (
     input: PreviousInput,
@@ -155,6 +156,7 @@ export type Panel = {
   operations: string[]
   choiceLabels?: (
     ctx: ExtensionContext,
+    number?: number,
   ) => Promise<
     Record<
       string,

@@ -41,6 +41,10 @@ app.get('/help/product-icon/:product', async (c) => {
     headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
   })
 })
+function articleLayout(id: string, method: string, path?: string) {
+  if (id !== 'articles' || method !== 'GET') return 'other'
+  return path?.replaceAll('/', '') ? 'article' : 'index'
+}
 app.all('/help/:id/:product/:path{.*}?', async (c) => {
   const { id, product, path } = c.req.param()
   const item = c.env.EXTENSIONS?.active.find((x) => x.extension.id === id)
@@ -79,14 +83,15 @@ app.all('/help/:id/:product/:path{.*}?', async (c) => {
     new URL(c.req.url).origin,
     info?.mailbox,
   )
-  const search =
-    id === 'articles' && method === 'GET' && !path?.replaceAll('/', '')
+  const layout = articleLayout(id, method, path)
+  const search = layout === 'index'
   c.header(
     'Content-Security-Policy',
     publicPolicy(origins) + (search ? "; script-src 'self'" : ''),
   )
   return c.html(
     publicDocument(info ?? { name: product, mailbox: null }, page, {
+      article: layout === 'article',
       contact,
       search,
     }),

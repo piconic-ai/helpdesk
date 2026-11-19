@@ -85,6 +85,7 @@ export async function consoleFrame(
     extensions: await Promise.all(
       (env.EXTENSIONS?.active ?? []).map(async (installed) => ({
         id: installed.extension.id,
+        permitsMail: installed.extension.permissions.includes('send'),
         icon: installed.extension.icon,
         slots: installed.extension.panels?.map((p) => p.slot) ?? [],
         count: await installed.extension.navigationCount?.(
@@ -141,12 +142,19 @@ export async function inboxMetadata(
   env: Bindings,
   numbers: number[],
   operator: Operator,
+  approval = false,
 ) {
   const aliases = await conversationAliases(env)
   const groups = Object.fromEntries(
     Object.keys(aliases).map((n) => [n, canonical(aliases, Number(n))]),
   )
-  const rows = await rowDetails(env.DB, numbers, groups, operator.email)
+  const rows = await rowDetails(
+    env.DB,
+    numbers,
+    groups,
+    operator.email,
+    approval,
+  )
   return new Map(rows.map((row) => [row.number, row]))
 }
 export async function threadFiles(

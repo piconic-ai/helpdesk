@@ -7,6 +7,7 @@ export function PublicShell(props: {
   content: string
   chat?: boolean
   contact?: string
+  article?: boolean
   search?: boolean
   turnstile?: boolean
 }) {
@@ -49,7 +50,12 @@ export function PublicShell(props: {
         </main>
         {props.contact && (
           <footer className="public-footer">
-            解決しませんでしたか？ <a href={props.contact}>お問い合わせ</a>
+            {props.article && <span>解決しませんでしたか？ </span>}
+            <a href={props.contact}>
+              {props.contact.startsWith('mailto:')
+                ? 'メールでお問い合わせ'
+                : 'お問い合わせ'}
+            </a>
           </footer>
         )}
       </body>

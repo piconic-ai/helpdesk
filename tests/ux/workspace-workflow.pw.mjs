@@ -7,6 +7,7 @@ test('W5 管理者が窓口・運営者の権限・保存期間を設定し、�
   await page.getByRole('link', { name: '設定', exact: true }).click()
   const back = page.getByRole('link', { name: '設定に戻る' })
   await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
   await page.getByLabel('プロダクト名', { exact: true }).fill('Atlas')
   await page.getByLabel('窓口アドレスの先頭').first().fill('atlas')
   await page
@@ -32,6 +33,7 @@ test('W5 管理者が窓口・運営者の権限・保存期間を設定し、�
   await capture(page, 'W5', '02-role', '同じ管理者で運営者の変更を確認')
   await back.click()
   await page.getByRole('link', { name: /^保存期間/ }).click()
+  await page.getByLabel('日数を指定').check()
   await page.getByRole('spinbutton').fill('30')
   await page.getByRole('button', { name: '保存期間を変更' }).click()
   await back.click()

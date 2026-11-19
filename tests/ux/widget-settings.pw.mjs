@@ -27,7 +27,9 @@ test('ボタンの設定で埋め込みコードと見本が変わり、保存�
   const live = await snippet.inputValue()
   expect(live).toContain('data-position="bottom-left"')
   await product.getByRole('button', { name: 'コードをコピー' }).click()
-  await expect(product.getByRole('status')).toHaveText('コピーしました。')
+  await expect(
+    page.getByRole('status').filter({ hasText: 'コピーしました。' }),
+  ).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(live)
   await product
     .getByRole('button', { name: '変更したボタンを見本で確認' })

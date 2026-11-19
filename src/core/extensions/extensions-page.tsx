@@ -1,3 +1,4 @@
+import { metricValue } from '../../ui/metric-value'
 import { glyph } from '../../ui/glyph'
 import { Stack } from '../../ui/layout'
 import {
@@ -10,6 +11,7 @@ import {
   ExtensionCard,
 } from '../../ui/patterns'
 import {
+  SwitchTrack,
   ActionLink,
   Popover,
   Button,
@@ -68,8 +70,14 @@ function extensionSettings(entry: ExtensionEntry) {
         role="switch"
         aria-checked={entry.enabled}
         variant="ghost"
-        aria-label={label + (entry.enabled ? 'を無効にする' : 'を有効にする')}
+        aria-label={
+          (entry.enabled ? '有効' : '無効') +
+          '、' +
+          label +
+          (entry.enabled ? 'を無効にする' : 'を有効にする')
+        }
       >
+        <SwitchTrack />
         {entry.enabled ? '有効' : '無効'}
       </Button>
     </form>
@@ -168,14 +176,14 @@ export function managementPage(
       }
     >
       {restored && (
-        <Notice kind={restored === 'yes' ? 'success' : 'error'}>
+        <Notice toast kind={restored === 'yes' ? 'success' : 'error'}>
           {restored === 'yes'
             ? '設定を元に戻しました。'
             : '設定が更新されたため、元に戻せません。'}
         </Notice>
       )}
       {updated && (
-        <Notice kind="success">
+        <Notice toast kind="success">
           {extensionLabel(updated.id)}を{updated.enabled ? '有効' : '無効'}
           にしました。
           {undo && (
@@ -349,10 +357,12 @@ function formField(
   if (key === 'issue')
     return (
       <label>
-        Issue
+        課題
         <NativeSelect name="issue">
           {p.links.filter(issueLink).map((l) => (
-            <option value={l.href.split('/').at(-1)}>{l.label}</option>
+            <option value={l.href.split('/').at(-1)}>
+              #{l.href.split('/').at(-1)} {l.label}
+            </option>
           ))}
         </NativeSelect>
       </label>
@@ -374,15 +384,7 @@ function formField(
     return (
       <label>
         再表示日時（日本時間）
-        <Input
-          required
-          type="text"
-          name="untilLocal"
-          placeholder="年-月-日 時:分"
-          pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}"
-          aria-describedby="snooze-format"
-        />
-        <small id="snooze-format">例：2026-12-24 14:30（24時間表記）</small>
+        <Input required type="datetime-local" name="untilLocal" />
       </label>
     )
   return operationField(op, key, p, number)
@@ -398,12 +400,19 @@ function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
           : undefined
       }
     >
-      {data && ['merge.combine', 'issues.preview'].includes(op.name) && (
-        <PanelSummary>
-          {op.name === 'merge.combine' ? '統合元：' : '元の問い合わせ：'}#
-          {number} {data.conversation.subject}
-        </PanelSummary>
-      )}
+      {data &&
+        ['merge.combine', 'issues.preview', 'articles.suggest'].includes(
+          op.name,
+        ) && (
+          <PanelSummary>
+            {op.name === 'merge.combine'
+              ? '統合元：'
+              : data.conversation.kind === 'feedback'
+                ? '元のフィードバック：'
+                : '元の問い合わせ：'}
+            #{number} {data.conversation.subject}
+          </PanelSummary>
+        )}
       {op.name === 'issues.preview' && p.content && (
         <PanelSummary>{p.content}</PanelSummary>
       )}
@@ -424,7 +433,7 @@ function summaryFor(p: Panel, data?: Details) {
     case 'presence':
       return '閲覧状況を確認中…'
     case 'issues':
-      return '関連付けた Issue　' + p.links.filter(issueLink).length + '件'
+      return '関連付けた課題　' + p.links.filter(issueLink).length + '件'
     case 'snooze':
       return 'この会話は保留されていません。'
     case 'merge':
@@ -441,6 +450,12 @@ function summaryFor(p: Panel, data?: Details) {
       return ''
   }
 }
+const panelTriggers: Record<string, string> = {
+  'issues.preview': '課題を起票する',
+  'articles.suggest': '記事候補を書く',
+  'issues.impact': '比較する期間を選ぶ',
+  'snooze.defer': '保留する日時を選ぶ',
+}
 function panel(p: Panel, number?: number, data?: Details) {
   const ops = actionsFor(p, data)
   if (!ops.length && !p.content && !p.links.length && !p.script) return null
@@ -453,15 +468,20 @@ function panel(p: Panel, number?: number, data?: Details) {
   const summary = summaryFor(p, data)
   const title = extensionLabel(p.id) === p.id ? p.title : extensionLabel(p.id)
   return (
-    <ContextPanel icon={p.icon} title={title} number={number} extension={p.id}>
+    <ContextPanel
+      icon={p.icon}
+      title={p.id === 'export' ? '対象と個人情報の扱い' : title}
+      number={number}
+      extension={p.id}
+    >
       {p.script && <script defer src={p.script}></script>}
       {summary && <PanelSummary>{summary}</PanelSummary>}
       {p.links.map((l) => (
         <p>
           {l.icon && glyph(l.icon.name, l.icon.label)}
-          <ActionLink href={l.href} variant="ghost">
+          <a href={l.href} data-context-link="">
             {l.label}
-          </ActionLink>
+          </a>
         </p>
       ))}
       {ops.map((op) => {
@@ -472,9 +492,7 @@ function panel(p: Panel, number?: number, data?: Details) {
         )
           return actionForm(op, p, number, data)
         const label =
-          op.name === 'issues.preview'
-            ? 'Issue を起票する'
-            : operationLabel(op.name, op.description)
+          panelTriggers[op.name] ?? operationLabel(op.name, op.description)
         return (
           <Popover
             id={'operation-' + p.id + '-' + op.name}
@@ -487,7 +505,7 @@ function panel(p: Panel, number?: number, data?: Details) {
       })}
       {ops.some((op) => op.name === 'issues.preview') && (
         <details data-issue-picker={number}>
-          <summary>既存の Issue を選ぶ</summary>
+          <summary>既存の課題を選ぶ</summary>
           <PanelForm method="post" action="/actions/issues.link">
             <input type="hidden" name="number" value={number} />
             <label>
@@ -499,7 +517,7 @@ function panel(p: Panel, number?: number, data?: Details) {
               <NativeSelect required name="issue" disabled />
             </label>
             <p role="status" aria-live="polite"></p>
-            <Button disabled>既存の Issue と紐づける</Button>
+            <Button disabled>既存の課題と紐づける</Button>
           </PanelForm>
           <script defer src="/ui/issue-picker.js"></script>
         </details>
@@ -531,6 +549,17 @@ export function conversationPanels(
     if (!p || conversation.conversation.kind !== 'inquiry') return null
     const ops = actionsFor(p, conversation)
     if (!ops.length) return null
+    if (id === 'canned')
+      return (
+        <section
+          data-extension="canned"
+          popover="auto"
+          id="reply-templates"
+          data-slot="popover-content"
+        >
+          {ops.map((op) => actionForm(op, p, number, conversation))}
+        </section>
+      )
     return (
       <div data-extension={id}>
         <Disclosure
@@ -581,6 +610,8 @@ export function issuePreview(
     body: string
     number: number
     confirmation: string
+    summary: string
+    conversationUrl: string
   },
   frame: ConsoleFrame,
 ) {
@@ -591,8 +622,17 @@ export function issuePreview(
       back={{ href: '/conversation/' + result.number, label: '会話に戻る' }}
     >
       <FormSection title={result.title}>
-        <p>{result.repository}</p>
-        <BodyText>{result.body}</BodyText>
+        <p data-public-target="">投稿先：{result.repository}</p>
+        <BodyText>{result.summary}</BodyText>
+        <p data-public-link="">
+          掲載するリンク：
+          <a href={result.conversationUrl}>会話 #{result.number}</a>
+          {' · '}
+          {new URL(result.conversationUrl).host}
+          {['127.0.0.1', 'localhost', '[::1]'].includes(
+            new URL(result.conversationUrl).hostname,
+          ) && '（この端末で開けます）'}
+        </p>
         <form action="/actions/issues.create" method="post">
           <Input
             name="confirmation"
@@ -616,8 +656,8 @@ function resultText(key: string, value: unknown) {
         timeStyle: 'short',
         timeZone: 'Asia/Tokyo',
       }).format(value)
-    if (['resolutionMs', 'operatorMs'].includes(key))
-      return Math.round(value / 60000).toLocaleString('ja-JP') + '分'
+    if (key.endsWith('Ms') || key.endsWith('Rate'))
+      return metricValue(key, value)
     if (['firstContactRate', 'improvementRate', 'ratio'].includes(key))
       return new Intl.NumberFormat('ja-JP', {
         style: 'percent',
@@ -655,8 +695,20 @@ export function operationResult(
   result: unknown,
   number?: number,
   frame?: ConsoleFrame,
+  input: Record<string, string | File> = {},
 ) {
-  const title = operationLabel(name)
+  const report = name === 'metrics.report'
+  const title = report ? '対応状況の集計' : operationLabel(name)
+  const product =
+    frame?.products.find((item) => item.id === input.product)?.name ??
+    'すべてのプロダクト'
+  const period =
+    report && input.from && input.to ? (
+      <>
+        {product} · <time>{resultText('from', Number(input.from))}</time> ～{' '}
+        <time>{resultText('to', Number(input.to) - 1)}</time>
+      </>
+    ) : undefined
   return shell(
     title,
     <DetailPage
@@ -666,11 +718,17 @@ export function operationResult(
         label: number ? '会話に戻る' : '受信箱に戻る',
       }}
     >
-      <FormSection title="結果">
+      <FormSection
+        id={report ? 'metric-result' : undefined}
+        title={report ? '集計結果' : '結果'}
+        description={period}
+      >
         {name === 'export.jsonl' ? (
           <pre>{String(result)}</pre>
         ) : result === null ? (
-          <Notice kind="success">操作が完了しました。</Notice>
+          <Notice toast kind="success">
+            操作が完了しました。
+          </Notice>
         ) : (
           resultValue('', result)
         )}

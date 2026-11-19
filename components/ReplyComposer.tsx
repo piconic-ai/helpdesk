@@ -1,6 +1,6 @@
 'use client'
 
-import { createSignal } from '@barefootjs/client'
+import { createSignal, onMount } from '@barefootjs/client'
 import { TabsList, TabsTrigger } from './PatternTabs'
 
 interface ReplyComposerProps {
@@ -8,6 +8,7 @@ interface ReplyComposerProps {
   mailbox: string
   contact: string
   subject?: string
+  hasCanned?: boolean
   articles?: { title: string; url: string }[]
   offerToWrite?: boolean
   closed?: boolean
@@ -40,6 +41,8 @@ function replyRejection(status: number | null) {
 }
 
 export function ReplyComposer(props: ReplyComposerProps) {
+  const [interactive, setInteractive] = createSignal(false)
+  onMount(() => setInteractive(true))
   const [replyBody, setReplyBody] = createSignal('')
   const [preview, setPreview] = createSignal(false)
   const [note, setNote] = createSignal(props.noteOnly ?? false)
@@ -217,7 +220,12 @@ export function ReplyComposer(props: ReplyComposerProps) {
       <p hidden={!closed() || note()}>
         返信するには再開します。入力すると、この会話を再開します。
       </p>
-      <p className="banner-error" role="alert" hidden={!reopenFailed()}>
+      <p
+        data-toast=""
+        className="banner-error"
+        role="alert"
+        hidden={!reopenFailed()}
+      >
         会話を再開できませんでした。状態を確認して、もう一度お試しください。
       </p>
       <label className="composer-field" hidden={note()}>
@@ -253,66 +261,18 @@ export function ReplyComposer(props: ReplyComposerProps) {
         />
       </label>
       {props.offerToWrite && (
-        <button
-          type="submit"
-          form="reply-article-candidate"
-          className="button-secondary"
-          hidden={note()}
-        >
-          記事の候補に追加
-        </button>
+        <div hidden={note()} className="candidate-offer">
+          <p>この問い合わせに合う記事の候補はまだありません。</p>
+          <button
+            type="submit"
+            form="reply-article-candidate"
+            className="button-secondary"
+            hidden={note()}
+          >
+            記事の候補に追加
+          </button>
+        </div>
       )}
-      <div hidden={note() || !props.articles?.length}>
-        <button
-          type="button"
-          className="button-quiet"
-          {...{ popovertarget: 'reply-articles' }}
-          disabled={sending()}
-          aria-controls="reply-articles"
-        >
-          記事を添える
-        </button>
-        <section
-          id="reply-articles"
-          className="settings-card article-popover"
-          {...{ popover: 'auto' }}
-        >
-          <label>
-            記事の題名で検索
-            <input
-              type="search"
-              autofocus
-              value={query()}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') event.preventDefault()
-              }}
-              onInput={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <ul className="article-choices">
-            {(props.articles ?? []).map((article) => (
-              <li
-                key={article.url}
-                hidden={
-                  !article.title
-                    .toLocaleLowerCase()
-                    .includes(query().trim().toLocaleLowerCase())
-                }
-              >
-                <button
-                  type="button"
-                  className="button-quiet"
-                  data-url={article.url}
-                  disabled={sending()}
-                  onClick={attachArticle}
-                >
-                  {article.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
       <section
         className="settings-card reply-preview"
         role="region"
@@ -335,6 +295,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
         <pre className="message-body">{replyBody()}</pre>
       </section>
       <p
+        data-toast=""
         className="banner-error"
         role="alert"
         hidden={failureStatus() === null}
@@ -357,33 +318,100 @@ export function ReplyComposer(props: ReplyComposerProps) {
           差出人: <code>{props.mailbox}</code> → 宛先:{' '}
           <code>{props.contact}</code>
         </p>
-        <div className="composer-actions">
-          <button
-            type="button"
-            className="button-quiet"
-            hidden={note()}
-            aria-expanded={preview()}
-            onClick={togglePreview}
-          >
-            プレビュー
-          </button>
-          <button
-            type="submit"
-            name="close"
-            formaction="/actions/replyAndClose"
-            className="button-secondary"
-            hidden={note()}
-            disabled={sending()}
-          >
-            送信して完了
-          </button>
-          <button
-            type="submit"
-            className={props.noteOnly ? 'button-secondary' : 'button-primary'}
-            disabled={sending()}
-          >
-            {submitLabel(note(), sending())}
-          </button>
+        <div className="composer-tools">
+          <div className="composer-inserts">
+            <div hidden={note() || !props.articles?.length}>
+              <button
+                type="button"
+                className="button-quiet"
+                {...{ popovertarget: 'reply-articles' }}
+                disabled={!interactive() || sending()}
+                aria-controls="reply-articles"
+              >
+                記事を添える
+              </button>
+              <section
+                id="reply-articles"
+                className="settings-card article-popover"
+                {...{ popover: 'auto' }}
+              >
+                <label>
+                  記事の題名で検索
+                  <input
+                    type="search"
+                    autofocus
+                    value={query()}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') event.preventDefault()
+                    }}
+                    onInput={(event) => setQuery(event.target.value)}
+                  />
+                </label>
+                <ul className="article-choices">
+                  {(props.articles ?? []).map((article) => (
+                    <li
+                      key={article.url}
+                      hidden={
+                        !article.title
+                          .toLocaleLowerCase()
+                          .includes(query().trim().toLocaleLowerCase())
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="button-quiet"
+                        data-url={article.url}
+                        disabled={sending()}
+                        onClick={attachArticle}
+                      >
+                        {article.title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+            {props.hasCanned && (
+              <button
+                type="button"
+                hidden={note()}
+                className="button-quiet"
+                {...{ popovertarget: 'reply-templates' }}
+                aria-controls="reply-templates"
+                aria-expanded="false"
+              >
+                定型文を選ぶ
+              </button>
+            )}
+          </div>
+          <div className="composer-actions">
+            <button
+              type="button"
+              className="button-quiet"
+              hidden={note()}
+              aria-expanded={preview()}
+              onClick={togglePreview}
+            >
+              プレビュー
+            </button>
+            <button
+              type="submit"
+              name="close"
+              formaction="/actions/replyAndClose"
+              className="button-secondary"
+              hidden={note()}
+              disabled={sending()}
+            >
+              送信して完了
+            </button>
+            <button
+              type="submit"
+              className={props.noteOnly ? 'button-secondary' : 'button-primary'}
+              disabled={sending()}
+            >
+              {submitLabel(note(), sending())}
+            </button>
+          </div>
         </div>
       </div>
     </form>

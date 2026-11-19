@@ -45,7 +45,11 @@ export function automaticMailPage(
       title={policy}
       back={{ href: '/extensions', label: '拡張の管理に戻る' }}
     >
-      {notice && <Notice kind={error ? 'error' : 'success'}>{notice}</Notice>}
+      {notice && (
+        <Notice toast kind={error ? 'error' : 'success'}>
+          {notice}
+        </Notice>
+      )}
       <FormSection title="自動送信の承認">
         <p>
           {id === 'auto-ack'

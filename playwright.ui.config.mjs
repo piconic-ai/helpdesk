@@ -6,9 +6,10 @@ export default defineConfig({
   testDir: './tests/ui',
   testMatch: '**/*.pw.mjs',
   snapshotPathTemplate:
-    '{testDir}/../../docs/reports/loop/round-6/screens/{arg}{ext}',
+    '{testDir}/../../docs/reports/loop/round-11/screens/{arg}{ext}',
   fullyParallel: true,
   workers: 3,
+  updateSnapshots: 'none',
   timeout: 100_000,
   reporter: 'list',
   use: {

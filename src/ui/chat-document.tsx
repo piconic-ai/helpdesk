@@ -108,7 +108,12 @@ export function chatDocument(options: Options) {
                 <div id="chat-verification">
                   <Challenge siteKey={options.siteKey} />
                 </div>
-                <p role="alert" id="chat-error" hidden></p>
+                <div role="alert" id="chat-error" data-toast="" hidden>
+                  <span></span>
+                  <Button type="button" variant="ghost">
+                    {lang === 'en' ? 'Close' : '閉じる'}
+                  </Button>
+                </div>
               </EditPage>
             </main>
             <footer>

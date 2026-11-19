@@ -102,6 +102,7 @@ export function Field({
 
 type Overlay = {
   id: string
+  accessibleName?: string
   label: Child
   children?: Child
   disabled?: boolean
@@ -109,6 +110,7 @@ type Overlay = {
 }
 function Popup({
   id,
+  accessibleName,
   label,
   children,
   disabled,
@@ -123,6 +125,7 @@ function Popup({
         type="button"
         disabled={disabled}
         popovertarget={id}
+        aria-label={accessibleName}
         aria-controls={id}
         aria-expanded="false"
         aria-haspopup={menu ? 'menu' : undefined}
@@ -166,3 +169,9 @@ export function Dialog({
     </dialog>
   )
 }
+
+export const SwitchTrack = () => (
+  <span className="switch-track" aria-hidden="true">
+    <i />
+  </span>
+)

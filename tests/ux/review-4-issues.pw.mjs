@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect, capture, confirmSubmission } from './harness.mjs'
 import { startScene } from '../ui/seed.mjs'
 
@@ -10,7 +11,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   const title = '領収書の検索を改善する'
   await page.goto(scene.origin + '/issues')
   await page.getByRole('link', { name: '課題を追加' }).click()
-  await page.getByLabel('もとになる会話').selectOption('1')
+  await choose(page, 'もとになる会話', '1')
   await page.getByLabel('タイトル').fill(title)
   await page.getByLabel('公開する要約').fill('検索条件の保存に対応する')
   await page.getByRole('button', { name: '起票内容を確認' }).click()
@@ -19,15 +20,15 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await confirmSubmission(page)
   await expect.poll(() => scene.github.created.length).toBe(1)
   await page.goto(scene.origin + '/conversation/6')
-  await page.getByText('既存の Issue を選ぶ', { exact: true }).click()
+  await page.getByText('既存の課題を選ぶ', { exact: true }).click()
   await page.getByLabel('題で探す').fill('存在しない題')
   await expect(page.getByText('該当する課題はありません。')).toBeVisible()
   await page.getByLabel('題で探す').fill('検索を改善')
   await expect(
-    page.getByRole('combobox', { name: '課題', exact: true }).locator('option'),
+    page.getByRole('combobox', { name: /^課題(?:\s*\d+)?$/ }).locator('option'),
   ).toHaveCount(1)
   await expect(page).toHaveURL(/conversation\/6$/)
-  await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
+  await page.getByRole('button', { name: '既存の課題と紐づける' }).click()
   await confirmSubmission(page)
   await expect(
     page.locator('[data-extension=issues] a[href*="github.com"]'),
@@ -106,9 +107,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     has: page.getByRole('heading', { name: '声が改善に届いた割合' }),
   })
   await expect(metric.locator('strong')).toHaveText('10%')
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption('slide')
+  await choose(page, 'プロダクト', 'slide')
   await expect(metric.locator('strong')).toHaveText('11.1%')
   await expect(metric).toContainText('1件 / 9件')
   await metric
@@ -123,9 +122,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     '03-delivered',
     '承認後に配送された会話を選択期間・プロダクトの分母で確認',
   )
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption('desk')
+  await choose(page, 'プロダクト', 'desk')
   await expect(metric.locator('strong')).toHaveText('0%')
 })
 
@@ -139,7 +136,7 @@ test('設定が必要な会話から起票先とシークレットの設定方�
     const panel = page.locator('[data-extension=issues]')
     await expect(panel).toContainText('リポジトリ、GITHUB_TOKEN')
     await expect(
-      panel.getByRole('button', { name: 'Issue を起票する' }),
+      panel.getByRole('button', { name: '課題を起票する' }),
     ).toHaveCount(0)
     await capture(
       page,
@@ -148,7 +145,9 @@ test('設定が必要な会話から起票先とシークレットの設定方�
       '会話に不足している設定と設定画面への導線が出る',
     )
     await panel.getByRole('link', { name: 'GitHub Issue の設定を開く' }).click()
-    await expect(page.getByText(/GITHUB_TOKEN は未設定/)).toBeVisible()
+    await expect(
+      page.getByText(/GitHub の接続用トークンは未設定/),
+    ).toBeVisible()
     const desk = page
       .locator('[data-ui=form-section]')
       .filter({ has: page.getByRole('heading', { name: 'Desk', exact: true }) })
@@ -179,7 +178,7 @@ test('課題の拡張を無効にすると、一覧と下書き作成を利用�
   await page.getByRole('switch', { name: 'GitHub Issueを無効にする' }).click()
   await confirmSubmission(page)
   await expect(
-    page.getByRole('link', { name: '課題', exact: true }),
+    page.getByRole('link', { name: /^課題(?:\s*\d+)?$/ }),
   ).toHaveCount(0)
   expect((await page.request.get(scene.origin + '/issues')).status()).toBe(404)
   expect(
@@ -202,7 +201,7 @@ test('同じ課題に複数のプロダクトから届いた声をまとめ、�
     .run()
   for (const number of [1, 3]) {
     await page.goto(scene.origin + '/extensions/issues/link/' + number)
-    await page.getByRole('button', { name: '既存の Issue と紐づける' }).click()
+    await page.getByRole('button', { name: '既存の課題と紐づける' }).click()
     await confirmSubmission(page)
     await expect(
       page.locator('[data-extension=issues] a[href*="github.com"]'),

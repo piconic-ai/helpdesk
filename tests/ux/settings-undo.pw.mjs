@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { startScene } from '../ui/seed.mjs'
 import { test, expect, confirmSubmission } from './harness.mjs'
 test.use({ extensions: ['canned', 'rules'] })
@@ -15,18 +16,18 @@ test('定型文・ルール・並べ替え・拡張有効化を結果から元�
   await newTemplate.getByLabel('定型文の本文').fill('更新方法です。')
   await newTemplate.getByRole('button').click()
   await expect(
-    page.locator('summary').filter({ hasText: '契約の更新' }),
+    page.getByLabel('編集：契約の更新', { exact: true }),
   ).toBeVisible()
   await undo()
   await expect(
-    page.locator('summary').filter({ hasText: '契約の更新' }),
+    page.getByLabel('編集：契約の更新', { exact: true }),
   ).toHaveCount(0)
   await page.goto(scene.origin + '/extensions/rules')
   const create = async (name) => {
     const f = page.locator('form[action="/extensions/rules/add"]').last()
     await f.getByLabel('件名に含む言葉').fill(name)
-    await f.getByLabel('付けるラベル').selectOption('請求')
-    await f.getByRole('button').click()
+    await choose(f, '付けるラベル', '請求')
+    await f.getByRole('button', { name: 'ルールを保存' }).click()
   }
   await create('先に追加')
   await create('後から追加')
@@ -80,7 +81,7 @@ multiAdmin(
       const path = scene.origin + '/extensions/canned'
       const open = async (p, label) => {
         await p.goto(path)
-        await p.locator('summary').filter({ hasText: label }).click()
+        await p.getByLabel('編集：' + label, { exact: true }).click()
       }
       const change = async (p, value) => {
         const editor = p.locator('details[open] form')
@@ -92,7 +93,7 @@ multiAdmin(
       await open(second, title)
       await expect(
         second.getByRole('link', { name: /アカウント/ }),
-      ).toContainText('mori')
+      ).toContainText('森 直子')
       await change(page, 'この本文は一人目が保存しました。')
       const receipt = page.url()
       await change(second, '古い画面の本文です。')

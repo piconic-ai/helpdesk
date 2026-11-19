@@ -15,6 +15,7 @@ export const AttachmentList = ({ children }: Content) => (
 export const ThreadPanel = ({ children }: Content) => (
   <section
     id="related-info"
+    tabindex={-1}
     aria-label="会話の関連情報"
     className="context-cards"
   >
@@ -48,7 +49,12 @@ export const ReplyArea = ({
   templates,
   children,
 }: Content & { templates: Child }) => (
-  <Stack as="section" className="reply-area" aria-label="返信欄">
+  <Stack
+    as="section"
+    id="reply-area"
+    className="reply-area"
+    aria-label="返信欄"
+  >
     {templates}
     {children}
   </Stack>
@@ -89,3 +95,12 @@ export function StepLink({
     </span>
   )
 }
+
+export const ThreadSubject = ({ children }: Content) => (
+  <span className="thread-subject">{children}</span>
+)
+export const ThreadToolbar = ({ children }: Content) => (
+  <nav className="thread-toolbar" aria-label="会話の操作">
+    {children}
+  </nav>
+)

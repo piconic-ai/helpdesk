@@ -149,6 +149,16 @@ async function seed(db, raw, extensions) {
   const statements = [
     query('INSERT INTO operators VALUES (?,?)', operator, 'admin'),
     query('INSERT INTO operators VALUES (?,?)', 'mori@example.com', 'agent'),
+    query(
+      'INSERT INTO operator_profiles(email,display_name) VALUES(?,?)',
+      operator,
+      '佐藤 優',
+    ),
+    query(
+      'INSERT INTO operator_profiles(email,display_name) VALUES(?,?)',
+      'mori@example.com',
+      '森 直子',
+    ),
     query('INSERT INTO products VALUES (?,?)', 'slide', 'Slide'),
     query('INSERT INTO products VALUES (?,?)', 'desk', 'Desk'),
     query('INSERT INTO mailboxes VALUES (?,?)', 'support@example.com', 'slide'),

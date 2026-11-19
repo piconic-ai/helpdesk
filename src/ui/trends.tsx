@@ -22,6 +22,7 @@ export function Sparkline({
   const values = series.flatMap((point) =>
     point.value === null ? [] : [point.value],
   )
+  if (values.length < 2) return null
   const max = Math.max(0, ...values)
   const caption =
     label +

@@ -48,6 +48,7 @@ for (const picker of document.querySelectorAll('[data-issue-picker]')) {
     if (choices) filter()
   })
   picker.addEventListener('toggle', load)
+  if (picker.open) void load()
   if (new URLSearchParams(location.search).get('issue') === 'link') {
     window.addEventListener('DOMContentLoaded', () => {
       const drawer = picker.closest('[popover]')

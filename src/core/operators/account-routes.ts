@@ -75,6 +75,10 @@ accountRoutes.post('/settings/senders/:product', async (c) => {
     form.showOperator === 'on',
   )
   return saved
-    ? c.redirect('/settings/mailboxes?saved=sender', 303)
+    ? c.redirect(
+        '/settings/mailboxes?saved=sender&edit=' +
+          encodeURIComponent(c.req.param('product')),
+        303,
+      )
     : c.notFound()
 })

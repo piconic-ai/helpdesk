@@ -16,8 +16,11 @@
   border-inline-start: var(--spacing-xxs) solid var(--colors-primary);
   background: var(--colors-surface-card);
 }
+[data-ui-page='overview'] [aria-label='改善と自己解決'] > [data-ui='metrics'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 [data-ui-page='overview'] [aria-label='集計の内訳'] > [data-ui='metrics'] {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 [data-ui-page='overview']
   [aria-label='集計の内訳']
@@ -50,9 +53,16 @@
   [role='tooltip'] {
   visibility: visible;
 }
-@media (max-width: 900px) {
-  [data-ui-page='overview'] [aria-label='集計の内訳'] > [data-ui='metrics'] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+[aria-label='集計の内訳'] [data-ui='metric-card'] h2 {
+  font: var(--typography-caption);
+  font-weight: var(--typography-body-strong-fontWeight);
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  [data-ui-page='overview']
+    :is([aria-label='集計の内訳'], [aria-label='改善と自己解決'])
+    > [data-ui='metrics'] {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 640px) {

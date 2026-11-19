@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { expect, test } from './harness.mjs'
 
 test.use({ extensions: ['merge', 'articles', 'issues', 'rules', 'feedback'] })
@@ -110,7 +111,7 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
   )
   await page.keyboard.press('Escape')
   const issues = page.locator('[data-extension="issues"]')
-  await issues.getByText('Issue を起票する', { exact: true }).click()
+  await issues.getByText('課題を起票する', { exact: true }).click()
   await issues.getByLabel('タイトル').fill('領収書を見つけやすくする')
   await issues.getByLabel('公開する要約').fill('検索条件が保存されません。')
   await inspectModal(
@@ -149,7 +150,7 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   await page.goto(scene.origin + '/extensions/rules')
   const editor = page.locator('form[action="/extensions/rules/add"]').last()
   await editor.getByLabel('件名に含む言葉').fill('請求内容の確認')
-  await editor.getByLabel('付けるラベル').selectOption('請求')
+  await choose(editor, '付けるラベル', '請求')
   await editor.getByRole('button', { name: 'ルールを保存' }).click()
   await page.locator('[data-list=rules] summary').first().click()
   await inspectModal(page, formButton(page, '/extensions/rules/remove'), {

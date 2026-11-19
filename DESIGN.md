@@ -29,14 +29,14 @@ colors:
   note-soft: "#fef9c3"
 
 identity:
-  0: "#283655"
-  1: "#006b83"
-  2: "#2767a9"
-  3: "#4f429d"
-  4: "#793faf"
-  5: "#89416f"
-  6: "#50616a"
-  7: "#512e58"
+  0: "#011a5b"
+  1: "#1a737d"
+  2: "#1f122f"
+  3: "#783460"
+  4: "#6a3313"
+  5: "#60811d"
+  6: "#463019"
+  7: "#5b5b5b"
 
 typography:
   title-lg:
@@ -427,7 +427,7 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 
 ### Feedback
 
-- **`banner-error`** / **`banner-success`** — Inline at the top of the main column. Errors stay until resolved; successes fade after a few seconds. No toast stacks.
+- **Operation feedback** — Show one bottom-center toast. Keep errors until dismissed and keep undo available throughout its window.
 - **`empty-state`** — One sentence saying what the state means and, if there is one, the next action. 未対応 with nothing in it reads 未対応の問い合わせはありません。 Use one outline symbol for the missing content or a magnifier for an empty search.
 - Loading uses the existing layout with `{colors.surface-card}` placeholder bars, not a spinner on a blank page.
 
@@ -463,7 +463,7 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 
 Use rounded squares for products and circles for people. Product marks measure 16px in lists, 20px in headings and 28px on public pages. An uploaded image or a single emoji can replace the product initial. The public favicon uses the same mark. An initial represents one grapheme, including combining sequences. Show a name beside each mark or give it a tooltip and an accessible name.
 
-The palette runs from 0 to 7 in the order shown in the identity scale above: 濃紺, 孔雀青, 青, 藍, 紫, 梅紫, 青灰, 葡萄. Keep identity colors inside product and person marks or label dots. The sender's address determines their initial color across surfaces. An operator can choose a label's color in settings. Gray label backgrounds and status color pairs retain their separate roles.
+The palette runs from 0 to 7 in the order shown in the identity scale above: 青, 水色, 紫, 桃, 橙, 黄緑, 茶, 灰. Keep identity colors inside product and person marks or label dots. The sender's address determines their initial color across surfaces. An operator can choose a label's color in settings. Gray label backgrounds and status color pairs retain their separate roles.
 
 ### Symbol vocabulary
 
@@ -517,17 +517,17 @@ Touch targets are at least 44px on <768px. Every interactive element has a visib
 - Place checkboxes and quick actions beside the row link. Pointer hover and keyboard focus reveal the actions. The selection toolbar states the selected count and offers assignment, labels, closure and spam handling. Sorting and pagination preserve the URL.
 - A human avatar is a cropped square image inside a 24px circle or one grapheme from the display name. Show separate labelled agent and extension glyphs. The account entry at the foot of navigation identifies the signed-in operator.
 - Use an anchored popover for a short choice in context. Its trigger shows expanded state. Escape and an outside click dismiss it. Use the action menu for secondary commands. Put related controls one spacing-sm apart and allow them to wrap on narrow screens.
-- Use a native modal dialog for an irreversible action or an outbound submission. Name the recipient, object or quantity, focus the first safe action, and restore focus on dismissal. Never nest dialogs. Use an inline result with an undo action for reversible triage.
-- Keep context in a labelled side panel alongside the timeline. On smaller screens open the same panel from the heading. Keep assignment, status and labels with the conversation heading, and insert dated changes next to the messages they affected.
+- Use a native modal dialog for an irreversible action or an outbound submission. Name the recipient, object or quantity, focus the first safe action, and restore focus on dismissal. Never nest dialogs. Offer undo in the result toast for reversible triage.
+- Keep context in a labelled side panel alongside the timeline. The toolbar opens this panel on smaller screens and focuses it on larger screens. Keep assignment, status and labels with the conversation heading, and insert dated changes next to the messages they affected.
 - List shortcuts are j, k, Enter, e and a. In a conversation use r for reply, n for note, Cmd/Ctrl+Enter to submit, and u for the inbox. The ? dialog lists the shortcuts. Ignore character shortcuts while editing and during IME composition.
 
 ## Page composition
 
-Every operator and public screen uses a list, detail, edit, or overview template. A page supplies its title, actions and content to the template. The heading and content share a left edge. A list places its search and removable filters above its rows. A detail keeps the reading column within 760px and keeps context visible on the right from 1200px and offers a heading button to open the same panel below that width. An edit uses a single form column of at most 560px with save and cancel together. An overview places a compact filter strip above a grid of cards.
+Every operator and public screen uses a list, detail, edit, or overview template. A page supplies its title, actions and content to the template. The heading and content share a left edge. A list places its search and removable filters above its rows. A detail keeps the reading column within 760px and keeps context visible on the right from 1200px with a toolbar button for access at all widths. An edit uses a single form column of at most 560px with save and cancel together. An overview places a compact filter strip above a grid of cards.
 
 Use the BarefootJS button, input, native select, popover, dialog, menu, tabs and tooltip conventions for controls. Shared components own presentation. Setting rows are full-width links with a title, explanation, current value and directional indicator. Each metric card keeps the value with its period change and definition. Extension cards put the availability switch opposite the title, with settings below. The confirmation and settings views explain access permissions. Cards share the settings-card inset. The component gallery at `/dev/ui` is available in local development.
 
-Align the inbox checkbox with the middle of the row. Place the sender before the subject and show its product mark. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation beside the heading.
+Align the inbox checkbox with the middle of the row. Place the product before the sender and subject. Read rows use regular weight. The second line holds the excerpt, labels and message indicators. Reserve the right edge for time and assignee. Show a state badge only when the list can contain several states. In a conversation, put status, assignee and labels in the attribute row; place commands and previous/next navigation in the sticky toolbar above the subject.
 
 Use the focus ring on keyboard focus and a distinct hover, pressed and disabled appearance on controls. Fade the screen and popovers over 150ms without translating the content. Respect reduced motion. In the operator console, use navigation rows or buttons for destinations; reserve underlined links for running text. Group secondary commands in a menu.
 
@@ -536,3 +536,12 @@ Use the focus ring on keyboard focus and a distinct hover, pressed and disabled 
 Before composing a screen, describe who opens it and why in one sentence. Write up to three questions that person needs answered, group information by question, rank the groups, and align repeated information in the same columns. On the issues board the operator first needs to notify people whose issue was fixed, then decide what to fix next, then assess the result. Linked conversations, delivery receipts and the calculation belong in the detail view.
 
 Spacing belongs to the layout containing the elements. Stack separates vertical children, Cluster wraps horizontal children with equal row and column gaps, Grid stretches cards to a common row height, and PageBody separates the heading, filters, body and sections. Use lg (24px) between sections, md (16px) between cards, sm (12px) within cards and xs (8px) between a field label and its control. Cards share the settings-card padding token. Keep identifiers, counts, dates, status labels and action labels on one line.
+
+## 振る舞い
+
+1. Keep visible content stationary during selection, feedback, loading, and overlay changes. Display operation results in one bottom-center toast. Keep field errors beside their fields and persistent page conditions in the page.
+2. Anchor commands independently of subject length and item count. Reserve room for quick actions and keep the conversation toolbar visible while scrolling.
+3. Give an open trigger a pressed appearance. Mark every selected menu option; restore keyboard focus on dismissal.
+4. Left-align menu items, lists, form contents and button labels. Reserve centered explanatory text for empty states.
+5. Show the current on/off state directly with a labelled switch.
+6. Size buttons to their labels. Full-width actions are permitted only below 480px.

@@ -59,6 +59,7 @@ export function extensionContext(
     })
   }
   return {
+    local: c.env.ENVIRONMENT === 'local',
     demoGithub: !!c.env.DEMO_GITHUB,
     enabledBy: installed.enabledBy,
     previousSuggestion: (input) => previousSuggestion(c.env.DB, input),

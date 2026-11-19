@@ -1,4 +1,5 @@
 import { loopScenes } from './loop-scenes.mjs'
+import { behaviorScenes } from './behavior-scenes.mjs'
 import { suggestionScenes } from './suggestion-scenes.mjs'
 import { widgetScenes, widgetSettingsScenes } from './widget-scenes.mjs'
 import { trendScenes } from './trend-scenes.mjs'
@@ -18,6 +19,7 @@ const titles = new Map(
   [
     ...screens,
     ...loopScenes,
+    ...behaviorScenes,
     ...dailyScreens,
     ...compositionScreens,
     ...reviewScreens,
@@ -55,13 +57,25 @@ for (const name of names) {
       [first, '変更前'],
       [last, '変更後'],
     ]) {
-      const file = resolve(dir, name + '-' + width + '.png')
+      let file = resolve(dir, name + '-' + width + '.png')
+      let figureLabel = label
+      if (
+        dir === first &&
+        /^menu-settings-labels-label-rename-\d+$/.test(name) &&
+        !(await access(file).then(
+          () => true,
+          () => false,
+        ))
+      ) {
+        file = resolve(dir, 'behavior-label-rename-' + width + '.png')
+        figureLabel += '（同じ表の旧編集欄）'
+      }
       await access(file)
       const href = safe(relative(output, file))
-      const caption = safe((titles.get(name) || name) + ' · ' + label)
+      const caption = safe((titles.get(name) || name) + ' · ' + figureLabel)
       figures.push(
         '<figure><figcaption>' +
-          label +
+          figureLabel +
           '</figcaption><a href="' +
           href +
           '"><img loading="lazy" src="' +

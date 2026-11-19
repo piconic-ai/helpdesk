@@ -1,6 +1,7 @@
 import { test as base, expect } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { startDemo } from '../ui/demo-scene.mjs'
 import { startScene } from '../ui/seed.mjs'
 
 async function trackActions(page) {
@@ -66,8 +67,11 @@ async function trackActions(page) {
 export { expect }
 export const test = base.extend({
   extensions: [[], { option: true }],
-  scene: async ({ extensions }, use) => {
-    const scene = await startScene(extensions, '.', { tickingClock: true })
+  demo: [false, { option: true }],
+  scene: async ({ extensions, demo }, use) => {
+    const scene = demo
+      ? await startDemo()
+      : await startScene(extensions, '.', { tickingClock: true })
     try {
       await use(scene)
     } finally {

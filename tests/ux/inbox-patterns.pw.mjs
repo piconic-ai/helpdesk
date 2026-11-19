@@ -42,7 +42,7 @@ test('受信箱は状態の重複を省き、入力から混在する検索結�
   const link = row(1).locator('a.conversation-row')
   await expect(link).toHaveClass(/unread/)
   await link.click()
-  await page.locator('.thread-header > a').click()
+  await page.locator('.thread-toolbar > a').click()
   await expect(link).not.toHaveClass(/unread/)
   for (const part of ['.row-sender', '.row-subject']) {
     await expect(link.locator(part)).toHaveCSS('font-weight', '400')
@@ -61,12 +61,12 @@ test('会話の前後へ移動し、候補のアイコンと印から現在の�
   await expect(
     page.getByRole('button', { name: '担当なし', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true')
-  const candidate = page.getByRole('button', { name: 'mori', exact: true })
+  const candidate = page.getByRole('button', { name: '森 直子', exact: true })
   await expect(candidate.locator('[role=img],img')).toBeVisible()
   await candidate.click()
-  await page.getByRole('button', { name: /担当: mori/ }).click()
+  await page.getByRole('button', { name: /担当: 森 直子/ }).click()
   await expect(
-    page.getByRole('button', { name: 'mori', exact: true }),
+    page.getByRole('button', { name: '森 直子', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true')
 })
 
@@ -137,7 +137,7 @@ test('375pxの受信箱で検索の説明と差出人を読み、独立した件
   expect(bounds.width).toBeGreaterThan(280)
   const row = page.locator('.inbox-item[data-number="7"]')
   const sender = row
-    .getByText('森 海斗', { exact: true })
+    .getByText('森 海斗さん', { exact: true })
     .filter({ visible: true })
   await expect(sender).toBeVisible()
   expect(await sender.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(

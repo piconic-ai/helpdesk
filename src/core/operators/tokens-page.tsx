@@ -12,13 +12,7 @@ import {
   ActionBar,
   EmptyState,
 } from '../../ui/patterns'
-import {
-  Button,
-  Field,
-  Input,
-  NativeSelect,
-  ActionLink,
-} from '../../ui/controls'
+import { Button, Field, Input, NativeSelect } from '../../ui/controls'
 import { Dialog } from '../../ui/controls'
 
 const access = {
@@ -43,16 +37,18 @@ export function tokensPage(
       title="API トークン"
       description={list.total + '件'}
       filters={
-        <ListFilters
-          title="トークン"
-          path="/tokens"
-          query={query}
-          filterLabel="権限で絞り込む"
-          options={Object.entries(access).map(([value, label]) => ({
-            value,
-            label,
-          }))}
-        />
+        (tokens.length > 0 || !!query.q) && (
+          <ListFilters
+            title="トークン"
+            path="/tokens"
+            query={query}
+            filterLabel="権限で絞り込む"
+            options={Object.entries(access).map(([value, label]) => ({
+              value,
+              label,
+            }))}
+          />
+        )
       }
       footer={<PageLinks path="/tokens" query={query} {...list} />}
       back={
@@ -60,15 +56,14 @@ export function tokensPage(
           ? { href: '/settings', label: '設定に戻る' }
           : { href: '/account', label: 'アカウントに戻る' }
       }
-      action={
-        <ActionLink href="#new-token" variant="outline">
-          新しいトークン
-        </ActionLink>
-      }
     >
-      {revoked && <Notice kind="success">トークンを失効させました。</Notice>}
+      {revoked && (
+        <Notice toast kind="success">
+          トークンを失効させました。
+        </Notice>
+      )}
       {secret && (
-        <Notice kind="success">
+        <Notice toast kind="success">
           <h2>トークンを発行しました</h2>
           <p>
             この画面で一度だけ表示します。コピーして CLI の HELPDESK_TOKEN

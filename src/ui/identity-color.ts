@@ -1,14 +1,14 @@
 import { identityPalette } from './identity-palette'
 export { identityPalette }
 export const identityColorNames = [
-  '濃紺',
-  '孔雀青',
   '青',
-  '藍',
+  '水色',
   '紫',
-  '梅紫',
-  '青灰',
-  '葡萄',
+  '桃',
+  '橙',
+  '黄緑',
+  '茶',
+  '灰',
 ] as const
 
 export function identityColor(key: string) {

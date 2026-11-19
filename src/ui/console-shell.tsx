@@ -80,6 +80,7 @@ function navItem(
       className={'sidebar-item' + (active ? ' sidebar-item-active' : '')}
       aria-current={active ? 'page' : undefined}
       href={href}
+      title={name}
     >
       {glyph(icon)}
       <span>{name}</span>
@@ -151,18 +152,26 @@ function navigation(frame: ConsoleFrame) {
         <Popover
           id="product-switcher"
           label={
-            selectedProduct ? (
-              <ProductMark product={selectedProduct} />
-            ) : (
-              'すべてのプロダクト'
-            )
+            <span className="product-switch-label">
+              {selectedProduct ? (
+                <ProductMark product={selectedProduct} />
+              ) : (
+                'すべてのプロダクト'
+              )}
+            </span>
           }
         >
-          <a href={inboxUrl({ ...frame.query, page: '', product: '' })}>
+          <a
+            aria-current={!product ? 'true' : undefined}
+            href={inboxUrl({ ...frame.query, page: '', product: '' })}
+          >
             すべてのプロダクト
           </a>
           {frame.products.map((p) => (
-            <a href={inboxUrl({ ...frame.query, page: '', product: p.id })}>
+            <a
+              aria-current={p.id === product ? 'true' : undefined}
+              href={inboxUrl({ ...frame.query, page: '', product: p.id })}
+            >
               <ProductMark product={p} />
             </a>
           ))}
@@ -255,6 +264,7 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="stylesheet" href="/styles.css" />
         <script type="module" src="/ui/barefoot-overlays.js"></script>
+        <script defer src="/ui/toast.js"></script>
         <script defer src="/ui/console.js"></script>
         <script defer src="/ui/inbox.js"></script>
         <script defer src="/ui/live-filters.js"></script>
@@ -263,6 +273,7 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <link rel="stylesheet" href="/ui/issue-metrics.css" />
         <link rel="stylesheet" href="/ui/issues.css" />
         <link rel="stylesheet" href="/ui/voices-articles.css" />
+        <link rel="stylesheet" href="/ui/public.css" />
         <link rel="stylesheet" href="/ui/layout.css" />
       </head>
       <body className="app-shell" data-operator={frame?.operator.email}>

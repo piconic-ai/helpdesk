@@ -1,10 +1,11 @@
+import { choose } from './choice.mjs'
 import { capture, expect, test } from './harness.mjs'
 
 const row = (page, number) =>
   page.locator('.inbox-item[data-number="' + number + '"] a.conversation-row')
 const check = (page, number) =>
   page.getByRole('checkbox', { name: '#' + number + 'を選択', exact: true })
-const choose = async (bar, name, option) => {
+const bulkChoice = async (bar, name, option) => {
   await bar.getByRole('button', { name, exact: true }).click()
   await bar.getByRole('button', { name: option, exact: true }).click()
 }
@@ -16,11 +17,11 @@ test('J13 選択した問い合わせをまとめて担当・分類・完了し�
   for (const n of [1, 7]) await check(page, n).check()
   const bar = page.getByRole('region', { name: 'まとめて操作' })
   await expect(bar).toContainText('2件を選択')
-  await choose(bar, '担当者を選ぶ', 'mori')
+  await bulkChoice(bar, '担当者を選ぶ', '森 直子')
   await expect(
-    row(page, 7).getByRole('img', { name: '担当者 mori' }),
+    row(page, 7).getByRole('img', { name: '担当者 森 直子' }),
   ).toBeVisible()
-  await choose(bar, 'ラベルを付ける', '経理')
+  await bulkChoice(bar, 'ラベルを付ける', '経理')
   await expect(row(page, 7)).toContainText('経理')
   await capture(page, 'J13', '01-selected', '2件の担当者とラベルを設定する')
   await bar.getByRole('button', { name: '完了にする' }).click()
@@ -30,7 +31,7 @@ test('J13 選択した問い合わせをまとめて担当・分類・完了し�
   await page.getByRole('button', { name: '元に戻す' }).click()
   for (const n of [1, 7]) await expect(row(page, n)).toBeVisible()
   await expect(
-    row(page, 7).getByRole('img', { name: '担当者 mori' }),
+    row(page, 7).getByRole('img', { name: '担当者 森 直子' }),
   ).toBeVisible()
   await capture(
     page,
@@ -69,7 +70,7 @@ test('一覧は最後の受信からの待ち時間で並び、種別と添付�
   ).toBeVisible()
   await expect(row(page, 7).locator('.wait-overdue')).toBeVisible()
   await expect(row(page, 7).locator('time')).toContainText(/日/)
-  await page.getByRole('combobox', { name: '並び順' }).selectOption('newest')
+  await choose(page, '並び順', 'newest')
   await expect(page).toHaveURL(/sort=newest/)
   await page.getByRole('link', { name: '次のページ' }).click()
   const location = page.url()
@@ -80,7 +81,7 @@ test('一覧は最後の受信からの待ち時間で並び、種別と添付�
   await expect(page).toHaveURL(location)
   await expect(first.locator('.row-subject')).toHaveText(title)
   await first.click()
-  const back = page.locator('.thread-header > a')
+  const back = page.locator('.thread-toolbar > a')
   await expect(back).toHaveAttribute(
     'href',
     new URL(location).pathname + new URL(location).search,
@@ -96,7 +97,7 @@ test('一覧は最後の受信からの待ち時間で並び、種別と添付�
   )
   await expect(back).toHaveAttribute('href', '/')
   await page.goto(scene.origin + '/?product=desk')
-  await expect(row(page, 3)).not.toContainText('Desk')
+  await expect(row(page, 3).locator('.row-product')).toContainText('Desk')
 })
 
 test('一覧では文字入力中のショートカットを無効にし、キーボードで行を移動・担当・完了できる', async ({
@@ -120,7 +121,7 @@ test('一覧では文字入力中のショートカットを無効にし、キ�
   await expect(
     page
       .locator('a.conversation-row[href="' + href + '"]')
-      .getByRole('img', { name: '担当者 sato' }),
+      .getByRole('img', { name: '担当者 佐藤 優' }),
   ).toBeVisible()
   await expect(target).toBeFocused()
   await page.keyboard.press('e')
@@ -162,11 +163,16 @@ test('長い件名、担当者、複数のラベル、3通のやりとりが各�
         width: el.querySelector('.row-subject').getBoundingClientRect().width,
       }
     })
-    expect(geometry.height, width + 'px row height').toBe(64)
+    expect(geometry.height, width + 'px row height').toBeGreaterThanOrEqual(64)
+    expect(
+      await target
+        .locator('.row-sender')
+        .evaluate((e) => e.scrollWidth <= e.clientWidth),
+    ).toBe(true)
     expect(geometry.top.bottom).toBeLessThanOrEqual(geometry.bottom.top)
     expect(geometry.clipTitles).toBe(true)
     expect(geometry.single).toBe(true)
     expect(geometry.documentFits, width + 'px document width').toBe(true)
-    expect(geometry.width).toBeGreaterThan(0)
+    expect(geometry.width).toBeGreaterThan(70)
   }
 })

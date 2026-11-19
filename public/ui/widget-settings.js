@@ -2,7 +2,6 @@ for (const panel of document.querySelectorAll('[data-widget-settings]')) {
   const { origin, product } = panel.dataset
   const form = panel.querySelector('[data-widget-options]')
   const snippet = panel.querySelector('[data-snippet]')
-  const result = panel.querySelector('[data-copy-result]')
   const preview = panel.querySelector('iframe')
   let timer
   function refresh() {
@@ -17,7 +16,6 @@ for (const panel of document.querySelectorAll('[data-widget-settings]')) {
     script.referrerPolicy = 'no-referrer'
     script.setAttribute('async', '')
     snippet.value = script.outerHTML
-    result.textContent = ''
     clearTimeout(timer)
     timer = setTimeout(() => {
       const url = new URL(preview.dataset.previewPath, origin)

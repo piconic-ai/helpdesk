@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { capture, editFiltersWhileLoading, expect, test } from './harness.mjs'
 
 test.use({ extensions: ['feedback'] })
@@ -6,12 +7,12 @@ test('フィルターの読み込み中に選んだフィードバックの並�
   page,
   scene,
 }) => {
-  const order = page.getByRole('combobox', { name: '並び順' })
+  const order = page.locator('select[name=sort]')
   await editFiltersWhileLoading(
     page,
     scene.origin + '/?view=feedback',
     async () => {
-      await order.selectOption('unreviewed')
+      await choose(page, '並び順', 'unreviewed')
     },
   )
   await expect(page).toHaveURL(/sort=unreviewed/)
@@ -41,7 +42,7 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
     '連絡先を入力せずに受付番号を受け取る',
   )
   await page.goto(scene.origin + '/?view=feedback')
-  const order = page.getByRole('combobox', { name: '並び順' })
+  const order = page.locator('select[name=sort]')
   await expect(order.locator('option')).toHaveText(['新しい順', '未確認を先に'])
   const row = page
     .getByRole('listitem')
@@ -50,11 +51,11 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   await row.getByRole('button', { name: '確認済みにする' }).click()
   await expect(page).toHaveURL(/\?view=feedback/)
   await expect(row).toContainText('確認済み')
-  await order.selectOption({ label: '未確認を先に' })
+  await choose(page, '並び順', { label: '未確認を先に' })
   await expect(page.locator('a.conversation-row').first()).not.toContainText(
     body,
   )
-  await order.selectOption({ label: '新しい順' })
+  await choose(page, '並び順', { label: '新しい順' })
   await expect(page.locator('a.conversation-row').first()).toContainText(body)
   await row.getByRole('link').click()
   await expect(page.getByRole('heading', { name: body })).toBeVisible()
@@ -86,7 +87,7 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   await page.getByRole('button', { name: '元に戻す' }).click()
   await expect(other).toContainText('受付済み')
   await other.getByRole('link').click()
-  const heading = page.locator('.heading-actions')
+  const heading = page.locator('.thread-toolbar')
   await expect(
     heading.getByRole('button', { name: '確認済みにする' }),
   ).toBeVisible()

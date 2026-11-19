@@ -1,6 +1,6 @@
 import { Button, Input, Popover, Textarea, Field } from '../../ui/controls'
 import { ActionBar, Candidate, CandidateList, Notice } from '../../ui/patterns'
-import { LabelDot } from '../../ui/inbox-parts'
+import { LabelChip, LabelDot } from '../../ui/inbox-parts'
 import { DraftReview } from '../../ui/thread-parts'
 import { operatorAvatar } from '../operators/identity-page'
 import { action } from './console-page'
@@ -68,13 +68,10 @@ export function labelPicker(
         labels.length ? (
           <>
             ラベル:{' '}
-            {labels.map((l, index) => (
-              <>
-                {index ? '、' : ''}
-                <LabelDot label={l.name} colors={colors} />
-                {l.name}
-              </>
+            {labels.slice(0, labels.length > 3 ? 2 : 3).map((l) => (
+              <LabelChip name={l.name} colors={colors} />
             ))}
+            {labels.length > 3 && <span>+{labels.length - 2}</span>}
           </>
         ) : (
           'ラベルを選ぶ'
@@ -116,12 +113,13 @@ export function labelPicker(
           <>
             <Input type="hidden" name="action" value="add" />
             <Field label="新しいラベル名">
-              <Input name="label" required maxlength={200} />
+              <Input name="label" required maxlength={20} />
             </Field>
           </>,
           number,
         )}
       </details>
+      <a href="/settings/labels">ラベルを管理</a>
     </Popover>
   )
 }
@@ -164,13 +162,14 @@ export function replyUndoForm(
     <form
       action="/actions/undoReply"
       method="post"
+      data-toast=""
       data-undo-reply={hold.remaining}
       data-layout="cluster"
       data-gap="sm"
     >
       <Input type="hidden" name="id" value={hold.id} />
       <Input type="hidden" name="number" value={number} />
-      <span>
+      <span role="status">
         {hold.target === 'closed'
           ? '送信後に会話を完了します。'
           : 'まもなく返信を送信します。'}
@@ -215,7 +214,7 @@ export function threadNotice(code?: string, number?: number, undoId?: string) {
         ? '操作を完了しました。'
         : ''
   return text ? (
-    <Notice kind="success">
+    <Notice toast kind="success">
       {text}
       {number &&
         undoId &&

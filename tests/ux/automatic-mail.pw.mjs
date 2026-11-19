@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect, capture } from './harness.mjs'
 
 test.use({ extensions: ['auto-ack', 'survey'] })
@@ -24,7 +25,7 @@ for (const policy of ['auto-ack', 'survey']) {
         'datetime',
         '2026-11-04T05:00:00.000Z',
       )
-      await page.getByLabel('プロダクト', { exact: true }).selectOption('slide')
+      await choose(page, 'プロダクト', 'slide')
       await expect(page).toHaveURL(
         (url) => url.searchParams.get('product') === 'slide',
       )
@@ -67,7 +68,7 @@ for (const policy of ['auto-ack', 'survey']) {
         policy + '-saved',
         '保存した文面が当該プロダクトのプレビューに反映',
       )
-      await page.getByLabel('プロダクト', { exact: true }).selectOption('desk')
+      await choose(page, 'プロダクト', 'desk')
       await expect(page).toHaveURL(
         (url) => url.searchParams.get('product') === 'desk',
       )

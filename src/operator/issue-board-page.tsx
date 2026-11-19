@@ -204,7 +204,7 @@ export function issueDetailPage(
     >
       <Stack gap="lg">
         {drafts === 'ready' && (
-          <Notice kind="success">
+          <Notice toast kind="success">
             知らせの下書きを用意しました。下の会話を開いて内容を確認し、承認して送信してください。
           </Notice>
         )}

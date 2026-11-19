@@ -35,9 +35,10 @@ function button(text, onClick, variant = 'button-secondary') {
   return control
 }
 function showError(message) {
-  error.textContent = message
+  error.querySelector('span').textContent = message
   error.hidden = !message
 }
+error.querySelector('button').addEventListener('click', () => showError(''))
 function requestBody(intent, fields, token) {
   const data = new FormData()
   data.set('intent', intent)
@@ -50,6 +51,11 @@ function requestBody(intent, fields, token) {
 async function submit(intent, fields, control, done) {
   if (busy) return
   busy = true
+  const previousChoices =
+    intent === 'ask'
+      ? turns.querySelectorAll('.chat-choices:not([hidden])')
+      : []
+  previousChoices.forEach((el) => (el.hidden = true))
   control.disabled = true
   showError('')
   const token = document.querySelector('[name="cf-turnstile-response"]')
@@ -64,6 +70,7 @@ async function submit(intent, fields, control, done) {
     if (!res.ok) throw Error(res.status === 403 ? copy.rate : copy.retry)
     done(await res.json())
   } catch (e) {
+    previousChoices.forEach((el) => (el.hidden = false))
     if (intent === 'unresolved') showContact()
     else showError(e.message === copy.rate ? copy.rate : copy.retry)
   } finally {
@@ -80,6 +87,7 @@ function appendTurn(text, response) {
   turns
     .querySelectorAll('[role=status]')
     .forEach((node) => node.removeAttribute('role'))
+  turns.querySelectorAll('.chat-choices').forEach((choices) => choices.remove())
   questions.push(text)
   ask.reset()
   contact?.remove()
@@ -178,8 +186,15 @@ function contactField(label, name, type) {
   return wrap
 }
 function showContact() {
-  contact?.remove()
+  if (contact) {
+    focusVisible(contact.querySelector('input'))
+    return
+  }
   ask.hidden = true
+  const previousChoices = [
+    ...turns.querySelectorAll('.chat-choices:not([hidden])'),
+  ]
+  previousChoices.forEach((choice) => (choice.hidden = true))
   const submissionId = crypto.randomUUID()
   const form = element('form', null, { class: 'chat-contact' })
   const send = element('button', copy.send, {
@@ -196,6 +211,7 @@ function showContact() {
         form.remove()
         contact = null
         ask.hidden = false
+        previousChoices.forEach((choice) => (choice.hidden = false))
         focusVisible(question)
       },
       'button-quiet',

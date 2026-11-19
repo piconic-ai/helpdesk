@@ -1,7 +1,7 @@
 import { glyph } from './glyph'
 import { identityColor, initial } from './identity-color'
 import { extensionLabel } from '../core/extensions/extension-labels'
-import type { Actor } from '../core/conversations/state'
+import type { Actor, Approval } from '../core/conversations/state'
 type Profile = {
   displayName: string
   email?: string
@@ -66,6 +66,7 @@ export function ContactAvatar({
 export function actorIdentity(
   actor: Actor,
   operators: readonly (Profile & { email: string })[],
+  approval?: Approval | null,
 ) {
   const lookup = (id: string) => operators.find((o) => o.email === id)
   if (actor.kind === 'operator') {
@@ -77,17 +78,31 @@ export function actorIdentity(
       </span>
     )
   }
+  if (actor.kind === 'extension') {
+    const by = approval?.kind === 'operator' ? approval.by : approval?.enabledBy
+    const name = by && (lookup(by)?.displayName ?? by.split('@')[0])
+    const source =
+      approval?.kind === 'standing'
+        ? name + 'が自動送信を承認'
+        : name
+          ? name + 'が承認'
+          : '拡張が作成'
+    return (
+      <span className="actor-identity">
+        {glyph('extension')}
+        {extensionLabel(actor.id)}（{source}）
+      </span>
+    )
+  }
   const label =
     actor.kind === 'system'
       ? 'システム'
-      : actor.kind === 'extension'
-        ? extensionLabel(actor.id)
-        : 'エージェント ' +
-          actor.id +
-          '（' +
-          (lookup(actor.onBehalfOf)?.displayName ??
-            actor.onBehalfOf.split('@')[0]) +
-          ' の代理）'
+      : 'エージェント ' +
+        actor.id +
+        '（' +
+        (lookup(actor.onBehalfOf)?.displayName ??
+          actor.onBehalfOf.split('@')[0]) +
+        ' の代理）'
   return (
     <span className="actor-identity">
       {glyph(actor.kind)}

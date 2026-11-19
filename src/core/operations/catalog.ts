@@ -1,3 +1,4 @@
+import { labelName } from '../conversations/labels'
 import { z } from 'zod'
 import { bulkInput } from '../conversations/inbox-changes'
 import { filterSchema } from '../conversations/filters'
@@ -62,7 +63,10 @@ export function makeCatalog(handlers: typeof usecases) {
     ),
     label: operation(
       'write',
-      address.extend({ label: text, action: z.enum(['add', 'remove']) }),
+      z.discriminatedUnion('action', [
+        address.extend({ label: labelName, action: z.literal('add') }),
+        address.extend({ label: text, action: z.literal('remove') }),
+      ]),
       handlers.label,
     ),
     reply: operation('draft', address.extend({ body }), handlers.reply),

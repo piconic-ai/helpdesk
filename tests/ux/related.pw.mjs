@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
@@ -82,14 +83,12 @@ test.describe('C 受信メールの拡張処理', () => {
     scene,
   }) => {
     await page.goto(scene.origin + '/extensions/rules')
-    await page
-      .getByLabel('プロダクト', { exact: true })
-      .selectOption({ label: 'Slide' })
+    await choose(page, 'プロダクト', { label: 'Slide' })
     await page.getByLabel('件名に含む言葉').fill('請求変更')
-    await page.getByLabel('付けるラベル').selectOption({ label: '経理' })
+    await choose(page, '付けるラベル', { label: '経理' })
     await page
       .getByLabel('担当者', { exact: true })
-      .selectOption({ label: 'mori' })
+      .selectOption({ label: '森 直子' })
     await page.getByRole('button', { name: 'ルールを保存' }).click()
     await expect(page.getByRole('status')).toContainText('保存')
     await scene.receive({

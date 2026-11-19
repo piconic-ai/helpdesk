@@ -164,7 +164,12 @@ function ExampleChoices() {
   return (
     <CandidateList>
       {['佐藤 優', '森 直子', '未割り当て'].map((name, i) => (
-        <Button type="button" variant="ghost" data-gallery-choice={name}>
+        <Button
+          type="button"
+          variant="ghost"
+          data-gallery-choice={name}
+          aria-pressed={i === 0}
+        >
           <Candidate label={name} icon={name[0]} selected={i === 0} />
         </Button>
       ))}
@@ -349,6 +354,7 @@ export function galleryPage(query: URLSearchParams) {
         <title>UI 部品見本 · Helpdesk</title>
         <link rel="stylesheet" href="/styles.css" />
         <link rel="stylesheet" href="/ui/inbox.css" />
+        <link rel="stylesheet" href="/ui/patterns.css" />
         <link rel="stylesheet" href="/ui/layout.css" />
         <script defer src="/ui/live-filters.js"></script>
         <script type="module" src="/ui/barefoot-overlays.js"></script>

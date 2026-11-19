@@ -20,6 +20,8 @@ import {
   StepLink,
   ThreadPanel,
   ThreadPanelTrigger,
+  ThreadSubject,
+  ThreadToolbar,
   ReplyArea,
   ThreadTimeline,
   TimelineEntry,
@@ -86,14 +88,13 @@ function message(
         {m.kind === 'inbound' ? (
           <code>{c.contact}</code>
         ) : (
-          <span>{actorIdentity(m.actor, names)}</span>
+          <span>{actorIdentity(m.actor, names, m.approval)}</span>
         )}
         {m.delivery && <Delivery state={m.delivery} />}
       </MessageAuthor>
       {m.body && (!draft || !canSend) && <MessageText>{m.body}</MessageText>}
       {m.html && (
         <>
-          <p>外部の画像は非表示です。</p>
           <iframe
             sandbox="allow-scripts"
             data-mail-frame=""
@@ -269,9 +270,9 @@ function threadContext(
         {data.history.length ? (
           data.history.map((r) => (
             <p>
-              <ActionLink variant="ghost" href={'/conversation/' + r.number}>
+              <a data-context-link="" href={'/conversation/' + r.number}>
                 <code>#{r.number}</code> {r.subject}
-              </ActionLink>
+              </a>
             </p>
           ))
         ) : (
@@ -324,20 +325,27 @@ export function conversationPage(
   const search = frame.query.inbox ?? ''
   const main = (
     <DetailPage
-      title={c.subject}
+      title={<ThreadSubject>{c.subject}</ThreadSubject>}
       contact={c.contact}
-      back={{ label: '受信箱', href: search ? '/?' + search : '/' }}
-      action={
-        <ActionBar>
-          {panels.feedback}
-          <ThreadPanelTrigger />
-          {threadActions(c, panels.snooze)}
-          <StepLink
-            previous
-            href={previous ? threadUrl(previous, search) : undefined}
-          />
-          <StepLink href={next ? threadUrl(next, search) : undefined} />
-        </ActionBar>
+      toolbar={
+        <ThreadToolbar>
+          <ActionLink href={search ? '/?' + search : '/'} variant="ghost">
+            ← 受信箱
+          </ActionLink>
+          <ActionBar>
+            {panels.feedback}
+            <a data-mobile-reply-link="" href="#reply-area">
+              {reply ? '返信欄へ' : 'メモ欄へ'}
+            </a>
+            <ThreadPanelTrigger />
+            {threadActions(c, panels.snooze)}
+            <StepLink
+              previous
+              href={previous ? threadUrl(previous, search) : undefined}
+            />
+            <StepLink href={next ? threadUrl(next, search) : undefined} />
+          </ActionBar>
+        </ThreadToolbar>
       }
       attributes={
         <AttributeRow>
@@ -360,7 +368,8 @@ export function conversationPage(
         frame.labelColors,
       )}
     >
-      {threadNotice(frame.query.notice, c.number, frame.query.undoId)}
+      {!holds.length &&
+        threadNotice(frame.query.notice, c.number, frame.query.undoId)}
       {holds.map((hold) => replyUndoForm(c.number, hold))}
       <ThreadTimeline>
         {[
@@ -414,6 +423,7 @@ export function conversationPage(
           noteOnly={!reply}
           closed={c.status.kind === 'closed'}
           subject={replySubject(c.subject, c.number)}
+          hasCanned={Boolean(panels.canned)}
           articles={articles}
           offerToWrite={offerToWrite}
         />

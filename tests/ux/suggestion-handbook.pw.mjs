@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { test, expect, confirmSubmission, capture } from './harness.mjs'
 import { chapter } from './handbook.mjs'
 
@@ -9,9 +10,7 @@ test(
     const title = '共有リンクを作成する'
     await page.goto(scene.origin + '/articles')
     await page.getByRole('link', { name: '記事を書く' }).click()
-    await page
-      .getByRole('combobox', { name: 'プロダクト' })
-      .selectOption('slide')
+    await choose(page, 'プロダクト', 'slide')
     await page.getByLabel('題名').fill(title)
     await page
       .getByLabel(/要約/)

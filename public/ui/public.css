@@ -136,3 +136,14 @@
   font: var(--typography-body-strong);
   padding-block: var(--spacing-xs);
 }
+
+.public-retry-notice[data-toast]:not([open]) {
+  display: none;
+}
+.public-retry-notice > summary {
+  display: block;
+  order: 1;
+  pointer-events: auto;
+  cursor: pointer;
+  text-decoration: underline;
+}

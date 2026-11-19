@@ -5,6 +5,11 @@ document.addEventListener('click', (event) => {
       '担当・' + choice.dataset.galleryChoice
     choice.closest('[popover]')?.hidePopover()
     for (const list of document.querySelectorAll('[data-ui=candidates]')) {
+      for (const button of list.querySelectorAll('[data-gallery-choice]'))
+        button.setAttribute(
+          'aria-pressed',
+          String(button.dataset.galleryChoice === choice.dataset.galleryChoice),
+        )
       list.querySelector('[aria-label="選択中"]')?.remove()
       const item = [...list.querySelectorAll('[data-gallery-choice]')].find(
         (el) => el.dataset.galleryChoice === choice.dataset.galleryChoice,

@@ -32,7 +32,24 @@ test('受信箱で承認待ち、相手の文、内部メモ、返信を見分�
   await expect(row).toContainText('チームが増える予定')
   await expect(row).not.toContainText('ご希望の人数')
   await approval.click()
+  await expect(page.locator('a.conversation-row .row-preview')).toContainText(
+    'ご希望の人数',
+  )
+  await expect(
+    page.locator('a.conversation-row .row-preview'),
+  ).not.toContainText('チームが増える予定')
   await expect(page.locator('a.conversation-row')).toHaveCount(1)
+  await scene.db
+    .prepare(
+      `INSERT INTO messages(id,number,kind,body,delivery,approval,actor,provider_id,sent_at,created_at)
+       SELECT 'followup-5',5,kind,'お手続きの受領を確認しました。',delivery,approval,actor,'followup@example.com',sent_at,created_at
+       FROM messages WHERE id='reply-2'`,
+    )
+    .run()
+  await page.goto(scene.origin)
+  await expect(row.locator('.row-preview')).toContainText('返信 · お手続き')
+  await approval.click()
+  await expect(page.locator('.row-preview')).toContainText('下書き · 更新時に')
   await page.goto(scene.origin + '/?status=pending')
   await expect(
     page
@@ -51,14 +68,21 @@ test('受信箱で承認待ち、相手の文、内部メモ、返信を見分�
   await page.getByRole('link', { name: /フィードバック.*1/ }).click()
   await expect(page.locator('a.conversation-row')).toHaveCount(1)
   await page.getByText('絞り込み', { exact: true }).click()
-  await expect(page.getByLabel('状態')).not.toContainText('未対応')
+  await expect(page.getByLabel('状態', { exact: true })).not.toContainText(
+    '未対応',
+  )
   await page.goto(scene.origin)
   await page.getByText('絞り込み', { exact: true }).click()
-  await expect(page.getByLabel('状態')).not.toContainText('受付済み')
+  await expect(page.getByLabel('状態', { exact: true })).not.toContainText(
+    '受付済み',
+  )
   await expect(
     page.getByRole('button', { name: '担当者 すべて', exact: true }),
   ).toHaveAttribute('popovertarget', 'filter-assignee')
-  await expect(page.getByLabel('ラベル')).toHaveJSProperty('tagName', 'SELECT')
+  await page.getByRole('button', { name: 'ラベル：すべて' }).click()
+  await expect(
+    page.getByRole('button', { name: '請求', exact: true }),
+  ).toBeVisible()
 })
 
 test('運営画面で識別子、アドレス、機械の単位を入力させない', async ({

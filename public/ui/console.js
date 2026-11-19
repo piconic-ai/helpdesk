@@ -47,6 +47,8 @@ for (const form of document.querySelectorAll(
       error.setAttribute('role', 'alert')
       if (field.validity.valueMissing)
         error.textContent = 'この項目を入力してください。'
+      else if (field.validity.patternMismatch && field.title)
+        error.textContent = field.title
       else if (field.type === 'email')
         error.textContent =
           'メールアドレスを name@example.com の形式で入力してください。'
@@ -101,14 +103,14 @@ if (inbox) {
   const reset = () => {
     clearTimeout(timer)
     inbox.removeAttribute('aria-busy')
-    content.hidden = false
+    content.inert = false
     placeholder.hidden = true
   }
   const loading = () => {
     reset()
     timer = setTimeout(() => {
       inbox.setAttribute('aria-busy', 'true')
-      content.hidden = true
+      content.inert = true
       placeholder.hidden = false
     }, 180)
   }
@@ -159,10 +161,19 @@ if (relatedInfo) {
   const trigger = document.querySelector('.context-drawer-trigger')
   const adapt = () => {
     relatedInfo.toggleAttribute('popover', narrow.matches)
-    trigger.setAttribute('aria-expanded', 'false')
+    if (narrow.matches) {
+      trigger.setAttribute('aria-expanded', 'false')
+      trigger.setAttribute('popovertarget', 'related-info')
+    } else {
+      trigger.removeAttribute('aria-expanded')
+      trigger.removeAttribute('popovertarget')
+    }
   }
   adapt()
   narrow.addEventListener('change', adapt)
+  trigger.addEventListener('click', () => {
+    if (!narrow.matches) relatedInfo.focus({ preventScroll: false })
+  })
   relatedInfo.addEventListener('toggle', () => {
     trigger.setAttribute(
       'aria-expanded',
@@ -247,4 +258,41 @@ for (const form of document.querySelectorAll('form[data-undo-reply]')) {
         '送信を取り消せませんでした。会話を再読み込みして送信状態を確認してください。'
     }
   })
+}
+
+const subject = document.querySelector('.thread-subject')
+if (subject) {
+  const button = document.createElement('button')
+  button.className = 'subject-toggle'
+  button.type = 'button'
+  button.textContent = '全文を表示'
+  button.hidden = true
+  button.setAttribute('aria-expanded', 'false')
+  subject.parentElement.after(button)
+  const size = () => {
+    if (subject.dataset.expanded !== 'true')
+      button.hidden = subject.scrollHeight <= subject.clientHeight + 1
+  }
+  button.onclick = () => {
+    const expanded = button.getAttribute('aria-expanded') !== 'true'
+    button.setAttribute('aria-expanded', String(expanded))
+    subject.dataset.expanded = String(expanded)
+    button.textContent = expanded ? '折りたたむ' : '全文を表示'
+  }
+  subject.onclick = () => {
+    if (!button.hidden) button.click()
+  }
+  new ResizeObserver(size).observe(subject)
+}
+
+for (const choices of document.querySelectorAll('[data-retention-mode]')) {
+  const form = choices.closest('form')
+  const sync = () => {
+    form.elements.days.disabled =
+      form.elements.retentionMode.value === 'unlimited'
+    form.elements.days.closest('[data-slot="field"]').hidden =
+      form.elements.days.disabled
+  }
+  choices.addEventListener('change', sync)
+  sync()
 }

@@ -17,7 +17,9 @@ export function accountPage(
     'アカウント',
     <EditPage title="アカウント" back={{ href: '/', label: '受信箱に戻る' }}>
       {frame.query.saved && (
-        <Notice kind="success">アカウントを保存しました。</Notice>
+        <Notice toast kind="success">
+          アカウントを保存しました。
+        </Notice>
       )}
       {error && <Notice kind="error">{error}</Notice>}
       <FormSection title="プロフィール">

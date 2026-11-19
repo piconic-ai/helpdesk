@@ -5,6 +5,14 @@ const input = z.object({
   number: z.coerce.number().int().positive(),
   template: z.string().min(1),
 })
+function fillTemplate(
+  body: string,
+  contact: { name: string; productName: string },
+) {
+  return body.replace(/\{\{(name|product)\}\}/g, (_, field) =>
+    field === 'name' ? contact.name : contact.productName,
+  )
+}
 export const canned = {
   id: 'canned',
   icon: 'canned',
@@ -22,9 +30,7 @@ export const canned = {
         const item = (await savedTemplates(ctx)).get(template)
         if (!item) throw new Error('Unknown reply template')
         const contact = await ctx.contact(number)
-        const body = item.body.replace(/\{\{(name|product)\}\}/g, (_, field) =>
-          field === 'name' ? contact.name : contact.productName,
-        )
+        const body = fillTemplate(item.body, contact)
         return ctx.draft(number, body)
       },
     },
@@ -34,12 +40,18 @@ export const canned = {
       slot: 'conversation',
       title: 'Saved replies',
       operations: ['apply'],
-      async choiceLabels(ctx) {
+      async choiceLabels(ctx, number) {
+        const contact = number ? await ctx.contact(number) : undefined
         return {
           template: Object.fromEntries(
             [...(await savedTemplates(ctx))].map(([id, item]) => [
               id,
-              { label: item.name, description: item.body },
+              {
+                label: item.name,
+                description: contact
+                  ? fillTemplate(item.body, contact)
+                  : item.body,
+              },
             ]),
           ),
         }

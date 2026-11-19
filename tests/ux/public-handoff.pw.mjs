@@ -165,6 +165,11 @@ test('受付の確認が失敗しても、入力した件名・本文・宛先�
   await page.getByLabel('件名').fill(subject)
   await page.getByLabel('お問い合わせ内容').fill(body)
   await page.getByLabel('連絡先メールアドレス').fill(email)
+  const position = () =>
+    page
+      .getByLabel('件名')
+      .evaluate((node) => node.getBoundingClientRect().top + scrollY)
+  const before = await position()
   await page.route(
     '**/help/form/slide',
     (route) => {
@@ -176,6 +181,9 @@ test('受付の確認が失敗しても、入力した件名・本文・宛先�
   )
   await page.getByRole('button', { name: '送信', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('もう一度')
+  expect(await position()).toBeCloseTo(before, 0)
+  await page.getByRole('button', { name: '閉じる' }).click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
   await expect(page.getByLabel('件名')).toHaveValue(subject)
   await expect(page.getByLabel('お問い合わせ内容')).toHaveValue(body)
   await expect(page.getByLabel('連絡先メールアドレス')).toHaveValue(email)

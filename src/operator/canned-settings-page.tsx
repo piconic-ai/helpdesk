@@ -44,7 +44,7 @@ export function cannedSettings(
               title={item.name}
               description={item.body}
               action={
-                <Disclosure title={'編集：' + item.name}>
+                <Disclosure title="編集" accessibleName={'編集：' + item.name}>
                   {editor(id, item.name, item.body)}
                 </Disclosure>
               }

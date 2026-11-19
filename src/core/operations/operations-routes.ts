@@ -28,7 +28,8 @@ import {
 import {
   mailboxInput,
   settingsContacts,
-  changeLabelColor,
+  changeLabel,
+  settingsLabels,
   sendingDomains,
 } from '../settings/console-settings-usecase'
 import { enableHostedIntake } from '../intakes/hosted-policy-usecase'
@@ -128,7 +129,7 @@ app.get('/', async (c) => {
       failures,
       query,
       frame,
-      await inboxMetadata(c.env, page.numbers, ctx.operator),
+      await inboxMetadata(c.env, page.numbers, ctx.operator, isApproval),
       page,
     ),
   )
@@ -164,6 +165,7 @@ app.get(
         section === 'deletion' ? await settingsContacts(ctx) : [],
         await consoleFrame(c.env, ctx.operator, c.req.path, c.req.query()),
         c.req.query('saved'),
+        section === 'labels' ? await settingsLabels(ctx) : [],
       ),
     )
   },
@@ -171,7 +173,9 @@ app.get(
 app.post('/settings/labels', async (c) => {
   const ctx = context(c)
   authorize(ctx, 'admin', scopes)
-  await changeLabelColor(ctx, await c.req.parseBody())
+  await changeLabel(ctx, await c.req.parseBody())
+  if (c.req.header('Accept') === 'application/json')
+    return c.json({ saved: true })
   return c.redirect('/settings/labels?saved=yes', 303)
 })
 app.post('/settings/mailboxes', async (c) => {
@@ -249,7 +253,7 @@ app.get('/mail/:id', async (c) => {
   const nonce = crypto.randomUUID()
   c.header(
     'Content-Security-Policy',
-    `default-src 'none'; style-src 'self'; script-src 'nonce-${nonce}'; sandbox allow-scripts; frame-ancestors 'self'; base-uri 'none'`,
+    `default-src 'none'; style-src 'self'; img-src https:; script-src 'nonce-${nonce}'; sandbox allow-scripts; frame-ancestors 'self'; base-uri 'none'`,
   )
   return c.html(htmlMailPage(html, nonce))
 })
@@ -307,11 +311,16 @@ app.post('/extensions/:id', async (c) => {
     303,
   )
 })
-function extensionFormFields(
+function operationFormFields(
   ctx: Context,
   name: string,
   input: Record<string, string | File>,
 ) {
+  if (!name.includes('.')) {
+    return name === 'retention' && input.retentionMode === 'unlimited'
+      ? { ...input, days: '0' }
+      : input
+  }
   const properties =
     describe(ctx, scopes).find((op) => op.name === name)?.inputSchema
       .properties ?? {}
@@ -346,6 +355,8 @@ async function extensionResponse(
         repository: z.string(),
         number: z.number(),
         confirmation: z.string(),
+        summary: z.string(),
+        conversationUrl: z.url(),
       })
       .parse(result)
     return c.render(
@@ -386,6 +397,7 @@ async function extensionResponse(
       result,
       number,
       await consoleFrame(c.env, ctx.operator, c.req.path),
+      input,
     ),
   )
 }
@@ -402,9 +414,7 @@ app.post('/actions/:name', async (c) => {
   )
     return c.notFound()
   const ctx = context(c)
-  const args = name.includes('.')
-    ? extensionFormFields(ctx, name, input)
-    : input
+  const args = operationFormFields(ctx, name, input)
   if (
     (name === 'snooze.defer' || name === 'snooze.resume') &&
     c.req.header('accept')?.includes('text/html')

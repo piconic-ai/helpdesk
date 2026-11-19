@@ -50,7 +50,18 @@ export async function configuredRepository(
   return (await repositoryConfig(ctx, product)).repositories[product]
 }
 export async function issueDestination(ctx: ExtensionContext, product: string) {
-  return productRepo(await repositoryConfig(ctx, product), product)
+  const destination = productRepo(await repositoryConfig(ctx, product), product)
+  const url = new URL(destination.origin)
+  if (
+    !ctx.local &&
+    (url.protocol !== 'https:' ||
+      /^(?:127\.|0\.0\.0\.0$|\[::1\]$|(?:.*\.)?localhost$)/i.test(url.hostname))
+  ) {
+    throw new Error(
+      'Configure a public HTTPS helpdesk origin for GitHub conversation links.',
+    )
+  }
+  return destination
 }
 function operator(ctx: ExtensionContext) {
   if (ctx.actor.kind !== 'operator')
@@ -75,7 +86,11 @@ export async function previewIssue(ctx: ExtensionContext, input: unknown) {
     by,
     expiresAt: ctx.now + 15 * 60000,
   })
-  return proposal
+  return {
+    ...proposal,
+    summary,
+    conversationUrl: origin + '/conversation/' + number,
+  }
 }
 async function saveLink(ctx: ExtensionContext, link: Linked, origin: string) {
   const key = linkPrefix(link.repository, link.issue) + link.number
@@ -211,7 +226,9 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
         ? '/issues/' + key
         : issueUrl(issue.repository, issue.issue),
       {
-        label: issue.repository + '#' + issue.issue,
+        label: state?.title
+          ? state.title + '（' + issue.repository + '#' + issue.issue + '）'
+          : issue.repository + '#' + issue.issue,
         icon,
       },
     )
@@ -225,7 +242,13 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
         })
     }
   })
-  return Array.from(addresses, ([href, link]) => ({ href, ...link }))
+  return Promise.all(
+    Array.from(addresses, async ([href, link]) => {
+      if (!href.startsWith('/conversation/')) return { href, ...link }
+      const other = await ctx.contact(Number(href.split('/').at(-1)))
+      return { ...link, href, label: link.label + ' ' + other.subject }
+    }),
+  )
 }
 async function expirePreviews(ctx: ExtensionContext) {
   for (const { key, value } of await ctx.list('preview/')) {

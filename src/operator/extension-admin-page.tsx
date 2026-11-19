@@ -247,7 +247,11 @@ export function candidatesPage(
                   }
                 />
               }
-              status={c.articleId ? '着手済み' : '記事を書き始める'}
+              status={
+                <span data-candidate-status="">
+                  {c.articleId ? '着手済み' : '記事を書き始める'}
+                </span>
+              }
               action={
                 <ActionLink
                   variant="ghost"
@@ -319,7 +323,12 @@ export function editorPage(
   const title = data.id ? '記事の編集' : '記事を書く'
   const back = { href: '/articles', label: '記事一覧に戻る' }
   const form = (
-    <form method="post" action="/articles/edit">
+    <form
+      method="post"
+      action="/articles/edit"
+      data-layout="stack"
+      data-gap="lg"
+    >
       {source && <SourceReference source={source} />}
       <FormSection title="記事の内容">
         {articleProduct(frame, data, source)}
@@ -388,7 +397,11 @@ export function editorPage(
         )
       }
     >
-      {notice && <Notice kind="success">{notice}</Notice>}
+      {notice && (
+        <Notice toast kind="success">
+          {notice}
+        </Notice>
+      )}
       {form}
     </EditPage>,
     frame,
@@ -501,7 +514,6 @@ function portalControls(id: string, p: Portal) {
               <Button type="button" data-copy-snippet="">
                 コードをコピー
               </Button>
-              <span role="status" data-copy-result=""></span>
             </ActionBar>
           </Stack>
         </>
@@ -527,8 +539,8 @@ function githubConnectionDescription(demo: boolean, items: Portal[]) {
   return demo
     ? 'デモ用の模擬 GitHub に接続しています。トークンとリポジトリはローカルの例示データです。'
     : items.some((p) => p.tokenReady)
-      ? 'GITHUB_TOKEN は設定済みです。対象リポジトリの Issues に読み書きできるトークンを使用します。'
-      : 'GITHUB_TOKEN は未設定です。Worker のシークレットに、対象リポジトリの Issues に読み書きできるトークンを設定してください。'
+      ? 'GitHub の接続用トークンは設定済みです。'
+      : 'GitHub の接続用トークンは未設定です。接続の設定手順を確認してください。'
 }
 export function guidePage(
   id: string,
@@ -542,10 +554,6 @@ export function guidePage(
   list?: ListWindow,
 ) {
   const Page = list === undefined ? EditPage : ListPage
-  const create =
-    id === 'rules'
-      ? { id: 'new-rule', label: '新しいルール' }
-      : { id: 'new-template', label: '新しい定型文' }
   return shell(
     extensionLabel(id),
     <Page
@@ -567,14 +575,9 @@ export function guidePage(
         )
       }
       back={{ href: '/extensions', label: '拡張の管理に戻る' }}
-      action={
-        list === undefined ? undefined : (
-          <ActionLink href={'#' + create.id}>{create.label}</ActionLink>
-        )
-      }
     >
       {notice && (
-        <Notice kind={hasError ? 'error' : 'success'}>
+        <Notice toast kind={hasError ? 'error' : 'success'}>
           {notice}
           {undoId && (
             <form method="post" action={'/extensions/' + id + '/undo-setting'}>
@@ -584,9 +587,7 @@ export function guidePage(
           )}
         </Notice>
       )}
-      <p>
-        {guides[id]?.start ?? '設定後、対象の画面で動作を確認してください。'}
-      </p>
+      {!['notify', 'issues', 'chat'].includes(id) && <p>{guides[id]?.start}</p>}
       {id === 'issues' && (
         <p>{githubConnectionDescription(frame.demoGithub, items)}</p>
       )}
@@ -602,6 +603,28 @@ export function guidePage(
       )}
       {items.map((p) => guideProduct(id, p))}
       {contents}
+      {['notify', 'issues', 'chat'].includes(id) && (
+        <details>
+          <summary>接続の設定手順</summary>
+          <p>{guides[id]?.start}</p>
+          {id === 'issues' && !frame.demoGithub && (
+            <p>
+              対象リポジトリの課題を読み書きできる接続用トークンを Worker
+              のシークレット <code>GITHUB_TOKEN</code> に登録してください。
+            </p>
+          )}
+          {id === 'notify' && (
+            <>
+              <p>メール通知の設定例</p>
+              <code>
+                {
+                  '{ extension: notify, enabled: true, settings: { email: "support@example.com" } }'
+                }
+              </code>
+            </>
+          )}
+        </details>
+      )}
       <FormSection title="使用する権限">
         <p>{permissions}</p>
       </FormSection>
@@ -616,13 +639,8 @@ export type MetricFilter = {
   end: string
 }
 const outcomes = ['resolutionMs', 'firstContactRate', 'operatorMs']
-const counts = [
-  'improvementRate',
-  'selfResolutionRate',
-  'resolved',
-  'closed',
-  'measured',
-]
+const outcomesAfterReply = ['improvementRate', 'selfResolutionRate']
+const counts = ['resolved', 'closed', 'measured']
 type MetricWindow = {
   from: number
   to: number
@@ -770,6 +788,9 @@ export function metricsPage(
       </p>
       <section aria-label="集計結果">
         <MetricGrid>{outcomes.map(card)}</MetricGrid>
+      </section>
+      <section aria-label="改善と自己解決">
+        <MetricGrid>{outcomesAfterReply.map(card)}</MetricGrid>
       </section>
       <section aria-label="集計の内訳">
         <MetricGrid>{counts.map(card)}</MetricGrid>

@@ -87,7 +87,9 @@ test('W4 声の内訳から開いた会話を記事候補にして、同じ声�
   await test.step('元の会話から候補を登録して記事の編集に進む', async () => {
     const panel = page.locator('[data-extension="articles"]')
     const add = { name: '記事の候補に追加', exact: true }
-    await panel.getByRole('button', add).click()
+    await panel
+      .getByRole('button', { name: '記事候補を書く', exact: true })
+      .click()
     await panel.getByLabel('記事にする内容').fill(topic)
     await panel.locator('form').getByRole('button', add).click()
     await page.getByRole('link', { name: 'ヘルプ記事', exact: true }).click()

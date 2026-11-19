@@ -65,7 +65,7 @@ test('W1 長い差出人でも製品名が読め、最後の担当変更と拡�
     .locator('.timeline-entry')
     .filter({ hasText: '担当者を変更' })
   await expect(changes).toHaveCount(1)
-  await expect(changes).toContainText('sato')
+  await expect(changes).toContainText('佐藤 優')
   await expect(page.locator('.message-outbound .message-author')).toContainText(
     'GitHub Issue',
   )

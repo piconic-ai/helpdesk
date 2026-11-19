@@ -38,7 +38,14 @@
     'template',
     'language',
   ])
-  const objectFields = new Set(['id', 'number', 'product', 'email', 'key'])
+  const objectFields = new Set([
+    'id',
+    'number',
+    'product',
+    'email',
+    'key',
+    'label',
+  ])
   const drafts = new WeakMap()
   const fields = []
   function get(key) {
@@ -66,6 +73,8 @@
     if (read(field) === value) return
     if (field.type === 'checkbox') field.checked = value === 'true'
     else field.value = value
+    if (field instanceof HTMLSelectElement)
+      field.dispatchEvent(new Event('helpdesk:restore-choice'))
     if (field.closest('.composer') && !field.disabled) {
       field.dataset.restoringDraft = ''
       field.dispatchEvent(new Event('input', { bubbles: true }))

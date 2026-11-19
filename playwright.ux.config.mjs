@@ -5,6 +5,9 @@ export default defineConfig({
   testMatch: '**/*.pw.mjs',
   fullyParallel: true,
   workers: 3,
+  reporter: process.env.HELPDESK_WALK_OUTPUT
+    ? [['list'], ['./tests/ux/review-walk-reporter.mjs']]
+    : 'list',
   timeout: 65_000,
   expect: { timeout: 6000 },
   use: {

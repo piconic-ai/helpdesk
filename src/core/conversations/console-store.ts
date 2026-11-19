@@ -25,6 +25,7 @@ export async function rowDetails(
   numbers: number[],
   aliases: Record<number, number>,
   email: string,
+  approval: boolean,
 ) {
   if (!numbers.length) return []
   const sql = `WITH members(source,target) AS (
@@ -33,11 +34,10 @@ export async function rowDetails(
   ), entries AS (
     SELECT m.*,x.target,
       COUNT(*) OVER(PARTITION BY x.target) AS messages,
-      FIRST_VALUE(m.kind) OVER(PARTITION BY x.target ORDER BY m.created_at DESC,m.rowid DESC) AS latestKind,
-      FIRST_VALUE(m.delivery) OVER(PARTITION BY x.target ORDER BY m.created_at DESC,m.rowid DESC) AS latestDelivery,
       MAX(m.created_at) OVER(PARTITION BY x.target) AS latest,
       ROW_NUMBER() OVER(PARTITION BY x.target ORDER BY
-        CASE WHEN c.status='open' AND m.kind='inbound' THEN 0 ELSE 1 END, m.created_at DESC,m.rowid DESC) AS position
+        CASE WHEN ?4 AND m.kind='outbound' AND m.approval IS NULL AND m.delivery IN ('draft','awaiting_approval') THEN 0
+             WHEN c.status='open' AND m.kind='outbound' AND m.approval IS NULL AND m.delivery IN ('draft','awaiting_approval') THEN 2 ELSE 1 END, m.created_at DESC,m.rowid DESC) AS position
     FROM messages m JOIN members x ON x.source=m.number JOIN conversations c ON c.number=x.target WHERE x.target IN (SELECT value FROM json_each(?1))
   ), reads AS (
     SELECT x.target,MAX(e.at) AS at,MAX(e.id) AS id FROM events e JOIN members x ON x.source=e.number
@@ -46,7 +46,7 @@ export async function rowDetails(
     SELECT target,MAX(created_at) AS at FROM entries WHERE kind='inbound' GROUP BY target
   )
   SELECT c.number,c.contact_name AS name,p.name AS productName, coalesce(m.latest,c.created_at) AS at,
-    m.latestKind AS previewKind,m.latestDelivery AS previewDelivery,i.at AS lastInbound,
+    m.kind AS previewKind,m.delivery AS previewDelivery,i.at AS lastInbound,
     coalesce(m.messages,0) AS messages, EXISTS(SELECT 1 FROM attachments a JOIN messages f ON a.message=f.id JOIN members x ON x.source=f.number WHERE x.target=c.number) AS hasFiles,coalesce(m.body,'') AS preview, (coalesce(i.at > coalesce(r.at,-1),0) OR EXISTS (
       SELECT 1 FROM events e JOIN members x ON x.source=e.number WHERE x.target=c.number
       AND e.kind='message_received' AND e.id>coalesce(r.id,0)
@@ -58,7 +58,12 @@ export async function rowDetails(
   WHERE c.number IN (SELECT value FROM json_each(?1))`
   const rows = await db
     .prepare(sql)
-    .bind(JSON.stringify(numbers), JSON.stringify(aliases), email)
+    .bind(
+      JSON.stringify(numbers),
+      JSON.stringify(aliases),
+      email,
+      Number(approval),
+    )
     .all()
   return z
     .array(
@@ -69,7 +74,7 @@ export async function rowDetails(
         at: z.number(),
         lastInbound: z.number().nullable(),
         messages: z.number(),
-        hasFiles: z.number(),
+        hasFiles: z.number().transform(Boolean),
         preview: z.string(),
         previewKind: z.enum(['inbound', 'note', 'outbound']).nullable(),
         previewDelivery: z
@@ -99,7 +104,7 @@ export async function fileMessages(db: D1Database, keys: string[]) {
 
 export async function labelChoices(db: D1Database) {
   const rows = await db
-    .prepare('SELECT DISTINCT name FROM labels ORDER BY name')
+    .prepare('SELECT name FROM label_names ORDER BY name')
     .all()
   return z
     .array(z.object({ name: z.string() }))

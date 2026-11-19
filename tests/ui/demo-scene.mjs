@@ -33,16 +33,6 @@ export async function startDemo(port = 0) {
           'repository/desk',
           JSON.stringify({ repo: 'example/desk', origin: demo.origin }),
         ),
-      demo.db
-        .prepare(
-          'INSERT INTO operator_profiles(email,display_name) VALUES(?,?)',
-        )
-        .bind('sato@example.com', '佐藤 優'),
-      demo.db
-        .prepare(
-          'INSERT INTO operator_profiles(email,display_name) VALUES(?,?)',
-        )
-        .bind('mori@example.com', '森 直子'),
     ])
     return demo
   } catch (error) {

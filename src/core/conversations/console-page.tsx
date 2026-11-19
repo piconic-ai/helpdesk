@@ -10,7 +10,7 @@ import {
   Input,
   NativeSelect,
 } from '../../ui/controls'
-import { OverviewPage, Notice } from '../../ui/patterns'
+import { OverviewPage } from '../../ui/patterns'
 export {
   statuses,
   noteLabel,
@@ -118,7 +118,7 @@ export function operatorErrorPage(
   return shell(
     title,
     <OverviewPage title={title}>
-      <Notice kind="error">{detail}</Notice>
+      <p>{detail}</p>
       <ActionLink href="/">受信箱に戻る</ActionLink>
     </OverviewPage>,
     frame,

@@ -83,7 +83,7 @@ test('差出人名の設定と運営者名の公開可否が別プロダクト�
   page,
   scene,
 }) => {
-  await page.goto(scene.origin + '/settings/mailboxes')
+  await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
   const policy = page.locator('section.settings-card').filter({
     has: page.getByRole('heading', { name: 'Slide', exact: true }),
   })
@@ -101,12 +101,12 @@ test('差出人名の設定と運営者名の公開可否が別プロダクト�
   }
   const initial = await preview(1)
   await expect(initial).toContainText('Slide サポート <support@example.com>')
-  await expect(initial).not.toContainText('sato')
-  await page.goto(scene.origin + '/settings/mailboxes')
+  await expect(initial).not.toContainText('佐藤 優')
+  await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
   await policy.getByRole('checkbox').check()
   await policy.getByRole('button', { name: '差出人を保存' }).click()
   await expect(await preview(1)).toContainText(
-    'Slide サポート · sato <support@example.com>',
+    'Slide サポート · 佐藤 優 <support@example.com>',
   )
   await expect(await preview(3)).not.toContainText('Slide サポート')
 })

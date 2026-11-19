@@ -29,9 +29,20 @@ export function inspectSpacing() {
     if (framed(el)) return [el]
     return [...el.children].flatMap(boxesWithin)
   }
+  // Measure document spacing at the sticky element's position in normal flow.
+  // While scrolling its painted position intentionally covers earlier content.
+  function flowRect(el) {
+    if (getComputedStyle(el).position !== 'sticky')
+      return el.getBoundingClientRect()
+    const previous = el.style.position
+    el.style.position = 'relative'
+    const rect = el.getBoundingClientRect()
+    el.style.position = previous
+    return rect
+  }
   function checkDistance(a, b) {
-    const x = a.getBoundingClientRect()
-    const y = b.getBoundingClientRect()
+    const x = flowRect(a)
+    const y = flowRect(b)
     const dx = Math.max(x.left - y.right, y.left - x.right)
     const dy = Math.max(x.top - y.bottom, y.top - x.bottom)
     const tooClose = (gap, overlap) => overlap < -1 && gap >= -1 && gap < 7.9
@@ -70,7 +81,7 @@ export function inspectSpacing() {
       if (visible(element)) inspect(element)
   }
   eachVisible(
-    '[data-layout], [data-ui=filter-line], [data-inbox-content], .context-cards, .reply-area, .settings-card form, main section, .public-form, #thread-actions:popover-open',
+    '[data-layout], [data-ui=filter-line], [data-inbox-content], .context-cards, .reply-area, .settings-card form, main form, main section, .public-form, #thread-actions:popover-open',
     checkPeers,
   )
   eachVisible('[data-layout=grid]', checkHeights)

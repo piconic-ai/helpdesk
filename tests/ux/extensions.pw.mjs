@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { createServer } from 'node:http'
 import { startScene } from '../ui/seed.mjs'
 import { test, expect, capture, confirmSubmission } from './harness.mjs'
@@ -13,9 +14,7 @@ test('J5 記事をプレビューし公開してから返信に添える', async
   await page.goto(scene.origin)
   await page.getByRole('link', { name: 'ヘルプ記事', exact: true }).click()
   await page.getByRole('link', { name: '記事を書く' }).click()
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption({ label: 'Slide' })
+  await choose(page, 'プロダクト', { label: 'Slide' })
   await page.getByLabel('題名').fill(title)
   await page.getByLabel('本文').fill(body)
   await page.getByRole('button', { name: 'プレビュー' }).click()
@@ -55,7 +54,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
   await page.goto(scene.origin)
   await page.getByRole('link', { name: /領収書の宛名を変更できますか/ }).click()
   const panel = page.locator('[data-extension="issues"]')
-  await panel.getByText('Issue を起票する', { exact: true }).click()
+  await panel.getByText('課題を起票する', { exact: true }).click()
   await panel.getByLabel('タイトル').fill('領収書を見つけやすくする')
   await panel.getByLabel('公開する要約').fill(summary)
   await panel.getByRole('button', { name: '起票内容を確認' }).click()
@@ -113,9 +112,7 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
     .locator('strong')
   await expect(closed).toHaveText('1')
   await capture(page, 'J10', '01-month', '過去30日の集計')
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption({ label: 'Desk' })
+  await choose(page, 'プロダクト', { label: 'Desk' })
   await page
     .getByRole('combobox', { name: '期間', exact: true })
     .selectOption({ label: '過去7日' })
@@ -128,9 +125,7 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
   await page
     .getByRole('combobox', { name: '期間', exact: true })
     .selectOption({ label: '日付を指定' })
-  await page
-    .getByRole('combobox', { name: 'プロダクト', exact: true })
-    .selectOption({ label: 'Slide' })
+  await choose(page, 'プロダクト', { label: 'Slide' })
   await page.getByRole('button', { name: '日付の範囲' }).click()
   await page.getByLabel('開始日').fill('2026-11-01')
   await page.getByLabel('終了日').fill('2026-11-15')
@@ -248,4 +243,32 @@ test.describe('公開画面の埋め込み', () => {
       0,
     )
   })
+})
+
+test('記事の選択は返信欄の操作が利用可能になってから開く', async ({
+  page,
+  scene,
+}) => {
+  let release
+  const ready = new Promise((resolve) => {
+    release = resolve
+  })
+  await page.route('**/components/**', async (route) => {
+    await ready
+    await route.continue()
+  })
+  try {
+    await page.goto(scene.origin + '/conversation/1', { waitUntil: 'commit' })
+    const attach = page.getByRole('button', { name: '記事を添える' })
+    await expect(attach).toBeDisabled({ timeout: 1500 })
+    release()
+    await attach.click()
+    const title = page.locator('#reply-articles li button').first()
+    await title.click()
+    await expect(page.getByLabel('返信', { exact: true })).toHaveValue(
+      /\/help\/articles\//,
+    )
+  } finally {
+    release()
+  }
 })

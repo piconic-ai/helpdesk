@@ -12,10 +12,12 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   const expand = async (id, label) => {
     await panel(id).getByRole('button', { name: label, exact: true }).click()
   }
-  await expand('canned', '定型文を選ぶ')
+  await page.getByRole('button', { name: '定型文を選ぶ' }).click()
   const template = panel('canned').getByRole('radio').first()
   await expect(template).toBeChecked()
-  await expect(panel('canned')).toContainText('{{name}}')
+  await expect(panel('canned')).toContainText(
+    'Hello 山田 花, thank you for contacting Slide.',
+  )
   await panel('canned')
     .locator('form')
     .getByRole('button', { name: '定型文から下書きを作成' })
@@ -33,7 +35,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   await expand('snooze', 'スヌーズ')
   await panel('snooze')
     .getByLabel('再表示日時（日本時間）')
-    .fill('2026-11-24 09:30')
+    .fill('2026-11-24T09:30')
   await panel('snooze')
     .locator('form')
     .getByRole('button', { name: '指定日時まで保留' })
@@ -95,7 +97,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
   const inherited = page.getByRole('button', { name: '領収書を外す' })
   await inherited.click()
   await expect(labels).not.toContainText('領収書')
-  await labels.click()
+  await expect(labels).toHaveAttribute('aria-expanded', 'true')
   await expect(inherited).toHaveCount(0)
   await expect(page.getByRole('button', { name: '経理を外す' })).toBeVisible()
   await page.keyboard.press('Escape')

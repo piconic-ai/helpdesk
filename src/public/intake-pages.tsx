@@ -11,6 +11,7 @@ import { DetailPage, EditPage, ListPage, Notice } from '../ui/patterns'
 import {
   Challenge,
   PublicForm,
+  IntakeError,
   PublicLinks,
   ReceiptDetails,
 } from '../ui/public-forms'
@@ -62,7 +63,7 @@ export function intakePage(
   policy: IntakePolicy,
   fields: Fields = {},
   requestContact = false,
-  error = '',
+  error: string | { retry: string } = '',
   offerArticles = false,
 ) {
   const title = titles[kind]
@@ -75,13 +76,15 @@ export function intakePage(
       <EditPage
         title={title}
         description={
-          kind === 'form' &&
-          (offerArticles
-            ? 'すべての項目を入力してください。送信前に関連記事が見つかった場合は、ご案内します。'
-            : 'すべての項目を入力してください。')
+          kind === 'feedback'
+            ? 'いただいたご意見は改善に活用します。個別の返信はありません。'
+            : kind === 'form' &&
+              (offerArticles
+                ? 'すべての項目を入力してください。送信前に関連記事が見つかった場合は、ご案内します。'
+                : 'すべての項目を入力してください。')
         }
       >
-        {error && <Notice kind="error">{error}</Notice>}
+        <IntakeError error={error} />
         <PublicForm>
           <IntakeKey policy={policy} />
           {fields.submissionId && (
@@ -290,6 +293,9 @@ export function formSuggestions(
             ]}
           />
           <Verification policy={policy} />
+          <Button type="submit" name="intent" value="edit" formnovalidate>
+            入力内容を修正する
+          </Button>
           <Button type="submit" variant="default">
             このまま送る
           </Button>
