@@ -8,7 +8,12 @@ import {
 import type { Bindings } from '../settings/bindings'
 import { conversationProject } from '../operators/project-targets-store'
 import { projectExtensions } from './project-extensions-store'
-import { activeExtensions, registry, type Registration } from './registry'
+import {
+  activeExtensions,
+  forProject,
+  registry,
+  type Registration,
+} from './registry'
 import { readOverrides, deliveryFailures } from './extension-store'
 import { describe } from '../operations/runtime-usecase'
 import type { Context, Scope } from '../operations/catalog-usecase'
@@ -77,7 +82,7 @@ export async function management(ctx: Context) {
         configurationGaps: i.enabled
           ? ((await i.extension.configurationGaps?.(
               extensionContext(ctx, i),
-              choices,
+              choices.filter((project) => forProject(i, project.id)),
             )) ?? [])
           : [],
         summary: i.enabled

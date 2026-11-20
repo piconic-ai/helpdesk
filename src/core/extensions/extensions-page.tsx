@@ -106,7 +106,7 @@ function extensionSettings(entry: ExtensionEntry) {
             {entry.enabled && (
               <ActionLink
                 variant="outline"
-                href={extensionSettingsPath(entry.id, next?.project)}
+                href={extensionSettingsPath(entry.id, next?.project, true)}
               >
                 {next?.action ?? '設定'}
               </ActionLink>

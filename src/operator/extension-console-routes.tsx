@@ -1,4 +1,4 @@
-import { projectRegistry } from '../core/extensions/registry'
+import { forProject, projectRegistry } from '../core/extensions/registry'
 import { conversationProject } from '../core/operators/project-targets-usecase'
 import { can } from '../core/operators/project-access'
 import { requireSettings } from '../core/settings/project-settings-usecase'
@@ -177,6 +177,11 @@ function active(c: RequestContext, id: string) {
 const frame = (c: RequestContext) =>
   consoleFrame(c.env, c.get('operator'), c.req.path, {
     product: c.req.query('product') ?? '',
+    from:
+      c.req.query('from') === 'extensions' &&
+      can(c.get('operator'), 'global').allowed
+        ? 'extensions'
+        : '',
     q: c.req.query('q') ?? '',
     filter: c.req.query('filter') ?? '',
     sort: c.req.query('sort') ?? '',
@@ -747,12 +752,18 @@ app.get('/extensions/:id', async (c) => {
   if (!installed) return c.notFound()
   const api = extensionContext(ctx, installed)
   const state = await frame(c)
+  const offering =
+    c.env.EXTENSIONS?.all.find((item) => item.extension.id === id) ?? installed
+  const settingsProducts = state.products.filter(
+    (p) =>
+      forProject(offering, p.id) && can(ctx.operator, 'manage', p.id).allowed,
+  )
   const portals = await guidePortals(
     c,
     id,
     api,
-    state.products.filter(
-      (p) => p.id === project || (!project && state.products.length === 1),
+    settingsProducts.filter(
+      (p) => p.id === project || (!project && settingsProducts.length === 1),
     ),
   )
   const sections =
@@ -780,7 +791,7 @@ app.get('/extensions/:id', async (c) => {
         versions,
         templates.size > 0,
         state.products,
-        state.products.filter((p) => can(ctx.operator, 'manage', p.id).allowed),
+        settingsProducts,
         product,
         await cannedCounts(c.env.DB, product),
       )
@@ -799,13 +810,19 @@ app.get('/extensions/:id', async (c) => {
           .join(' '),
       }))
       list = window
-      content = rulesSettings(state, window.rows, versions, ordered.length)
+      content = rulesSettings(
+        { ...state, products: settingsProducts },
+        window.rows,
+        versions,
+        ordered.length,
+      )
     }
   }
   return c.render(
     guidePage(
       id,
       state,
+      settingsProducts,
       portals,
       content,
       guideNotice(id, c.req.query()),
@@ -1012,7 +1029,9 @@ app.post('/extensions/issues/repository', async (c) => {
   if (!(await frame(c)).products.some((p) => p.id === input.product))
     return c.notFound()
   await api.put('repository/' + input.product, input.repository)
-  return c.redirect('/extensions/issues?saved=1', 303)
+  const next = new URLSearchParams({ saved: '1', product: input.product })
+  if (c.req.query('from') === 'extensions') next.set('from', 'extensions')
+  return c.redirect('/extensions/issues?' + next, 303)
 })
 app.get('/extensions/issues/link/:number', (c) => {
   if (!active(c, 'issues')) return c.notFound()

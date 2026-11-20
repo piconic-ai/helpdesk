@@ -1,3 +1,4 @@
+import { forProject } from '../extensions/registry'
 import { extensionDetailsPage } from '../extensions/extension-details-page'
 import { activeExtensions } from '../extensions/registry'
 import { requireMedia } from '../operators/project-targets-usecase'
@@ -250,9 +251,8 @@ app.get('/extensions/:id/details', async (c) => {
   )
   if (project && !frame.products.some((p) => p.id === project))
     return c.notFound()
-  return c.render(
-    extensionDetailsPage(frame, item.extension, item.enabled, project),
-  )
+  const enabled = item.enabled && (!project || !!forProject(item, project))
+  return c.render(extensionDetailsPage(frame, item.extension, enabled, project))
 })
 app.get('/extensions', async (c) => {
   const ctx = context(c)

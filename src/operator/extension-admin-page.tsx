@@ -485,9 +485,16 @@ function guideLink(id: string) {
   return link && <ActionLink href={link[0]}>{link[1]}</ActionLink>
 }
 
-function repositorySettings(p: Portal) {
+function repositorySettings(p: Portal, fromCatalogue: boolean) {
   return (
-    <form method="post" action="/extensions/issues/repository">
+    <form
+      method="post"
+      action={
+        fromCatalogue
+          ? '/extensions/issues/repository?from=extensions'
+          : '/extensions/issues/repository'
+      }
+    >
       <input type="hidden" name="product" value={p.id} />
       <label>
         GitHub リポジトリ
@@ -500,13 +507,13 @@ function repositorySettings(p: Portal) {
       </label>
       <SaveActions
         verb={p.repository ? 'リポジトリを更新' : '登録する'}
-        cancel={extensionSettingsPath('issues', p.id)}
+        cancel={extensionSettingsPath('issues', p.id, fromCatalogue)}
       />
     </form>
   )
 }
-function portalControls(id: string, p: Portal) {
-  if (id === 'issues') return repositorySettings(p)
+function portalControls(id: string, p: Portal, fromCatalogue: boolean) {
+  if (id === 'issues') return repositorySettings(p, fromCatalogue)
   const url = new URL(p.url)
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   if (!p.ready)
@@ -588,7 +595,7 @@ function portalControls(id: string, p: Portal) {
     </>
   )
 }
-function guideProduct(id: string, p: Portal) {
+function guideProduct(id: string, p: Portal, fromCatalogue: boolean) {
   return (
     <FormSection
       title={<ProductMark product={p} size="heading" />}
@@ -600,7 +607,7 @@ function guideProduct(id: string, p: Portal) {
           : undefined
       }
     >
-      {portalControls(id, p)}
+      {portalControls(id, p, fromCatalogue)}
       {p.recommendation && (
         <RecommendationSettings product={p.id} settings={p.recommendation} />
       )}
@@ -618,14 +625,25 @@ function githubConnectionDescription(demo: boolean, tokenReady: boolean) {
       ? 'GitHub の接続用トークンは設定済みです。'
       : 'GitHub の接続用トークンは未設定です。接続の設定手順を確認してください。'
 }
-function guideProjectPicker(id: string, frame: ConsoleFrame) {
-  const choose =
-    id === 'canned' || (hasProjectPortal(id) && frame.products.length > 1)
-  if (!choose || frame.query.product) return null
+function guideProjectPicker(
+  id: string,
+  project: string,
+  products: ConsoleFrame['products'],
+) {
+  if (project || (id !== 'canned' && !hasProjectPortal(id))) return null
+  if (!products.length)
+    return (
+      <p>
+        この拡張を利用中の{projectTerm}
+        はありません。「利用する拡張」で有効にすると設定できます。{' '}
+        <a href="/settings/projects">{projectTerm}の管理を開く</a>
+      </p>
+    )
+  if (id !== 'canned' && products.length === 1) return null
   return (
     <ProjectPickerForm
       action={'/extensions/' + id}
-      products={frame.products}
+      products={products}
       empty={`${projectTerm}を選択`}
     />
   )
@@ -634,6 +652,7 @@ function guideProjectPicker(id: string, frame: ConsoleFrame) {
 export function guidePage(
   id: string,
   frame: ConsoleFrame,
+  settingsProducts: ConsoleFrame['products'],
   items: Portal[],
   contents?: Child,
   notice?: string,
@@ -664,7 +683,7 @@ export function guidePage(
           <PageLinks path={'/extensions/' + id} query={frame.query} {...list} />
         )
       }
-      back={extensionBack(frame.query.product)}
+      back={extensionBack(frame.query.product, frame.query.from)}
     >
       {notice && (
         <Notice toast kind={hasError ? 'error' : 'success'}>
@@ -687,7 +706,7 @@ export function guidePage(
         <p>{githubConnectionDescription(frame.demoGithub, tokenReady)}</p>
       )}
       {guideLink(id)}
-      {guideProjectPicker(id, frame)}
+      {guideProjectPicker(id, frame.query.product, settingsProducts)}
       {Object.hasOwn(publicGuides, id) && (
         <script type="module" src="/ui/copy-snippet.js" />
       )}
@@ -697,7 +716,7 @@ export function guidePage(
           <script type="module" src="/ui/widget-settings.js" />
         </>
       )}
-      {items.map((p) => guideProduct(id, p))}
+      {items.map((p) => guideProduct(id, p, frame.query.from === 'extensions'))}
       {contents}
       {['notify', 'issues', 'chat'].includes(id) && (
         <details>
