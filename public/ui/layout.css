@@ -1119,10 +1119,6 @@ body:has([data-empty-composer]:not([hidden]))
 #thread-status > p:first-child {
   margin-block-end: var(--spacing-xs);
 }
-.inbox-bulk > small {
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 767px) {
   :is(dialog, .issue-pending, [data-copy-block])
     :is(button, [data-slot='button']) {

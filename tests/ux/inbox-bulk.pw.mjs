@@ -46,6 +46,70 @@ test('J13 選択した問い合わせをまとめて担当・分類・完了し�
   await expect(row(page, 7)).toBeVisible()
 })
 
+test('一括操作は画面幅に合わせて1行に収まり、その他から操作できる', async ({
+  page,
+}) => {
+  const bar = page.getByRole('region', { name: 'まとめて操作' })
+  const clear = bar.getByRole('button', { name: '選択を解除' })
+  const more = bar.getByRole('button', { name: 'その他', exact: true })
+  const assign = bar.getByRole('button', { name: '担当者を選ぶ' })
+  const label = bar.getByRole('button', { name: 'ラベルを付ける' })
+  const close = bar.getByRole('button', { name: '完了にする' })
+  const spam = bar.getByRole('button', { name: '迷惑メールにする' })
+  await check(page, 7).check()
+
+  for (const width of [320, 375, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    const count = await bar.getByText('1件を選択中').boundingBox()
+    const bounds = await bar.boundingBox()
+    for (const button of await bar.getByRole('button').all()) {
+      const box = await button.boundingBox()
+      expect(box.y + box.height / 2).toBeCloseTo(count.y + count.height / 2, 0)
+      expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+    }
+    if (width <= 375) {
+      await expect(more).toBeVisible()
+      await expect(spam).toBeHidden()
+    }
+    if (width === 1440) {
+      await expect(more).toBeHidden()
+      for (const action of [assign, label, close, spam])
+        await expect(action).toBeVisible()
+    }
+  }
+
+  await page.setViewportSize({ width: 320, height: 900 })
+  await clear.focus()
+  await page.keyboard.press('Tab')
+  await expect(more).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(assign).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(label).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(bar.getByRole('button', { name: '経理' })).toBeVisible()
+  await expect(page.locator('#bulk-label :focus')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(label).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(more).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(assign).toBeFocused()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(more).toBeHidden()
+  await expect(assign).toBeFocused()
+  await page.setViewportSize({ width: 320, height: 900 })
+  await expect(more).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(assign).toBeFocused()
+  await page.keyboard.press('End')
+  await expect(spam).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(row(page, 7)).toHaveCount(0)
+  await page.getByRole('button', { name: '元に戻す' }).click()
+  await expect(row(page, 7)).toBeVisible()
+})
+
 test('一覧は最後の受信からの待ち時間で並び、種別と添付を区別し、戻ると同じページを表示する', async ({
   page,
   scene,

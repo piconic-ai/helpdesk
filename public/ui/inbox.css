@@ -80,11 +80,52 @@
 .inbox-bulk {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm);
   background: var(--colors-surface-soft);
   border-radius: var(--rounded-md);
+}
+.inbox-bulk > :is(strong, small, button),
+.inbox-bulk-actions > button,
+.inbox-bulk-actions > [data-slot='popover'] > button {
+  white-space: nowrap;
+}
+.inbox-bulk > small {
+  max-inline-size: min(22%, 12rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inbox-bulk-actions {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--spacing-xs);
+}
+.inbox-bulk-actions > * {
+  flex: none;
+}
+.inbox-bulk-actions > :has(> #bulk-more:empty) {
+  position: absolute;
+  visibility: hidden;
+}
+#bulk-more > button,
+#bulk-more > [data-slot='popover'] > button {
+  justify-content: start;
+}
+@media (max-width: 767px) {
+  .inbox-bulk-actions > button,
+  .inbox-bulk-actions > [data-slot='popover'] > button,
+  .inbox-bulk [data-clear-selection],
+  #bulk-more > button,
+  #bulk-more > [data-slot='popover'] > button {
+    min-block-size: var(--layout-touch-target);
+  }
+}
+@media (max-width: 479px) {
+  .bulk-clear-prefix {
+    display: none;
+  }
 }
 .inbox-pagination {
   display: flex;

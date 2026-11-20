@@ -24,7 +24,6 @@ import {
   EmptyState,
   LoadingState,
   Notice,
-  ActionBar,
 } from '../../ui/patterns'
 import {
   InboxFilters,
@@ -366,11 +365,18 @@ function bulkBar(frame: ConsoleFrame, view: string) {
   return (
     <BulkBar>
       <strong data-selected-count="">0件を選択中</strong>
-      <Button type="button" variant="ghost" data-clear-selection="">
-        選択を解除
+      <Button
+        type="button"
+        variant="ghost"
+        aria-label="選択を解除"
+        data-clear-selection=""
+      >
+        <span className="bulk-clear-prefix">選択を</span>解除
       </Button>
-      {frame.query.label && <small>ラベル：{frame.query.label}</small>}
-      <ActionBar>
+      {frame.query.label && (
+        <small title={frame.query.label}>ラベル：{frame.query.label}</small>
+      )}
+      <div className="inbox-bulk-actions">
         {view !== 'feedback' && (
           <FilterPicker id="bulk-assignee" label="担当者を選ぶ">
             <small data-mixed-label-hint="">
@@ -430,7 +436,8 @@ function bulkBar(frame: ConsoleFrame, view: string) {
             ? '迷惑メールを解除'
             : '迷惑メールにする'}
         </Button>
-      </ActionBar>
+        <FilterPicker id="bulk-more" label="その他" />
+      </div>
     </BulkBar>
   )
 }

@@ -1,3 +1,58 @@
+function visibleBulkActions(widths, moreWidth, available, gap) {
+  let fit = widths.length
+  let used = widths.reduce((total, width) => total + width, 0)
+  if (used + (fit - 1) * gap <= available) return fit
+  used += moreWidth + fit * gap
+  while (fit && used > available) used -= widths[--fit] + gap
+  return fit
+}
+
+function fitBulkActions(bar, signal) {
+  const group = bar.querySelector('.inbox-bulk-actions')
+  const more = group.querySelector('#bulk-more')
+  const moreTrigger = more.previousElementSibling
+  const moreControl = more.parentElement
+  const actions = [...group.children].filter((action) => action !== moreControl)
+  const widths = actions.map((action) => action.getBoundingClientRect().width)
+  const moreWidth = moreTrigger.getBoundingClientRect().width
+  let visible = actions.length
+
+  const observer = new ResizeObserver(() => {
+    const available = group.getBoundingClientRect().width
+    const gap = parseFloat(getComputedStyle(group).columnGap)
+    const fit = visibleBulkActions(widths, moreWidth, available, gap)
+    if (fit === visible) return
+
+    const focus = document.activeElement
+    const moving = actions.slice(Math.min(fit, visible), Math.max(fit, visible))
+    const focusedAction = moving.find((action) => action.contains(focus))
+    if (
+      (fit === actions.length || more.contains(focusedAction ?? null)) &&
+      more.matches(':popover-open')
+    )
+      more.hidePopover()
+    for (const action of moving)
+      action.querySelector(':popover-open')?.hidePopover()
+    if (fit < visible) more.prepend(...moving)
+    else moreControl.before(...moving)
+    visible = fit
+
+    const returnFocus =
+      focusedAction ??
+      (focus === moreTrigger && fit === actions.length ? moving[0] : null)
+    if (returnFocus) {
+      const trigger = more.contains(returnFocus)
+        ? moreTrigger
+        : returnFocus.matches('button')
+          ? returnFocus
+          : returnFocus.querySelector('button')
+      trigger.focus({ preventScroll: true })
+    }
+  })
+  observer.observe(group)
+  signal.addEventListener('abort', () => observer.disconnect(), { once: true })
+}
+
 window.onHelpdeskPage((signal) => {
   const operator = document.body.dataset.operator
   if (!operator) return
@@ -7,6 +62,7 @@ window.onHelpdeskPage((signal) => {
   const bar = inbox?.querySelector('.inbox-bulk')
   const boxes = [...document.querySelectorAll('.row-select input')]
   const all = inbox?.querySelector('[data-select-all]')
+  if (bar) fitBulkActions(bar, signal)
   const selected = () =>
     boxes.filter((box) => box.checked).map((box) => Number(box.value))
   function bulkLabelStates() {
@@ -39,6 +95,10 @@ window.onHelpdeskPage((signal) => {
           : 'false',
       )
     const size = selected().length
+    if (!size) {
+      for (const panel of bar.querySelectorAll(':popover-open'))
+        if (panel.matches(':popover-open')) panel.hidePopover()
+    }
     bar.inert = !size
     bar.setAttribute('aria-hidden', String(!size))
     const filters = inbox.querySelector('[data-ui=filters]')
@@ -349,6 +409,7 @@ window.onHelpdeskPage((signal) => {
     if (button.hasAttribute('data-clear-selection')) {
       for (const box of boxes) box.checked = false
       refresh()
+      all?.focus({ preventScroll: true })
     }
     if (button.hasAttribute('data-filter-assignee')) chooseFilter(button)
     if (button.hasAttribute('data-quick')) quick(button)
