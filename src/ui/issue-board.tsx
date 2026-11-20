@@ -5,7 +5,14 @@ import { ContactAvatar } from './operator-identity'
 import type { Child } from 'hono/jsx'
 import { Stack, Cluster } from './layout'
 import { stamp } from './console-shell'
-import { Button, Field, Input, NativeSelect, Textarea } from './controls'
+import {
+  ActionLink,
+  Button,
+  Field,
+  Input,
+  NativeSelect,
+  Textarea,
+} from './controls'
 import { EmptyState, FormSection } from './patterns'
 
 type IssueSummary = {
@@ -354,9 +361,9 @@ export function IssueNoticeReview({
             {n.email || '宛先未設定'}
           </label>
           <p className="notice-draft-body">{n.body}</p>
-          <a href={'/conversation/' + n.number}>
+          <ActionLink href={'/conversation/' + n.number} variant="ghost">
             {n.canApprove ? '会話で文面を編集する' : '会話で状態を確認する'}
-          </a>
+          </ActionLink>
         </fieldset>
       ))}
       {notices.some((n) => n.canApprove) && (
