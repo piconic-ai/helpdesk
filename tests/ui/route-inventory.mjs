@@ -21,6 +21,7 @@ const resources = new Set([
   '/attachment',
   '/account/avatar/:key',
   '/issues/choices/:number',
+  '/conversation/:number/canned-suggestions',
 ])
 function examples(path) {
   if (path.includes('{') && !path.includes('{.*}')) {
