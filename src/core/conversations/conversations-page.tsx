@@ -43,7 +43,15 @@ import type {
   inboxMetadata,
   threadFiles,
 } from './console-usecase'
-import { shell, action, badge, noteLabel, stamp } from './console-page'
+import {
+  shell,
+  action,
+  badge,
+  noteLabel,
+  stamp,
+  selectedView,
+  statuses,
+} from './console-page'
 import type { Result } from './inbox-page'
 import type { pendingReplyUndos } from '../outbound/reply-usecase'
 import { replySubject, senderLabel } from '../outbound/compose'
@@ -313,6 +321,24 @@ function threadContext(
     </ThreadPanel>
   )
 }
+function inboxBackLink(search: string, email: string) {
+  if (!search)
+    return (
+      <ActionLink href="/" variant="ghost">
+        ← 受信箱
+      </ActionLink>
+    )
+  const view = selectedView(
+    Object.fromEntries(new URLSearchParams(search)),
+    email,
+  )
+  return (
+    <ActionLink href={'/?' + search} variant="ghost">
+      ← {statuses[view] ?? '受信箱'}
+    </ActionLink>
+  )
+}
+
 export function conversationPage(
   data: Details,
   panels: { related: Child; snooze: Child; canned: Child; feedback: Child },
@@ -352,9 +378,7 @@ export function conversationPage(
       contact={c.contact}
       toolbar={
         <ThreadToolbar>
-          <ActionLink href={search ? '/?' + search : '/'} variant="ghost">
-            ← 受信箱
-          </ActionLink>
+          {inboxBackLink(search, frame.operator.email)}
           <ActionBar>
             {panels.feedback}
             <a data-mobile-reply-link="" href="#reply-area">

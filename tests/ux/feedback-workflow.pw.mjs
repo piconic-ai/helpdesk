@@ -64,6 +64,17 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   const threadURL = new URL(await thread.getAttribute('href'), scene.origin)
   await thread.click()
   await expect(page).toHaveURL(threadURL.href)
+  const back = page.getByRole('link', { name: '← フィードバック' })
+  await expect(back).toBeVisible()
+  expect(
+    new URL(await back.getAttribute('href'), scene.origin).searchParams.get(
+      'view',
+    ),
+  ).toBe('feedback')
+  const detailAction = page.getByRole('button', { name: '問い合わせに変更' })
+  expect((await back.boundingBox()).y).toBeLessThanOrEqual(
+    (await detailAction.boundingBox()).y + 1,
+  )
   await expect(page.getByRole('heading', { name: body })).toBeVisible()
   await expect(page.getByText(/連絡先が登録されていない/)).toBeVisible()
   await expect(
