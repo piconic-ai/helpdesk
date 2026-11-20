@@ -23,6 +23,7 @@ export function projectExtensionPage(
       description={project.name}
       back={projectBack(project.id)}
     >
+      <script type="module" src="/ui/extension-switches.js" />
       {frame.query.saved && (
         <Notice kind="success" toast>
           拡張の設定を保存しました。
@@ -35,13 +36,14 @@ export function projectExtensionPage(
         const sends = item.extension.permissions.includes('send')
         const needsApproval = active && sends && !active.enabledBy
         return (
-          <FormSection title={extensionLabel(id)}>
+          <FormSection id={'extension-' + id} title={extensionLabel(id)}>
             <p>{guides[id]?.description}</p>
             <p>
               {needsApproval ? '自動送信の承認待ち' : active ? '有効' : '無効'}
             </p>
             <form
               method="post"
+              data-extension-change={id}
               action={projectPath(project.id, 'extensions/' + id)}
               data-layout="cluster"
               data-gap="sm"

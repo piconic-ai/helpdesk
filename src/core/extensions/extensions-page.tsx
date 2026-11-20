@@ -57,6 +57,7 @@ function extensionSettings(entry: ExtensionEntry) {
       action={'/extensions/' + entry.id}
       data-permissions={permissionText(entry.permissions)}
       data-extension-offering=""
+      data-extension-change={entry.id}
     >
       <input
         type="hidden"
@@ -146,7 +147,7 @@ function extensionGroups(
     })
     return matches.length
       ? [
-          <Stack as="section" gap="lg">
+          <Stack as="section" gap="lg" id={'extension-group-' + group}>
             <h2>{group}</h2>
             <MetricGrid>{matches.map(extensionSettings)}</MetricGrid>
           </Stack>,
@@ -184,6 +185,7 @@ export function managementPage(
       }
       description={`この環境で提供する拡張を選びます。提供中の拡張をプロジェクトごとに有効にできます（提供中 ${data.entries.filter((e) => e.enabled).length}件）。`}
     >
+      <script type="module" src="/ui/extension-switches.js" />
       {restored && (
         <Notice toast kind={restored === 'yes' ? 'success' : 'error'}>
           {restored === 'yes'
@@ -196,7 +198,11 @@ export function managementPage(
           {extensionLabel(updated.id)}の提供を
           {updated.enabled ? '開始' : '停止'}しました。
           {undo && (
-            <form action="/extensions/undo-activation" method="post">
+            <form
+              action="/extensions/undo-activation"
+              method="post"
+              data-extension-change={updated.id}
+            >
               <input type="hidden" name="changeId" value={undo} />
               <Button variant="ghost">元に戻す</Button>
             </form>
@@ -214,13 +220,15 @@ export function managementPage(
           ))}
         </Notice>
       )}
-      {sections.length ? (
-        sections
-      ) : (
-        <EmptyState icon="search">
-          条件に合う拡張機能はありません。検索条件や提供状態を変更してください。
-        </EmptyState>
-      )}
+      <Stack id="extension-groups" gap="lg">
+        {sections.length ? (
+          sections
+        ) : (
+          <EmptyState icon="search">
+            条件に合う拡張機能はありません。検索条件や提供状態を変更してください。
+          </EmptyState>
+        )}
+      </Stack>
     </OverviewPage>,
     frame,
   )
