@@ -476,10 +476,22 @@ test('会話の保存結果と取り消しは直近の本文・宛先・操作�
   )
 })
 
-test('絞り込んだラベルが一括選択中も分かる', async ({ page, scene }) => {
+test('絞り込み中のラベルを外しても一覧を読み直さずに取り消せる', async ({
+  page,
+  scene,
+}) => {
   await page.goto(scene.origin + '/?label=' + encodeURIComponent('請求'))
-  await page.locator('.row-select input').first().check()
-  await expect(
-    page.getByRole('region', { name: 'まとめて操作' }),
-  ).toContainText('ラベル：請求')
+  const item = page.locator('.inbox-item').first()
+  const number = await item.getAttribute('data-number')
+  const row = page.locator('.inbox-item[data-number="' + number + '"]')
+  const shell = await page.locator('#navigation').elementHandle()
+  await row.locator('.row-select input').check()
+  const bar = page.getByRole('region', { name: 'まとめて操作' })
+  await expect(bar).toContainText('ラベル：請求')
+  await bar.getByRole('button', { name: 'ラベルを付ける' }).click()
+  await bar.getByRole('button', { name: '請求', exact: true }).click()
+  await expect(row).toHaveCount(0)
+  expect(await shell.evaluate((node) => node.isConnected)).toBe(true)
+  await page.getByRole('button', { name: '元に戻す' }).click()
+  await expect(row).toBeVisible()
 })

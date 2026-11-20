@@ -377,7 +377,7 @@ window.onHelpdeskPage((signal) => {
         updated.map((box) => box.value).join(',') !==
         boxes.map((box) => box.value).join(',')
       ) {
-        location.reload()
+        await window.helpdeskNavigate(location.href, { history: 'replace' })
         return
       }
       updated.forEach((box, index) => {
