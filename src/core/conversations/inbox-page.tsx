@@ -363,81 +363,66 @@ function feedbackNotice(q: Query) {
 }
 function bulkBar(frame: ConsoleFrame, view: string) {
   return (
-    <BulkBar>
-      <strong data-selected-count="">0件を選択中</strong>
+    <BulkBar label={frame.query.label}>
+      {view !== 'feedback' && (
+        <FilterPicker id="bulk-assignee" label="担当者を選ぶ">
+          <small data-mixed-label-hint="">
+            「−」は選択中の一部の会話を担当しています。
+          </small>
+          <CandidateList>
+            {frame.operators.map((op) => (
+              <Button
+                variant="ghost"
+                type="button"
+                data-change="assign"
+                data-value={op.email}
+                aria-label={op.displayName}
+              >
+                <Candidate icon={operatorAvatar(op)} label={op.displayName} />
+              </Button>
+            ))}
+          </CandidateList>
+        </FilterPicker>
+      )}
+      <FilterPicker id="bulk-label" label="ラベルを付ける">
+        {frame.labels.length ? (
+          frame.labels.map((label) => (
+            <Button
+              type="button"
+              variant="ghost"
+              data-bulk-label={label}
+              aria-label={label}
+              aria-pressed="false"
+            >
+              <LabelDot label={label} colors={frame.labelColors} />
+              {label}
+            </Button>
+          ))
+        ) : (
+          <p>選べるラベルはまだありません。</p>
+        )}
+        <small data-mixed-label-hint="">
+          − は一部の会話に付いています。選ぶと、選択中のすべての会話に付きます。
+        </small>
+        <a href="/settings/labels">ラベルを管理</a>
+      </FilterPicker>
+      {view !== 'feedback' && frame.query.status !== 'spam' && (
+        <Button type="button" data-change="closed">
+          完了にする
+        </Button>
+      )}
       <Button
         type="button"
         variant="ghost"
-        aria-label="選択を解除"
-        data-clear-selection=""
+        data-change={
+          frame.query.status === 'spam' ? 'unmarked_spam' : 'marked_spam'
+        }
       >
-        <span className="bulk-clear-prefix">選択を</span>解除
+        {frame.query.status === 'spam'
+          ? '迷惑メールを解除'
+          : '迷惑メールにする'}
       </Button>
-      {frame.query.label && (
-        <small title={frame.query.label}>ラベル：{frame.query.label}</small>
-      )}
-      <div className="inbox-bulk-actions">
-        {view !== 'feedback' && (
-          <FilterPicker id="bulk-assignee" label="担当者を選ぶ">
-            <small data-mixed-label-hint="">
-              「−」は選択中の一部の会話を担当しています。
-            </small>
-            <CandidateList>
-              {frame.operators.map((op) => (
-                <Button
-                  variant="ghost"
-                  type="button"
-                  data-change="assign"
-                  data-value={op.email}
-                  aria-label={op.displayName}
-                >
-                  <Candidate icon={operatorAvatar(op)} label={op.displayName} />
-                </Button>
-              ))}
-            </CandidateList>
-          </FilterPicker>
-        )}
-        <FilterPicker id="bulk-label" label="ラベルを付ける">
-          {frame.labels.length ? (
-            frame.labels.map((label) => (
-              <Button
-                type="button"
-                variant="ghost"
-                data-bulk-label={label}
-                aria-label={label}
-                aria-pressed="false"
-              >
-                <LabelDot label={label} colors={frame.labelColors} />
-                {label}
-              </Button>
-            ))
-          ) : (
-            <p>選べるラベルはまだありません。</p>
-          )}
-          <small data-mixed-label-hint="">
-            −
-            は一部の会話に付いています。選ぶと、選択中のすべての会話に付きます。
-          </small>
-          <a href="/settings/labels">ラベルを管理</a>
-        </FilterPicker>
-        {view !== 'feedback' && frame.query.status !== 'spam' && (
-          <Button type="button" data-change="closed">
-            完了にする
-          </Button>
-        )}
-        <Button
-          type="button"
-          variant="ghost"
-          data-change={
-            frame.query.status === 'spam' ? 'unmarked_spam' : 'marked_spam'
-          }
-        >
-          {frame.query.status === 'spam'
-            ? '迷惑メールを解除'
-            : '迷惑メールにする'}
-        </Button>
-        <FilterPicker id="bulk-more" label="その他" />
-      </div>
+      <FilterPicker id="bulk-more" label="その他" />
     </BulkBar>
   )
 }

@@ -40,14 +40,11 @@ function fitBulkActions(bar, signal) {
     const returnFocus =
       focusedAction ??
       (focus === moreTrigger && fit === actions.length ? moving[0] : null)
-    if (returnFocus) {
-      const trigger = more.contains(returnFocus)
-        ? moreTrigger
-        : returnFocus.matches('button')
-          ? returnFocus
-          : returnFocus.querySelector('button')
-      trigger.focus({ preventScroll: true })
-    }
+    if (!returnFocus) return
+    const trigger = more.contains(returnFocus)
+      ? moreTrigger
+      : (returnFocus.querySelector('button') ?? returnFocus)
+    trigger.focus({ preventScroll: true })
   })
   observer.observe(group)
   signal.addEventListener('abort', () => observer.disconnect(), { once: true })
@@ -97,7 +94,7 @@ window.onHelpdeskPage((signal) => {
     const size = selected().length
     if (!size) {
       for (const panel of bar.querySelectorAll(':popover-open'))
-        if (panel.matches(':popover-open')) panel.hidePopover()
+        panel.hidePopover()
     }
     bar.inert = !size
     bar.setAttribute('aria-hidden', String(!size))

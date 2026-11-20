@@ -96,6 +96,8 @@
   text-overflow: ellipsis;
 }
 .inbox-bulk-actions {
+  overflow-x: clip;
+  overflow-clip-margin: var(--spacing-xs);
   display: flex;
   align-items: center;
   flex: 1;

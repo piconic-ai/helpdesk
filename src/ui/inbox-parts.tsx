@@ -1,7 +1,7 @@
 import type { Child } from 'hono/jsx'
 import { identityColor } from './identity-color'
 import { glyph } from './glyph'
-import { Input, Popover } from './controls'
+import { Button, Input, Popover } from './controls'
 type Content = { children?: Child }
 export const InboxFilters = ({ children }: Content) => (
   <form
@@ -14,9 +14,19 @@ export const InboxFilters = ({ children }: Content) => (
     {children}
   </form>
 )
-export const BulkBar = ({ children }: Content) => (
+export const BulkBar = ({ children, label }: Content & { label?: string }) => (
   <section aria-hidden="true" className="inbox-bulk" aria-label="まとめて操作">
-    {children}
+    <strong data-selected-count="">0件を選択中</strong>
+    <Button
+      type="button"
+      variant="ghost"
+      aria-label="選択を解除"
+      data-clear-selection=""
+    >
+      <span className="bulk-clear-prefix">選択を</span>解除
+    </Button>
+    {label && <small title={label}>ラベル：{label}</small>}
+    <div className="inbox-bulk-actions">{children}</div>
   </section>
 )
 export const PageLinks = ({ children }: Content) => (
