@@ -1,3 +1,8 @@
+window.onHelpdeskPage(() => {
+  if (document.querySelector('#reply-area .composer'))
+    void import('/ui/thread-updates.js')
+})
+
 const drawer = document.querySelector('#nav-drawer')
 const sidebar = document.querySelector('#navigation')
 const openDrawer = document.querySelector('[data-open-drawer]')

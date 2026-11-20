@@ -192,10 +192,8 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
     expect(wording).toContain(title)
     await draft.getByRole('button', { name: '承認して送信' }).click()
     await dialog.getByRole('button', { name: '承認して送信' }).click()
-    await expect(async () => {
-      await page.reload()
-      await expect(draft).toContainText('送信済み', { timeout: 1000 })
-    }).toPass({ timeout: 16000 })
+    await expect(draft).toContainText('送信待ち')
+    await expect(draft).toContainText('送信済み', { timeout: 30000 })
     await board()
     await expect(
       closed.getByRole('row').filter({ hasText: title }),
