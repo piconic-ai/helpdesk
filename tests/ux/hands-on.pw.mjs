@@ -289,16 +289,13 @@ async function publicVoices(page, scene) {
 }
 
 async function issueAndMetrics(page, scene, reference) {
-  await page.getByRole('link', { name: '拡張の管理', exact: true }).click()
-  await page
-    .locator('[data-extension=issues]')
-    .getByRole('link', { name: '設定' })
-    .click()
-  await choose(page, 'プロジェクト', 'slide')
-  await page.getByRole('button', { name: '設定を開く' }).click()
+  await page.goto(scene.origin + '/extensions/issues?product=slide')
   const slide = page
     .locator('[data-ui=form-section]')
     .filter({ has: page.getByRole('heading', { name: 'Slide', exact: true }) })
+  await expect(slide.getByLabel('GitHub リポジトリ')).toHaveValue(
+    'example/helpdesk',
+  )
   await slide.getByLabel('GitHub リポジトリ').fill('example/helpdesk')
   await button(slide, 'リポジトリを更新').click()
   await expect(page.getByRole('status')).toContainText('リポジトリを登録')
