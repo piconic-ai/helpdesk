@@ -192,6 +192,12 @@ test('一覧では文字入力中のショートカットを無効にし、キ�
   await search.fill('')
   await search.press('j')
   await expect(search).toHaveValue('j')
+  await expect(
+    page.getByRole('heading', { name: '検索結果', exact: true }),
+  ).toBeVisible()
+  await search.fill('')
+  await expect(page).toHaveURL((url) => !url.searchParams.has('q'))
+  await expect(row(page, 11)).toBeVisible()
   await search.press('Tab')
   await page.keyboard.press('j')
   const links = page.locator('a.conversation-row')
