@@ -61,9 +61,12 @@ if (
 
   let displayedPath = location.pathname
   function enterPage() {
-    main.inert = false
+    delete main.dataset.hydrating
     rehydrateScope(main)
-    if (displayedPath !== location.pathname) {
+    if (
+      displayedPath !== location.pathname &&
+      !main.contains(document.activeElement)
+    ) {
       const heading = main.querySelector('h1, h2') ?? main
       if (!heading.hasAttribute('tabindex')) heading.tabIndex = -1
       heading.focus({ preventScroll: true })
@@ -77,7 +80,10 @@ if (
   // An overlapping navigation may reuse markup swapped by its predecessor
   // before that predecessor reached hydration.
   new MutationObserver(() => {
-    if (main.inert && !document.documentElement.hasAttribute(NAVIGATING_ATTR))
+    if (
+      main.hasAttribute('data-hydrating') &&
+      !document.documentElement.hasAttribute(NAVIGATING_ATTR)
+    )
       enterPage()
   }).observe(document.documentElement, {
     attributes: true,
@@ -92,11 +98,11 @@ if (
     manageFocus: false,
     cacheCap: 0,
     dispose(region) {
-      // The new markup is visible immediately; accept input once its handlers are attached.
+      // Native fields are editable while new island modules load.
       if (region.matches('main')) {
         if (!announcement.isConnected) document.body.prepend(announcement)
         main.dataset.routed = ''
-        main.inert = true
+        main.dataset.hydrating = ''
         document.dispatchEvent(new Event('helpdesk:leave'))
       }
       disposeScope(region)

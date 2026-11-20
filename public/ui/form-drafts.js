@@ -84,7 +84,8 @@
     return new URL(form.getAttribute('action') || location.href, location.href)
   }
   function bind(form) {
-    if (drafts.has(form)) return
+    // The router commits the destination URL before it mounts the new page.
+    if (drafts.has(form) || form.closest('main[data-hydrating]')) return
     if (
       form.method !== 'post' ||
       actionUrl(form).pathname.startsWith('/tokens')
@@ -112,7 +113,8 @@
     const entries = editable.map((field, i) => ({
       field,
       key: scope + ':' + slots[i],
-      initial: read(field),
+      initial:
+        field instanceof HTMLTextAreaElement ? field.defaultValue : read(field),
     }))
     drafts.set(form, entries)
     for (const entry of entries) {
@@ -122,7 +124,8 @@
       }
       entry.field.addEventListener('input', save)
       entry.field.addEventListener('change', save)
-      restore(entry)
+      if (read(entry.field) !== entry.initial) save()
+      else restore(entry)
     }
   }
 

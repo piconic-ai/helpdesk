@@ -122,3 +122,58 @@ test('返信後は同じ会話で配送結果まで更新される', async ({ pa
   await expect(message).toContainText('送信済み', { timeout: 24000 })
   expect(await sidebar.evaluate((el) => el.isConnected)).toBe(true)
 })
+
+test('遷移先のモジュールを待つ間に編集した下書きと最初のキー操作を保つ', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/?view=approval')
+  const loading = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  await page.route(
+    '**/ReplyComposer*.js',
+    async (route) => {
+      loading.resolve()
+      await release.promise
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  await page
+    .locator('a.conversation-row[href*="/conversation/5"]')
+    .first()
+    .click()
+  const edit = page.locator('form[id="approve-reply-5"] textarea')
+  const wording = '契約を更新する前日まで、人数を変更できます。'
+  try {
+    await loading.promise
+    await edit.fill(wording)
+    await expect(edit).toHaveValue(wording)
+    await page.getByRole('tab', { name: '返信', exact: true }).focus()
+    await page.keyboard.press('ArrowRight')
+  } finally {
+    release.resolve()
+  }
+  await expect(page).toHaveURL(/\/conversation\/5/)
+  await expect(
+    page.getByRole('tab', { name: '内部メモ', exact: true }),
+  ).toBeFocused()
+  await expect(edit).toHaveValue(wording)
+  await page.reload()
+  await expect(edit).toHaveValue(wording)
+  await page.locator('button[form="approve-reply-5"]').click()
+  const confirmation = page.getByRole('dialog')
+  await expect(confirmation).toContainText(wording)
+  await confirmation.getByRole('button', { name: '承認して送信' }).click()
+  await expect
+    .poll(
+      () =>
+        scene.db
+          .prepare(
+            "SELECT body FROM messages WHERE id='reply-5' AND delivery='sent'",
+          )
+          .first('body'),
+      { timeout: 24000 },
+    )
+    .toBe(wording)
+})

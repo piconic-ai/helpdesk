@@ -309,15 +309,26 @@ function editTarget(element) {
   )
 }
 
+let initialTabLoad = true
+document.addEventListener(
+  'DOMContentLoaded',
+  () => {
+    initialTabLoad = false
+  },
+  { once: true },
+)
+
 // Keep the first tab interaction when the server-rendered form precedes its module.
 function replayEarlyTabInput(event) {
   const tab = event.target.closest?.('.composer-tabs [role=tab]')
   if (!tab || event.defaultPrevented) return
+  const routed = tab.closest('main[data-hydrating]')
+  if (!routed && !initialTabLoad) return
   const key = event.key
   if (key && !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(key)) return
   if (key) event.preventDefault()
   document.addEventListener(
-    'DOMContentLoaded',
+    routed ? 'helpdesk:page' : 'DOMContentLoaded',
     () => {
       const current = document.activeElement
       if (current?.closest('[role=tablist]') !== tab.parentElement) return
@@ -338,15 +349,6 @@ function replayEarlyTabInput(event) {
 }
 document.addEventListener('keydown', replayEarlyTabInput)
 document.addEventListener('click', replayEarlyTabInput)
-document.addEventListener(
-  'DOMContentLoaded',
-  () => {
-    document.removeEventListener('keydown', replayEarlyTabInput)
-    document.removeEventListener('click', replayEarlyTabInput)
-  },
-  { once: true },
-)
-
 function editMode(composer, mode) {
   const tab = composer.querySelectorAll('.composer-tabs button')[
     mode === 'note' ? 1 : 0
