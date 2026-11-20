@@ -1,3 +1,4 @@
+import { choose } from './choice.mjs'
 import { customerContact } from './customer.mjs'
 import { test, expect, capture, confirmSubmission } from './harness.mjs'
 
@@ -199,9 +200,7 @@ test('J11 候補から相手を選び、確認して会話を削除する', asyn
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
   await page.getByRole('link', { name: /^プロジェクトの設定/ }).click()
-  await page
-    .getByRole('combobox', { name: 'プロジェクト', exact: true })
-    .selectOption('slide')
+  await choose(page, 'プロジェクト', 'slide')
   await page.getByRole('button', { name: '設定を開く' }).click()
   await page.getByRole('link', { name: /^連絡先のデータ削除/ }).click()
   const contacts = page.getByRole('combobox', { name: '削除する相手' })
