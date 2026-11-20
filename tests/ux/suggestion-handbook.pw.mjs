@@ -10,8 +10,9 @@ test(
     const title = '共有リンクを作成する'
     await page.goto(scene.origin + '/articles')
     await page.getByRole('link', { name: '記事を書く' }).click()
-    await choose(page, 'プロジェクト', 'slide')
-    await page.getByLabel('題名').fill(title)
+    const editor = page.locator('form[action="/articles/edit"]')
+    await choose(editor, 'プロジェクト', 'slide')
+    await editor.getByLabel('題名').fill(title)
     await page
       .getByLabel(/要約/)
       .fill('編集画面から閲覧用の共有リンクを発行できます。')
