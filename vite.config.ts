@@ -10,11 +10,15 @@ export default defineConfig({
     outDir: 'public/components',
     emptyOutDir: true,
     rollupOptions: {
-      input: { navigation: resolve('src/browser/navigation.js') },
+      input: {
+        navigation: resolve('src/browser/navigation.js'),
+        'local-requests': resolve('src/browser/local-requests.js'),
+      },
+      preserveEntrySignatures: 'strict',
       output: {
         entryFileNames: (chunk) =>
-          chunk.name === 'navigation'
-            ? 'navigation.js'
+          ['navigation', 'local-requests'].includes(chunk.name)
+            ? chunk.name + '.js'
             : 'assets/[name]-[hash].js',
       },
     },

@@ -1,4 +1,5 @@
 import { forProject } from '../extensions/registry'
+import { localResponse } from '../operators/local-response'
 import { extensionDetailsPage } from '../extensions/extension-details-page'
 import { activeExtensions } from '../extensions/registry'
 import { requireMedia } from '../operators/project-targets-usecase'
@@ -78,6 +79,7 @@ function run<K extends keyof typeof coreOperations>(
   >
 }
 app.use('*', authenticate)
+app.use('*', localResponse)
 app.use('*', async (c, next) => {
   await next()
   if (c.req.method !== 'POST' || c.res.status !== 303) return
