@@ -6,6 +6,7 @@ import type {
 import { shell, select } from '../conversations/console-page'
 import { projectPath, projectBack } from './project-setting-links'
 import { projectTerm } from './project-term'
+import { Cluster } from '../../ui/layout'
 import { operatorAvatar } from '../../ui/operator-identity'
 import {
   EditPage,
@@ -30,7 +31,7 @@ function memberControls(
 ) {
   if (last)
     return (
-      <small className="member-admin-note">
+      <small>
         最後の管理者です。先にほかのメンバーを管理者にしてください。
       </small>
     )
@@ -94,9 +95,9 @@ export function membersPage(
           {members.map((m, i) => (
             <ListRow
               title={
-                <span className="member-identity">
+                <Cluster as="span" gap="xs">
                   {operatorAvatar(m)} {m.displayName}
-                </span>
+                </Cluster>
               }
               description={
                 <>
