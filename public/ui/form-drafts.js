@@ -194,13 +194,27 @@
     history.replaceState(history.state, '', url)
   }
 
-  document.addEventListener('click', (event) => {
-    const form = event.target
-      .closest?.('a[data-discard-draft]')
-      ?.closest('form')
-    if (!form || event.defaultPrevented) return
-    for (const entry of drafts.get(form) ?? []) forget(entry)
-  })
+  document.addEventListener(
+    'click',
+    (event) => {
+      const form = event.target
+        .closest?.('a[data-discard-draft]')
+        ?.closest('form')
+      if (
+        !form ||
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return
+      bind(form)
+      for (const entry of drafts.get(form) ?? []) forget(entry)
+    },
+    true,
+  )
   consumeReceipt()
   function restoreForms() {
     for (const form of document.forms) bind(form)

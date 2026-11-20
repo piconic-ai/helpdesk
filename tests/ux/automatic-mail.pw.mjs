@@ -136,3 +136,41 @@ test('解決アンケートの既定の案内と本文は窓口の言語に従�
   await expect(preview).toContainText('Was your inquiry resolved?')
   await expect(page.getByLabel('自動送信の案内の言語')).toHaveValue('en')
 })
+
+test('画面の初期化を待つ間に取り消しても自動返信の下書きを破棄する', async ({
+  page,
+  scene,
+}) => {
+  const url = scene.origin + '/extensions/auto-ack?product=slide'
+  const body = page.getByRole('textbox', { name: /^本文/ })
+  await page.goto(url)
+  const initial = await body.inputValue()
+  await body.fill('取り消す下書き')
+
+  let release
+  const ready = new Promise((resolve) => {
+    release = resolve
+  })
+  await page.route(
+    '**/ui/inbox.js',
+    async (route) => {
+      await ready
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  try {
+    await page.goto(url, { waitUntil: 'commit' })
+    const destination = page.waitForResponse(
+      (response) => response.url() === url,
+    )
+    await page
+      .getByRole('link', { name: '取り消し' })
+      .click({ noWaitAfter: true })
+    await destination
+  } finally {
+    release()
+  }
+  await page.waitForLoadState('load')
+  await expect(body).toHaveValue(initial)
+})
