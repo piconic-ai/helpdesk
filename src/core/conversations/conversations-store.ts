@@ -1,3 +1,7 @@
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../operators/project-targets-store'
 import { drizzle } from 'drizzle-orm/d1'
 import { inArray, asc } from 'drizzle-orm'
 import { z } from 'zod'
@@ -30,6 +34,7 @@ export async function listConversations(
   db: D1Database,
   input: z.infer<typeof filterSchema>,
   canonicalNumbers: Record<number, number> = {},
+  scope: ProductScope = null,
 ) {
   const { status, product, assignee, label, query } = input
   const search = searchNumbers(query)
@@ -38,6 +43,7 @@ export async function listConversations(
       SELECT CAST(key AS INTEGER),value FROM json_each(?1)
       UNION ALL SELECT number,number FROM conversations
     ) SELECT c.* FROM conversations c WHERE (?3='all' OR status=?3) AND (?4='' OR product=?4)
+    AND (?7 IS NULL OR c.product IN (SELECT value FROM json_each(?7)))
     AND (?5='' OR assignee=?5) AND (?6='' OR EXISTS(SELECT 1 FROM labels l JOIN members x ON l.number=x.source WHERE x.target=c.number AND l.name=?6))
     AND (?2='' OR c.number IN (SELECT x.target FROM members x JOIN (${search.sql}) hits ON hits.number=x.source))
     ORDER BY number DESC`)
@@ -48,6 +54,7 @@ export async function listConversations(
       product,
       assignee,
       label,
+      scopeBinding(scope),
     )
     .all()
   return conversationRow.array().parse(result.results)
@@ -64,6 +71,7 @@ export async function detail(
   db: D1Database,
   number: number,
   group: number[] = [number],
+  scope: ProductScope = null,
 ) {
   const conversation = await getConversation(db, number)
   const [rows, files, history, events, labels, uncertain] = await Promise.all([
@@ -80,9 +88,9 @@ export async function detail(
       .all(),
     db
       .prepare(
-        'SELECT * FROM conversations WHERE contact=? AND length(contact)>0 AND number NOT IN (SELECT value FROM json_each(?)) ORDER BY number DESC',
+        'SELECT * FROM conversations WHERE contact=?1 AND length(contact)>0 AND (?3 IS NULL OR product IN (SELECT value FROM json_each(?3))) AND number NOT IN (SELECT value FROM json_each(?2)) ORDER BY number DESC',
       )
-      .bind(conversation.contact, JSON.stringify(group))
+      .bind(conversation.contact, JSON.stringify(group), scopeBinding(scope))
       .all(),
     db
       .prepare(

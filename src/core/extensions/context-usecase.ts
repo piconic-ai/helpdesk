@@ -1,4 +1,11 @@
 import {
+  actingProducts,
+  accessibleNumbers,
+  requireProduct,
+  requireConversations,
+  isProjectAssignee,
+} from '../operators/project-targets-store'
+import {
   presentSuggestion,
   previousSuggestion,
   reactToSuggestion,
@@ -33,13 +40,18 @@ export function extensionContext(
   c: Context,
   installed: Installed,
 ): ExtensionContext {
+  const products = actingProducts(c)
   const ext = installed.extension
   const actor = { kind: 'extension', id: ext.id } as const
   function requirePermission(permission: Permission) {
     if (!ext.permissions.includes(permission))
       throw new Error(ext.id + ' requires ' + permission)
   }
-  function approvedSend(
+  async function work<T>(number: number, run: () => Promise<T>) {
+    await requireConversations(c, [number], 'write')
+    return run()
+  }
+  async function approvedSend(
     number: number,
     body: string,
     key: string,
@@ -48,6 +60,7 @@ export function extensionContext(
     requirePermission('send')
     if (!installed.enabledBy)
       throw new Error('Administrator must enable this sending policy')
+    await requireConversations(c, [number], 'send')
     return queueStanding(c.env, {
       number,
       body,
@@ -59,6 +72,9 @@ export function extensionContext(
     })
   }
   return {
+    visibleProducts: products,
+    visibleNumbers: (numbers) => accessibleNumbers(c.env.DB, numbers, products),
+    canAssign: (number, email) => isProjectAssignee(c.env.DB, number, email),
     local: c.env.ENVIRONMENT === 'local',
     demoGithub: !!c.env.DEMO_GITHUB,
     enabledBy: installed.enabledBy,
@@ -66,27 +82,35 @@ export function extensionContext(
     presentSuggestion: (input) => presentSuggestion(c.env.DB, input, c.now),
     reactToSuggestion: (input) => reactToSuggestion(c.env.DB, input, c.now),
     suggestionResolution: (product, from, to) =>
-      suggestionResolution(c.env.DB, product, from, to),
-    voices: () => receivedVoices(c.env.DB),
+      suggestionResolution(c.env.DB, product, from, to, products),
+    voices: () => receivedVoices(c.env.DB, products),
     standing: approvedSend,
     notifyEmail: (number, to, body, key) => approvedSend(number, body, key, to),
     change: (number, event) =>
-      coreOperations.status.execute({ ...c, actor }, { number, event }),
-    events: (kind) => history(c.env.DB, kind),
+      work(number, () =>
+        coreOperations.status.execute({ ...c, actor }, { number, event }),
+      ),
+    events: (kind) => history(c.env.DB, kind, products),
     snapshotCounts: () => {
       requirePermission('read_body')
-      return snapshotCounts(c.env.DB)
+      return snapshotCounts(c.env.DB, products)
     },
     snapshot: () => {
       requirePermission('read_body')
-      return snapshot(c.env.DB)
+      return snapshot(c.env.DB, products)
     },
     convertFeedback: (number) =>
-      changeFeedback(c.env, number, c.actor, c.now, 'convert'),
+      work(number, () =>
+        changeFeedback(c.env, number, c.actor, c.now, 'convert'),
+      ),
     unreviewFeedback: (number) =>
-      changeFeedback(c.env, number, c.actor, c.now, 'unreview'),
+      work(number, () =>
+        changeFeedback(c.env, number, c.actor, c.now, 'unreview'),
+      ),
     reviewFeedback: (number) =>
-      changeFeedback(c.env, number, c.actor, c.now, 'review'),
+      work(number, () =>
+        changeFeedback(c.env, number, c.actor, c.now, 'review'),
+      ),
     resource: async (id, name, input) => {
       const item = c.env.EXTENSIONS?.active.find((x) => x.extension.id === id)
       const resource = item?.extension.resources?.find((r) => r.name === name)
@@ -95,6 +119,7 @@ export function extensionContext(
         : undefined
     },
     articleCandidates: async (product, text) => {
+      requireProduct(c, product, 'read')
       const source = c.env.candidateSources?.[ext.id]
       return source ? source(c.env.DB, product, text) : []
     },
@@ -113,24 +138,32 @@ export function extensionContext(
     },
     ...extensionStorage(c.env.DB, ext.id),
     assign: (number, email) =>
-      setAssignment(
-        c.env.DB,
-        { actor: JSON.stringify(actor), now: c.now },
-        { number, email },
+      work(number, () =>
+        setAssignment(
+          c.env.DB,
+          { actor: JSON.stringify(actor), now: c.now },
+          { number, email },
+        ),
       ),
     label: (number, label) =>
-      changeGroupLabel(
-        c.env,
-        { actor: JSON.stringify(actor), now: c.now },
-        { number, label, action: 'add' },
+      work(number, () =>
+        changeGroupLabel(
+          c.env,
+          { actor: JSON.stringify(actor), now: c.now },
+          { number, label, action: 'add' },
+        ),
       ),
     config: installed.settings,
     actor: c.actor,
     now: c.now,
-    open: (input) => openIntake(c.env, input, actor, c.now),
+    open: async (input) => {
+      requireProduct(c, input.product, 'write')
+      return openIntake(c.env, input, actor, c.now)
+    },
     addInboundMessage: (number, body) =>
-      addInboundMessage(c.env, number, body, actor, c.now),
-    draft: (number, body, key) => {
+      work(number, () => addInboundMessage(c.env, number, body, actor, c.now)),
+    draft: async (number, body, key) => {
+      await requireConversations(c, [number], 'draft')
       return saveDraft(
         c.env,
         number,
@@ -140,12 +173,17 @@ export function extensionContext(
         key && ext.id + ':' + key,
       )
     },
-    contact: (number) => templateContact(c.env, number),
-    inboundBody: (number, id) => {
+    contact: async (number) => {
+      await requireConversations(c, [number], 'read')
+      return templateContact(c.env, number)
+    },
+    inboundBody: async (number, id) => {
+      await requireConversations(c, [number], 'read')
       requirePermission('read_body')
       return inboundBody(c.env.DB, number, id)
     },
     body: async (number) => {
+      await requireConversations(c, [number], 'read')
       requirePermission('read_body')
       const rows = await c.env.DB.prepare(
         'SELECT body FROM messages WHERE number=? ORDER BY created_at,id',

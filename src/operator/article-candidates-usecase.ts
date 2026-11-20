@@ -13,10 +13,21 @@ const sourceQuery = `SELECT c.number,c.product,c.subject,json_extract(d.value,'$
   JOIN articles_data d ON d.key='candidate/'||c.number
   LEFT JOIN articles_data m ON m.key='candidate-article/'||c.number
   LEFT JOIN articles_data a ON a.key=json_extract(m.value,'$.key')`
-export async function articleCandidates(db: D1Database) {
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../core/operators/project-targets-store'
+export async function articleCandidates(
+  db: D1Database,
+  scope: ProductScope = null,
+) {
   return (
     await db
-      .prepare(sourceQuery + ' ORDER BY c.number DESC')
+      .prepare(
+        sourceQuery +
+          ' WHERE ?1 IS NULL OR c.product IN (SELECT value FROM json_each(?1)) ORDER BY c.number DESC',
+      )
+      .bind(scopeBinding(scope))
       .all<ArticleCandidate>()
   ).results
 }

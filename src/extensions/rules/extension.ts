@@ -33,14 +33,19 @@ export const rules: Extension = {
           matches(entry.rule, mail),
         )) {
           if (rule.label) await ctx.label(n, rule.label)
-          if (rule.assignee) await ctx.assign(n, rule.assignee)
+          const assignee =
+            rule.assignee &&
+            (!ctx.canAssign || (await ctx.canAssign(n, rule.assignee)))
+              ? rule.assignee
+              : undefined
+          if (assignee) await ctx.assign(n, assignee)
           await ctx.emit(
             'applied',
             n,
             {
               condition: rule.subjectContains ?? 'すべての件名',
               label: rule.label,
-              assignee: rule.assignee,
+              assignee,
             },
             String(event.id) + '/' + key,
           )

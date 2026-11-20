@@ -1,3 +1,5 @@
+import { can, visibleProductIds } from '../operators/project-access'
+import { projectOperators } from '../operators/project-targets-store'
 import { labelColors } from './label-colors-store'
 import { inboxSort } from './inbox-location'
 import { extensionContext } from '../extensions/context-usecase'
@@ -18,6 +20,22 @@ import {
   awaitingApproval,
 } from './console-store'
 
+function labelManagementPath(
+  operator: Operator,
+  product: string,
+  choices: { id: string }[],
+) {
+  if (product)
+    return can(operator, 'manage', product).allowed
+      ? '/settings/projects/' + encodeURIComponent(product) + '/labels'
+      : undefined
+  if (
+    can(operator, 'global').allowed ||
+    choices.some((p) => can(operator, 'manage', p.id).allowed)
+  )
+    return '/settings/projects'
+}
+
 export async function consoleFrame(
   env: Bindings,
   operator: Operator,
@@ -26,20 +44,40 @@ export async function consoleFrame(
   now = Date.now(),
 ) {
   const product = query.product ?? ''
-  const [choices, operators, labels, drafts, aliases, rows] = await Promise.all(
-    [
-      products(env.DB),
+  const scope = visibleProductIds(operator)
+  const chosen = product
+    ? can(operator, 'read', product).allowed
+      ? [product]
+      : []
+    : scope
+  const [choices, people, memberships, labels, drafts, aliases, rows] =
+    await Promise.all([
+      products(
+        env.DB,
+        scope,
+        path.startsWith('/settings'),
+        path.startsWith('/conversation/') ? product : undefined,
+      ),
       listOperators(env.DB),
-      labelChoices(env.DB),
+      projectOperators(env.DB, chosen),
+      labelChoices(env.DB, chosen),
       awaitingApproval(env.DB),
       conversationAliases(env),
       visibleConversations(
         env,
         filterSchema.parse({ product, status: 'all' }),
         now,
+        scope,
       ),
-    ],
-  )
+    ])
+  const operators = people
+    .filter(
+      (person) => memberships.has(person.email) || (!product && scope === null),
+    )
+    .map((person) => ({
+      ...person,
+      projects: memberships.get(person.email)?.map((m) => m.product) ?? [],
+    }))
   const draftNumbers = new Set(
     drafts.map((number) => canonical(aliases, number)),
   )
@@ -71,6 +109,7 @@ export async function consoleFrame(
       counts.mine++
   }
   return {
+    labelDirectory: labelManagementPath(operator, product, choices),
     demoGithub: !!env.DEMO_GITHUB,
     path,
     query,
@@ -78,7 +117,7 @@ export async function consoleFrame(
     products: choices,
     operators,
     labels,
-    labelColors: await labelColors(env.DB),
+    labelColors: await labelColors(env.DB, chosen),
     approvalNumbers,
     openNumbers,
     counts,

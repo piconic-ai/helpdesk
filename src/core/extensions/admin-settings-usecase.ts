@@ -15,11 +15,13 @@ export async function editExtensionSetting(
   next: unknown,
   revision: unknown,
   expected?: unknown,
+  product?: string,
 ) {
-  authorize(ctx, 'admin', new Set(['admin']))
+  authorize(ctx, 'admin', new Set(['admin']), product)
   const token = ctx.uuid()
   const saved = await changeExtensionSetting(ctx.env.DB, {
     namespace,
+    product,
     key,
     next: next === undefined ? null : JSON.stringify(next),
     operator: ctx.operator.email,
@@ -35,7 +37,6 @@ export async function undoExtensionSetting(
   namespace: string,
   token: unknown,
 ) {
-  authorize(ctx, 'admin', new Set(['admin']))
   return restoreExtensionSetting(
     ctx.env.DB,
     namespace,
@@ -43,6 +44,7 @@ export async function undoExtensionSetting(
     ctx.operator.email,
     ctx.now,
     ctx.uuid(),
+    (product) => authorize(ctx, 'admin', new Set(['admin']), product),
   )
 }
 export { readPolicyMessage } from './admin-settings-store'

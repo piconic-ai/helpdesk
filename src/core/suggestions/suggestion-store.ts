@@ -70,19 +70,24 @@ export async function reactToSuggestion(
 
 // Evaluate each reporting period as it stood at its end, so a later handoff
 // cannot change the previous period's result.
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../operators/project-targets-store'
 export async function suggestionResolution(
   db: D1Database,
   product: string,
   from: number,
   to: number,
+  scope: ProductScope = null,
 ) {
   const counts = await db
     .prepare(`SELECT count(*) AS shownSuggestions, count(*) FILTER(WHERE
     (SELECT r.action FROM suggestion_reactions r WHERE r.presentation=p.id AND r.action IN ('resolved','unresolved','inquiry') AND r.at<?3 ORDER BY r.at DESC,r.rowid DESC LIMIT 1)='resolved'
     AND NOT EXISTS(SELECT 1 FROM suggestion_reactions r WHERE r.presentation=p.id AND r.action='inquiry' AND r.at<?3)) AS solvedSuggestions
     FROM suggestion_presentations p WHERE p.surface IN ('chat','form') AND json_array_length(p.articles)>0
-      AND (?1='' OR p.product=?1) AND p.at>=?2 AND p.at<?3`)
-    .bind(product, from, to)
+      AND (?1='' OR p.product=?1) AND p.at>=?2 AND p.at<?3 AND (?4 IS NULL OR p.product IN (SELECT value FROM json_each(?4)))`)
+    .bind(product, from, to, scopeBinding(scope))
     .first<{ shownSuggestions: number; solvedSuggestions: number }>()
   const shownSuggestions = counts?.shownSuggestions ?? 0
   const solvedSuggestions = counts?.solvedSuggestions ?? 0

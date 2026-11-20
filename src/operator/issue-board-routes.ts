@@ -112,8 +112,7 @@ routes.post('/issues/:owner/:repo/:issue/demo-close', async (c) => {
   })
   if (!ref.success) return c.notFound()
   const { repository, issue } = ref.data
-  if (!(await api.get('issue/' + issueKey(repository, issue))))
-    return c.notFound()
+  if (!(await currentIssue(c))) return c.notFound()
   const response = await service.fetch(
     'https://api.github.com/repos/' + repository + '/issues/' + issue,
     {

@@ -57,12 +57,17 @@ export async function moveRule(
   ctx: ExtensionContext,
   key: string,
   direction: number,
+  product?: string,
 ) {
   const expected = await ctx.get('order')
-  const keys = (await storedRules(ctx)).map((row) => row.key)
-  const i = keys.indexOf(key)
-  const next = i + direction
-  if (i < 0 || next < 0 || next >= keys.length) return false
+  const rules = await storedRules(ctx)
+  const keys = rules.map((r) => r.key)
+  const candidates = rules.filter((r) => !product || r.rule.product === product)
+  const position = candidates.findIndex((r) => r.key === key)
+  const adjacent = candidates[position + direction]
+  if (position < 0 || !adjacent) return false
+  const i = keys.indexOf(key),
+    next = keys.indexOf(adjacent.key)
   ;[keys[i], keys[next]] = [keys[next], keys[i]]
   return { expected, keys }
 }

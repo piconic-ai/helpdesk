@@ -142,14 +142,19 @@ async function loadLinks(ctx: ExtensionContext, prefix: string) {
   const rows = await ctx.list(prefix)
   return rows.map((row) => linked.parse(row.value))
 }
+async function visibleLinks(ctx: ExtensionContext, links: Linked[]) {
+  if (!ctx.visibleNumbers) return links
+  const allowed = await ctx.visibleNumbers(links.map((link) => link.number))
+  return links.filter((link) => allowed.has(link.number))
+}
 export async function issueLinks(ctx: ExtensionContext, input: unknown) {
   const { product, issue } = lookupInput.parse(input)
   const { repo } = await issueDestination(ctx, product)
-  return loadLinks(ctx, linkPrefix(repo, issue))
+  return visibleLinks(ctx, await loadLinks(ctx, linkPrefix(repo, issue)))
 }
 export async function panelLinks(ctx: ExtensionContext, number?: number) {
   if (!number) return []
-  const links = await loadLinks(ctx, 'link/')
+  const links = await visibleLinks(ctx, await loadLinks(ctx, 'link/'))
   const mine = links.filter((link) => link.number === number)
   if (!mine.length) return []
   const states = await Promise.all(
@@ -265,11 +270,18 @@ export async function issueChoices(
   number: number,
   subject: string,
 ) {
-  const [choices, body, links] = await Promise.all([
+  const [remote, body, links] = await Promise.all([
     selectableIssues(ctx, repo),
     ctx.inboundBody(number),
     loadLinks(ctx, 'link/' + repo.toLowerCase() + '/'),
   ])
+  const allowed = new Set(
+    (await visibleLinks(ctx, links)).map((link) => link.issue),
+  )
+  const known = new Set(links.map((link) => link.issue))
+  const choices = remote.filter(
+    (item) => !known.has(item.number) || allowed.has(item.number),
+  )
   const linked = new Set(
     links.filter((link) => link.number === number).map((link) => link.issue),
   )

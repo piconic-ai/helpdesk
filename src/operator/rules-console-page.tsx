@@ -45,6 +45,7 @@ export function rulesSettings(
     <form
       method="post"
       action="/extensions/rules/add"
+      data-label-directory={frame.labelDirectory}
       data-layout="stack"
       data-gap="sm"
     >
@@ -53,8 +54,10 @@ export function rulesSettings(
       {select(
         'product',
         'プロダクト',
-        { '': 'すべてのプロダクトに適用', ...products },
-        rule.product ?? '',
+        frame.query.product
+          ? { [frame.query.product]: products[frame.query.product] }
+          : { '': 'すべてのプロダクトに適用', ...products },
+        rule.product ?? frame.query.product ?? '',
       )}
       <Field
         label="件名に含む言葉"
@@ -160,6 +163,11 @@ export function rulesSettings(
                         value={versions.get('order') ?? ''}
                       />
                       <input type="hidden" name="key" value={key} />
+                      <input
+                        type="hidden"
+                        name="returnProduct"
+                        value={frame.query.product}
+                      />
                       <Button
                         variant="ghost"
                         name="direction"
@@ -188,6 +196,11 @@ export function rulesSettings(
                         value={versions.get(key) ?? ''}
                       />
                       <input type="hidden" name="key" value={key} />
+                      <input
+                        type="hidden"
+                        name="returnProduct"
+                        value={frame.query.product}
+                      />
                       <Button variant="destructive">このルールを削除</Button>
                     </form>
                   </ActionBar>

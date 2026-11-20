@@ -1,19 +1,30 @@
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../operators/project-targets-store'
 import { replyDelay } from '../settings/reply-delay'
 import { mailLanguage } from '../settings/mail-language'
 import { z } from 'zod'
 import { ticketPrefixSchema } from './ticket-reference'
 
-export async function products(db: D1Database) {
+export async function products(
+  db: D1Database,
+  scope: ProductScope = null,
+  includeArchived = true,
+  current?: string,
+) {
   const rows = await db
     .prepare(
-      "SELECT p.id,p.name,t.prefix AS ticketPrefix,coalesce(s.language,'ja') AS language,coalesce(s.minimum_reply_delay,10) AS minimumReplyDelay,i.emoji,i.image_key IS NOT NULL AS hasIconImage,s.name AS senderName,coalesce(s.show_operator,0) AS showOperator FROM products p JOIN product_ticket_prefixes t ON t.product=p.id LEFT JOIN product_icons i ON i.product=p.id LEFT JOIN product_senders s ON s.product=p.id ORDER BY p.name,p.id",
+      "SELECT p.id,p.name,pl.archived_at IS NOT NULL AS archived,t.prefix AS ticketPrefix,coalesce(s.language,'ja') AS language,coalesce(s.minimum_reply_delay,10) AS minimumReplyDelay,i.emoji,i.image_key IS NOT NULL AS hasIconImage,s.name AS senderName,coalesce(s.show_operator,0) AS showOperator FROM products p LEFT JOIN product_lifecycle pl ON pl.product=p.id JOIN product_ticket_prefixes t ON t.product=p.id LEFT JOIN product_icons i ON i.product=p.id LEFT JOIN product_senders s ON s.product=p.id WHERE (?1 IS NULL OR p.id IN (SELECT value FROM json_each(?1))) AND (?2 OR pl.archived_at IS NULL OR p.id=?3) ORDER BY p.name,p.id",
     )
+    .bind(scopeBinding(scope), Number(includeArchived), current ?? null)
     .all()
   return z
     .array(
       z.object({
         id: z.string(),
         name: z.string(),
+        archived: z.number().transform(Boolean).optional(),
         ticketPrefix: ticketPrefixSchema,
         emoji: z.string().nullable(),
         hasIconImage: z.number().transform(Boolean),

@@ -631,6 +631,11 @@ export function guidePage(
           {undoId && (
             <form method="post" action={'/extensions/' + id + '/undo-setting'}>
               <input type="hidden" name="changeId" value={undoId} />
+              <input
+                type="hidden"
+                name="returnProduct"
+                value={frame.query.product}
+              />
               <Button>元に戻す</Button>
             </form>
           )}

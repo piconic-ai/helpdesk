@@ -3,19 +3,53 @@ import { z } from 'zod'
 import { bulkInput } from '../conversations/inbox-changes'
 import { filterSchema } from '../conversations/filters'
 import type { Context, Scope, handlers as usecases } from './catalog-usecase'
-export class PermissionDenied extends Error {}
+import { can } from '../operators/project-access'
+import {
+  PermissionDenied,
+  requireConversations,
+  requireMedia,
+  requireProduct,
+} from '../operators/project-targets-store'
+export { PermissionDenied }
+
 export function authorize(
   ctx: Context,
   permission: Scope,
   scopes: ReadonlySet<Scope>,
+  product?: string,
 ) {
   if (
     !scopes.has(permission) ||
-    (permission === 'admin' && ctx.operator.role !== 'admin') ||
+    (permission === 'admin' &&
+      !can(ctx.operator, product ? 'manage' : 'global', product).allowed) ||
     ((permission === 'send' || permission === 'admin') &&
       ctx.actor.kind !== 'operator')
   )
     throw new PermissionDenied('Permission denied')
+}
+// All operation inputs are validated before their resource references are resolved.
+const references = z.object({
+  product: z.string().optional().catch(undefined),
+  number: z.number().optional().catch(undefined),
+  numbers: z.array(z.number()).optional().catch(undefined),
+  target: z.number().optional().catch(undefined),
+  candidateNumber: z.number().optional().catch(undefined),
+})
+export async function authorizeReferences(
+  ctx: Context,
+  permission: Scope,
+  input: unknown,
+) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return
+  const refs = references.parse(input)
+  if (refs.product) requireProduct(ctx, refs.product, permission)
+  const numbers = [
+    refs.number,
+    refs.target,
+    refs.candidateNumber,
+    ...(refs.numbers ?? []),
+  ].filter((n): n is number => n !== undefined)
+  await requireConversations(ctx, numbers, permission)
 }
 function operation<S extends z.ZodType, T>(
   permission: Scope,
@@ -25,7 +59,19 @@ function operation<S extends z.ZodType, T>(
   return {
     permission,
     input,
-    execute: (ctx: Context, i: unknown) => run(ctx, input.parse(i)),
+    execute: async (ctx: Context, i: unknown) => {
+      const parsed = input.parse(i)
+      await authorizeReferences(ctx, permission, parsed)
+      if (
+        permission === 'send' &&
+        parsed &&
+        typeof parsed === 'object' &&
+        'id' in parsed &&
+        typeof parsed.id === 'string'
+      )
+        await requireMedia(ctx, 'message', parsed.id, permission)
+      return run(ctx, parsed)
+    },
   }
 }
 const number = z.coerce.number().int().positive()

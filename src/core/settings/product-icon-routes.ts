@@ -1,3 +1,4 @@
+import { can } from '../operators/project-access'
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { InvalidAvatar, maxAvatarBytes } from '../operators/avatar'
@@ -15,7 +16,7 @@ productIconRoutes.post(
   }),
   async (c) => {
     const operator = c.get('operator')
-    if (operator.role !== 'admin')
+    if (!can(operator, 'manage', c.req.param('product')).allowed)
       return c.text('管理者の権限が必要です。', 403)
     const product = c.req.param('product')
     const form = await c.req.parseBody()

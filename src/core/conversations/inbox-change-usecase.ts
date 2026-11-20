@@ -1,3 +1,4 @@
+import { requireConversations } from '../operators/project-targets-store'
 import { canonical } from '../extensions/aliases'
 import { conversationAliases } from '../extensions/triage-usecase'
 import type { Context } from '../operations/catalog-usecase'
@@ -15,6 +16,7 @@ import {
 } from './inbox-change-store'
 
 async function membership(c: Context, numbers: number[]) {
+  await requireConversations(c, numbers, 'write')
   const aliases = await conversationAliases(c.env)
   const groups: Record<number, number[]> = {}
   for (const n of numbers) {

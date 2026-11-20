@@ -42,6 +42,9 @@ export type Voice = {
   kind: 'inquiry' | 'feedback'
 }
 export type ExtensionContext = {
+  visibleNumbers?: (numbers: number[]) => Promise<Set<number>>
+  visibleProducts?: readonly string[] | null
+  canAssign?: (number: number, email: string) => Promise<boolean>
   local?: boolean
   demoGithub?: boolean
   previousSuggestion: (

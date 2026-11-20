@@ -42,7 +42,8 @@ function mailNotice(conflict: boolean, preview: boolean, saved: boolean) {
 
 async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
   const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
+  const requested = form?.product ?? c.req.query('product')
+  authorize(ctx, 'admin', scopes, requested)
   const id = automaticPolicy.parse(c.req.param('id'))
   const installed = c.env.EXTENSIONS?.active.find(
     (entry) => entry.extension.id === id,
@@ -62,6 +63,8 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
       key,
       editedMessage(id, form),
       form.revision,
+      undefined,
+      form.product,
     )
     if (result !== null)
       return c.redirect(

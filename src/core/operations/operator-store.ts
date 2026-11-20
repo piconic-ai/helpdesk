@@ -26,9 +26,20 @@ export async function adminSettings(db: D1Database) {
     retentionDays: days,
   }
 }
-export async function inboxFailures(db: D1Database) {
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../operators/project-targets-store'
+
+export async function inboxFailures(
+  db: D1Database,
+  scope: ProductScope = null,
+) {
   const rows = await db
-    .prepare('SELECT mailbox,reason,at FROM inbound_failures ORDER BY at DESC')
+    .prepare(
+      'SELECT f.mailbox,f.reason,f.at FROM inbound_failures f LEFT JOIN mailboxes m ON m.address=f.mailbox WHERE ?1 IS NULL OR m.product IN (SELECT value FROM json_each(?1)) ORDER BY f.at DESC',
+    )
+    .bind(scopeBinding(scope))
     .all()
   return z
     .object({ mailbox: z.string(), reason: z.string(), at: z.number() })

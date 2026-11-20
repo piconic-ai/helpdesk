@@ -1,3 +1,8 @@
+import { visibleProductIds, can } from '../core/operators/project-access'
+import {
+  requireConversations,
+  requireProduct,
+} from '../core/operators/project-targets-store'
 import { defaultTimeZone } from '../core/operators/time-zone'
 import { reportPeriod } from '../extensions/metrics/report-period'
 import {
@@ -88,6 +93,36 @@ import {
 import { ruleSchema, storedRules } from '../extensions/rules/extension'
 import { rulesSettings } from './rules-console-page'
 const app = new Hono<AppEnv>()
+app.use('/extensions/*', async (c, next) => {
+  await next()
+  const location = c.res.headers.get('Location')
+  if (
+    c.req.method !== 'POST' ||
+    c.res.status !== 303 ||
+    !location?.startsWith('/extensions/')
+  )
+    return
+  const target = new URL(location, c.req.url)
+  const inputs = await c.req.parseBody()
+  const from = c.req.header('Referer')
+  const previous = from && URL.parse(from)
+  const source =
+    previous && previous.origin === target.origin
+      ? previous.searchParams.get('product')
+      : undefined
+  const product =
+    inputs.returnProduct ||
+    source ||
+    (!can(c.get('operator'), 'global').allowed && inputs.product)
+  if (
+    typeof product === 'string' &&
+    product &&
+    can(c.get('operator'), 'manage', product).allowed
+  ) {
+    target.searchParams.set('product', product)
+    c.header('Location', target.pathname + target.search)
+  }
+})
 app.route('/', issueBoardRoutes)
 app.route('/', automaticMailRoutes)
 type RequestContext = HttpContext<AppEnv>
@@ -97,6 +132,7 @@ function active(c: RequestContext, id: string) {
 }
 const frame = (c: RequestContext) =>
   consoleFrame(c.env, c.get('operator'), c.req.path, {
+    product: c.req.query('product') ?? '',
     q: c.req.query('q') ?? '',
     filter: c.req.query('filter') ?? '',
     sort: c.req.query('sort') ?? '',
@@ -115,6 +151,7 @@ app.get('/conversation/:number/canned-suggestions', async (c) => {
     .safeParse(c.req.param('number'))
   if (!api || !number.success) return c.notFound()
   c.header('Cache-Control', 'no-store')
+  await requireConversations(ctx, [number.data], 'read')
   const { conversation, messages, labels } = await groupedDetail(
     c.env,
     number.data,
@@ -144,6 +181,7 @@ app.post('/conversation/:number/canned-selection', async (c) => {
   const use = cannedUse.safeParse(await c.req.parseBody())
   if (!number.success || !use.success) return c.body(null, 400)
   if (!active(c, 'canned')) return c.notFound()
+  await requireConversations(ctx, [number.data], 'write')
   const saved = await recordCannedUse(
     c.env.DB,
     number.data,
@@ -179,13 +217,15 @@ app.get('/articles', async (c) => {
   if (!api) return c.notFound()
   const [data, candidates, performance] = await Promise.all([
     library(api),
-    articleCandidates(c.env.DB),
-    articlePerformance(c.env.DB),
+    articleCandidates(c.env.DB, visibleProductIds(c.get('operator'))),
+    articlePerformance(c.env.DB, visibleProductIds(c.get('operator'))),
   ])
   return c.render(
     libraryPage(
       await frame(c),
-      data.articles,
+      data.articles.filter(
+        (a) => can(c.get('operator'), 'read', a.product).allowed,
+      ),
       performance,
       candidates.length,
       c.req.query(),
@@ -197,7 +237,7 @@ app.get('/articles/candidates', async (c) => {
   return c.render(
     candidatesPage(
       await frame(c),
-      await articleCandidates(c.env.DB),
+      await articleCandidates(c.env.DB, visibleProductIds(c.get('operator'))),
       c.req.query(),
     ),
   )
@@ -215,7 +255,12 @@ app.get('/articles/questions', async (c) => {
     missingArticlesPage(
       await frame(c),
       product,
-      await missingArticleQuestions(c.env.DB, product, page),
+      await missingArticleQuestions(
+        c.env.DB,
+        product,
+        page,
+        visibleProductIds(c.get('operator')),
+      ),
     ),
   )
 })
@@ -224,7 +269,8 @@ app.get('/articles/new', async (c) => {
   const question = c.req.query('question')
   if (question) {
     const source = await missingQuestion(c.env.DB, question)
-    if (!source) return c.notFound()
+    if (!source || !can(c.get('operator'), 'read', source.product).allowed)
+      return c.notFound()
     return c.render(
       editorPage(
         await frame(c),
@@ -242,7 +288,8 @@ app.get('/articles/new', async (c) => {
   const source = await candidateForEditor(c.env.DB, {
     number: z.coerce.number().int().positive().parse(number),
   })
-  if (!source) return c.notFound()
+  if (!source || !can(c.get('operator'), 'read', source.product).allowed)
+    return c.notFound()
   if (source.articleId) return c.redirect(key(source.product, source.articleId))
   return c.render(
     editorPage(
@@ -261,6 +308,7 @@ app.get('/articles/edit', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
   const query = article.pick({ product: true, id: true }).parse(c.req.query())
+  requireProduct(context(c), query.product, 'read')
   const current = article.safeParse(
     await api.get(articleKey(query.product, query.id)),
   )
@@ -344,7 +392,11 @@ app.get('/voices', async (c) => {
     voicesOverview(
       await frame(c),
       q.data,
-      await voiceBuckets(c.env.DB, q.data),
+      await voiceBuckets(
+        c.env.DB,
+        q.data,
+        visibleProductIds(c.get('operator')),
+      ),
     ),
   )
 })
@@ -356,7 +408,12 @@ app.get('/voices/conversations', async (c) => {
     voicesResults(
       await frame(c),
       q.data,
-      await voiceList(c.env.DB, q.data, c.req.query('page')),
+      await voiceList(
+        c.env.DB,
+        q.data,
+        c.req.query('page'),
+        visibleProductIds(c.get('operator')),
+      ),
     ),
   )
 })
@@ -412,7 +469,7 @@ const publicSettingNotices: Record<string, string> = {
   saved: '公開受付の設定を保存しました。',
 }
 app.get('/extensions/chat/preview/:product', async (c) => {
-  authorize(context(c), 'admin', scopes)
+  authorize(context(c), 'admin', scopes, c.req.param('product'))
   if (!active(c, 'chat')) return c.notFound()
   const product = await publicProduct(c.env, c.req.param('product'))
   if (!product?.mailbox) return c.notFound()
@@ -578,7 +635,8 @@ function guideNotice(id: string, query: Record<string, string>) {
 }
 app.get('/extensions/:id', async (c) => {
   const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
+  const project = c.req.query('product')
+  authorize(ctx, 'admin', scopes, project)
   const id = c.req.param('id')
   const installed = c.env.EXTENSIONS?.active.find(
     (item) => item.extension.id === id,
@@ -586,7 +644,12 @@ app.get('/extensions/:id', async (c) => {
   if (!installed) return c.notFound()
   const api = extensionContext(ctx, installed)
   const state = await frame(c)
-  const portals = await guidePortals(c, id, api, state.products)
+  const portals = await guidePortals(
+    c,
+    id,
+    api,
+    state.products.filter((p) => !project || p.id === project),
+  )
   const sections =
     id === 'export'
       ? (await panels(ctx, scopes, 'settings')).filter((p) => p.id === id)
@@ -619,14 +682,16 @@ app.get('/extensions/:id', async (c) => {
         rows,
         rows.find((row) => row.key === 'order')?.value,
       )
-      const ordered = rules.map((item, index) => ({ ...item, index }))
+      const ordered = rules
+        .filter((r) => !project || r.rule.product === project)
+        .map((item, index) => ({ ...item, index }))
       const window = listRows(ordered, state.query, ({ rule }) => ({
         text: [rule.subjectContains, rule.label, rule.assignee, rule.product]
           .filter(Boolean)
           .join(' '),
       }))
       list = window
-      content = rulesSettings(state, window.rows, versions, rules.length)
+      content = rulesSettings(state, window.rows, versions, ordered.length)
     }
   }
   return c.render(
@@ -696,7 +761,6 @@ app.post('/extensions/canned/save', async (c) => {
 })
 app.post('/extensions/rules/add', async (c) => {
   const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
   const api = active(c, 'rules')
   if (!api) return c.notFound()
   const { revision, ...submitted } = await c.req.parseBody()
@@ -705,14 +769,22 @@ app.post('/extensions/rules/add', async (c) => {
   )
   const key = fields.key ? ruleKey.parse(fields.key) : undefined
   delete fields.key
-  if (key && !(await storedRules(api)).some((item) => item.key === key))
-    return c.notFound()
+  if (key) {
+    const existing = (await storedRules(api)).find((item) => item.key === key)
+    if (!existing) return c.notFound()
+    authorize(ctx, 'admin', scopes, existing.rule.product)
+  }
   const rule = ruleSchema.parse(fields)
+  authorize(ctx, 'admin', scopes, rule.product)
   const state = await frame(c)
   if (
     (rule.product && !state.products.some((p) => p.id === rule.product)) ||
     (rule.assignee &&
-      !state.operators.some((p) => p.email === rule.assignee)) ||
+      !state.operators.some(
+        (p) =>
+          p.email === rule.assignee &&
+          (!rule.product || p.projects.includes(rule.product)),
+      )) ||
     (rule.label && !state.labels.includes(rule.label))
   )
     return c.text('選択した項目が見つかりません。', 400)
@@ -725,37 +797,48 @@ app.post('/extensions/rules/add', async (c) => {
       key ?? 'rule/new-' + ctx.uuid(),
       rule,
       revision,
+      undefined,
+      rule.product,
     ),
   )
 })
 app.post('/extensions/rules/remove', async (c) => {
-  authorize(context(c), 'admin', scopes)
   const api = active(c, 'rules')
   if (!api) return c.notFound()
   const form = await c.req.parseBody()
   const key = ruleKey.parse(form.key)
-  if (!(await storedRules(api)).some((item) => item.key === key))
-    return c.notFound()
+  const existing = (await storedRules(api)).find((item) => item.key === key)
+  if (!existing) return c.notFound()
   const token = await editExtensionSetting(
     context(c),
     'rules',
     key,
     null,
     form.revision,
+    undefined,
+    existing.rule.product,
   )
   return token === null
     ? settingResult(c, 'rules', null)
     : c.redirect('/extensions/rules?removed=yes', 303)
 })
 app.post('/extensions/rules/move', async (c) => {
-  authorize(context(c), 'admin', scopes)
   const api = active(c, 'rules')
   if (!api) return c.notFound()
   const fields = await c.req.parseBody()
+  const key = ruleKey.parse(fields.key)
+  const existing = (await storedRules(api)).find((r) => r.key === key)
+  if (!existing) return c.notFound()
+  const product =
+    can(c.get('operator'), 'global').allowed && !c.req.query('product')
+      ? undefined
+      : existing.rule.product
+  authorize(context(c), 'admin', scopes, product)
   const done = await moveRule(
     api,
-    ruleKey.parse(fields.key),
+    key,
     z.enum(['up', 'down']).parse(fields.direction) === 'up' ? -1 : 1,
+    product,
   )
   if (!done) return c.text('一覧を更新してから並べ替えてください。', 409)
   return settingResult(
@@ -768,17 +851,18 @@ app.post('/extensions/rules/move', async (c) => {
       done.keys,
       fields.revision,
       done.expected,
+      product,
     ),
   )
 })
 app.post('/extensions/issues/repository', async (c) => {
   const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
   const api = active(c, 'issues')
   if (!api) return c.notFound()
   const input = z
     .object({ product: z.string(), repository })
     .parse(await c.req.parseBody())
+  authorize(ctx, 'admin', scopes, input.product)
   if (!(await frame(c)).products.some((p) => p.id === input.product))
     return c.notFound()
   await api.put('repository/' + input.product, input.repository)

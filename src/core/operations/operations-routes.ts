@@ -1,3 +1,4 @@
+import { requireMedia } from '../operators/project-targets-store'
 import { listTokens } from '../operators/tokens-usecase'
 import {
   undoExtensionSetting,
@@ -284,6 +285,7 @@ app.get('/conversation/:number', async (c) => {
   )
 })
 app.get('/mail/:id', async (c) => {
+  await requireMedia(context(c), 'message', c.req.param('id'), 'read')
   const html = await readHtml(c.env, c.req.param('id'))
   if (html === null) return c.notFound()
   const nonce = crypto.randomUUID()
@@ -294,10 +296,9 @@ app.get('/mail/:id', async (c) => {
   return c.html(htmlMailPage(html, nonce))
 })
 app.get('/attachment', async (c) => {
-  const file = await download(
-    c.env,
-    z.string().min(1).parse(c.req.query('key')),
-  )
+  const key = z.string().min(1).parse(c.req.query('key'))
+  await requireMedia(context(c), 'attachment', key, 'read')
+  const file = await download(c.env, key)
   if (!file) return c.notFound()
   return new Response(file.body, {
     headers: {

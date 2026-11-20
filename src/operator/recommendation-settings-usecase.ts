@@ -25,7 +25,6 @@ export async function saveRecommendationForm(
   ctx: Context,
   form: Record<string, unknown>,
 ) {
-  authorize(ctx, 'admin', new Set(['admin']))
   const fields = z
     .object({
       product: z.string().min(1),
@@ -41,6 +40,7 @@ export async function saveRecommendationForm(
       autoAck: z.literal('on').optional(),
     })
     .parse(form)
+  authorize(ctx, 'admin', new Set(['admin']), fields.product)
   if (!(await readPublicProduct(ctx.env.DB, fields.product))) return null
   const policy = recommendationPolicy.parse({
     interactiveModel: fields.interactiveModel,
@@ -54,5 +54,7 @@ export async function saveRecommendationForm(
     key(fields.product),
     policy,
     fields.revision,
+    undefined,
+    fields.product,
   )
 }

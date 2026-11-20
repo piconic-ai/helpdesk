@@ -79,6 +79,13 @@ window.onHelpdeskPage((signal) => {
   function refresh() {
     if (!bar) return
     bulkLabelStates()
+    const projects = new Set(
+      boxes.filter((box) => box.checked).map((box) => box.dataset.product),
+    )
+    for (const button of bar.querySelectorAll('[data-member-projects]')) {
+      const member = new Set(JSON.parse(button.dataset.memberProjects))
+      button.hidden = [...projects].some((project) => !member.has(project))
+    }
     const assignees = new Set(
       boxes.filter((box) => box.checked).map((box) => box.dataset.assignee),
     )

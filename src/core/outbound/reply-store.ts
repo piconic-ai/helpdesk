@@ -207,6 +207,7 @@ const claimSchema = replyEnvelopeSchema.extend({
     .transform((value) => approvalSchema.parse(JSON.parse(value))),
   attempt: z.string().min(1),
   automatic: z.number().transform(Boolean),
+  recipientAllowed: z.number().transform(Boolean),
 })
 export async function claim(db: D1Database, id: string, now: number) {
   const [changed, rows] = await db.batch([
@@ -215,7 +216,7 @@ export async function claim(db: D1Database, id: string, now: number) {
       (SELECT id FROM messages WHERE id=? AND kind='outbound' AND delivery='queued' AND approval IS NOT NULL)`)
       .bind(now, id, now, id),
     db
-      .prepare(`SELECT c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,p.prefix AS ticketPrefix,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic
+      .prepare(`SELECT c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,p.prefix AS ticketPrefix,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic, (s.operator_recipient IS NULL OR EXISTS(SELECT 1 FROM product_members pm WHERE pm.product=c.product AND pm.email=s.operator_recipient)) AS recipientAllowed
       FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id JOIN product_ticket_prefixes p ON p.product=c.product LEFT JOIN standing_messages s ON s.message=m.id WHERE m.id=?`)
       .bind(id),
   ])
@@ -302,7 +303,7 @@ export async function insertStanding(
       .prepare(`INSERT INTO messages(id,number,kind,body,actor,created_at,delivery,approval,in_reply_to,refs)
       SELECT ?,number,'outbound',?,?,?,'queued',?,?,? FROM conversations
       WHERE number=? AND (? IS NOT NULL OR (kind='inquiry' AND status!='spam'))
-      AND (? IS NULL OR EXISTS(SELECT 1 FROM operators WHERE email=?))
+      AND (? IS NULL OR EXISTS(SELECT 1 FROM product_members pm WHERE pm.product=conversations.product AND pm.email=?))
       AND EXISTS(SELECT 1 FROM operators WHERE email=?) ON CONFLICT(id) DO NOTHING RETURNING id`)
       .bind(
         input.id,

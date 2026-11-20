@@ -376,6 +376,7 @@ function bulkBar(frame: ConsoleFrame, view: string) {
                 type="button"
                 data-change="assign"
                 data-value={op.email}
+                data-member-projects={JSON.stringify(op.projects)}
                 aria-label={op.displayName}
               >
                 <Candidate icon={operatorAvatar(op)} label={op.displayName} />
@@ -404,7 +405,11 @@ function bulkBar(frame: ConsoleFrame, view: string) {
         <small data-mixed-label-hint="">
           − は一部の会話に付いています。選ぶと、選択中のすべての会話に付きます。
         </small>
-        <a href="/settings/labels">ラベルを管理</a>
+        {frame.labelDirectory && (
+          <a data-manage-labels="" href={frame.labelDirectory}>
+            ラベルを管理
+          </a>
+        )}
       </FilterPicker>
       {view !== 'feedback' && frame.query.status !== 'spam' && (
         <Button type="button" data-change="closed">

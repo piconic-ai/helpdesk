@@ -1,9 +1,14 @@
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../core/operators/project-targets-store'
 import type { VoiceFilters } from './voice-filters'
 
 const day = 86400000
 function cohort(
   db: D1Database,
   q: VoiceFilters,
+  scope: ProductScope,
   sql: string,
   ...extra: number[]
 ) {
@@ -18,7 +23,7 @@ function cohort(
       AND (?2='' OR EXISTS (SELECT 1 FROM labels WHERE number=c.number AND name=?2))
       AND (?3='' OR NOT EXISTS (SELECT 1 FROM labels WHERE number=c.number))
       AND (?4 IS NULL OR c.created_at>=?4) AND (?5 IS NULL OR c.created_at<?5)
-      AND (?6='' OR month=?6)
+      AND (?6='' OR month=?6) AND (?7 IS NULL OR c.product IN (SELECT value FROM json_each(?7)))
   ) ` + sql,
     )
     .bind(
@@ -28,6 +33,7 @@ function cohort(
       q.start ? midnight(q.start) : null,
       q.end ? midnight(q.end) + day : null,
       q.month,
+      scopeBinding(scope),
       ...extra,
     )
 }
@@ -42,11 +48,16 @@ type Bin = {
   count: number
 }
 const jst = 9 * 3600000
-export async function voiceBuckets(db: D1Database, q: VoiceFilters) {
+export async function voiceBuckets(
+  db: D1Database,
+  q: VoiceFilters,
+  scope: ProductScope = null,
+) {
   // Keep at most seven points per row, even for a report spanning many years.
   const result = await cohort(
     db,
     q,
+    scope,
     `
     , dates AS (
       SELECT *, CAST((created_at+32400000)/86400000 AS INTEGER) AS received FROM voices
@@ -97,10 +108,12 @@ export async function voiceList(
   db: D1Database,
   q: VoiceFilters,
   requested: string | undefined,
+  scope: ProductScope = null,
 ) {
   const total = await cohort(
     db,
     q,
+    scope,
     'SELECT COUNT(*) AS n FROM voices',
   ).first<number>('n')
   const count = total ?? 0
@@ -112,9 +125,10 @@ export async function voiceList(
   const rows = await cohort(
     db,
     q,
+    scope,
     `
     SELECT number,subject,product,productName,kind,created_at AS at FROM voices
-    ORDER BY created_at DESC,number DESC LIMIT 20 OFFSET ?7`,
+    ORDER BY created_at DESC,number DESC LIMIT 20 OFFSET ?8`,
     (page - 1) * 20,
   ).all<{
     number: number

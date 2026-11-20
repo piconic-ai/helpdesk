@@ -25,6 +25,7 @@ import {
   retryReply,
 } from '../outbound/reply-usecase'
 import { diagnose } from '../settings/doctor-usecase'
+import { actingProducts } from '../operators/project-targets-store'
 import * as store from './operator-store'
 
 export type Scope = 'read' | 'draft' | 'write' | 'send' | 'admin'
@@ -45,9 +46,9 @@ export const handlers = {
   undoBulk: undoInbox,
   doctor: (c: Context) => diagnose(c.env),
   list: (c: Context, i: z.infer<typeof filterSchema>) =>
-    visibleConversations(c.env, i, c.now),
-  get: (c: Context, n: number) => groupedDetail(c.env, n),
-  failures: (c: Context) => store.inboxFailures(c.env.DB),
+    visibleConversations(c.env, i, c.now, actingProducts(c)),
+  get: (c: Context, n: number) => groupedDetail(c.env, n, actingProducts(c)),
+  failures: (c: Context) => store.inboxFailures(c.env.DB, actingProducts(c)),
   status: async (
     c: Context,
     i: Ticket & {

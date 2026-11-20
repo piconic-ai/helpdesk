@@ -15,6 +15,7 @@ function sourceFor(namespace: string) {
 type Change = {
   namespace: string
   key: string
+  product?: string
   next: string | null
   operator: string
   now: number
@@ -71,12 +72,12 @@ export async function changeExtensionSetting(db: D1Database, c: Change) {
   const source = sourceFor(c.namespace)
   const current = `(SELECT ${source.value} FROM ${source.table} WHERE ${source.key}=?2)`
   const record = db
-    .prepare(`INSERT INTO extension_setting_changes(namespace,setting,token,operator,previous,current)
-    SELECT ?1,?2,?3,?4,${current},?5 WHERE ${current} IS NOT ?5
+    .prepare(`INSERT INTO extension_setting_changes(namespace,setting,token,operator,previous,current,product)
+    SELECT ?1,?2,?3,?4,${current},?5,?10 WHERE ${current} IS NOT ?5
     AND (?6 IS NULL OR coalesce((SELECT token FROM extension_setting_changes WHERE namespace=?1 AND setting=?2),'')=?6)
     AND (?7=0 OR ${current} IS ?8)
     AND (?9=0 OR EXISTS(SELECT 1 FROM extension_setting_changes WHERE token=?6 AND operator=?4))
-    ON CONFLICT(namespace,setting) DO UPDATE SET token=excluded.token,operator=excluded.operator,previous=excluded.previous,current=excluded.current
+    ON CONFLICT(namespace,setting) DO UPDATE SET token=excluded.token,operator=excluded.operator,previous=excluded.previous,current=excluded.current,product=excluded.product
     RETURNING token`)
     .bind(
       c.namespace,
@@ -88,6 +89,7 @@ export async function changeExtensionSetting(db: D1Database, c: Change) {
       Number(c.expected !== undefined),
       c.expected ?? null,
       Number(!!c.undo),
+      c.product ?? null,
     )
   const [changed, actual] = await db.batch([
     record,
@@ -167,25 +169,29 @@ export async function restoreExtensionSetting(
   operator: string,
   now: number,
   nextToken: string,
+  authorize: (product?: string) => void = () => {},
 ) {
   const receipt = await db
     .prepare(
-      'SELECT setting,previous,current FROM extension_setting_changes WHERE namespace=? AND token=? AND operator=?',
+      'SELECT setting,previous,current,product FROM extension_setting_changes WHERE namespace=? AND token=? AND operator=?',
     )
     .bind(namespace, token, operator)
     .first()
   if (!receipt) return false
-  const { setting, previous, current } = z
+  const { setting, previous, current, product } = z
     .object({
       setting: z.string(),
+      product: z.string().nullable(),
       previous: z.string().nullable(),
       current: z.string().nullable(),
     })
     .parse(receipt)
+  authorize(product ?? undefined)
   return (
     (await changeExtensionSetting(db, {
       namespace,
       key: setting,
+      product: product ?? undefined,
       next: previous,
       operator,
       now,

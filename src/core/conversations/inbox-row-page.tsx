@@ -182,6 +182,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       selection={
         <Input
           type="checkbox"
+          data-product={row.product}
           data-assignee={assignee ?? ''}
           data-labels={JSON.stringify(m.labels)}
           aria-label={reference + 'を選択'}

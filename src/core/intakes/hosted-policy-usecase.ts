@@ -25,7 +25,7 @@ export async function enableHostedIntake(
   product: string,
   origin: string,
 ) {
-  authorize(ctx, 'admin', new Set(['admin']))
+  authorize(ctx, 'admin', new Set(['admin']), product)
   if (Object.hasOwn(ctx.env.PUBLIC_INTAKES ?? {}, product))
     throw new Error('Deployment policy takes precedence')
   return startHostedIntake(ctx.env.DB, product, origin, ctx.uuid(), {

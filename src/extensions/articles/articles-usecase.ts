@@ -102,6 +102,9 @@ export async function suggestArticle(ctx: ExtensionContext, input: unknown) {
 export async function settingsContent(ctx: ExtensionContext) {
   const docs = (await ctx.list('article/'))
     .map((r) => article.parse(r.value))
+    .filter(
+      (a) => !ctx.visibleProducts || ctx.visibleProducts.includes(a.product),
+    )
     .map(
       (a) =>
         a.product +
@@ -118,7 +121,11 @@ export async function settingsContent(ctx: ExtensionContext) {
     entries.map(async ({ value }) => {
       const entry = candidate.parse(value)
       const contact = await ctx.contact(entry.number).catch(() => null)
-      return contact ? contact.reference + ' · ' + entry.topic : entry.topic
+      return contact
+        ? contact.reference + ' · ' + entry.topic
+        : ctx.visibleProducts
+          ? ''
+          : entry.topic
     }),
   )
   return [...docs, ...topics].join('\n')

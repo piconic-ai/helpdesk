@@ -483,7 +483,13 @@ export function conversationPage(
           {channelIcon(c.origin)}
           {statusPicker(c)}
           {c.kind === 'inquiry' && assignment(c, frame)}
-          {labelPicker(c.number, data.labels, frame.labels, frame.labelColors)}
+          {labelPicker(
+            c.number,
+            data.labels,
+            frame.labels,
+            frame.labelColors,
+            frame.labelDirectory,
+          )}
           {activity && <ThreadActivity message={activity} />}
         </AttributeRow>
       }

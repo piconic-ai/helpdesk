@@ -64,7 +64,16 @@ export async function restorePublicSetting(
   db: D1Database,
   changeId: string,
   audit: Audit,
+  authorize: (product: string) => void = () => {},
 ) {
+  const product = await db
+    .prepare(
+      'SELECT product FROM public_help_settings WHERE change_id=? AND actor=?',
+    )
+    .bind(changeId, audit.actor)
+    .first<string>('product')
+  if (!product) return false
+  authorize(product)
   const [restored] = await db.batch([
     db
       .prepare(

@@ -167,6 +167,13 @@ export async function deliverReply(
   }
   const reply = await claim(env.DB, id, now)
   if (!reply) return holdDelay(env.DB, id, now)
+  if (!reply.recipientAllowed) {
+    await finish(env.DB, id, reply.attempt, reply.actor, time(), {
+      kind: 'rejected',
+      reason: 'The operator no longer belongs to this project',
+    })
+    return
+  }
   const payload = composeReply(reply)
   if (reply.automatic) payload.headers['Auto-Submitted'] = 'auto-generated'
   const result = await sendReply(env.EMAIL, payload)

@@ -153,7 +153,7 @@ function prepareSearch(panel) {
   const options = menuItems(panel).filter(
     (item) =>
       item.matches('button,a[href]') &&
-      !item.matches('[popovertarget], a[href="/settings/labels"]'),
+      !item.matches('[popovertarget], [data-manage-labels]'),
   )
   if (options.length <= 8) return
   const search = document.createElement('input')
@@ -236,9 +236,10 @@ function richChoice(select, index) {
     })
     panel.append(item)
   }
-  if (select.name === 'label') {
+  if (select.name === 'label' && select.form?.dataset.labelDirectory) {
     const manage = document.createElement('a')
-    manage.href = '/settings/labels'
+    manage.href = select.form.dataset.labelDirectory
+    manage.dataset.manageLabels = ''
     manage.textContent = 'ラベルを管理'
     panel.append(manage)
   }

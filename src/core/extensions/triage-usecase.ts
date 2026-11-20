@@ -1,3 +1,4 @@
+import type { ProductScope } from '../operators/project-targets-store'
 import type { filterSchema } from '../conversations/filters'
 import type { Bindings } from '../settings/bindings'
 import { extensionStorage } from './extension-store'
@@ -23,6 +24,7 @@ export async function visibleConversations(
   env: Env,
   filter: z.infer<typeof filterSchema>,
   now: number,
+  scope: ProductScope = null,
 ) {
   const hidden = new Set<number>()
   for (const { extension } of env.EXTENSIONS?.active ?? []) {
@@ -37,7 +39,7 @@ export async function visibleConversations(
   const groups = Object.fromEntries(
     Object.keys(aliases).map((n) => [n, canonical(aliases, Number(n))]),
   )
-  return (await listConversations(env.DB, filter, groups)).filter(
+  return (await listConversations(env.DB, filter, groups, scope)).filter(
     (c) => !hidden.has(c.number) && aliases[c.number] === undefined,
   )
 }
@@ -49,9 +51,13 @@ async function conversationGroup(env: Env, number: number) {
     .filter((alias) => canonical(aliases, alias) === main)
   return { main, numbers: [main, ...members] }
 }
-export async function groupedDetail(env: Env, number: number) {
+export async function groupedDetail(
+  env: Env,
+  number: number,
+  scope: ProductScope = null,
+) {
   const group = await conversationGroup(env, number)
-  return detail(env.DB, group.main, group.numbers)
+  return detail(env.DB, group.main, group.numbers, scope)
 }
 export async function changeGroupLabel(
   env: Env,

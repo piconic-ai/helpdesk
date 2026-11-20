@@ -23,7 +23,7 @@ export async function editChatWidget(
   product: string,
   fields: unknown,
 ) {
-  authorize(ctx, 'admin', new Set(['admin']))
+  authorize(ctx, 'admin', new Set(['admin']), product)
   if (!(await readPublicProduct(ctx.env.DB, product))) return null
   const parsed = chatWidgetSchema.safeParse(fields)
   if (!parsed.success) return null
@@ -45,7 +45,7 @@ export async function editPublicSetting(
   product: string,
   setting: { responseTime: string } | { site: string; remove: boolean },
 ) {
-  authorize(ctx, 'admin', new Set(['admin']))
+  authorize(ctx, 'admin', new Set(['admin']), product)
   if (!(await readPublicProduct(ctx.env.DB, product))) return null
   if ('site' in setting && !exactOrigin.safeParse(setting.site).success)
     return null
@@ -64,9 +64,13 @@ export async function editPublicSetting(
 }
 
 export async function undoPublicSetting(ctx: Context, changeId: string) {
-  authorize(ctx, 'admin', new Set(['admin']))
-  return restorePublicSetting(ctx.env.DB, z.uuid().parse(changeId), {
-    actor: JSON.stringify(ctx.actor),
-    now: ctx.now,
-  })
+  return restorePublicSetting(
+    ctx.env.DB,
+    z.uuid().parse(changeId),
+    {
+      actor: JSON.stringify(ctx.actor),
+      now: ctx.now,
+    },
+    (product) => authorize(ctx, 'admin', new Set(['admin']), product),
+  )
 }

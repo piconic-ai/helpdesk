@@ -1,12 +1,20 @@
+import {
+  scopeBinding,
+  type ProductScope,
+} from '../operators/project-targets-store'
 import { z } from 'zod'
 import type { ExtensionEvent } from './extension'
 import { eventStatement } from '../conversations/conversations-store'
 import type { Context } from '../operations/catalog-usecase'
-export async function receivedVoices(db: D1Database) {
+export async function receivedVoices(
+  db: D1Database,
+  scope: ProductScope = null,
+) {
   const { results } = await db
     .prepare(
-      "SELECT number,product,created_at AS createdAt,kind,status FROM conversations WHERE status!='spam' ORDER BY number",
+      "SELECT number,product,created_at AS createdAt,kind,status FROM conversations WHERE status!='spam' AND (?1 IS NULL OR product IN (SELECT value FROM json_each(?1))) ORDER BY number",
     )
+    .bind(scopeBinding(scope))
     .all()
   return z
     .array(
@@ -23,14 +31,13 @@ export async function receivedVoices(db: D1Database) {
 export async function history(
   db: D1Database,
   kind?: string,
+  scope: ProductScope = null,
 ): Promise<ExtensionEvent[]> {
-  const select =
-    'SELECT e.*,c.product FROM events e LEFT JOIN conversations c USING(number)'
-  const statement =
-    kind === undefined
-      ? db.prepare(select + ' ORDER BY e.id')
-      : db.prepare(select + ' WHERE e.kind=? ORDER BY e.id').bind(kind)
-  const result = await statement.all()
+  const result = await db
+    .prepare(`SELECT e.*,c.product FROM events e LEFT JOIN conversations c USING(number)
+    WHERE (?1 IS NULL OR e.kind=?1) AND ${visibleEvent} ORDER BY e.id`)
+    .bind(kind ?? null, scopeBinding(scope))
+    .all()
   const schema = z.object({
     id: z.number(),
     at: z.number(),
@@ -49,22 +56,41 @@ export async function history(
       payload: { product, ...JSON.parse(e.payload) },
     }))
 }
-export async function snapshotCounts(db: D1Database) {
-  return (
-    await db
-      .prepare(
-        'SELECT (SELECT COUNT(*) FROM conversations) AS conversations, (SELECT COUNT(*) FROM messages) AS messages, (SELECT COUNT(*) FROM events) AS events',
-      )
-      .all<{ conversations: number; messages: number; events: number }>()
-  ).results[0]
+// A deployment-wide event has no project. Project-tagged events can exist before a conversation opens.
+const visibleEvent = `(?2 IS NULL OR coalesce(c.product,json_extract(e.payload,'$.product')) IN (SELECT value FROM json_each(?2)))`
+const visibleConversation =
+  '(?1 IS NULL OR c.product IN (SELECT value FROM json_each(?1)))'
+export async function snapshotCounts(
+  db: D1Database,
+  scope: ProductScope = null,
+) {
+  const ids = scopeBinding(scope)
+  const row = await db
+    .prepare(`SELECT
+    (SELECT count(*) FROM conversations c WHERE ${visibleConversation}) AS conversations,
+    (SELECT count(*) FROM messages m JOIN conversations c USING(number) WHERE ${visibleConversation}) AS messages,
+    (SELECT count(*) FROM events e LEFT JOIN conversations c USING(number) WHERE ${visibleEvent}) AS events`)
+    .bind(ids, ids)
+    .first<{ conversations: number; messages: number; events: number }>()
+  return row!
 }
-export async function snapshot(db: D1Database) {
+export async function snapshot(db: D1Database, scope: ProductScope = null) {
+  const ids = scopeBinding(scope)
   const [conversations, messages, events] = await db.batch([
-    db.prepare('SELECT * FROM conversations ORDER BY number'),
-    db.prepare(
-      'SELECT id,number,kind,body,html,delivery,approval,actor,created_at FROM messages ORDER BY number,created_at,id',
-    ),
-    db.prepare('SELECT * FROM events ORDER BY id'),
+    db
+      .prepare(
+        `SELECT c.* FROM conversations c WHERE ${visibleConversation} ORDER BY number`,
+      )
+      .bind(ids),
+    db
+      .prepare(`SELECT m.id,m.number,m.kind,m.body,m.html,m.delivery,m.approval,m.actor,m.created_at
+      FROM messages m JOIN conversations c USING(number) WHERE ${visibleConversation} ORDER BY m.number,m.created_at,m.id`)
+      .bind(ids),
+    db
+      .prepare(
+        `SELECT e.* FROM events e LEFT JOIN conversations c USING(number) WHERE ${visibleEvent} ORDER BY e.id`,
+      )
+      .bind(null, ids),
   ])
   return {
     conversations: conversations.results as Record<string, unknown>[],

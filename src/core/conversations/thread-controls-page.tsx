@@ -60,6 +60,7 @@ export function labelPicker(
   labels: { name: string }[],
   choices: string[],
   colors: Record<string, number>,
+  directory?: string,
 ) {
   const used = new Set(labels.map((l) => l.name))
   return (
@@ -121,7 +122,11 @@ export function labelPicker(
           number,
         )}
       </details>
-      <a href="/settings/labels">ラベルを管理</a>
+      {directory && (
+        <a data-manage-labels="" href={directory}>
+          ラベルを管理
+        </a>
+      )}
     </Popover>
   )
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { coreOperations, type Context, type Scope } from './catalog-usecase'
-import { authorize, PermissionDenied } from './catalog'
+import { authorize, authorizeReferences, PermissionDenied } from './catalog'
 import { extensionContext } from '../extensions/context-usecase'
 import { eventStatement } from '../conversations/conversations-store'
 
@@ -20,8 +20,11 @@ function available(ctx: Context) {
       ...op,
       name: item.extension.id + '.' + op.name,
       humanOnly: op.humanOnly ?? false,
-      run: (i: unknown) =>
-        op.run(extensionContext(ctx, item), op.input.parse(i)),
+      run: async (i: unknown) => {
+        const parsed = op.input.parse(i)
+        await authorizeReferences(ctx, op.permission, parsed)
+        return op.run(extensionContext(ctx, item), parsed)
+      },
     })),
   )
   return [...core, ...extra]
@@ -30,10 +33,11 @@ function permitted(
   ctx: Context,
   op: { permission: Scope; humanOnly: boolean },
   scopes: ReadonlySet<Scope>,
+  product?: string,
 ) {
   if (op.humanOnly && ctx.actor.kind !== 'operator') return false
   try {
-    authorize(ctx, op.permission, scopes)
+    authorize(ctx, op.permission, scopes, product)
     return true
   } catch {
     return false
@@ -60,7 +64,13 @@ export async function invoke(
 ) {
   const op = available(ctx).find((o) => o.name === name)
   if (!op) throw new Error('Unknown operation')
-  if (!permitted(ctx, op, scopes))
+  const product =
+    op.permission === 'admin'
+      ? z
+          .object({ product: z.string().optional() })
+          .safeParse(op.input.parse(input)).data?.product
+      : undefined
+  if (!permitted(ctx, op, scopes, product))
     throw new PermissionDenied('Permission denied')
   const result = await op.run(input)
   if (ctx.actor.kind === 'agent') {

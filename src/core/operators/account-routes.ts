@@ -1,3 +1,4 @@
+import { can } from './project-access'
 import { replyDelayInput } from '../settings/reply-delay'
 import { timeZone } from './time-zone'
 import { Hono } from 'hono'
@@ -90,7 +91,7 @@ accountRoutes.get('/account/avatar/:key', async (c) => {
   })
 })
 accountRoutes.post('/settings/senders/:product', async (c) => {
-  if (c.get('operator').role !== 'admin')
+  if (!can(c.get('operator'), 'manage', c.req.param('product')).allowed)
     return c.text('管理者の権限が必要です。', 403)
   const form = await c.req.parseBody()
   const name = displayName.parse(form.senderName)
