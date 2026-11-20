@@ -195,6 +195,30 @@ it('F08-AC1/2/3 uses safe webhook defaults and sends mail only to registered ope
     spy.mockRestore()
   }
 })
+it('delivers a project notification only to the webhook chosen for that project', async () => {
+  const url = 'https://hooks.example.net/project-a'
+  const fetch = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(new Response(null, { status: 204 }))
+  try {
+    ctx.env.NOTIFY_PROJECT_WEBHOOKS = JSON.stringify({
+      shop: url,
+      other: 'https://hooks.example.net/other',
+    })
+    await run(notify, receive, { projects: { other: { format: 'discord' } } })
+    expect(fetch).not.toHaveBeenCalled()
+    await run(notify, receive, { projects: { shop: { format: 'discord' } } })
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch.mock.calls[0][0]).toBe(url)
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toHaveProperty(
+      'content',
+    )
+  } finally {
+    delete ctx.env.NOTIFY_PROJECT_WEBHOOKS
+    fetch.mockRestore()
+  }
+})
+
 it('F14-AC1/2 asks once and records one answer for a private ticket', async () => {
   await p.DB.prepare(
     "UPDATE conversations SET status='closed',closed_at=30 WHERE number=1",

@@ -29,10 +29,13 @@ export async function issueDetail(
   db: D1Database,
   api: ExtensionContext,
   ref: { repository: string; issue: number },
+  product?: string,
 ) {
   const key = issueKey(ref.repository, ref.issue)
   const rows = (await issueBoard(api)).filter(
-    (r) => issueKey(r.repository, r.issue) === key,
+    (r) =>
+      issueKey(r.repository, r.issue) === key &&
+      (!product || r.product === product),
   )
   if (!rows.length) return
   const voices = rows.flatMap((row) => row.voices)

@@ -13,7 +13,15 @@ export const extensionBack = (project?: string) =>
     ? projectBack(project)
     : { href: '/extensions', label: '拡張の管理に戻る' }
 
+export function withProject(path: string, product?: string) {
+  if (!product) return path
+  const [pathname, search] = path.split('?')
+  const params = new URLSearchParams(search)
+  params.set('product', product)
+  return pathname + '?' + params
+}
+
 export function extensionSettingsPath(extension: string, project?: string) {
   const path = '/extensions/' + encodeURIComponent(extension)
-  return project ? path + '?' + new URLSearchParams({ product: project }) : path
+  return withProject(path, project)
 }

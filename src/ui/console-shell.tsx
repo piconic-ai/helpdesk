@@ -1,3 +1,4 @@
+import { withProject } from '../core/settings/project-setting-links'
 import { can, visibleProductIds } from '../core/operators/project-access'
 import { projectTerm } from '../core/settings/project-term'
 import { activeProjects, ProductMark } from './product-mark'
@@ -115,7 +116,7 @@ function extensionMenu(frame: ConsoleFrame) {
       <h2>拡張</h2>
       {routes.map((route) =>
         navItem(
-          route.path,
+          withProject(route.path, frame.query.product),
           route.label,
           route.path === '/voices'
             ? 'voices'

@@ -43,6 +43,7 @@ export async function listConversations(
       SELECT CAST(key AS INTEGER),value FROM json_each(?1)
       UNION ALL SELECT number,number FROM conversations
     ) SELECT c.* FROM conversations c WHERE (?3='all' OR status=?3) AND (?4='' OR product=?4)
+    AND (?4<>'' OR NOT EXISTS (SELECT 1 FROM product_lifecycle p WHERE p.product=c.product AND p.archived_at IS NOT NULL))
     AND (?7 IS NULL OR c.product IN (SELECT value FROM json_each(?7)))
     AND (?5='' OR assignee=?5) AND (?6='' OR EXISTS(SELECT 1 FROM labels l JOIN members x ON l.number=x.source WHERE x.target=c.number AND l.name=?6))
     AND (?2='' OR c.number IN (SELECT x.target FROM members x JOIN (${search.sql}) hits ON hits.number=x.source))

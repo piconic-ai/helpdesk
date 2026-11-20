@@ -1,4 +1,8 @@
-import { can, visibleProductIds } from '../operators/project-access'
+import {
+  can,
+  inboxProductIds,
+  visibleProductIds,
+} from '../operators/project-access'
 import { projectOperators } from '../operators/project-targets-store'
 import { labelColors } from './label-colors-store'
 import { inboxSort } from './inbox-location'
@@ -56,7 +60,7 @@ export async function consoleFrame(
         env.DB,
         scope,
         path.startsWith('/settings'),
-        path.startsWith('/conversation/') ? product : undefined,
+        product || undefined,
       ),
       listOperators(env.DB),
       projectOperators(env.DB, chosen),
@@ -67,7 +71,7 @@ export async function consoleFrame(
         env,
         filterSchema.parse({ product, status: 'all' }),
         now,
-        scope,
+        inboxProductIds(operator, { product }),
       ),
     ])
   const operators = people

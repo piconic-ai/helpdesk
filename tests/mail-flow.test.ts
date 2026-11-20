@@ -77,7 +77,9 @@ async function registerMailbox(page: Page) {
   await page.goto(origin + '/settings')
   await page.getByRole('link', { name: /^全体の設定/ }).click()
   await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page
+    .getByRole('link', { name: 'プロジェクトを追加', exact: true })
+    .click()
   await page
     .getByLabel('プロジェクト名')
     .fill('Shop')

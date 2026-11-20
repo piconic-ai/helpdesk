@@ -1,3 +1,5 @@
+import { withProject } from '../core/settings/project-setting-links'
+import { can } from '../core/operators/project-access'
 import {
   extensionBack,
   extensionSettingsPath,
@@ -154,11 +156,16 @@ export function libraryPage(
       filters={filters}
       action={
         <ActionBar>
-          <ActionLink href="/articles/questions">記事が無かった質問</ActionLink>
-          <ActionLink href="/articles/candidates">
+          <ActionLink href={withProject('/articles/questions', query.product)}>
+            記事が無かった質問
+          </ActionLink>
+          <ActionLink href={withProject('/articles/candidates', query.product)}>
             候補（{candidateCount}件）
           </ActionLink>
-          <ActionLink variant="default" href="/articles/new">
+          <ActionLink
+            variant="default"
+            href={withProject('/articles/new', query.product)}
+          >
             記事を書く
           </ActionLink>
         </ActionBar>
@@ -361,7 +368,10 @@ export function editorPage(
 ) {
   const published = data.status === 'published'
   const title = data.id ? '記事の編集' : '記事を書く'
-  const back = { href: '/articles', label: '記事一覧に戻る' }
+  const back = {
+    href: withProject('/articles', frame.query.product),
+    label: '記事一覧に戻る',
+  }
   const form = (
     <form
       method="post"
@@ -403,7 +413,7 @@ export function editorPage(
           <Button variant="ghost" name="intent" value="draft">
             {published ? '非公開にして保存' : '下書きを保存'}
           </Button>
-          <ActionLink href="/articles" variant="ghost" data-discard-draft="">
+          <ActionLink href={back.href} variant="ghost" data-discard-draft="">
             取り消し
           </ActionLink>
         </ActionBar>
@@ -702,7 +712,7 @@ export function guidePage(
               <p>メール通知の設定例</p>
               <code>
                 {
-                  '{ extension: notify, enabled: true, settings: { email: "support@example.com" } }'
+                  '{ extension: notify, enabled: true, settings: { projects: { slide: { email: "support@example.com" } } } }'
                 }
               </code>
             </>
@@ -731,6 +741,27 @@ type MetricWindow = {
   to: number
   values: Record<string, number | null>
 }
+export function reportProjectPicker(
+  frame: ConsoleFrame,
+  title: string,
+  projects: ConsoleFrame['products'],
+) {
+  return adminPage(
+    title,
+    frame,
+    projects.length ? (
+      <ProjectPickerForm
+        action={frame.path}
+        products={projects}
+        empty="プロジェクトを選ぶ"
+        submitLabel="集計を開く"
+      />
+    ) : (
+      <p>集計できるプロジェクトはありません。</p>
+    ),
+  )
+}
+
 export function metricsPage(
   frame: ConsoleFrame,
   filter: MetricFilter,
@@ -804,7 +835,7 @@ export function metricsPage(
     <FilterBar
       chips={
         <>
-          {selected && (
+          {selected && can(frame.operator, 'global').allowed && (
             <ActionLink variant="ghost" href={url({ product: '' })}>
               {projectTerm}：
               <ProductMark product={selected} /> ×
@@ -823,7 +854,11 @@ export function metricsPage(
       }
     >
       <form action="/metrics" method="get" data-live-filters="">
-        {productSelect(frame, filter.product, true)}
+        {productSelect(
+          frame,
+          filter.product,
+          can(frame.operator, 'global').allowed,
+        )}
         <Field label="期間">
           <NativeSelect name="period" aria-label="期間">
             {[
@@ -887,26 +922,28 @@ export function metricsPage(
       <section aria-label="集計の内訳">
         <MetricGrid>{counts.map(card)}</MetricGrid>
       </section>
-      {leading.length > 0 && (
-        <FormSection title={`${projectTerm}別の受付件数`}>
-          <RowList>
-            {leading.map((row) => (
-              <ListRow
-                title={
-                  <ProductMark product={{ id: row.value, name: row.title }} />
-                }
-                status={row.count + '件'}
-              />
-            ))}
-            {remaining.length > 0 && (
-              <ListRow
-                title="そのほか"
-                status={remaining.reduce((n, row) => n + row.count, 0) + '件'}
-              />
-            )}
-          </RowList>
-        </FormSection>
-      )}
+      {!filter.product &&
+        can(frame.operator, 'global').allowed &&
+        leading.length > 0 && (
+          <FormSection title={`${projectTerm}別の受付件数`}>
+            <RowList>
+              {leading.map((row) => (
+                <ListRow
+                  title={
+                    <ProductMark product={{ id: row.value, name: row.title }} />
+                  }
+                  status={row.count + '件'}
+                />
+              ))}
+              {remaining.length > 0 && (
+                <ListRow
+                  title="そのほか"
+                  status={remaining.reduce((n, row) => n + row.count, 0) + '件'}
+                />
+              )}
+            </RowList>
+          </FormSection>
+        )}
     </OverviewPage>,
     frame,
   )

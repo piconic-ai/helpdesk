@@ -1,3 +1,4 @@
+import { withProject } from '../core/settings/project-setting-links'
 import { projectTerm } from '../core/settings/project-term'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
@@ -29,7 +30,10 @@ export function missingArticlesPage(
     <ListPage
       title="記事が無かった質問"
       description={list.total + '件'}
-      back={{ href: '/articles', label: '記事一覧に戻る' }}
+      back={{
+        href: withProject('/articles', product),
+        label: '記事一覧に戻る',
+      }}
       filters={
         <FilterBar>
           <form action="/articles/questions" method="get" data-live-filters="">

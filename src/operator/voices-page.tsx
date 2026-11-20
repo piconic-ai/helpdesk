@@ -1,3 +1,4 @@
+import { can } from '../core/operators/project-access'
 import { projectBreakdown } from './project-volume'
 import { projectTerm } from '../core/settings/project-term'
 import { displayReference } from '../core/conversations/ticket-reference'
@@ -40,7 +41,11 @@ function VoiceFilterBar({
           <ProductSelect
             products={frame.products}
             selected={q.product}
-            empty={`すべての${projectTerm}`}
+            empty={
+              can(frame.operator, 'global').allowed
+                ? `すべての${projectTerm}`
+                : undefined
+            }
           />
         </Field>
         <Field label="開始日">
@@ -97,6 +102,11 @@ export function voicesOverview(
             </p>
           )}
           {(['label', 'product', 'month'] as const).map((dimension) => {
+            if (
+              dimension === 'product' &&
+              !can(frame.operator, 'global').allowed
+            )
+              return null
             const entries = rows.filter((r) => r.dimension === dimension)
             const projects =
               dimension === 'product'

@@ -115,10 +115,61 @@ it('limits the inbox, search, navigation and contact history to current membersh
   expect((await get('/mail/foreign')).status).toBe(403)
   expect((await get('/attachment?key=private%2Ffile')).status).toBe(403)
   expect((await get('/mail/own')).status).toBe(200)
-  for (const path of ['/voices', '/voices/conversations', '/articles']) {
+  for (const path of ['/voices', '/voices/conversations', '/metrics']) {
+    const redirect = await get(path)
+    expect(redirect.status).toBe(302)
+    expect(redirect.headers.get('location')).toBe(path + '?product=visible')
+  }
+  for (const path of [
+    '/voices?product=visible',
+    '/voices/conversations?product=visible',
+    '/articles',
+  ]) {
     const res = await get(path)
     expect(res.status).toBe(200)
     expect(await res.text()).not.toMatch(/Private inquiry|Unreachable project/)
+  }
+})
+
+it('omits an archived project from the combined inbox and includes its conversations in explicit project history', async () => {
+  await p.DB.batch([
+    p.DB.prepare("INSERT INTO products VALUES('past','Earlier edition')"),
+    p.DB.prepare("INSERT INTO product_members VALUES('past',?,'agent')").bind(
+      member,
+    ),
+    p.DB.prepare("INSERT INTO mailboxes VALUES('past@example.org','past')"),
+    p.DB.prepare(
+      "INSERT INTO conversations(product,mailbox,contact,subject,status,created_at) VALUES('past','past@example.org','reader@example.org','Past edition inquiry','open',1)",
+    ),
+    p.DB.prepare(
+      "UPDATE product_lifecycle SET archived_at=2 WHERE product='past'",
+    ),
+    p.DB.prepare(
+      "UPDATE conversations SET assignee=? WHERE product IN ('visible','past')",
+    ).bind(member),
+  ])
+  try {
+    const inbox = await (
+      await get('/?status=all&assignee=' + encodeURIComponent(member))
+    ).text()
+    expect(inbox).toContain('プロジェクト別の件数')
+    expect(inbox).toContain('Visible inquiry')
+    expect(inbox).not.toContain('Past edition inquiry')
+    const history = await (await get('/?product=past&status=all')).text()
+    expect(history).toContain('Past edition inquiry')
+    const thread = await (await get('/conversation/1')).text()
+    for (const destination of ['/voices', '/metrics', '/articles', '/issues']) {
+      expect(thread).toContain('href="' + destination + '?product=visible"')
+    }
+  } finally {
+    await p.DB.batch([
+      p.DB.prepare("DELETE FROM conversations WHERE product='past'"),
+      p.DB.prepare("DELETE FROM mailboxes WHERE product='past'"),
+      p.DB.prepare("DELETE FROM products WHERE id='past'"),
+      p.DB.prepare(
+        "UPDATE conversations SET assignee=NULL WHERE product='visible'",
+      ),
+    ])
   }
 })
 

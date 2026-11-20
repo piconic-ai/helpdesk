@@ -4,8 +4,8 @@ export async function projectVolume(
   db: D1Database,
   from: number,
   to: number,
-  visible: string[] | null,
-  selected: string,
+  visible: readonly string[] | null,
+  selected = '',
 ) {
   const rows = await db
     .prepare(`SELECT p.id AS value,p.name AS title,count(*) AS count FROM conversations c JOIN products p ON p.id=c.product

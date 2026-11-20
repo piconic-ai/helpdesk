@@ -12,6 +12,7 @@ export interface Bindings {
   ) => Promise<D1PreparedStatement[]>
   SENDING_DOMAINS?: string
   EXTENSIONS?: Registry
+  NOTIFY_PROJECT_WEBHOOKS?: string
   NOTIFY_WEBHOOK_URL?: string
   DEMO_GITHUB?: Pick<Fetcher, 'fetch'>
   GITHUB_TOKEN?: string

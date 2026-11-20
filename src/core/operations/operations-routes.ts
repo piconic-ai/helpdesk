@@ -121,6 +121,12 @@ app.get('/', async (c) => {
       frame,
       await inboxMetadata(c.env, page.numbers, ctx.operator, isApproval),
       page,
+      new Map(
+        Array.from(
+          Map.groupBy(rows, (row) => row.product),
+          ([id, entries]) => [id, entries.length],
+        ),
+      ),
     ),
   )
 })

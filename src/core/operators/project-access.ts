@@ -44,3 +44,14 @@ export function visibleProductIds(actor: Authority): string[] | null {
   const candidates = actor.tokenProducts ?? Object.keys(actor.memberships ?? {})
   return candidates.filter((id) => can(actor, 'read', id).allowed)
 }
+
+export function inboxProductIds(
+  actor: Authority,
+  filter: { product?: string; query?: string },
+) {
+  if ((filter.product && !filter.query) || !actor.memberships)
+    return visibleProductIds(actor)
+  return Object.keys(actor.memberships).filter(
+    (id) => can(actor, 'read', id).allowed,
+  )
+}

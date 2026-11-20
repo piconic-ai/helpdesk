@@ -29,3 +29,17 @@
 ## 未決事項
 
 実サービスとの疎通と文面の評価は導入時に確認する。
+
+
+## プロジェクトごとの送り先
+
+`helpdesk.config.ts` で、運営者への通知を送るプロジェクトと配送方法を指定します。メールの宛先には、そのプロジェクトを読める運営者を指定します。
+
+```ts
+{ extension: notify, enabled: true, settings: { projects: {
+  slide: { format: 'slack', webhookLabel: '#slide-support' },
+  desk: { format: 'discord', webhookLabel: 'Desk の問い合わせ', email: 'desk-operator@example.org' }
+} } }
+```
+
+Webhook URL は Worker シークレット `NOTIFY_PROJECT_WEBHOOKS` に、プロジェクトIDをキー、URLを値にした JSON オブジェクトで登録します。画面にはチャンネルの表示名だけが出ます。`settings.projects` に無いプロジェクトは送信をスキップします。既存環境でこの項目を省いた場合は、従来の `settings.email` と `NOTIFY_WEBHOOK_URL` を共通の送り先として使います。

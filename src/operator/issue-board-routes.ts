@@ -1,3 +1,4 @@
+import { withProject } from '../core/settings/project-setting-links'
 import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 import type { AppEnv } from '../core/operators/middleware'
@@ -43,7 +44,13 @@ routes.get('/issues/new', async (c) => {
   const api = enabled(c)
   if (!api) return c.notFound()
   const layout = await frame(c)
-  const choices = await issueCreationChoices(c.env.DB, api, layout.products)
+  const choices = await issueCreationChoices(
+    c.env.DB,
+    api,
+    layout.products.filter(
+      (p) => !layout.query.product || p.id === layout.query.product,
+    ),
+  )
   return c.render(issueNewPage(layout, choices))
 })
 async function currentIssue(c: Context<AppEnv>) {
@@ -53,11 +60,14 @@ async function currentIssue(c: Context<AppEnv>) {
     repository: c.req.param('owner') + '/' + c.req.param('repo'),
     issue: c.req.param('issue'),
   })
-  if (params.success) return issueDetail(c.env.DB, api, params.data)
+  if (params.success)
+    return issueDetail(c.env.DB, api, params.data, c.req.query('product'))
 }
 routes.get('/issues/:owner/:repo/:issue', async (c) => {
   const detail = await currentIssue(c)
   if (!detail) return c.notFound()
+  if (detail.rows.length > 1)
+    return c.render(issueBoardPage(await frame(c), detail.rows, c.req.query()))
   return c.render(
     issueDetailPage(
       await frame(c),
@@ -71,13 +81,21 @@ routes.get('/issues/:owner/:repo/:issue', async (c) => {
 routes.post('/issues/:owner/:repo/:issue/approve', async (c) => {
   const detail = await currentIssue(c)
   if (!detail) return c.notFound()
+  if (detail.rows.length !== 1)
+    return c.text('プロジェクトを選んでください。', 409)
   const selected = new Set((await c.req.formData()).getAll('notice'))
   const drafts = detail.drafts.filter(
     (d) => d.canApprove && selected.has(d.reviewKey),
   )
-  const destination =
-    '/issues/' + issueKey(detail.rows[0].repository, detail.rows[0].issue)
-  if (!selected.size) return c.redirect(destination + '?drafts=select', 303)
+  const destination = (status: string) =>
+    withProject(
+      '/issues/' +
+        issueKey(detail.rows[0].repository, detail.rows[0].issue) +
+        '?drafts=' +
+        status,
+      detail.rows[0].product,
+    )
+  if (!selected.size) return c.redirect(destination('select'), 303)
   if (selected.size !== drafts.length) {
     c.status(409)
     return c.render(
@@ -98,9 +116,9 @@ routes.post('/issues/:owner/:repo/:issue/approve', async (c) => {
   } catch (error) {
     if (!(error instanceof ReplyStateConflict)) throw error
     // Another operator advanced one of the drafts after the page was checked.
-    return c.redirect(destination + '?drafts=changed', 303)
+    return c.redirect(destination('changed'), 303)
   }
-  return c.redirect(destination + '?drafts=approved', 303)
+  return c.redirect(destination('approved'), 303)
 })
 routes.post('/issues/:owner/:repo/:issue/demo-close', async (c) => {
   const service = c.env.DEMO_GITHUB
@@ -112,7 +130,8 @@ routes.post('/issues/:owner/:repo/:issue/demo-close', async (c) => {
   })
   if (!ref.success) return c.notFound()
   const { repository, issue } = ref.data
-  if (!(await currentIssue(c))) return c.notFound()
+  const detail = await currentIssue(c)
+  if (!detail || detail.rows.length !== 1) return c.notFound()
   const response = await service.fetch(
     'https://api.github.com/repos/' + repository + '/issues/' + issue,
     {
@@ -127,7 +146,7 @@ routes.post('/issues/:owner/:repo/:issue/demo-close', async (c) => {
     return c.text('模擬 GitHub の課題を閉じられませんでした。', 502)
   // Read back the remote change. Operators create and approve notices in the usual workflow.
   await refreshIssueState(api, repository, issue)
-  return c.redirect('/issues', 303)
+  return c.redirect(withProject('/issues', c.req.query('product')), 303)
 })
 routes.get('/issues/choices/:number', async (c) => {
   const api = enabled(c)
@@ -156,6 +175,8 @@ routes.post('/issues/drafts', async (c) => {
   const rows = (await issueBoard(api)).filter(
     (r) => issueKey(r.repository, r.issue) === key,
   )
+  if (!body.product && rows.length > 1)
+    return c.text('プロジェクトを選んでください。', 409)
   const ctx = context(c)
   let count = 0
   for (const row of rows) {
@@ -169,7 +190,10 @@ routes.post('/issues/drafts', async (c) => {
     count += draft.ready
   }
   return c.redirect(
-    '/issues/' + key + '?drafts=' + (count ? 'ready' : 'unchanged'),
+    withProject(
+      '/issues/' + key + '?drafts=' + (count ? 'ready' : 'unchanged'),
+      typeof body.product === 'string' ? body.product : undefined,
+    ),
     303,
   )
 })

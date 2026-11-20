@@ -218,7 +218,7 @@ it('shows the configured email-only notification destination in the card and gui
   const guide = await page('/extensions/notify')
   expect(guide).toContain('通知先：support@example.org')
   expect(guide).toContain('extension: notify')
-  expect(guide).toContain('settings.format')
+  expect(guide).toContain('settings.projects')
   expect(guide).toContain('discord')
 })
 

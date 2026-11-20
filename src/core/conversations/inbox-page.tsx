@@ -255,6 +255,34 @@ function emptyInbox(q: Query, view: string) {
 function hasInboxFilter(q: Query, view: string) {
   return !!(q.product || q.label || q.query || (q.assignee && view !== 'mine'))
 }
+function ProjectCountList({
+  frame,
+  query,
+  counts,
+}: {
+  frame: ConsoleFrame
+  query: Query
+  counts: ReadonlyMap<string, number>
+}) {
+  if (!counts.size) return null
+  return (
+    <details>
+      <summary>プロジェクト別の件数</summary>
+      <ul>
+        {frame.products
+          .filter((p) => counts.has(p.id))
+          .map((p) => (
+            <li>
+              <a href={inboxUrl({ ...query, product: p.id, page: '' })}>
+                {p.name}（{counts.get(p.id)}件）
+              </a>
+            </li>
+          ))}
+      </ul>
+    </details>
+  )
+}
+
 export function inboxPage(
   rows: Result<'list'>,
   failures: Result<'failures'>,
@@ -262,6 +290,7 @@ export function inboxPage(
   frame: ConsoleFrame,
   meta: Metadata,
   page: { page: number; pages: number; total: number },
+  projectCounts: ReadonlyMap<string, number>,
 ) {
   const view = selectedView(q, frame.operator.email)
   const title = statuses[view] ?? '受信箱'
@@ -285,6 +314,9 @@ export function inboxPage(
           </InboxTools>
         }
       >
+        {!q.product && (view === 'mine' || view === 'approval') && (
+          <ProjectCountList frame={frame} query={q} counts={projectCounts} />
+        )}
         {view === 'feedback' && feedbackNotice(q)}
         {failures.length > 0 && (
           <Notice kind="error">

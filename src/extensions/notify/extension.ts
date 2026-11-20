@@ -4,7 +4,7 @@ import type {
   ExtensionContext,
   ExtensionEvent,
 } from '../../core/extensions/extension'
-const settings = z
+const destination = z
   .object({
     format: z.enum(['slack', 'discord']).default('slack'),
     webhookLabel: z.string().trim().min(1).max(100).optional(),
@@ -12,24 +12,61 @@ const settings = z
     email: z.email().optional(),
   })
   .strict()
+const settings = destination.extend({
+  projects: z.record(z.string(), destination).optional(),
+})
+
+function projectWebhooks(ctx: ExtensionContext): Record<string, string> {
+  const secret = ctx.secret('NOTIFY_PROJECT_WEBHOOKS')
+  if (!secret) return {}
+  try {
+    return z
+      .record(z.string(), z.url({ protocol: /^https$/ }))
+      .parse(JSON.parse(secret))
+  } catch {
+    throw new Error(
+      'NOTIFY_PROJECT_WEBHOOKS must map project IDs to HTTPS webhook URLs',
+    )
+  }
+}
+
+function deliveryTarget(
+  ctx: ExtensionContext,
+  conf: z.output<typeof settings>,
+  product: string,
+) {
+  if (!conf.projects)
+    return { options: conf, webhook: ctx.secret('NOTIFY_WEBHOOK_URL') }
+  const options = Object.hasOwn(conf.projects, product)
+    ? conf.projects[product]
+    : undefined
+  if (!options) return undefined
+  const urls = projectWebhooks(ctx)
+  return {
+    options,
+    webhook: Object.hasOwn(urls, product) ? urls[product] : undefined,
+  }
+}
+
 async function notifyEvent(ctx: ExtensionContext, e: ExtensionEvent) {
   if (!e.number) return
   if (e.kind === 'assigned' && !e.payload.to) return
   const conf = settings.parse(ctx.config)
-  const url = ctx.secret('NOTIFY_WEBHOOK_URL')
-  if (!url && !conf.email) return
   const contact = await ctx.contact(e.number)
+  const target = deliveryTarget(ctx, conf, contact.product)
+  if (!target || (!target.webhook && !target.options.email)) return
+  const { options, webhook } = target
   const headline = contact.reference + ' ' + contact.subject
-  const body = conf.includeBody
+  const body = options.includeBody
     ? await ctx.inboundBody(
         e.number,
         typeof e.payload.message === 'string' ? e.payload.message : undefined,
       )
     : ''
   const message = body ? headline + '\n' + body : headline
-  if (conf.email && ctx.enabledBy)
-    await ctx.notifyEmail(e.number, conf.email, message, 'notify/' + e.id)
-  if (url) await postWebhook(ctx, url, conf.format, message)
+  if (options.email && ctx.enabledBy)
+    await ctx.notifyEmail(e.number, options.email, message, 'notify/' + e.id)
+  if (webhook) await postWebhook(ctx, webhook, options.format, message)
 }
 async function postWebhook(
   ctx: ExtensionContext,
@@ -58,18 +95,30 @@ async function postWebhook(
 export const notify: Extension = {
   id: 'notify',
   icon: 'notify',
-  secrets: ['NOTIFY_WEBHOOK_URL'],
+  secrets: ['NOTIFY_WEBHOOK_URL', 'NOTIFY_PROJECT_WEBHOOKS'],
   requiredSecrets: [],
   config: settings,
   async settingsSummary(ctx) {
     const conf = settings.parse(ctx.config)
+    if (conf.projects && ctx.visibleProducts?.length !== 1) {
+      const urls = projectWebhooks(ctx)
+      const visible = ctx.visibleProducts
+      const count = Object.entries(conf.projects).filter(
+        ([id, value]) =>
+          (!visible || visible.includes(id)) &&
+          (value.email || Object.hasOwn(urls, id)),
+      ).length
+      return '通知先を設定したプロジェクト：' + count + '件'
+    }
+    const target = deliveryTarget(ctx, conf, ctx.visibleProducts?.[0] ?? '')
     const destinations = [
-      ...(conf.email ? [conf.email] : []),
-      ...(ctx.secret('NOTIFY_WEBHOOK_URL')
+      ...(target?.options.email ? [target?.options.email] : []),
+      ...(target?.webhook
         ? [
-            (conf.format === 'discord' ? 'Discord' : 'Slack') +
+            (target.options.format === 'discord' ? 'Discord' : 'Slack') +
               '（' +
-              (conf.webhookLabel ?? 'チャンネルは接続先の Webhook 設定で確認') +
+              (target.options.webhookLabel ??
+                'チャンネルは接続先の Webhook 設定で確認') +
               '）',
           ]
         : []),

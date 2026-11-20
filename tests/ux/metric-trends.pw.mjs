@@ -126,7 +126,7 @@ test('課題一覧と関連情報は同じ印で、声の主には同じアイ�
   }
 })
 
-test('6製品の声が集まった課題は一覧で5個まで示し、詳細で全製品を確認できる', async ({
+test('同じ GitHub Issue を共有する6プロジェクトの課題と紐づく声を区別する', async ({
   page,
   scene,
 }) => {
@@ -164,16 +164,21 @@ test('6製品の声が集まった課題は一覧で5個まで示し、詳細で
   }
   await db.batch(statements)
   await page.goto(scene.origin + '/issues')
-  const names = page
+  const rows = page
     .getByRole('table', { name: '直した', exact: true })
-    .locator('.issue-products')
-  await expect(names.locator('.product-mark')).toHaveCount(5)
-  await expect(names).toContainText('ほか1件')
-  await page.goto(scene.origin + '/issues/example/helpdesk/43')
-  const detail = page.locator('main .heading-description .issue-products-line')
-  await expect(detail).toHaveCount(2)
-  await expect(detail.nth(0).locator('.product-mark')).toHaveCount(5)
-  await expect(detail.nth(1).locator('.product-mark')).toHaveCount(1)
+    .locator('tbody tr')
+  await expect(rows).toHaveCount(6)
+  const other = rows.filter({ hasText: '製品2' })
+  await expect(other.locator('.product-mark')).toHaveCount(1)
+  await other.getByRole('link').click()
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get('product') === 'other2',
+  )
+  await expect(page.locator('main .heading-description')).toContainText('製品2')
+  await expect(page.locator('main a[href="/conversation/502"]')).toBeVisible()
+  await expect(page.locator('main a[href="/conversation/501"]')).toHaveCount(0)
+  await page.getByRole('link', { name: '課題の一覧に戻る' }).click()
+  await expect(rows).toHaveCount(1)
 })
 
 test('375pxの集計条件で長いプロジェクト名と期間の選択値を全文読める', async ({

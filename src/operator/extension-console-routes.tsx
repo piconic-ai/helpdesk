@@ -1,4 +1,4 @@
-import { visibleProductIds, can } from '../core/operators/project-access'
+import { can } from '../core/operators/project-access'
 import { requireSettings } from '../core/settings/project-settings-usecase'
 import { requireProduct } from '../core/operators/project-permission'
 import { requireConversations } from '../core/operators/project-targets-usecase'
@@ -87,6 +87,7 @@ import {
   candidatesPage,
   editorPage,
   metricsPage,
+  reportProjectPicker,
   guidePage,
   adminPage,
 } from './extension-admin-page'
@@ -216,10 +217,14 @@ app.post('/conversation/:number/article-selection', async (c) => {
 app.get('/articles', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
+  const selected = c.req.query('product')
+  const scope = api.visibleProducts ?? null
+  if (selected && scope && !scope.includes(selected)) return c.notFound()
+  const projects = selected ? [selected] : scope
   const [data, candidates, performance] = await Promise.all([
     library(api),
-    articleCandidates(c.env.DB, visibleProductIds(c.get('operator'))),
-    articlePerformance(c.env.DB, visibleProductIds(c.get('operator'))),
+    articleCandidates(c.env.DB, projects),
+    articlePerformance(c.env.DB, projects),
   ])
   return c.render(
     libraryPage(
@@ -234,17 +239,29 @@ app.get('/articles', async (c) => {
   )
 })
 app.get('/articles/candidates', async (c) => {
-  if (!active(c, 'articles')) return c.notFound()
+  const api = active(c, 'articles')
+  if (!api) return c.notFound()
+  const selected = c.req.query('product')
+  if (
+    selected &&
+    api.visibleProducts &&
+    !api.visibleProducts.includes(selected)
+  )
+    return c.notFound()
   return c.render(
     candidatesPage(
       await frame(c),
-      await articleCandidates(c.env.DB, visibleProductIds(c.get('operator'))),
+      await articleCandidates(
+        c.env.DB,
+        selected ? [selected] : (api.visibleProducts ?? null),
+      ),
       c.req.query(),
     ),
   )
 })
 app.get('/articles/questions', async (c) => {
-  if (!active(c, 'articles')) return c.notFound()
+  const api = active(c, 'articles')
+  if (!api) return c.notFound()
   const product = c.req.query('product') ?? ''
   const page = z.coerce
     .number()
@@ -260,7 +277,7 @@ app.get('/articles/questions', async (c) => {
         c.env.DB,
         product,
         page,
-        visibleProductIds(c.get('operator')),
+        api.visibleProducts ?? null,
       ),
     ),
   )
@@ -285,7 +302,9 @@ app.get('/articles/new', async (c) => {
   }
   const number = c.req.query('candidate')
   if (number === undefined)
-    return c.render(editorPage(await frame(c), {}, false))
+    return c.render(
+      editorPage(await frame(c), { product: c.req.query('product') }, false),
+    )
   const source = await candidateForEditor(c.env.DB, {
     number: z.coerce.number().int().positive().parse(number),
   })
@@ -385,24 +404,48 @@ app.post('/articles/edit', async (c) => {
     303,
   )
 })
+for (const path of ['/metrics', '/voices', '/voices/conversations']) {
+  app.use(path, async (c, next) => {
+    const api = active(c, 'metrics')
+    if (!api) return c.notFound()
+    const product = c.req.query('product')
+    const scope = api.visibleProducts
+    if (product && scope && !scope.includes(product)) return c.notFound()
+    if (product || can(c.get('operator'), 'global').allowed) return next()
+    const state = await frame(c)
+    const choices = state.products.filter(
+      (p) => !p.archived && (!scope || scope.includes(p.id)),
+    )
+    if (choices.length === 1) {
+      const url = new URL(c.req.url)
+      url.searchParams.set('product', choices[0].id)
+      return c.redirect(url.pathname + url.search)
+    }
+    return c.render(
+      reportProjectPicker(
+        state,
+        path === '/metrics' ? '対応状況の集計' : '声の集計',
+        choices,
+      ),
+    )
+  })
+}
 app.get('/voices', async (c) => {
-  if (!active(c, 'metrics')) return c.notFound()
+  const api = active(c, 'metrics')
+  if (!api) return c.notFound()
   const q = voiceFilters.safeParse(c.req.query())
   if (!q.success) return c.text('集計条件を確認してください。', 400)
   return c.render(
     voicesOverview(
       await frame(c),
       q.data,
-      await voiceBuckets(
-        c.env.DB,
-        q.data,
-        visibleProductIds(c.get('operator')),
-      ),
+      await voiceBuckets(c.env.DB, q.data, api.visibleProducts ?? null),
     ),
   )
 })
 app.get('/voices/conversations', async (c) => {
-  if (!active(c, 'metrics')) return c.notFound()
+  const api = active(c, 'metrics')
+  if (!api) return c.notFound()
   const q = voiceFilters.safeParse(c.req.query())
   if (!q.success) return c.text('集計条件を確認してください。', 400)
   return c.render(
@@ -413,14 +456,15 @@ app.get('/voices/conversations', async (c) => {
         c.env.DB,
         q.data,
         c.req.query('page'),
-        visibleProductIds(c.get('operator')),
+        api.visibleProducts ?? null,
       ),
     ),
   )
 })
 const date = z.iso.date()
 app.get('/metrics', async (c) => {
-  if (!active(c, 'metrics')) return c.notFound()
+  const api = active(c, 'metrics')
+  if (!api) return c.notFound()
   const state = await frame(c)
   const query = c.req.query()
   const product = z.string().parse(query.product ?? '')
@@ -459,7 +503,14 @@ app.get('/metrics', async (c) => {
       { product, period, start: range.start, end: range.end, timeZone: zone },
       result,
       history,
-      await reportProjectVolume(context(c), from, to, product),
+      can(state.operator, 'global').allowed && !product
+        ? await reportProjectVolume(
+            context(c),
+            from,
+            to,
+            api.visibleProducts ?? null,
+          )
+        : [],
     ),
   )
 })

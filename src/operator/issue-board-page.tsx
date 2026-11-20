@@ -1,3 +1,4 @@
+import { withProject } from '../core/settings/project-setting-links'
 import { projectTerm } from '../core/settings/project-term'
 import { displayReference } from '../core/conversations/ticket-reference'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
@@ -31,45 +32,33 @@ type Row = Awaited<ReturnType<typeof issueBoard>>[number]
 type Contact = { name: string; subject: string; email: string | null }
 const path = (row: Pick<Row, 'repository' | 'issue'>) =>
   '/issues/' + issueKey(row.repository, row.issue)
-function aggregate(rows: Row[], names: Map<string, string>) {
-  const groups = Map.groupBy(rows, (r) => issueKey(r.repository, r.issue))
-  return Array.from(groups.values(), (products) => {
-    const [first] = products
-    const voices = products.flatMap((p) => p.voices)
-    return {
-      ...first,
-      productMarks: products.map((p) => ({
-        id: p.product,
-        name: names.get(p.product) ?? p.product,
-      })),
-      count: voices.length,
-      awaitingApproval: voices.filter(
-        (v) =>
-          !v.informed && v.kind === 'inquiry' && v.delivery === 'reply_drafted',
-      ).length,
-      needsDraft: voices.some(
-        (v) =>
-          !v.informed &&
-          v.kind === 'inquiry' &&
-          (!v.delivery || v.delivery === 'reply_discarded'),
-      ),
-      productNames: products
-        .map((p) => names.get(p.product) ?? p.product)
-        .join('・'),
-      firstAt: voices.reduce(
-        (time, v) => Math.min(time, v.createdAt),
-        Infinity,
-      ),
-      informed: products.reduce((total, p) => total + p.informed, 0),
-      remaining: products.reduce((total, p) => total + p.remaining, 0),
-      after: products.reduce(
-        (total, p) => total + (p.impact?.after.linked ?? 0),
-        0,
-      ),
-    }
-  }).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'))
+function issueCard(row: Row, names: Map<string, string>) {
+  const { voices } = row
+  const name = names.get(row.product) ?? row.product
+  return {
+    ...row,
+    href: withProject(path(row), row.product),
+    productMarks: [{ id: row.product, name }],
+    productNames: name,
+    count: voices.length,
+    awaitingApproval: voices.filter(
+      (v) =>
+        !v.informed && v.kind === 'inquiry' && v.delivery === 'reply_drafted',
+    ).length,
+    needsDraft: voices.some(
+      (v) =>
+        !v.informed &&
+        v.kind === 'inquiry' &&
+        (!v.delivery || v.delivery === 'reply_discarded'),
+    ),
+    firstAt: voices.reduce(
+      (first, voice) => Math.min(first, voice.createdAt),
+      Infinity,
+    ),
+    after: row.impact?.after.linked ?? 0,
+  }
 }
-type Issue = ReturnType<typeof aggregate>[number]
+type Issue = ReturnType<typeof issueCard>
 const productNames = (frame: ConsoleFrame) =>
   new Map(frame.products.map((p) => [p.id, p.name]))
 
@@ -78,6 +67,7 @@ function DraftButton({ issue, primary }: { issue: Issue; primary: boolean }) {
     <form action="/issues/drafts" method="post">
       <input type="hidden" name="repository" value={issue.repository} />
       <input type="hidden" name="issue" value={issue.issue} />
+      <input type="hidden" name="product" value={issue.product} />
       <Button variant={primary ? 'default' : 'outline'}>下書きを作る</Button>
     </form>
   )
@@ -87,7 +77,7 @@ function PendingAction({ issue, primary }: { issue: Issue; primary: boolean }) {
   if (!issue.awaitingApproval && issue.needsDraft)
     return <DraftButton issue={issue} primary={primary} />
   return (
-    <ActionLink href={path(issue)} variant={primary ? 'default' : 'outline'}>
+    <ActionLink href={issue.href} variant={primary ? 'default' : 'outline'}>
       {issue.awaitingApproval
         ? '承認待ち ' + issue.awaitingApproval + '件を確認する'
         : '配送状況を確認する'}
@@ -100,10 +90,11 @@ export function issueBoardPage(
   rows: Row[],
   query: Record<string, string>,
 ) {
-  const all = aggregate(
-    rows.filter((r) => !query.product || r.product === query.product),
-    productNames(frame),
-  )
+  const names = productNames(frame)
+  const all = rows
+    .filter((r) => !query.product || r.product === query.product)
+    .map((row) => issueCard(row, names))
+    .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'ja'))
   const showFilters = all.length > 20
   const issues = showFilters
     ? all.filter(
@@ -123,7 +114,7 @@ export function issueBoardPage(
   const page = openPage.pages >= closedPage.pages ? openPage : closedPage
   const tableRow = (issue: Issue) => ({
     ...issue,
-    href: path(issue),
+    href: issue.href,
     awaitingSync: issue.state === 'unknown',
   })
   return shell(
@@ -135,7 +126,11 @@ export function issueBoardPage(
           ? 'デモ用の模擬 GitHub で起票と通知を試せます。'
           : '声をもとに直すことを決め、直したら声の主に知らせます。'
       }
-      action={<ActionLink href="/issues/new">課題を追加</ActionLink>}
+      action={
+        <ActionLink href={withProject('/issues/new', query.product)}>
+          課題を追加
+        </ActionLink>
+      }
       footer={<PageLinks path="/issues" query={query} {...page} />}
       filters={
         <ListFilters
@@ -163,7 +158,7 @@ export function issueBoardPage(
             .filter((r) => r.remaining > 0)
             .map((issue, index) => ({
               ...issue,
-              href: path(issue),
+              href: issue.href,
               action: <PendingAction issue={issue} primary={index === 0} />,
             }))}
         />
@@ -205,12 +200,15 @@ export function issueDetailPage(
   notices: IssueNoticeDraft[] = [],
 ) {
   const names = productNames(frame)
-  const [issue] = aggregate(rows, names)
+  const issue = issueCard(rows[0], names)
   return shell(
     issue.title,
     <DetailPage
       title={issue.title}
-      back={{ href: '/issues', label: '課題の一覧に戻る' }}
+      back={{
+        href: withProject('/issues', frame.query.product),
+        label: '課題の一覧に戻る',
+      }}
       description={
         <>
           {frame.demoGithub && 'デモ用の模擬 GitHub · '}
@@ -225,7 +223,10 @@ export function issueDetailPage(
       action={
         frame.demoGithub ? (
           issue.state === 'open' && (
-            <form method="post" action={path(issue) + '/demo-close'}>
+            <form
+              method="post"
+              action={withProject(path(issue) + '/demo-close', issue.product)}
+            >
               <Button>課題を閉じる（デモ用）</Button>
             </form>
           )
@@ -268,7 +269,7 @@ export function issueDetailPage(
             ...n,
             reference: displayReference(frame, n),
           }))}
-          action={path(issue) + '/approve'}
+          action={withProject(path(issue) + '/approve', issue.product)}
         />
         <IssueVoices
           voices={rows.flatMap((r) =>
@@ -320,7 +321,10 @@ export function issueNewPage(
     '課題を追加',
     <DetailPage
       title="課題を追加"
-      back={{ href: '/issues', label: '課題の一覧に戻る' }}
+      back={{
+        href: withProject('/issues', frame.query.product),
+        label: '課題の一覧に戻る',
+      }}
     >
       {frame.demoGithub && <p>デモ用の模擬 GitHub に起票します。</p>}
       <FormSection title="起票する内容">

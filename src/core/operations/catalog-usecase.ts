@@ -1,3 +1,4 @@
+import { inboxProductIds } from '../operators/project-access'
 import { authorizeCoreReferences } from '../operators/project-targets-usecase'
 import { changeInbox, undoInbox } from '../conversations/inbox-change-usecase'
 import { can } from '../operators/project-access'
@@ -48,7 +49,12 @@ export const handlers = {
   undoBulk: undoInbox,
   doctor: (c: Context) => diagnose(c.env),
   list: (c: Context, i: z.infer<typeof filterSchema>) =>
-    visibleConversations(c.env, i, c.now, actingProducts(c)),
+    visibleConversations(
+      c.env,
+      i,
+      c.now,
+      c.actor.kind === 'extension' ? null : inboxProductIds(c.operator, i),
+    ),
   get: (c: Context, n: number) => groupedDetail(c.env, n, actingProducts(c)),
   failures: (c: Context) => store.inboxFailures(c.env.DB, actingProducts(c)),
   status: async (
