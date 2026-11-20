@@ -37,7 +37,6 @@ test('ボタンの設定で埋め込みコードと見本が変わり、保存�
   await product
     .getByRole('button', { name: '変更したボタンを見本で確認' })
     .click()
-  await product.locator('iframe').scrollIntoViewIfNeeded()
   const preview = product.frameLocator('iframe')
   const launcher = preview.getByRole('button', { name: label, exact: true })
   await expect(launcher).toBeVisible()
