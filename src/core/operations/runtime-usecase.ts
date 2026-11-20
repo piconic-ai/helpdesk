@@ -1,6 +1,7 @@
+import { authorizeReferences } from '../operators/project-targets-usecase'
 import { z } from 'zod'
 import { coreOperations, type Context, type Scope } from './catalog-usecase'
-import { authorize, authorizeReferences, PermissionDenied } from './catalog'
+import { authorize, PermissionDenied } from './catalog'
 import { extensionContext } from '../extensions/context-usecase'
 import { eventStatement } from '../conversations/conversations-store'
 

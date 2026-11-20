@@ -16,7 +16,7 @@ const sourceQuery = `SELECT c.number,c.product,c.subject,json_extract(d.value,'$
 import {
   scopeBinding,
   type ProductScope,
-} from '../core/operators/project-targets-store'
+} from '../core/operators/project-permission'
 export async function articleCandidates(
   db: D1Database,
   scope: ProductScope = null,

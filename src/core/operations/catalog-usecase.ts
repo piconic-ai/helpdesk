@@ -1,3 +1,4 @@
+import { authorizeCoreReferences } from '../operators/project-targets-usecase'
 import { changeInbox, undoInbox } from '../conversations/inbox-change-usecase'
 import { can } from '../operators/project-access'
 import { makeCatalog } from './catalog'
@@ -26,7 +27,7 @@ import {
   retryReply,
 } from '../outbound/reply-usecase'
 import { diagnose } from '../settings/doctor-usecase'
-import { actingProducts } from '../operators/project-targets-store'
+import { actingProducts } from '../operators/project-permission'
 import * as store from './operator-store'
 
 export type Scope = 'read' | 'draft' | 'write' | 'send' | 'admin'
@@ -127,4 +128,4 @@ export const handlers = {
     await drainDeleted(c.env.DB, c.env.RAW)
   },
 }
-export const coreOperations = makeCatalog(handlers)
+export const coreOperations = makeCatalog(handlers, authorizeCoreReferences)

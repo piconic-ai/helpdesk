@@ -1,7 +1,7 @@
 import {
   scopeBinding,
   type ProductScope,
-} from '../operators/project-targets-store'
+} from '../operators/project-permission'
 import { replyDelay } from '../settings/reply-delay'
 import { mailLanguage } from '../settings/mail-language'
 import { z } from 'zod'

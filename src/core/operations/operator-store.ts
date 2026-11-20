@@ -29,7 +29,7 @@ export async function adminSettings(db: D1Database) {
 import {
   scopeBinding,
   type ProductScope,
-} from '../operators/project-targets-store'
+} from '../operators/project-permission'
 
 export async function inboxFailures(
   db: D1Database,

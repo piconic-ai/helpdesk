@@ -1,7 +1,7 @@
 import {
   scopeBinding,
   type ProductScope,
-} from '../operators/project-targets-store'
+} from '../operators/project-permission'
 import { z } from 'zod'
 import type { ExtensionEvent } from './extension'
 import { eventStatement } from '../conversations/conversations-store'

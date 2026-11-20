@@ -1,7 +1,7 @@
 import {
   scopeBinding,
   type ProductScope,
-} from '../core/operators/project-targets-store'
+} from '../core/operators/project-permission'
 import type { VoiceFilters } from './voice-filters'
 
 const day = 86400000

@@ -1,9 +1,7 @@
 import { visibleProductIds, can } from '../core/operators/project-access'
-import {
-  requireConversations,
-  requireProduct,
-} from '../core/operators/project-targets-store'
 import { requireSettings } from '../core/settings/project-settings-usecase'
+import { requireProduct } from '../core/operators/project-permission'
+import { requireConversations } from '../core/operators/project-targets-usecase'
 import { defaultTimeZone } from '../core/operators/time-zone'
 import { reportPeriod } from '../extensions/metrics/report-period'
 import {

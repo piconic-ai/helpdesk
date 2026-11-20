@@ -1,4 +1,4 @@
-import type { ProductScope } from '../operators/project-targets-store'
+import type { ProductScope } from '../operators/project-permission'
 import type { filterSchema } from '../conversations/filters'
 import type { Bindings } from '../settings/bindings'
 import { extensionStorage } from './extension-store'

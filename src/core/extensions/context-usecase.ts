@@ -1,8 +1,7 @@
+import { actingProducts, requireProduct } from '../operators/project-permission'
+import { requireConversations } from '../operators/project-targets-usecase'
 import {
-  actingProducts,
   accessibleNumbers,
-  requireProduct,
-  requireConversations,
   isProjectAssignee,
 } from '../operators/project-targets-store'
 import {

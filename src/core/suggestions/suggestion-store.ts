@@ -73,7 +73,7 @@ export async function reactToSuggestion(
 import {
   scopeBinding,
   type ProductScope,
-} from '../operators/project-targets-store'
+} from '../operators/project-permission'
 export async function suggestionResolution(
   db: D1Database,
   product: string,

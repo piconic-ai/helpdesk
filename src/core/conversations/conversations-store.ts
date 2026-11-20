@@ -1,7 +1,7 @@
 import {
   scopeBinding,
   type ProductScope,
-} from '../operators/project-targets-store'
+} from '../operators/project-permission'
 import { drizzle } from 'drizzle-orm/d1'
 import { inArray, asc } from 'drizzle-orm'
 import { z } from 'zod'

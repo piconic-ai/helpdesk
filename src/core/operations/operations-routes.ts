@@ -1,4 +1,4 @@
-import { requireMedia } from '../operators/project-targets-store'
+import { requireMedia } from '../operators/project-targets-usecase'
 import {
   undoExtensionSetting,
   activationNamespace,

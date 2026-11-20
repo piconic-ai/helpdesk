@@ -1,4 +1,4 @@
-import { requireConversations } from '../operators/project-targets-store'
+import { requireConversations } from '../operators/project-targets-usecase'
 import { canonical } from '../extensions/aliases'
 import { conversationAliases } from '../extensions/triage-usecase'
 import type { Context } from '../operations/catalog-usecase'

@@ -4,12 +4,7 @@ import { bulkInput } from '../conversations/inbox-changes'
 import { filterSchema } from '../conversations/filters'
 import type { Context, Scope, handlers as usecases } from './catalog-usecase'
 import { can } from '../operators/project-access'
-import {
-  PermissionDenied,
-  requireConversations,
-  requireMedia,
-  requireProduct,
-} from '../operators/project-targets-store'
+import { PermissionDenied } from '../operators/project-permission'
 export { PermissionDenied }
 
 export function authorize(
@@ -27,53 +22,6 @@ export function authorize(
   )
     throw new PermissionDenied('Permission denied')
 }
-// All operation inputs are validated before their resource references are resolved.
-const references = z.object({
-  product: z.string().optional().catch(undefined),
-  number: z.number().optional().catch(undefined),
-  numbers: z.array(z.number()).optional().catch(undefined),
-  target: z.number().optional().catch(undefined),
-  candidateNumber: z.number().optional().catch(undefined),
-})
-export async function authorizeReferences(
-  ctx: Context,
-  permission: Scope,
-  input: unknown,
-) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) return
-  const refs = references.parse(input)
-  if (refs.product) requireProduct(ctx, refs.product, permission)
-  const numbers = [
-    refs.number,
-    refs.target,
-    refs.candidateNumber,
-    ...(refs.numbers ?? []),
-  ].filter((n): n is number => n !== undefined)
-  await requireConversations(ctx, numbers, permission)
-}
-function operation<S extends z.ZodType, T>(
-  permission: Scope,
-  input: S,
-  run: (ctx: Context, i: z.output<S>) => Promise<T>,
-) {
-  return {
-    permission,
-    input,
-    execute: async (ctx: Context, i: unknown) => {
-      const parsed = input.parse(i)
-      await authorizeReferences(ctx, permission, parsed)
-      if (
-        permission === 'send' &&
-        parsed &&
-        typeof parsed === 'object' &&
-        'id' in parsed &&
-        typeof parsed.id === 'string'
-      )
-        await requireMedia(ctx, 'message', parsed.id, permission)
-      return run(ctx, parsed)
-    },
-  }
-}
 const number = z.coerce.number().int().positive()
 const email = z.email().toLowerCase()
 const body = z.string().trim().min(1).max(100000)
@@ -86,7 +34,30 @@ const status = z.object({
   event: z.enum(['closed', 'reopened', 'marked_spam', 'unmarked_spam']),
 })
 
-export function makeCatalog(handlers: typeof usecases) {
+export function makeCatalog(
+  handlers: typeof usecases,
+  authorizeInput: (
+    ctx: Context,
+    permission: Scope,
+    parsed: unknown,
+  ) => Promise<void>,
+) {
+  function operation<S extends z.ZodType, T>(
+    permission: Scope,
+    input: S,
+    run: (ctx: Context, i: z.output<S>) => Promise<T>,
+  ) {
+    return {
+      permission,
+      input,
+      execute: async (ctx: Context, raw: unknown) => {
+        const parsed = input.parse(raw)
+        await authorizeInput(ctx, permission, parsed)
+        return run(ctx, parsed)
+      },
+    }
+  }
+
   return {
     bulk: operation('write', bulkInput, handlers.bulk),
     undoBulk: operation(

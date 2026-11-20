@@ -6,7 +6,7 @@ import type {
 import {
   scopeBinding,
   type ProductScope,
-} from '../core/operators/project-targets-store'
+} from '../core/operators/project-permission'
 export async function articlePerformance(
   db: D1Database,
   scope: ProductScope = null,
