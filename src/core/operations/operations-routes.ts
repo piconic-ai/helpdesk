@@ -1,5 +1,4 @@
 import { forProject } from '../extensions/registry'
-import { localResponse } from '../operators/local-response'
 import { extensionDetailsPage } from '../extensions/extension-details-page'
 import { activeExtensions } from '../extensions/registry'
 import { requireMedia } from '../operators/project-targets-usecase'
@@ -10,7 +9,11 @@ import {
 import { Hono, type Context as HttpContext } from 'hono'
 import { jsxRenderer } from 'hono/jsx-renderer'
 import { z } from 'zod'
-import { authenticate, type AppEnv } from '../operators/middleware'
+import {
+  authenticate,
+  localResponse,
+  type AppEnv,
+} from '../operators/middleware'
 import { coreOperations, type Context, type Scope } from './catalog-usecase'
 import { authorize, PermissionDenied } from './catalog'
 import {

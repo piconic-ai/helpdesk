@@ -14,7 +14,12 @@ const admin = 'admin@example.org',
   customer = 'customer@example.org'
 let platform: Awaited<ReturnType<typeof testPlatform>>
 const origin = 'http://settings.local'
-function visit(path: string, form?: Record<string, string>, email = admin) {
+function visit(
+  path: string,
+  form?: Record<string, string>,
+  email = admin,
+  headers: Record<string, string> = {},
+) {
   const bindings: Pick<Bindings, 'ENVIRONMENT' | 'LOCAL_OPERATOR'> = {
     ENVIRONMENT: 'local',
     LOCAL_OPERATOR: email,
@@ -23,7 +28,7 @@ function visit(path: string, form?: Record<string, string>, email = admin) {
     origin + path,
     {
       method: form ? 'POST' : 'GET',
-      headers: { Origin: origin, Accept: 'text/html' },
+      headers: { Origin: origin, Accept: 'text/html', ...headers },
       body: form && new URLSearchParams(form),
     },
     { ...platform, ...bindings },
@@ -69,6 +74,35 @@ beforeEach(async () => {
   ])
 })
 afterEach(() => platform?.dispose())
+it('uses the same project permissions and origin checks for local reads and writes', async () => {
+  const path = '/settings/projects/a/labels'
+  const page = { 'X-Helpdesk-View': 'page' }
+  const action = { 'X-Helpdesk-View': 'action' }
+  const fields = { action: 'add', name: 'Needs review' }
+  expect(
+    (await visit('/settings/projects/b/labels', undefined, lead, page)).status,
+  ).toBe(403)
+  expect(
+    (await visit('/settings/projects/b/labels', fields, lead, action)).status,
+  ).toBe(403)
+  expect(
+    (
+      await visit(path, fields, lead, {
+        ...action,
+        Origin: 'https://other.example',
+      })
+    ).status,
+  ).toBe(403)
+  const saved = await visit(path, fields, lead, action)
+  expect(saved.status).toBe(200)
+  expect(await saved.json()).toEqual({ location: path + '?saved=yes' })
+  const rendered = await visit(path, undefined, lead, page)
+  expect(rendered.headers.get('cache-control')).toBe('no-store')
+  expect(await rendered.json()).toMatchObject({
+    html: expect.stringContaining('Needs review'),
+  })
+})
+
 it('separates the two settings directories and supports editing one project or operator at a time', async () => {
   const home = await html('/settings?product=a')
   expect(home).toContain('href="/settings/global"')
