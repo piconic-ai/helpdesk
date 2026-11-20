@@ -197,6 +197,7 @@ test('受付の確認が失敗しても、入力した件名・本文・宛先�
   )
   await page.getByRole('button', { name: '送信', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('もう一度')
+  await page.waitForLoadState('load')
   expect(await position()).toBeCloseTo(before, 0)
   await page.getByRole('button', { name: '閉じる' }).click()
   await expect(page.getByRole('alert')).toHaveCount(0)

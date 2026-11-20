@@ -9,7 +9,9 @@ test('W5 管理者が窓口・運営者の権限・保存期間を設定し、�
   const main = page.getByRole('main')
   await main.getByRole('link', { name: /^全体の設定/ }).click()
   await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page
+    .getByRole('link', { name: 'プロジェクトを追加', exact: true })
+    .click()
   await page.getByLabel('プロジェクト名', { exact: true }).fill('Atlas')
   await page.getByLabel('窓口アドレスの先頭').first().fill('atlas')
   await page

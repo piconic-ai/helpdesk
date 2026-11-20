@@ -145,7 +145,9 @@ test('J9 窓口を作成し、拡張の案内から新プロジェクトの公�
   await page.getByRole('link', { name: '設定', exact: true }).click()
   await page.getByRole('link', { name: /^全体の設定/ }).click()
   await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page
+    .getByRole('link', { name: 'プロジェクトを追加', exact: true })
+    .click()
   await page.getByLabel('プロジェクト名', { exact: true }).fill('Catalog')
   await page.getByLabel('窓口アドレスの先頭').first().fill('catalog')
   await page
@@ -280,7 +282,9 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
   await page.getByRole('link', { name: '運営者に戻る' }).click()
   await page.getByRole('link', { name: '全体の設定に戻る' }).click()
   await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page
+    .getByRole('link', { name: 'プロジェクトを追加', exact: true })
+    .click()
   const form = page.locator('form[action="/settings/mailboxes"]')
   await form.getByRole('button', { name: '窓口を登録' }).click()
   await expect(form.getByLabel('プロジェクト名')).toBeFocused()
