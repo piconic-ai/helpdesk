@@ -1,3 +1,4 @@
+import { screenshotName } from './screenshot-name.mjs'
 import { test, expect } from '@playwright/test'
 import axe from 'axe-core'
 import { startScene, fixedTime } from './seed.mjs'
@@ -82,7 +83,7 @@ for (const scene of widgetScenes)
           await show(page, scene.id, product.origin)
           for (const frame of page.frames()) await checkFrame(frame)
           const name = scene.id + '-' + width + '.png'
-          await expect(page).toHaveScreenshot(name)
+          await expect(page).toHaveScreenshot(screenshotName(name))
         } finally {
           await page.close()
         }

@@ -1,3 +1,4 @@
+import { screenshotName } from './screenshot-name.mjs'
 import { registeredScreens, routeScenes } from './route-inventory.mjs'
 import { behaviorScenes, saveExampleNote } from './behavior-scenes.mjs'
 import { startDemo } from './demo-scene.mjs'
@@ -36,7 +37,7 @@ async function capture(page, scene, width) {
     scene.action === 'loading' || (before && scene.id === 'composer-sending')
   const daily = process.env.HELPDESK_DAILY_CAPTURE
   if (!before && !nativePending) {
-    await expect.soft(page).toHaveScreenshot(name)
+    await expect.soft(page).toHaveScreenshot(screenshotName(name))
     return
   }
   let pixels
@@ -57,7 +58,7 @@ async function capture(page, scene, width) {
     await mkdir(baseline, { recursive: true })
     await writeFile(resolve(baseline, name), pixels)
   } else {
-    expect.soft(pixels).toMatchSnapshot(name)
+    expect.soft(pixels).toMatchSnapshot(screenshotName(name))
   }
 }
 

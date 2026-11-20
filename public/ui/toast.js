@@ -43,7 +43,10 @@ window.onHelpdeskPage((signal) => {
       .querySelector('.composer-footer')
       .getBoundingClientRect()
     const top = editor.top >= toast.height + 8 ? editor.top : footer.top
-    node.style.bottom = innerHeight - (available ?? top - 8) + 'px'
+    const bottom = innerHeight - (available ?? top - 8)
+    // Snap the fixed notification to a device pixel while the editor settles.
+    node.style.bottom =
+      Math.floor(bottom * devicePixelRatio) / devicePixelRatio + 'px'
   }
   function show(node) {
     dispose()
