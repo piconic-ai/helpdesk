@@ -72,7 +72,7 @@ async function enable(...ids: string[]) {
   )
 }
 
-it('keeps onboarding visible during searches and reflects saved mailbox, sender and retention settings', async () => {
+it('keeps onboarding visible during searches until the first mailbox and sending domain are configured', async () => {
   const empty = await page('/settings?q=unmatched')
   expect(empty).toContain('最初の窓口を登録してください。')
   expect(empty).toContain('条件に合う設定項目はありません。')
@@ -87,9 +87,6 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
     address: 'help@example.org',
   })
   expect(await page(created)).toContain('窓口を登録しました。')
-  const product = await platform.DB.prepare(
-    "SELECT product FROM mailboxes WHERE address='help@example.org'",
-  ).first<string>('product')
   const badDomain = await page('/settings', {
     ...env,
     SENDING_DOMAINS: 'https://invalid',
@@ -98,11 +95,17 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   expect(badDomain).toContain('送信ドメインをカンマ区切りで指定してください。')
   env.SENDING_DOMAINS = 'example.org'
   expect(await page('/settings')).not.toContain('初期設定が必要です')
+})
+
+it('shows an additional mailbox and the saved project sender', async () => {
+  await studio()
+  const product = 'studio'
+  env.SENDING_DOMAINS = 'example.org'
   const mailboxSettings = await page('/settings/mailboxes?edit=' + product)
   expect(mailboxSettings).toContain('窓口アドレスの先頭')
   expect(mailboxSettings).toContain('このプロジェクトに窓口を追加')
   await submit('/settings/mailboxes', {
-    product: product!,
+    product,
     local: 'returns',
     domain: 'example.org',
   })
@@ -114,6 +117,11 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   const configured = await page(sender)
   expect(configured).toContain('メールの差出人を保存しました。')
   expect(configured).toContain('value="Studio Support"')
+})
+
+it('shows retention, export and deletion settings for the chosen project', async () => {
+  await studio()
+  const product = 'studio'
   expect(
     await page(await submit('/actions/retention', { days: '14' })),
   ).toContain('保存期間を変更しました。')
