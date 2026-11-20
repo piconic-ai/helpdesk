@@ -1,5 +1,30 @@
+import {
+  defaultReplyDelay,
+  replyDelay,
+  sendDelay,
+} from '../settings/reply-delay'
 import { z } from 'zod'
 import type { Actor } from '../conversations/state'
+
+export async function replyDelayFor(
+  db: D1Database,
+  operator: string,
+  number: number,
+) {
+  const row = await db
+    .prepare(`SELECT
+    (SELECT reply_delay FROM operator_profiles WHERE email=?) AS preference,
+    (SELECT minimum_reply_delay FROM product_senders s JOIN conversations c ON c.product=s.product WHERE c.number=?) AS minimum`)
+    .bind(operator, number)
+    .first()
+  const settings = z
+    .object({
+      preference: replyDelay.nullable(),
+      minimum: replyDelay.nullable(),
+    })
+    .parse(row)
+  return sendDelay(settings.preference ?? defaultReplyDelay, settings.minimum)
+}
 
 export function holdReply(
   db: D1Database,

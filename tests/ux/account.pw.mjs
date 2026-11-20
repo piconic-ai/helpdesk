@@ -116,3 +116,41 @@ test('差出人名の設定と運営者名の公開可否が別プロダクト�
   )
   await expect(await preview(3)).not.toContainText('Slide サポート')
 })
+
+test('保存した取り消し時間と窓口の下限を返信の送信予定に反映する', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/account')
+  const preference = page.getByLabel('返信を取り消せる時間', { exact: true })
+  await expect(preference).toHaveValue('10')
+  await preference.selectOption('30')
+  await page.getByRole('button', { name: 'アカウントを保存' }).click()
+  await expect(preference).toHaveValue('30')
+  await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
+  const floor = page.getByLabel('返信を取り消せる時間の下限', { exact: true })
+  await floor.selectOption('60')
+  await page.getByRole('button', { name: '差出人を保存' }).click()
+  await expect(floor).toHaveValue('60')
+  for (const [number, seconds] of [
+    [1, 60],
+    [3, 30],
+  ]) {
+    await page.goto(scene.origin + '/conversation/' + number)
+    await page
+      .getByRole('textbox', { name: '返信', exact: true })
+      .fill('送信予定の確認です。')
+    await page.getByRole('button', { name: '送信', exact: true }).click()
+    await expect(
+      page.getByRole('button', { name: '取り消す' }).first(),
+    ).toBeVisible()
+    expect(
+      await scene.db
+        .prepare(
+          'SELECT h.until_at-o.queued_at AS duration FROM reply_holds h JOIN outbox o USING(message) JOIN messages m ON m.id=h.message WHERE m.number=?',
+        )
+        .bind(number)
+        .first('duration'),
+    ).toBe(seconds * 1000)
+  }
+})

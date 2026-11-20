@@ -3,6 +3,7 @@ import type { Bindings } from '../settings/bindings'
 import { saveAvatarImage } from './avatar-storage-usecase'
 import { saveProfile, saveSender } from './account-store'
 
+import type { ReplyDelay } from '../settings/reply-delay'
 import type { MailLanguage } from '../settings/mail-language'
 
 export const displayName = z
@@ -20,9 +21,10 @@ export async function updateAccount(
   name: string,
   file: File | null,
   zone?: string,
+  delay?: ReplyDelay,
 ) {
   const key = file ? await saveAvatarImage(env.RAW, 'avatars/', file) : null
-  const old = await saveProfile(env.DB, email, name, key, zone)
+  const old = await saveProfile(env.DB, email, name, key, zone, delay)
   if (key && old) await env.RAW.delete('avatars/' + old)
 }
 export function accountImage(env: Bindings, key: string) {
@@ -34,6 +36,7 @@ export function updateSender(
   name: string,
   show: boolean,
   language?: MailLanguage,
+  minimumDelay?: ReplyDelay,
 ) {
-  return saveSender(env.DB, product, name, show, language)
+  return saveSender(env.DB, product, name, show, language, minimumDelay)
 }

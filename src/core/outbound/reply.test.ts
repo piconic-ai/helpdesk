@@ -305,20 +305,20 @@ it('W1: only the author can undo a held message before delivery; closing and not
   const { id } = await queueReply(local, input)
   const send = success()
   const env = { ...local, EMAIL: { send } }
-  expect(await deliverReply(env, id, 5099)).toBe(1)
+  expect(await deliverReply(env, id, 10099)).toBe(1)
   expect(send).not.toHaveBeenCalled()
   await expect(
     undoReply(local, {
       id,
       actor: { kind: 'operator', id: 'other@example.org' },
-      now: 5099,
+      now: 10099,
     }),
   ).rejects.toThrow()
-  expect(await undoReply(local, { id, actor: operator, now: 5099 })).toEqual({
+  expect(await undoReply(local, { id, actor: operator, now: 10099 })).toEqual({
     number,
     body: input.body,
   })
-  await deliverReply(env, id, 5100)
+  await deliverReply(env, id, 10100)
   expect(send).not.toHaveBeenCalled()
   expect(await state(id)).toBeNull()
   expect(
@@ -353,13 +353,13 @@ it('W1: an expired hold sends once; a customer reply stops it and restores the d
         .bind(number, JSON.stringify({ kind: 'system' }))
         .run()
     await expect(
-      undoReply(local, { id, actor: operator, now: 5100 }),
+      undoReply(local, { id, actor: operator, now: 10100 }),
     ).rejects.toThrow()
     const send = success()
     const env = { ...local, EMAIL: { send } }
     await Promise.all([
-      deliverReply(env, id, 5100),
-      deliverReply(env, id, 5100),
+      deliverReply(env, id, 10100),
+      deliverReply(env, id, 10100),
     ])
     expect(send).toHaveBeenCalledTimes(inbound ? 0 : 1)
     if (inbound) {

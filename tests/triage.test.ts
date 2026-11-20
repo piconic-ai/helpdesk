@@ -243,8 +243,8 @@ it('F16-AC1..3 matches the receive, reply, close, reopen, merge and snooze model
             number: r.number,
             body: 'Reply',
           })) as { id: string }
-          expect(await deliverReply(local, id, ctx.now)).toBe(5)
-          ctx.now += 5000
+          expect(await deliverReply(local, id, ctx.now)).toBe(10)
+          ctx.now += 10000
           await deliverReply(local, id, ctx.now)
           m.status = 'pending'
           break

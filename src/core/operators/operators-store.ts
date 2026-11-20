@@ -1,3 +1,4 @@
+import { replyDelay } from '../settings/reply-delay'
 import { z } from 'zod'
 export const operatorSchema = z.object({
   email: z.email(),
@@ -19,12 +20,13 @@ export async function registerOperator(db: D1Database, email: string) {
 export async function listOperators(db: D1Database) {
   const rows = await db
     .prepare(
-      "SELECT o.email, o.role,coalesce(p.time_zone,'Asia/Tokyo') AS timeZone,p.avatar_key AS avatarKey, coalesce(nullif(p.display_name,''), substr(o.email,1,instr(o.email,'@')-1)) AS displayName FROM operators o LEFT JOIN operator_profiles p ON p.email=o.email ORDER BY displayName,o.email",
+      "SELECT o.email, o.role,coalesce(p.time_zone,'Asia/Tokyo') AS timeZone,coalesce(p.reply_delay,10) AS replyDelay,p.avatar_key AS avatarKey, coalesce(nullif(p.display_name,''), substr(o.email,1,instr(o.email,'@')-1)) AS displayName FROM operators o LEFT JOIN operator_profiles p ON p.email=o.email ORDER BY displayName,o.email",
     )
     .all()
   return operatorSchema
     .extend({
       timeZone: z.string(),
+      replyDelay,
       displayName: z.string(),
       avatarKey: z.string().nullable(),
     })

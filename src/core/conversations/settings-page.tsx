@@ -24,6 +24,7 @@ import {
 import { Button, Field, Input, NativeSelect } from '../../ui/controls'
 import { SaveActions, Disclosure } from '../../ui/admin'
 import { z } from 'zod'
+import { replyDelayLabels } from '../settings/reply-delay'
 import { shell, action, field, select } from './console-page'
 import type { Result } from './inbox-page'
 import type { ConsoleFrame } from './console-usecase'
@@ -294,6 +295,15 @@ function mailboxPage(
             { ja: '日本語', en: '英語' },
             product.language,
           )}
+          {select(
+            'minimumReplyDelay',
+            '返信を取り消せる時間の下限',
+            replyDelayLabels,
+            String(product.minimumReplyDelay),
+          )}
+          <small>
+            この窓口からの返信は、少なくとも選んだ時間だけ待ってから送ります。長くすると相手に届くのが遅くなります。
+          </small>
           <SaveActions verb="差出人を保存" cancel={path} />
         </form>
       </FormSection>

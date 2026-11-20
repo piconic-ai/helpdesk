@@ -1,3 +1,4 @@
+import { replyDelayInput } from '../settings/reply-delay'
 import { timeZone } from './time-zone'
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
@@ -54,8 +55,21 @@ accountRoutes.post(
         ),
         400,
       )
+    const delay = replyDelayInput.optional().safeParse(form.replyDelay)
+    if (!delay.success)
+      return c.html(
+        accountPage(await frame(), name.data, '取り消し時間を選んでください。'),
+        400,
+      )
     try {
-      await updateAccount(c.env, operator.email, name.data, file, zone.data)
+      await updateAccount(
+        c.env,
+        operator.email,
+        name.data,
+        file,
+        zone.data,
+        delay.data,
+      )
     } catch (error) {
       if (error instanceof InvalidAvatar)
         return c.html(accountPage(await frame(), name.data, error.message), 400)
@@ -82,12 +96,16 @@ accountRoutes.post('/settings/senders/:product', async (c) => {
   const name = displayName.parse(form.senderName)
   const language = mailLanguage.optional().safeParse(form.language)
   if (!language.success) return c.text('窓口の言語を確認してください。', 400)
+  const minimum = replyDelayInput.optional().safeParse(form.minimumReplyDelay)
+  if (!minimum.success)
+    return c.text('取り消し時間の下限を選んでください。', 400)
   const saved = await updateSender(
     c.env,
     c.req.param('product'),
     name,
     form.showOperator === 'on',
     language.data,
+    minimum.data,
   )
   return saved
     ? c.redirect(

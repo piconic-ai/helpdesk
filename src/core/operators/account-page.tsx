@@ -1,6 +1,7 @@
+import { defaultReplyDelay, replyDelayLabels } from '../settings/reply-delay'
 import { defaultTimeZone } from './time-zone'
 import type { ConsoleFrame } from '../conversations/console-usecase'
-import { shell, field } from '../conversations/console-page'
+import { shell, field, select } from '../conversations/console-page'
 import { operatorAvatar } from './identity-page'
 import { EditPage, Notice, FormSection, SettingRow } from '../../ui/patterns'
 import { Field, ImageFileInput, Input } from '../../ui/controls'
@@ -47,6 +48,15 @@ export function accountPage(
               required
             />
           </Field>
+          {select(
+            'replyDelay',
+            '返信を取り消せる時間',
+            replyDelayLabels,
+            String(self?.replyDelay ?? defaultReplyDelay),
+          )}
+          <small>
+            長くすると相手に届くのが遅くなります。窓口に下限がある場合は長い方を使います。
+          </small>
           <Field label="アイコン画像">
             <ImageFileInput
               name="avatar"

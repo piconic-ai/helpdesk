@@ -17,7 +17,12 @@ import {
   waiting,
   interrupted,
 } from './reply-store'
-import { undoHeldReply, replyHolds, holdDelay } from './reply-hold-store'
+import {
+  undoHeldReply,
+  replyHolds,
+  holdDelay,
+  replyDelayFor,
+} from './reply-hold-store'
 import { sendReply, type EmailBinding } from './send-client'
 
 type QueueEnv = {
@@ -38,7 +43,6 @@ const submitSchema = mutationSchema.omit({ id: true }).extend({
   close: z.boolean().optional(),
   undoable: z.boolean().optional(),
 })
-const undoSeconds = 5
 async function notify(env: QueueEnv, id: string, delaySeconds = 0) {
   // Cron also polls the durable outbox if the queue is unavailable after commit.
   await env.JOBS.send({ kind: 'outbound', id }, { delaySeconds }).catch(
@@ -54,7 +58,10 @@ export async function queueReply(
   if (reply.close) operatorApproval(reply.actor)
   const delivery = replyDelivery(reply.actor)
   const id = crypto.randomUUID()
-  const delay = reply.undoable && delivery.kind === 'queued' ? undoSeconds : 0
+  const delay =
+    reply.undoable && reply.actor.kind === 'operator'
+      ? await replyDelayFor(env.DB, reply.actor.id, reply.number)
+      : 0
   await insertReply(env.DB, {
     holdUntil: delay ? reply.now + delay * 1000 : undefined,
     ...reply,
