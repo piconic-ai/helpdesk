@@ -1,6 +1,5 @@
 import { extensionSettingsPath } from '../settings/project-setting-links'
 import { projectTerm } from '../settings/project-term'
-import { displayReference } from '../conversations/ticket-reference'
 import { metricValue } from '../../ui/metric-value'
 import { IssuePostFields } from '../../ui/issue-board'
 import { glyph } from '../../ui/glyph'
@@ -359,7 +358,7 @@ function formField(
         <NativeSelect name="target" required>
           {mergeTargets(data).map((t) => (
             <option value={t.number}>
-              {displayReference(frame, t)} {t.subject}
+              {t.reference} {t.subject}
             </option>
           ))}
         </NativeSelect>
@@ -421,9 +420,7 @@ function actionForm(
       }
       data-source={
         op.name === 'merge.combine' && data && frame
-          ? displayReference(frame, data.conversation) +
-            ' ' +
-            data.conversation.subject
+          ? data.conversation.reference + ' ' + data.conversation.subject
           : undefined
       }
     >
@@ -439,8 +436,7 @@ function actionForm(
               : data.conversation.kind === 'feedback'
                 ? '元のフィードバック：'
                 : '元の問い合わせ：'}
-            {displayReference(frame, data.conversation)}{' '}
-            {data.conversation.subject}
+            {data.conversation.reference} {data.conversation.subject}
           </PanelSummary>
         )}
       {op.name === 'issues.preview' && p.content && (

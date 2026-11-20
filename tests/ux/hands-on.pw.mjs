@@ -6,10 +6,8 @@ import { capture, confirmSubmission, expect, test } from './harness.mjs'
 test.use({ channel: 'chromium', demo: true })
 
 const button = (page, name) => page.getByRole('button', { name, exact: true })
-const row = (page, n) =>
-  page
-    .locator('a.conversation-row')
-    .filter({ has: page.getByText(new RegExp('^[A-Z]{2,5}-' + n + '$')) })
+const row = (page, number) =>
+  page.locator('.inbox-item[data-number="' + number + '"] a.conversation-row')
 const record = (page, step, description) =>
   capture(page, 'hands-on', step, description)
 
@@ -23,7 +21,7 @@ async function readInbox(page, scene) {
   await button(page, 'すべてのプロジェクト').click()
   await page.getByRole('link', { name: 'Desk', exact: true }).click()
   await expect(rows).toHaveCount(1)
-  await expect(row(page, 3)).toBeVisible()
+  await expect(row(page, 3)).toContainText('DSK-1')
   await button(page, 'Desk').click()
   await page
     .getByRole('link', { name: 'すべてのプロジェクト', exact: true })
@@ -100,12 +98,12 @@ async function answer(page) {
   await expect(preview).toContainText('support@example.com')
   await expect(preview).toContainText('customer6@example.net')
   await expect(preview).toContainText(
-    'Re: 購入手続き後に届いたメールのご確認 [SLD-6]',
+    'Re: 購入手続き後に届いたメールのご確認 [SLD-5]',
   )
   await record(
     page,
     '02-preview',
-    '問い合わせ SLD-6 に記事を添え、窓口・宛先・番号付き件名を確認',
+    '問い合わせ SLD-5 に記事を添え、窓口・宛先・番号付き件名を確認',
   )
   await button(page, '送信して完了').click()
   await expect(
@@ -253,14 +251,16 @@ async function publicVoices(page, scene) {
   await expect(receipt).toContainText(
     /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
   )
-  const number = Number((await receipt.textContent()).match(/SLD-(\d+)/)[1])
+  const reference = (await receipt.textContent()).match(/SLD-\d+/)[0]
   await record(
     customer,
     '06-chat-receipt',
     '記事の評価後、同じ質問を引き継いだ問い合わせ番号を確認',
   )
   await page.goto(scene.origin)
-  await expect(row(page, number)).toContainText(question)
+  await expect(
+    page.getByRole('link', { name: new RegExp(reference + '\\b') }),
+  ).toContainText(question)
   await customer.goto(scene.origin + '/help/feedback/slide')
   const feedback = '領収書を探しやすくしてほしいです'
   await customer.getByLabel('ご意見・ご要望').fill(feedback)
@@ -285,10 +285,10 @@ async function publicVoices(page, scene) {
     '07-feedback',
     '公開フォームから届いた返信不要の声を確認済みにする',
   )
-  return number
+  return reference
 }
 
-async function issueAndMetrics(page, scene, number) {
+async function issueAndMetrics(page, scene, reference) {
   await page.getByRole('link', { name: '拡張の管理', exact: true }).click()
   await page
     .locator('[data-extension=issues]')
@@ -306,7 +306,7 @@ async function issueAndMetrics(page, scene, number) {
     .getByRole('navigation', { name: '受信箱', exact: true })
     .getByRole('link', { name: /未対応/ })
     .click()
-  await row(page, number).click()
+  await page.getByRole('link', { name: new RegExp(reference + '\\b') }).click()
   const panel = page.locator('[data-extension=issues]')
   await button(panel, '課題を起票する').click()
   const summary = '領収書の発行手順を見つけやすくします。'
@@ -411,7 +411,7 @@ async function settings(page) {
   )
 }
 
-test('ハンズオンの例示データで SLD-6 の回答から内部メモ・再送・承認・設定へ進める', async ({
+test('ハンズオンの例示データで SLD-5 の回答から内部メモ・再送・承認・設定へ進める', async ({
   page,
   scene,
 }) => {
@@ -425,13 +425,13 @@ test('ハンズオンの例示データで SLD-6 の回答から内部メモ・�
     () => noteAndRetry(page),
   )
   await test.step(chapter('H05', '承認して送信'), () => approve(page, scene))
-  const number = await test.step(
+  const reference = await test.step(
     chapter('H06', '質問する') + ' / ' + chapter('H07', '確認済みにする'),
     () => publicVoices(page, scene),
   )
   await test.step(
     chapter('H08', '起票内容を確認') + ' / ' + chapter('H09', '対応状況の集計'),
-    () => issueAndMetrics(page, scene, number),
+    () => issueAndMetrics(page, scene, reference),
   )
   await test.step(chapter('H10', '保存期間'), () => settings(page))
 })

@@ -61,7 +61,6 @@ import {
 } from './console-page'
 import type { Result } from './inbox-page'
 import type { pendingReplyUndos } from '../outbound/reply-usecase'
-import { displayReference } from './ticket-reference'
 import { replySubject, senderLabel } from '../outbound/compose'
 import {
   assignment,
@@ -291,9 +290,7 @@ function threadContext(
 ) {
   const sourcePage = pageAtIntake(data.events)
   return (
-    <ThreadPanel
-      context={displayReference(frame, data.conversation) + ' · ' + productName}
-    >
+    <ThreadPanel context={data.conversation.reference + ' · ' + productName}>
       {sourcePage && (
         <FormSection title="チャットを開いたページ">
           <p>{sourcePage}</p>
@@ -305,7 +302,7 @@ function threadContext(
           data.history.map((r) => (
             <p>
               <a data-context-link="" href={'/conversation/' + r.number}>
-                <code>{displayReference(frame, r)}</code> {r.subject}
+                <code>{r.reference}</code> {r.subject}
               </a>
             </p>
           ))
@@ -408,7 +405,7 @@ export function conversationPage(
   offerToWrite = false,
 ) {
   const c = data.conversation
-  const reference = displayReference(frame, c)
+  const reference = c.reference
   const schedules = new Map(
     holds.map((h) => [h.id, replyUndoForm(c.number, h)]),
   )

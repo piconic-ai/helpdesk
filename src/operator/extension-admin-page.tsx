@@ -6,7 +6,6 @@ import {
 } from '../core/settings/project-setting-links'
 import { projectBreakdown } from './project-volume'
 import { projectTerm } from '../core/settings/project-term'
-import { displayReference } from '../core/conversations/ticket-reference'
 import type { SuggestionCount } from '../core/suggestions/suggestion'
 import {
   RecommendationSettings,
@@ -295,7 +294,7 @@ export function candidatesPage(
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  元の会話 {displayReference(frame, c)}
+                  元の会話 {c.reference}
                 </ActionLink>
               }
             />
@@ -308,13 +307,7 @@ export function candidatesPage(
     frame,
   )
 }
-function SourceReference({
-  source,
-  frame,
-}: {
-  source: CandidateSource
-  frame: ConsoleFrame
-}) {
+function SourceReference({ source }: { source: CandidateSource }) {
   return (
     <FormSection title="元の会話">
       <p>
@@ -327,7 +320,7 @@ function SourceReference({
         target="_blank"
         rel="noopener noreferrer"
       >
-        元の会話 {displayReference(frame, source)} を開く
+        元の会話 {source.reference} を開く
       </ActionLink>
     </FormSection>
   )
@@ -379,7 +372,7 @@ export function editorPage(
       data-layout="stack"
       data-gap="lg"
     >
-      {source && <SourceReference source={source} frame={frame} />}
+      {source && <SourceReference source={source} />}
       <FormSection title="記事の内容">
         {articleProduct(frame, data, source)}
         <Field label="題名">

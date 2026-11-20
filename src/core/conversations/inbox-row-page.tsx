@@ -3,7 +3,6 @@ import { inboxSearch, threadUrl } from './inbox-location'
 import type { Result } from './inbox-page'
 import { ProductMark } from '../../ui/product-mark'
 import { ContactAvatar } from '../../ui/operator-identity'
-import { displayReference } from './ticket-reference'
 import { ConversationRow } from '../../ui/patterns'
 import { Button, Input } from '../../ui/controls'
 import {
@@ -152,7 +151,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
   const marks = rowMarks(m, approval, mixed)
   const previewSource =
     (approval || m.previewKind === 'note') && previewAuthor(m)
-  const reference = displayReference(frame, row)
+  const reference = row.reference
   const preview = (
     <RowPreview
       reference={reference}

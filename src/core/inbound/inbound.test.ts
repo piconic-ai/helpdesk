@@ -1,3 +1,4 @@
+import { contactInfo } from '../intakes/intake-store'
 import { readFile } from 'node:fs/promises'
 import { expect, beforeAll, afterAll, it } from 'vitest'
 import { applyMigrations } from '../../../tests/platform'
@@ -156,21 +157,23 @@ it('F01-AC4 F01-AC5 F01-AC6 F01-AC23 F01-AC26 F01-AC27 threads only the same con
     expect(await send(id, hint)).toBe(number)
     expect(await status(number)).toBe('open')
   }
+  const beforeMove = await contactInfo(env.DB, number)
   await env.DB.prepare(
     "UPDATE conversations SET product='second' WHERE number=?",
   )
     .bind(number)
     .run()
-  expect(await send('old-prefix', 'Subject: Re: [AAAAA-' + number + ']')).toBe(
-    number,
-  )
-  expect(await send('new-prefix', 'Subject: Re: [AAAAB-' + number + ']')).toBe(
-    number,
-  )
+  const afterMove = await contactInfo(env.DB, number)
+  expect(
+    await send('old-prefix', 'Subject: Re: [' + beforeMove.reference + ']'),
+  ).toBe(number)
+  expect(
+    await send('new-prefix', 'Subject: Re: [' + afterMove.reference + ']'),
+  ).toBe(number)
   expect(
     await send(
       'foreign-prefix',
-      'Subject: Re: [AAAAA-' + number + ']',
+      'Subject: Re: [' + beforeMove.reference + ']',
       'other@example.org',
     ),
   ).not.toBe(number)

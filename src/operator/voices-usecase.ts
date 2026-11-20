@@ -16,9 +16,9 @@ function cohort(
   return db
     .prepare(
       `WITH voices AS (
-    SELECT c.number,c.product,p.name AS productName,c.subject,c.kind,c.created_at,
+    SELECT c.number,c.reference,c.product,p.name AS productName,c.subject,c.kind,c.created_at,
       strftime('%Y-%m',c.created_at/1000,'unixepoch','+9 hours') AS month
-    FROM conversations c JOIN products p ON p.id=c.product
+    FROM referenced_conversations c JOIN products p ON p.id=c.product
     WHERE c.status!='spam' AND (?1='' OR c.product=?1)
       AND (?2='' OR EXISTS (SELECT 1 FROM labels WHERE number=c.number AND name=?2))
       AND (?3='' OR NOT EXISTS (SELECT 1 FROM labels WHERE number=c.number))
@@ -127,11 +127,12 @@ export async function voiceList(
     q,
     scope,
     `
-    SELECT number,subject,product,productName,kind,created_at AS at FROM voices
+    SELECT number,reference,subject,product,productName,kind,created_at AS at FROM voices
     ORDER BY created_at DESC,number DESC LIMIT 20 OFFSET ?8`,
     (page - 1) * 20,
   ).all<{
     number: number
+    reference: string
     subject: string
     productName: string
     product: string

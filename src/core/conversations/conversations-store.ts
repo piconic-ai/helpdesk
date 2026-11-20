@@ -16,6 +16,14 @@ import {
 import type { filterSchema } from './filters'
 
 function searchNumbers(query: string) {
+  if (/^[A-Z]{2,5}-[1-9]\d*$/i.test(query)) {
+    return {
+      sql: `SELECT conversation AS number FROM ticket_references
+        WHERE prefix=substr(?2,1,instr(?2,'-')-1)
+        AND serial=cast(substr(?2,instr(?2,'-')+1) AS INTEGER)`,
+      term: query.toUpperCase(),
+    }
+  }
   if (Array.from(query).length < 3 || query.includes('\0'))
     return {
       sql: `SELECT number FROM conversations WHERE instr(lower(subject), lower(?2)) OR instr(lower(contact), lower(?2))
@@ -42,7 +50,7 @@ export async function listConversations(
     .prepare(`WITH members(source,target) AS (
       SELECT CAST(key AS INTEGER),value FROM json_each(?1)
       UNION ALL SELECT number,number FROM conversations
-    ) SELECT c.* FROM conversations c WHERE (?3='all' OR status=?3) AND (?4='' OR product=?4)
+    ) SELECT c.* FROM referenced_conversations c WHERE (?3='all' OR status=?3) AND (?4='' OR product=?4)
     AND (?4<>'' OR NOT EXISTS (SELECT 1 FROM product_lifecycle p WHERE p.product=c.product AND p.archived_at IS NOT NULL))
     AND (?7 IS NULL OR c.product IN (SELECT value FROM json_each(?7)))
     AND (?5='' OR assignee=?5) AND (?6='' OR EXISTS(SELECT 1 FROM labels l JOIN members x ON l.number=x.source WHERE x.target=c.number AND l.name=?6))
@@ -62,7 +70,7 @@ export async function listConversations(
 }
 export async function getConversation(db: D1Database, number: number) {
   const row = await db
-    .prepare('SELECT * FROM conversations WHERE number=?')
+    .prepare('SELECT * FROM referenced_conversations WHERE number=?')
     .bind(number)
     .first()
   if (!row) throw new Error('Conversation not found')
@@ -89,7 +97,7 @@ export async function detail(
       .all(),
     db
       .prepare(
-        'SELECT * FROM conversations WHERE contact=?1 AND length(contact)>0 AND (?3 IS NULL OR product IN (SELECT value FROM json_each(?3))) AND number NOT IN (SELECT value FROM json_each(?2)) ORDER BY number DESC',
+        'SELECT * FROM referenced_conversations WHERE contact=?1 AND length(contact)>0 AND (?3 IS NULL OR product IN (SELECT value FROM json_each(?3))) AND number NOT IN (SELECT value FROM json_each(?2)) ORDER BY number DESC',
       )
       .bind(conversation.contact, JSON.stringify(group), scopeBinding(scope))
       .all(),

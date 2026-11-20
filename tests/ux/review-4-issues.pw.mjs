@@ -39,7 +39,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     '2件',
   )
   await main.getByRole('link', { name: title }).click()
-  await expect(main.getByRole('link', { name: /SLD-6 / })).toBeVisible()
+  await expect(main.getByRole('link', { name: /SLD-5 / })).toBeVisible()
   await capture(
     page,
     'review-4-issues',

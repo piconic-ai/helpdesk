@@ -10,8 +10,6 @@ const eligible = '(?=0 OR EXISTS(SELECT 1 FROM inbound_jobs WHERE raw_key=?))'
 const system = JSON.stringify({ kind: 'system' })
 const candidateSchema = z.object({
   number: z.number().int(),
-  contact: z.string(),
-  mailbox: z.string(),
   message_id: z.string().nullable(),
   provider_id: z.string().nullable(),
 })
@@ -89,23 +87,32 @@ export async function conversationFor(
   mail: ParsedMail,
 ) {
   const hints = threadHints(mail.inReplyTo, mail.refs, mail.subject)
+  if (hints.reference) {
+    const { prefix, serial } = hints.reference
+    // A legacy suffix refers to the immutable global ID. A qualified one
+    // refers to the slot previously issued under that project's prefix.
+    // Before project numbering the suffix alone identified the case. Retired
+    // prefixes missing from the old audit log are safe only while unclaimed.
+    return db
+      .prepare(`SELECT number FROM conversations WHERE contact=?1 AND mailbox=?2 AND kind='inquiry'
+        AND number=CASE
+          WHEN ?4 IS NULL THEN ?3
+          WHEN EXISTS(SELECT 1 FROM reserved_ticket_prefixes WHERE prefix=?4)
+            THEN (SELECT conversation FROM ticket_references WHERE prefix=?4 AND serial=?3)
+          ELSE (SELECT conversation FROM ticket_references WHERE prefix='#' AND serial=?3)
+        END`)
+      .bind(mail.sender, job.to, serial, prefix)
+      .first<number>('number')
+  }
+  if (!hints.ids.length) return null
   const rows = await db
-    .prepare(`SELECT c.number,c.contact,c.mailbox,m.message_id,m.provider_id
-    FROM conversations c LEFT JOIN messages m ON m.number=c.number
-    WHERE c.contact=? AND c.mailbox=? AND c.kind='inquiry' AND
-    (c.number=? OR m.message_id IN (SELECT value FROM json_each(?)) OR m.provider_id IN (SELECT value FROM json_each(?)))`)
-    .bind(
-      mail.sender,
-      job.to,
-      hints.number,
-      JSON.stringify(hints.ids),
-      JSON.stringify(hints.ids),
-    )
+    .prepare(`SELECT c.number,m.message_id,m.provider_id
+    FROM conversations c JOIN messages m ON m.number=c.number
+    WHERE c.contact=?1 AND c.mailbox=?2 AND c.kind='inquiry' AND
+    (m.message_id IN (SELECT value FROM json_each(?3)) OR m.provider_id IN (SELECT value FROM json_each(?3)))`)
+    .bind(mail.sender, job.to, JSON.stringify(hints.ids))
     .all()
-  return threadFor(
-    { ...mail, mailbox: job.to },
-    z.array(candidateSchema).parse(rows.results),
-  )
+  return threadFor(hints.ids, candidateSchema.array().parse(rows.results))
 }
 
 function bounceStatements(db: D1Database, job: InboundJob, mail: ParsedMail) {

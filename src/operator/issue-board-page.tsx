@@ -1,6 +1,5 @@
 import { withProject } from '../core/settings/project-setting-links'
 import { projectTerm } from '../core/settings/project-term'
-import { displayReference } from '../core/conversations/ticket-reference'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
 import { issueUrl } from '../extensions/issues/issues'
@@ -29,7 +28,13 @@ import { ListFilters, matchesSearch, PageLinks } from '../ui/listing'
 import { ActionLink, Button } from '../ui/controls'
 
 type Row = Awaited<ReturnType<typeof issueBoard>>[number]
-type Contact = { name: string; subject: string; email: string | null }
+type Contact = {
+  reference: string
+  product: string
+  name: string
+  subject: string
+  email: string | null
+}
 const path = (row: Pick<Row, 'repository' | 'issue'>) =>
   '/issues/' + issueKey(row.repository, row.issue)
 function issueCard(row: Row, names: Map<string, string>) {
@@ -265,25 +270,24 @@ export function issueDetailPage(
           </Notice>
         )}
         <IssueNoticeReview
-          notices={notices.map((n) => ({
-            ...n,
-            reference: displayReference(frame, n),
-          }))}
+          notices={notices}
           action={withProject(path(issue) + '/approve', issue.product)}
         />
         <IssueVoices
-          voices={rows.flatMap((r) =>
-            r.voices.map((v) => ({
-              number: v.number,
-              href: '/conversation/' + v.number,
-              reference: displayReference(frame, {
-                product: r.product,
-                number: v.number,
-              }),
-              ...contacts.get(v.number),
-              delivery: delivery(v),
-            })),
-          )}
+          voices={rows
+            .flatMap((row) => row.voices)
+            .flatMap((voice) => {
+              const contact = contacts.get(voice.number)
+              if (!contact) return []
+              return [
+                {
+                  ...contact,
+                  number: voice.number,
+                  href: '/conversation/' + voice.number,
+                  delivery: delivery(voice),
+                },
+              ]
+            })}
         />
         {rows.map(
           (r) =>
@@ -312,6 +316,7 @@ export function issueNewPage(
   frame: ConsoleFrame,
   choices: {
     number: number
+    reference: string
     subject: string
     product: string
     productName: string
@@ -329,13 +334,7 @@ export function issueNewPage(
       {frame.demoGithub && <p>デモ用の模擬 GitHub に起票します。</p>}
       <FormSection title="起票する内容">
         {choices.length ? (
-          <NewIssueForm
-            action="/actions/issues.preview"
-            choices={choices.map((c) => ({
-              ...c,
-              reference: displayReference(frame, c),
-            }))}
-          />
+          <NewIssueForm action="/actions/issues.preview" choices={choices} />
         ) : (
           <EmptyState icon="issues">
             起票できる会話はありません。起票先とトークンを設定した{projectTerm}

@@ -122,11 +122,11 @@ test.describe('公開受付の案内', () => {
   }) => {
     await page.goto(scene.origin + '/help/survey/slide/' + surveyId)
     await expect(
-      page.getByText('問い合わせ SLD-8', { exact: true }),
+      page.getByText('問い合わせ SLD-7', { exact: true }),
     ).toBeVisible()
     await page.getByRole('button', { name: 'はい', exact: true }).click()
     await expect(
-      page.getByText('問い合わせ SLD-8', { exact: true }),
+      page.getByText('問い合わせ SLD-7', { exact: true }),
     ).toBeVisible()
   })
 })

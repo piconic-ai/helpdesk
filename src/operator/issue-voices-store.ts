@@ -2,15 +2,16 @@ export async function issueVoiceSummaries(db: D1Database, numbers: number[]) {
   if (!numbers.length) return []
   const { results } = await db
     .prepare(
-      `SELECT c.number, COALESCE(NULLIF(c.contact_name,''),NULLIF(c.contact,''),'匿名') AS name,
+      `SELECT c.number,c.reference, COALESCE(NULLIF(c.contact_name,''),NULLIF(c.contact,''),'匿名') AS name,
        c.product,c.subject,NULLIF(c.contact,'') AS email,p.name AS productName
-     FROM conversations c JOIN products p ON p.id=c.product
+     FROM referenced_conversations c JOIN products p ON p.id=c.product
      WHERE c.number IN (SELECT value FROM json_each(?))
      ORDER BY c.created_at DESC,c.number DESC`,
     )
     .bind(JSON.stringify(numbers))
     .all<{
       number: number
+      reference: string
       email: string | null
       name: string
       subject: string
@@ -24,8 +25,8 @@ export async function issueNoticeDrafts(db: D1Database, ids: string[]) {
   if (!ids.length) return []
   const { results } = await db
     .prepare(
-      `SELECT m.id,m.number,m.body,c.contact AS email,c.subject,c.status,c.product
-     FROM messages m JOIN conversations c ON c.number=m.number
+      `SELECT m.id,m.number,c.reference,m.body,c.contact AS email,c.subject,c.status,c.product
+     FROM messages m JOIN referenced_conversations c ON c.number=m.number
      WHERE m.id IN (SELECT value FROM json_each(?))
        AND m.kind='outbound' AND m.delivery IN ('draft','awaiting_approval') AND m.approval IS NULL
        AND c.kind='inquiry'
@@ -35,6 +36,7 @@ export async function issueNoticeDrafts(db: D1Database, ids: string[]) {
     .all<{
       id: string
       number: number
+      reference: string
       body: string
       email: string
       subject: string

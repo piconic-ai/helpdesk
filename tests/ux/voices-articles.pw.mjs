@@ -48,7 +48,7 @@ test('A3 声を受付期間・プロジェクト・ラベル別に集計し、�
     )
     await expect(main.getByRole('listitem')).toHaveCount(2)
     await expect(main.getByRole('link', { name: /^SLD-1 / })).toBeVisible()
-    await expect(main.getByRole('link', { name: /^SLD-10 / })).toBeVisible()
+    await expect(main.getByRole('link', { name: /^SLD-9 / })).toBeVisible()
     await expect(main).toContainText('フィードバック')
     await capture(
       page,
@@ -59,7 +59,7 @@ test('A3 声を受付期間・プロジェクト・ラベル別に集計し、�
     await page.goBack()
   }
   await main.getByRole('link', { name: '新しい受付', exact: true }).click()
-  await main.getByRole('link', { name: /^SLD-10 / }).click()
+  await main.getByRole('link', { name: /^SLD-9 / }).click()
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     '運営画面をキーボードで使っています',
   )

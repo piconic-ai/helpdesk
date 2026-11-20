@@ -12,39 +12,30 @@ export function threadHints(
   const ids = [
     ...new Set([...messageIds(inReplyTo), ...messageIds(references).reverse()]),
   ].slice(0, 48)
-  const number = Number(ticketSubjectTag.exec(subject)?.[1])
+  const tag = !inReplyTo && !references ? ticketSubjectTag.exec(subject) : null
+  const serial = Number(tag?.[2])
   return {
     ids,
-    number:
-      !inReplyTo && !references && Number.isSafeInteger(number) ? number : null,
+    reference:
+      tag && Number.isSafeInteger(serial)
+        ? { prefix: tag[1] ?? null, serial }
+        : null,
   }
-}
-
-export type Candidate = {
-  number: number
-  contact: string
-  mailbox: string
-  message_id: string | null
-  provider_id: string | null
 }
 
 export function threadFor(
-  mail: {
-    sender: string
-    mailbox: string
-    inReplyTo: string
-    refs: string
-    subject: string
-  },
-  candidates: Candidate[],
+  ids: string[],
+  candidates: {
+    number: number
+    message_id: string | null
+    provider_id: string | null
+  }[],
 ) {
-  const hints = threadHints(mail.inReplyTo, mail.refs, mail.subject)
-  const own = candidates.filter(
-    (c) => c.contact === mail.sender && c.mailbox === mail.mailbox,
-  )
-  for (const id of hints.ids) {
-    const found = own.find((c) => c.message_id === id || c.provider_id === id)
+  for (const id of ids) {
+    const found = candidates.find(
+      (c) => c.message_id === id || c.provider_id === id,
+    )
     if (found) return found.number
   }
-  return own.find((c) => c.number === hints.number)?.number ?? null
+  return null
 }

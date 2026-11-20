@@ -62,7 +62,7 @@ export async function projectMailboxes(db: D1Database, product: string) {
 }
 export async function usedPrefixes(db: D1Database) {
   const rows = await db
-    .prepare('SELECT prefix FROM product_ticket_prefixes')
+    .prepare('SELECT DISTINCT prefix FROM reserved_ticket_prefixes')
     .all()
   return new Set(
     z

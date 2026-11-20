@@ -161,7 +161,10 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
     await expect(metric.locator('strong')).toHaveText(expected)
   }
   await rate('30%')
-  for (const [index, number] of [1, 6].entries()) {
+  for (const [index, [number, reference]] of [
+    [1, 'SLD-1'],
+    [6, 'SLD-5'],
+  ].entries()) {
     await board()
     await expect(
       waiting.getByRole('button', { name: '下書きを作る' }),
@@ -170,7 +173,7 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
       .getByRole('link', { name: '承認待ち ' + (2 - index) + '件を確認する' })
       .click()
     await voices
-      .getByRole('link', { name: new RegExp('SLD-' + number + ' .*承認待ち') })
+      .getByRole('link', { name: new RegExp(reference + ' .*承認待ち') })
       .click()
     await expect(page).toHaveURL(
       new RegExp('/conversation/' + number + '(?:\\?|$)'),
@@ -226,7 +229,7 @@ test('デモの確認ページで公開する要約を修正し、確認後の�
       .toEqual([
         {
           title: 'Desk の一覧を改善する',
-          body: '公開する要約を修正しました。\n\nDSK-3',
+          body: '公開する要約を修正しました。\n\nDSK-1',
         },
       ])
   } finally {

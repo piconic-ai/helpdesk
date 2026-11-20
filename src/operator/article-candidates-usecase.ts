@@ -2,14 +2,15 @@ import type { ExtensionContext } from '../core/extensions/extension'
 import { article, articleKey } from '../extensions/articles/article'
 export type ArticleCandidate = {
   number: number
+  reference: string
   product: string
   topic: string
   subject: string
   articleId: string | null
 }
-const sourceQuery = `SELECT c.number,c.product,c.subject,json_extract(d.value,'$.topic') AS topic,
+const sourceQuery = `SELECT c.number,c.reference,c.product,c.subject,json_extract(d.value,'$.topic') AS topic,
   json_extract(a.value,'$.id') AS articleId
-  FROM conversations c
+  FROM referenced_conversations c
   JOIN articles_data d ON d.key='candidate/'||c.number
   LEFT JOIN articles_data m ON m.key='candidate-article/'||c.number
   LEFT JOIN articles_data a ON a.key=json_extract(m.value,'$.key')`

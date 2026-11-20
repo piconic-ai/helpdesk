@@ -11,6 +11,7 @@ import {
 
 export const conversations = sqliteTable('conversations', {
   number: integer().primaryKey({ autoIncrement: true }),
+  ticket_number: integer().notNull(),
   product: text().notNull(),
   mailbox: text().notNull(),
   contact: text().notNull(),
@@ -23,8 +24,9 @@ export const conversations = sqliteTable('conversations', {
   assignee: text(),
   reviewed_by: text(),
 })
-export const conversationRow = createSelectSchema(conversations).transform(
-  (row) => {
+export const conversationRow = createSelectSchema(conversations)
+  .extend({ reference: z.string() })
+  .transform((row) => {
     const state = conversationSchema.parse({
       ...row,
       status: {
@@ -36,9 +38,14 @@ export const conversationRow = createSelectSchema(conversations).transform(
         ? { kind: 'assigned', to: row.assignee }
         : { kind: 'unassigned' },
     })
-    return { ...state, subject: row.subject, createdAt: row.created_at }
-  },
-)
+    return {
+      ...state,
+      reference: row.reference,
+      ticketNumber: numberSchema.parse(row.ticket_number),
+      subject: row.subject,
+      createdAt: row.created_at,
+    }
+  })
 export const messages = sqliteTable('messages', {
   id: text().primaryKey(),
   number: integer().notNull(),

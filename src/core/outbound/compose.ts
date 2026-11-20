@@ -1,18 +1,13 @@
 import { z } from 'zod'
-import {
-  ticketPrefixSchema,
-  ticketReference,
-  ticketSubjectTag,
-} from '../conversations/ticket-reference'
-import { addressSchema, numberSchema } from '../conversations/state'
+import { ticketSubjectTag } from '../conversations/ticket-reference'
+import { addressSchema } from '../conversations/state'
 
 export const replyEnvelopeSchema = z.object({
   mailbox: addressSchema,
   senderName: z.string().nullish(),
   operatorName: z.string().nullish(),
   contact: addressSchema,
-  number: numberSchema,
-  ticketPrefix: ticketPrefixSchema,
+  reference: z.string(),
   subject: z.string(),
   body: z.string().min(1),
   in_reply_to: z.string().nullable(),
@@ -67,10 +62,7 @@ export function composeReply(reply: ReplyEnvelope) {
   return {
     from: name ? { name, email: reply.mailbox } : reply.mailbox,
     to: reply.contact,
-    subject: replySubject(
-      reply.subject,
-      ticketReference(reply.ticketPrefix, reply.number),
-    ),
+    subject: replySubject(reply.subject, reply.reference),
     text: reply.body,
     headers,
   }

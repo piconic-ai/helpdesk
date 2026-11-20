@@ -13,7 +13,12 @@ import {
 } from '../conversations/conversations-schema'
 const summary = z.intersection(
   conversationSchema,
-  z.object({ subject: z.string(), createdAt: instantSchema }),
+  z.object({
+    subject: z.string(),
+    createdAt: instantSchema,
+    ticketNumber: z.int().positive(),
+    reference: z.string(),
+  }),
 )
 const message = createSelectSchema(messages).extend({
   actor: actorSchema.nullable(),

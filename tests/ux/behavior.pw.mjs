@@ -161,8 +161,8 @@ test('候補が多いラベルを検索し、同じメニューで一括の付�
     ),
   )
   await page.reload()
-  for (const id of [1, 7])
-    await page.getByRole('checkbox', { name: 'SLD-' + id + 'を選択' }).check()
+  for (const reference of ['SLD-1', 'SLD-6'])
+    await page.getByRole('checkbox', { name: reference + 'を選択' }).check()
   const trigger = page.getByRole('button', { name: 'ラベルを付ける' })
   await trigger.click()
   const menu = page.locator('#bulk-label')

@@ -193,7 +193,7 @@ export async function setTicketPrefix(
   const [updated, , project] = await db.batch([
     db
       .prepare(`UPDATE product_ticket_prefixes SET prefix=?1 WHERE product=?2 AND
-      NOT EXISTS (SELECT 1 FROM product_ticket_prefixes WHERE prefix=?1 AND product!=?2)`)
+      (prefix=?1 OR NOT EXISTS (SELECT 1 FROM reserved_ticket_prefixes WHERE prefix=?1 AND product!=?2))`)
       .bind(prefix, product),
     db
       .prepare(`INSERT INTO events(kind,actor,payload,at)
