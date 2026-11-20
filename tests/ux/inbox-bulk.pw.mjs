@@ -269,3 +269,169 @@ test('長い件名、担当者、複数のラベル、3通のやりとりが各�
     expect(geometry.width).toBeGreaterThan(70)
   }
 })
+
+test('選択と絞り込みを維持し、操作した行と件数だけを更新する', async ({
+  page,
+  scene,
+}) => {
+  const destination = scene.origin + '/?product=slide'
+  const delayed = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  await page.route('**/components/local-requests.js', async (route) => {
+    delayed.resolve()
+    await release.promise
+    await route.continue()
+  })
+  await page.goto(destination)
+  const unchanged = await row(page, 1).elementHandle()
+  const filters = await page.locator('[data-live-filters]').elementHandle()
+  const count = page.locator('[data-inbox-count]')
+  const before = parseInt(await count.textContent())
+  const sidebar = page.locator(
+    '.sidebar-views a[aria-current=page] .sidebar-count',
+  )
+  const beforeSidebar = Number(await sidebar.textContent())
+  await check(page, 1).check()
+  let posts = 0
+  page.on('request', (r) => {
+    if (new URL(r.url()).pathname === '/inbox/change') posts++
+  })
+  const close = page.locator(
+    '.inbox-item[data-number="7"] [data-quick="closed"]',
+  )
+  await close.focus()
+  await page.keyboard.press('Enter')
+  try {
+    await delayed.promise
+    await page.keyboard.press('Enter')
+    await expect(row(page, 7)).toBeVisible()
+    expect(posts).toBe(0)
+  } finally {
+    release.resolve()
+  }
+  await expect(row(page, 7)).toHaveCount(0)
+  await expect(count).toHaveText(before - 1 + ' 件')
+  await expect(sidebar).toHaveText(String(beforeSidebar - 1))
+  await expect(check(page, 1)).toBeChecked()
+  expect(await unchanged.evaluate((node) => node.isConnected)).toBe(true)
+  expect(await filters.evaluate((node) => node.isConnected)).toBe(true)
+  expect(posts).toBe(1)
+  await expect(page).toHaveURL(destination)
+  await page.getByRole('button', { name: '元に戻す' }).click()
+  await expect(row(page, 7)).toBeFocused()
+  await expect(count).toHaveText(before + ' 件')
+  await expect(sidebar).toHaveText(String(beforeSidebar))
+  await expect(check(page, 1)).toBeChecked()
+})
+
+test('保存後に取得が失敗しても、再表示では操作を重ねない', async ({ page }) => {
+  let writes = 0
+  let rejected = false
+  page.on('request', (r) => {
+    if (new URL(r.url()).pathname === '/inbox/change') writes++
+  })
+  await page.route(
+    (url) => url.pathname === '/',
+    async (route) => {
+      if (
+        !rejected &&
+        route.request().headers()['x-helpdesk-view'] === 'page'
+      ) {
+        rejected = true
+        return route.fulfill({ status: 503, body: 'Unavailable' })
+      }
+      await route.continue()
+    },
+  )
+  await row(page, 7).focus()
+  await page.keyboard.press('e')
+  const notice = page
+    .getByRole('alert')
+    .filter({ hasText: '一覧を更新できませんでした。' })
+  await expect(notice).toContainText('完了にしました。')
+  await expect(row(page, 7)).toBeVisible()
+  await notice.getByRole('button', { name: '一覧を更新' }).click()
+  await expect(row(page, 7)).toHaveCount(0)
+  expect(writes).toBe(1)
+  await page.getByRole('button', { name: '元に戻す' }).click()
+  await expect(row(page, 7)).toBeVisible()
+})
+
+test.describe('フィードバックの行操作', () => {
+  test.use({ extensions: ['feedback'] })
+  test('確認と取り消しは現在の状態の絞り込みに反映される', async ({
+    page,
+    scene,
+  }) => {
+    const destination = scene.origin + '/?view=feedback&status=received'
+    await page.goto(destination)
+    const form = await page.locator('[data-live-filters]').elementHandle()
+    const review = page
+      .locator('.inbox-item[data-number="10"]')
+      .getByRole('button', { name: '確認済みにする' })
+    await review.focus()
+    await review.click()
+    await expect(row(page, 10)).toHaveCount(0)
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: 'フィードバックを確認済みにしました。' }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: '元に戻す' }).click()
+    await expect(row(page, 10)).toBeVisible()
+    await expect(
+      page
+        .locator('.inbox-item[data-number="10"]')
+        .getByRole('button', { name: '確認済みにする' }),
+    ).toBeAttached()
+    await expect(page).toHaveURL(destination)
+    expect(await form.evaluate((el) => el.isConnected)).toBe(true)
+    await check(page, 10).check()
+    await expect(
+      page.getByRole('region', { name: 'まとめて操作' }),
+    ).toContainText('1件を選択中')
+  })
+})
+
+test('完了した行を次ページから補い、元に戻すとページ送りが復元する', async ({
+  page,
+  scene,
+}) => {
+  await scene.db
+    .prepare(
+      "WITH RECURSIVE n(v) AS (VALUES(1) UNION ALL SELECT v+1 FROM n WHERE v<21) INSERT INTO conversations(product,mailbox,contact,subject,kind,status,created_at) SELECT 'slide','support@example.com','page@example.net','ページ境界 '||v,'inquiry','open',999999+v FROM n",
+    )
+    .run()
+  await page.setViewportSize({ width: 1024, height: 400 })
+  const url = new URL('/', scene.origin)
+  url.search = new URLSearchParams({
+    query: 'ページ境界',
+    status: 'open',
+    product: 'slide',
+  }).toString()
+  await page.goto(url.href)
+  const rows = page.locator('.inbox-item')
+  const pager = page.getByRole('navigation', { name: 'ページ送り' })
+  await expect(rows).toHaveCount(20)
+  await expect(pager).toContainText('1 / 2')
+  const ids = await rows.evaluateAll((items) =>
+    items.map((item) => item.dataset.number),
+  )
+  const active = rows.nth(12).locator('.conversation-row')
+  await active.focus()
+  const at = await page.evaluate(() => scrollY)
+  expect(at).toBeGreaterThan(0)
+  await page.keyboard.press('e')
+  await expect(row(page, ids[12])).toHaveCount(0)
+  await expect(rows).toHaveCount(20)
+  await expect(pager).toHaveCount(0)
+  expect(ids).not.toContain(await rows.last().getAttribute('data-number'))
+  await expect(row(page, ids[13])).toBeFocused()
+  expect(await page.evaluate(() => scrollY)).toBe(at)
+  await page.getByRole('button', { name: '元に戻す' }).click()
+  await expect(pager).toContainText('1 / 2')
+  expect(
+    await rows.evaluateAll((items) => items.map((item) => item.dataset.number)),
+  ).toEqual(ids)
+  await expect(page).toHaveURL(url.href)
+})

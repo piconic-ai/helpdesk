@@ -266,7 +266,7 @@ function ProjectCountList({
 }) {
   if (!counts.size) return null
   return (
-    <details>
+    <details data-project-counts="">
       <summary>プロジェクト別の件数</summary>
       <ul>
         {frame.products

@@ -47,71 +47,170 @@ function fitBulkActions(bar, signal) {
     trigger.focus({ preventScroll: true })
   })
   observer.observe(group)
-  signal.addEventListener('abort', () => observer.disconnect(), { once: true })
+  const stop = () => {
+    observer.disconnect()
+    signal.removeEventListener('abort', stop)
+  }
+  signal.addEventListener('abort', stop, { once: true })
+  return stop
+}
+
+// Reuse rows whose server representation did not change, even when another
+// conversation enters or leaves the current page.
+function reconcileInboxRows(list, updated) {
+  const old = new Map(
+    [...list.children].map((row) => [row.dataset.number, row]),
+  )
+  const rows = [...updated.children]
+  const numbers = new Set(rows.map((row) => row.dataset.number))
+  for (const [number, row] of old) if (!numbers.has(number)) row.remove()
+  for (const [index, next] of rows.entries()) {
+    let row = old.get(next.dataset.number)
+    if (!row?.isEqualNode(next)) {
+      row?.replaceWith(next)
+      row = next
+    }
+    if (list.children[index] !== row)
+      list.insertBefore(row, list.children[index] ?? null)
+  }
+}
+
+function bulkPressed(count, total) {
+  if (!count) return 'false'
+  return count === total ? 'true' : 'mixed'
+}
+
+function refreshBulkChoices(bar, checked) {
+  const projects = new Set(checked.map((box) => box.dataset.product))
+  for (const button of bar.querySelectorAll('[data-member-projects]')) {
+    const member = new Set(JSON.parse(button.dataset.memberProjects))
+    button.hidden = [...projects].some((project) => !member.has(project))
+  }
+  for (const button of bar.querySelectorAll('[data-change="assign"]')) {
+    const count = checked.filter(
+      (box) => box.dataset.assignee === button.dataset.value,
+    ).length
+    button.setAttribute('aria-pressed', bulkPressed(count, checked.length))
+  }
+  const labels = checked.map((box) => JSON.parse(box.dataset.labels))
+  for (const button of bar.querySelectorAll('[data-bulk-label]')) {
+    const count = labels.filter((names) =>
+      names.includes(button.dataset.bulkLabel),
+    ).length
+    button.setAttribute('aria-pressed', bulkPressed(count, checked.length))
+  }
+}
+
+function updateInboxContent(content, incoming) {
+  const list = content.querySelector('[data-ui=row-list]')
+  const newList = incoming.querySelector('[data-ui=row-list]')
+  if (!list || !newList) {
+    if (content.innerHTML !== incoming.innerHTML)
+      content.replaceChildren(...incoming.childNodes)
+    return
+  }
+  reconcileInboxRows(list, newList)
+  const before = content.querySelector('.inbox-pagination')
+  const after = incoming.querySelector('.inbox-pagination')
+  if (!after) before?.remove()
+  else if (!before) content.append(after)
+  else if (!before.isEqualNode(after)) before.replaceWith(after)
+}
+
+function updateInboxCounts(inbox, next) {
+  const count = inbox.querySelector('[data-inbox-count]')
+  const total = next.querySelector('[data-inbox-count]').textContent
+  if (total !== count.textContent) count.textContent = total
+  const breakdown = inbox.querySelector('[data-project-counts]')
+  const counts = next.querySelector('[data-project-counts]')
+  if (!counts) breakdown?.remove()
+  else if (!breakdown)
+    inbox.querySelector('[data-inbox-results]').before(counts)
+  else if (counts.innerHTML !== breakdown.innerHTML)
+    breakdown.replaceChildren(...counts.childNodes)
+}
+
+function returnInboxFocus(inbox, focused, row, position) {
+  const sameRow =
+    row &&
+    inbox.querySelector(
+      '.inbox-item[data-number="' + CSS.escape(row.dataset.number) + '"]',
+    )
+  let action = '.conversation-row'
+  if (focused.matches('input')) action = '.row-select input'
+  if (focused.hasAttribute('data-quick'))
+    action = '[data-quick="' + CSS.escape(focused.dataset.quick) + '"]'
+  const rows = inbox.querySelectorAll('a.conversation-row')
+  const target =
+    sameRow?.querySelector(action) ??
+    sameRow?.querySelector('.conversation-row') ??
+    rows[Math.min(position, rows.length - 1)] ??
+    inbox.querySelector('input[type=search]')
+  target?.focus({ preventScroll: true })
 }
 
 window.onHelpdeskPage((signal) => {
+  const inbox = document.querySelector('[data-inbox-view]')
+  if (!inbox) return
   const operator = document.body.dataset.operator
-  if (!operator) return
   const key = 'inbox-change:' + operator
   const pageKey = location.pathname + location.search
-  const inbox = document.querySelector('[data-inbox-view]')
-  const bar = inbox?.querySelector('.inbox-bulk')
-  const boxes = [...document.querySelectorAll('.row-select input')]
-  const all = inbox?.querySelector('[data-select-all]')
-  if (bar) fitBulkActions(bar, signal)
-  const selected = () =>
-    boxes.filter((box) => box.checked).map((box) => Number(box.value))
-  function bulkLabelStates() {
-    const sets = boxes
-      .filter((box) => box.checked)
-      .map((box) => new Set(JSON.parse(box.dataset.labels)))
-    for (const button of bar.querySelectorAll('[data-bulk-label]')) {
-      const count = sets.filter((labels) =>
-        labels.has(button.dataset.bulkLabel),
-      ).length
-      button.setAttribute(
-        'aria-pressed',
-        count ? (count === sets.length ? 'true' : 'mixed') : 'false',
-      )
-    }
-  }
+  let bar = inbox.querySelector('.inbox-bulk')
+  let stopFitting = bar && fitBulkActions(bar, signal)
+  const boxes = () => [...inbox.querySelectorAll('.row-select input')]
+  const selected = () => boxes().filter((box) => box.checked)
+  const checkedNumbers = () => selected().map((box) => Number(box.value))
+  const links = () => [...inbox.querySelectorAll('a.conversation-row')]
+  let anchor
   function refresh() {
+    const checked = selected()
+    const filters = inbox.querySelector('[data-ui=filters]')
+    filters.inert = checked.length > 0
     if (!bar) return
-    bulkLabelStates()
-    const projects = new Set(
-      boxes.filter((box) => box.checked).map((box) => box.dataset.product),
-    )
-    for (const button of bar.querySelectorAll('[data-member-projects]')) {
-      const member = new Set(JSON.parse(button.dataset.memberProjects))
-      button.hidden = [...projects].some((project) => !member.has(project))
-    }
-    const assignees = new Set(
-      boxes.filter((box) => box.checked).map((box) => box.dataset.assignee),
-    )
-    for (const candidate of bar.querySelectorAll('[data-change="assign"]'))
-      candidate.setAttribute(
-        'aria-pressed',
-        assignees.has(candidate.dataset.value)
-          ? assignees.size === 1
-            ? 'true'
-            : 'mixed'
-          : 'false',
-      )
-    const size = selected().length
-    if (!size) {
+    refreshBulkChoices(bar, checked)
+    if (!checked.length) {
       for (const panel of bar.querySelectorAll(':popover-open'))
         panel.hidePopover()
     }
-    bar.inert = !size
-    bar.setAttribute('aria-hidden', String(!size))
-    const filters = inbox.querySelector('[data-ui=filters]')
-    filters.inert = !!size
+    bar.inert = !checked.length
+    bar.setAttribute('aria-hidden', String(!checked.length))
+    const all = inbox.querySelector('[data-select-all]')
     if (all) {
-      all.checked = boxes.length > 0 && size === boxes.length
-      all.indeterminate = size > 0 && size < boxes.length
+      all.checked = checked.length > 0 && checked.length === boxes().length
+      all.indeterminate = checked.length > 0 && !all.checked
     }
-    bar.querySelector('[data-selected-count]').textContent = size + '件を選択中'
+    bar.querySelector('[data-selected-count]').textContent =
+      checked.length + '件を選択中'
+  }
+  function patchResults(doc) {
+    const next = doc.querySelector('[data-inbox-view]')
+    if (!next) throw new Error('Expected an inbox')
+    const content = inbox.querySelector('[data-inbox-content]')
+    const incoming = next.querySelector('[data-inbox-content]')
+    const selection = new Set(checkedNumbers())
+    const focused = document.activeElement
+    const row = focused.closest('.inbox-item')
+    const position = row ? [...row.parentNode.children].indexOf(row) : 0
+    const bulkFocus = bar?.contains(focused)
+    updateInboxContent(content, incoming)
+    const afterBar = next.querySelector('.inbox-bulk')
+    if (bar && !afterBar) {
+      stopFitting()
+      bar.remove()
+      bar = null
+    } else if (!bar && afterBar) {
+      inbox.querySelector('.inbox-tools').append(afterBar)
+      bar = afterBar
+      stopFitting = fitBulkActions(bar, signal)
+    }
+    updateInboxCounts(inbox, next)
+    for (const box of boxes()) box.checked = selection.has(Number(box.value))
+    refresh()
+    if (
+      (row && focused !== document.activeElement) ||
+      (bulkFocus && !selected().length)
+    )
+      returnInboxFocus(inbox, focused, row, position)
   }
   const verbs = {
     assign: '担当者を変更しました。',
@@ -124,148 +223,114 @@ window.onHelpdeskPage((signal) => {
     undo: '元に戻しました。',
   }
   let pending = false
-  async function perform(change, notice) {
-    if (pending) return
-    pending = true
-    try {
-      const undo = 'token' in change
-      const response = await fetch('/inbox/' + (undo ? 'undo' : 'change'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(change),
-      })
-      if (!response.ok)
-        throw new Error(
-          '現在の状態に操作を適用できません。画面を更新して対象を確認してください。',
-        )
-      const receipt = await response.json()
-      if (signal.aborted) return
-      await showChangeReceipt(change, receipt, notice, undo)
-    } catch (error) {
-      if (!signal.aborted) window.helpdeskToast(error.message, true)
-      pending = false
-    }
-  }
-  async function showChangeReceipt(change, receipt, notice, undo) {
-    const target = new URL(location.href)
-    if (!inbox) target.searchParams.delete('notice')
-    const message = receipt.count
-      ? receipt.count + '件 · ' + verbs[undo ? 'undo' : change.action]
-      : '対象はすでにこの状態です。'
-    sessionStorage.setItem(
-      key,
-      JSON.stringify({
-        path: target.pathname + target.search,
-        token: undo || !receipt.count ? null : receipt.token,
-        message: notice && receipt.count ? verbs[change.action] : message,
-        selected: selected(),
-        focus: document.activeElement.closest('.inbox-item')?.dataset.number,
-        position: [...document.querySelectorAll('.inbox-item')].indexOf(
-          document.activeElement.closest('.inbox-item'),
-        ),
-      }),
+  function showReceipt(receipt, stale = false) {
+    const wasInToast = document.activeElement.closest('[data-toast]')
+    const node = window.helpdeskToast(
+      receipt.message + (stale ? ' 一覧を更新できませんでした。' : ''),
+      stale,
     )
-    await window.helpdeskNavigate(target.href, { history: 'replace' })
-    if (!signal.aborted) {
-      pending = false
-      restoreReceipt()
-    }
-  }
-  function restoreReceipt() {
-    const serialized = sessionStorage.getItem(key)
-    if (!serialized) return
-    const receipt = JSON.parse(serialized)
-    if (receipt.path !== pageKey) {
-      sessionStorage.removeItem(key)
-      return
-    }
-    for (const box of boxes)
-      box.checked = receipt.selected.includes(Number(box.value))
-    refresh()
-    const result = window.helpdeskToast(receipt.message)
-    const items = [...document.querySelectorAll('.inbox-item')]
-    if (receipt.focus && items.length) {
-      const next =
-        items.find((item) => item.dataset.number === receipt.focus) ??
-        items[Math.min(receipt.position, items.length - 1)]
-      next?.querySelector('.conversation-row')?.focus({ preventScroll: true })
-    }
-    if (receipt.token) {
+    if (receipt.token || receipt.feedbackUndo) {
       const undo = document.createElement('button')
       undo.type = 'button'
       undo.className = 'button-quiet'
       undo.textContent = '元に戻す'
-      undo.addEventListener('click', () => perform({ token: receipt.token }))
-      result.append(' ', undo)
+      undo.onclick = () =>
+        receipt.token
+          ? changeRows({ token: receipt.token }, receipt.focus)
+          : reviewFeedback('unreview', receipt.feedbackUndo)
+      node.append(' ', undo)
+    }
+    if (stale) {
+      const retry = document.createElement('button')
+      retry.type = 'button'
+      retry.className = 'button-quiet'
+      retry.textContent = '一覧を更新'
+      retry.onclick = () => commit(async () => receipt)
+      node.append(' ', retry)
+    }
+    if (wasInToast && !document.activeElement.closest('[data-toast]')) {
+      const row = links().find(
+        (link) =>
+          link.closest('.inbox-item').dataset.number === String(receipt.focus),
+      )
+      const target =
+        row ?? links()[0] ?? inbox.querySelector('input[type=search]')
+      target?.focus({ preventScroll: true })
     }
   }
-  async function toggleLabel(form, change) {
-    if (pending) return
+  async function commit(mutate) {
+    if (pending || signal.aborted) return
     pending = true
+    const content = inbox.querySelector('[data-inbox-content]')
+    content.setAttribute('aria-busy', 'true')
     try {
-      const response = await fetch('/inbox/change', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(change),
-      })
-      if (!response.ok)
-        throw new Error(
-          'ラベルを更新できませんでした。もう一度お試しください。',
-        )
-      const { token, count } = await response.json()
-      const updated = await fetch(location.href)
-      if (!updated.ok)
-        throw new Error(
-          'ラベルは更新されました。画面を更新して確認してください。',
-        )
+      const { jsonMutation, pageQuery, syncPageCounts } =
+        await import('/components/local-requests.js')
       if (signal.aborted) return
-      const doc = new DOMParser().parseFromString(
-        await updated.text(),
-        'text/html',
-      )
-      const trigger = document.querySelector('[popovertarget=thread-labels]')
-      trigger.replaceChildren(
-        ...doc.querySelector('[popovertarget=thread-labels]').childNodes,
-      )
-      const panel = form.closest('[popover]')
-      const query = panel.querySelector('[data-menu-search]')?.value
-      panel.replaceChildren(...doc.getElementById('thread-labels').childNodes)
-      panel.dispatchEvent(
-        new CustomEvent('helpdesk:menu-updated', { bubbles: true }),
-      )
-      const search = panel.querySelector('[data-menu-search]')
-      if (search && query) {
-        search.value = query
-        search.dispatchEvent(new Event('input'))
+      const receipt = await mutate(jsonMutation)
+      if (signal.aborted) return
+      let stale = false
+      try {
+        const doc = await pageQuery(location.href, signal)
+        if (signal.aborted) return
+        patchResults(doc)
+        syncPageCounts(doc)
+      } catch {
+        if (signal.aborted) return
+        stale = true
       }
-      const timeline = document.querySelector('#thread-messages')
-      const records = doc.querySelectorAll('#thread-messages .timeline-entry')
-      const previous = timeline.querySelectorAll('.timeline-entry').length
-      if (records.length > previous)
-        timeline.append(
-          records[records.length - 1].closest('article').cloneNode(true),
+      sessionStorage.setItem(
+        key,
+        JSON.stringify({
+          ...receipt,
+          path: pageKey,
+          selected: checkedNumbers(),
+        }),
+      )
+      showReceipt(receipt, stale)
+    } catch {
+      if (!signal.aborted)
+        window.helpdeskToast(
+          '現在の状態に操作を適用できません。対象を確認してもう一度お試しください。',
+          true,
         )
-      const next = [...panel.querySelectorAll('form')].find(
-        (item) => item.elements.label?.value === change.label,
-      )
-      next?.querySelector('button')?.focus({ preventScroll: true })
-      const message = window.helpdeskToast(verbs[change.action])
-      if (count) {
-        const undo = document.createElement('button')
-        undo.type = 'button'
-        undo.textContent = '元に戻す'
-        undo.className = 'button-quiet'
-        undo.onclick = () => perform({ token })
-        message.append(undo)
-      }
-    } catch (error) {
-      if (!signal.aborted) window.helpdeskToast(error.message, true)
     } finally {
+      content.removeAttribute('aria-busy')
       pending = false
     }
+  }
+  function changeRows(change, focus = change.numbers?.[0]) {
+    const undo = 'token' in change
+    return commit(async (mutate) => {
+      const { count, token } = await mutate(
+        '/inbox/' + (undo ? 'undo' : 'change'),
+        change,
+      )
+      return {
+        message: count
+          ? count + '件 · ' + verbs[undo ? 'undo' : change.action]
+          : '対象はすでにこの状態です。',
+        token: !undo && count ? token : null,
+        focus,
+      }
+    })
+  }
+  function reviewFeedback(action, number) {
+    return commit(async (mutate) => {
+      const fields = new FormData()
+      fields.set('number', String(number))
+      await mutate('/actions/feedback.' + action, fields, {
+        accept: 'application/json',
+      })
+      return {
+        message:
+          action === 'review'
+            ? 'フィードバックを確認済みにしました。'
+            : 'フィードバックを未確認に戻しました。',
+        feedbackUndo: action === 'review' ? number : null,
+        focus: number,
+      }
+    })
   }
   function fieldChange(action, numbers, value) {
     if (action === 'assign') return { action, numbers, email: value || null }
@@ -273,53 +338,47 @@ window.onHelpdeskPage((signal) => {
       return { action, numbers, label: value }
     return { action, numbers }
   }
-  document.addEventListener(
-    'submit',
+  const saved = sessionStorage.getItem(key)
+  if (saved) {
+    const receipt = JSON.parse(saved)
+    if (receipt.path === pageKey) {
+      for (const box of boxes())
+        box.checked ||= receipt.selected?.includes(Number(box.value))
+      showReceipt(receipt)
+    } else sessionStorage.removeItem(key)
+  }
+  refresh()
+  inbox.addEventListener(
+    'change',
     (event) => {
-      const form = event.target
-      if (
-        !['/actions/status', '/actions/assign', '/actions/label'].includes(
-          form.getAttribute('action'),
-        )
-      )
-        return
-      const path = form.getAttribute('action')
-      const f = new FormData(form)
-      let action = 'assign'
-      if (path === '/actions/status') action = f.get('event')
-      if (path === '/actions/label') action = f.get('action')
-      event.preventDefault()
-      const change = fieldChange(
-        action,
-        [Number(f.get('number'))],
-        f.get('email') ?? f.get('label'),
-      )
-      if (form.closest('#thread-labels')) void toggleLabel(form, change)
-      else perform(change, true)
+      if (event.target.matches('[data-select-all]')) {
+        for (const box of boxes()) box.checked = event.target.checked
+        anchor = undefined
+        refresh()
+      } else if (event.target.matches('.row-select input')) refresh()
     },
     { signal },
   )
-  restoreReceipt()
-  if (!inbox) return
-  let anchor
-  all?.addEventListener('change', () => {
-    for (const box of boxes) box.checked = all.checked
-    anchor = undefined
-    refresh()
-  })
-  for (const [index, box] of boxes.entries()) {
-    box.addEventListener('click', (event) => {
-      if (event.shiftKey && anchor !== undefined)
-        for (const item of boxes.slice(
-          Math.min(anchor, index),
-          Math.max(anchor, index) + 1,
-        ))
-          item.checked = box.checked
-      anchor = index
-      refresh()
-    })
-    box.addEventListener('change', refresh)
-  }
+  inbox.addEventListener(
+    'click',
+    (event) => {
+      const box = event.target.closest('.row-select input')
+      if (box) {
+        const current = boxes()
+        const from = current.findIndex((other) => other.value === anchor)
+        const to = current.indexOf(box)
+        if (event.shiftKey && from >= 0)
+          for (const item of current.slice(
+            Math.min(from, to),
+            Math.max(from, to) + 1,
+          ))
+            item.checked = box.checked
+        anchor = box.value
+        refresh()
+      }
+    },
+    { signal },
+  )
   document.addEventListener(
     'keydown',
     (event) => {
@@ -330,100 +389,76 @@ window.onHelpdeskPage((signal) => {
         !selected().length
       )
         return
-      for (const box of boxes) box.checked = false
+      for (const box of boxes()) box.checked = false
       refresh()
-      all?.focus({ preventScroll: true })
+      inbox.querySelector('[data-select-all]')?.focus({ preventScroll: true })
     },
     { signal },
   )
-  refresh()
-  function quick(button) {
-    const id = Number(button.closest('[data-number]').dataset.number)
-    perform(fieldChange(button.dataset.quick, [id], operator))
-  }
-  async function toggleBulkLabel(button) {
-    if (pending) return
-    pending = true
-    try {
-      const label = button.dataset.bulkLabel
-      const action =
-        button.getAttribute('aria-pressed') === 'true' ? 'remove' : 'add'
-      const response = await fetch('/inbox/change', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, numbers: selected(), label }),
-      })
-      if (!response.ok)
-        throw new Error(
-          'ラベルを変更できませんでした。もう一度お試しください。',
-        )
-      const { token, count } = await response.json()
-      if (signal.aborted) return
-      const receipt = {
-        path: pageKey,
-        token,
-        message: count + '件 · ' + verbs[action],
-        selected: selected(),
-      }
-      sessionStorage.setItem(key, JSON.stringify(receipt))
-      const latest = await fetch(location.href)
-      if (!latest.ok)
-        throw new Error(
-          'ラベルを変更しました。画面を更新して確認してください。',
-        )
-      if (signal.aborted) return
-      const doc = new DOMParser().parseFromString(
-        await latest.text(),
-        'text/html',
-      )
-      const updated = [...doc.querySelectorAll('.row-select input')]
+  inbox.addEventListener(
+    'submit',
+    (event) => {
+      const form = event.target
+      const path = form.getAttribute('action')
       if (
-        updated.map((box) => box.value).join(',') !==
-        boxes.map((box) => box.value).join(',')
-      ) {
-        await window.helpdeskNavigate(location.href, { history: 'replace' })
+        event.defaultPrevented ||
+        !['/actions/feedback.review', '/actions/feedback.unreview'].includes(
+          path,
+        )
+      )
         return
-      }
-      updated.forEach((box, index) => {
-        boxes[index].dataset.labels = box.dataset.labels
-        const other = box
-          .closest('.inbox-item')
-          .querySelector('.conversation-row')
-        boxes[index]
-          .closest('.inbox-item')
-          .querySelector('.conversation-row')
-          .replaceChildren(...other.childNodes)
-      })
-      restoreReceipt()
-    } catch (error) {
-      if (!signal.aborted) window.helpdeskToast(error.message, true)
-    } finally {
-      pending = false
-    }
-  }
+      event.preventDefault()
+      void reviewFeedback(
+        path.split('.').at(-1),
+        Number(form.elements.number.value),
+      )
+    },
+    { signal },
+  )
   function chooseFilter(button) {
     const form = button.form
     form.elements.assignee.value = button.dataset.filterAssignee
     button.closest('[popover]').hidePopover()
     form.elements.assignee.dispatchEvent(new Event('change', { bubbles: true }))
   }
-  inbox.addEventListener('click', (event) => {
-    const button = event.target.closest('button')
-    if (!button) return
-    if (button.hasAttribute('data-clear-selection')) {
-      for (const box of boxes) box.checked = false
-      refresh()
-      all?.focus({ preventScroll: true })
-    }
-    if (button.hasAttribute('data-filter-assignee')) chooseFilter(button)
-    if (button.hasAttribute('data-quick')) quick(button)
-    if (button.hasAttribute('data-bulk-label')) void toggleBulkLabel(button)
-    if (button.hasAttribute('data-change'))
-      perform(
-        fieldChange(button.dataset.change, selected(), button.dataset.value),
-      )
-  })
-  const links = [...inbox.querySelectorAll('a.conversation-row')]
+  inbox.addEventListener(
+    'click',
+    (event) => {
+      const button = event.target.closest('button')
+      if (!button) return
+      if (button.hasAttribute('data-clear-selection')) {
+        for (const box of boxes()) box.checked = false
+        refresh()
+        inbox.querySelector('[data-select-all]')?.focus({ preventScroll: true })
+      }
+      if (button.hasAttribute('data-filter-assignee')) chooseFilter(button)
+      if (button.hasAttribute('data-quick'))
+        void changeRows(
+          fieldChange(
+            button.dataset.quick,
+            [Number(button.closest('[data-number]').dataset.number)],
+            operator,
+          ),
+        )
+      if (button.hasAttribute('data-bulk-label'))
+        void changeRows(
+          fieldChange(
+            button.getAttribute('aria-pressed') === 'true' ? 'remove' : 'add',
+            checkedNumbers(),
+            button.dataset.bulkLabel,
+          ),
+        )
+      if (button.hasAttribute('data-change'))
+        void changeRows(
+          fieldChange(
+            button.dataset.change,
+            checkedNumbers(),
+            button.dataset.value,
+          ),
+        )
+    },
+    { signal },
+  )
   function isListShortcut(event) {
     return (
       !event.defaultPrevented &&
@@ -440,14 +475,15 @@ window.onHelpdeskPage((signal) => {
     'keydown',
     (event) => {
       if (!isListShortcut(event)) return
-      const index = links.indexOf(document.activeElement)
+      const rows = links()
+      const index = rows.indexOf(document.activeElement)
       if (event.key === 'j' || event.key === 'k') {
         event.preventDefault()
         const next = index < 0 ? 0 : index + (event.key === 'j' ? 1 : -1)
-        links[Math.max(0, Math.min(links.length - 1, next))]?.focus()
+        rows[Math.max(0, Math.min(rows.length - 1, next))]?.focus()
       } else if (index >= 0 && (event.key === 'a' || event.key === 'e')) {
         event.preventDefault()
-        links[index]
+        rows[index]
           .closest('li')
           .querySelector(
             '[data-quick="' + (event.key === 'a' ? 'assign' : 'closed') + '"]',
