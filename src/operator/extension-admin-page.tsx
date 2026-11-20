@@ -237,7 +237,10 @@ export function candidatesPage(
     <ListPage
       title="記事の候補"
       description={list.total + '件'}
-      back={{ href: '/articles', label: '記事一覧に戻る' }}
+      back={{
+        href: withProject('/articles', query.product),
+        label: '記事一覧に戻る',
+      }}
       filters={
         <ListFilters
           title="候補"
@@ -262,7 +265,10 @@ export function candidatesPage(
                 c.articleId
                   ? '/articles/edit?' +
                     new URLSearchParams({ product: c.product, id: c.articleId })
-                  : '/articles/new?candidate=' + c.number
+                  : withProject(
+                      '/articles/new?candidate=' + c.number,
+                      c.product,
+                    )
               }
               description={
                 <ProductMark
@@ -281,7 +287,10 @@ export function candidatesPage(
                   <ActionLink
                     variant="outline"
                     data-candidate-status=""
-                    href={'/articles/new?candidate=' + c.number}
+                    href={withProject(
+                      '/articles/new?candidate=' + c.number,
+                      c.product,
+                    )}
                   >
                     記事を書き始める
                   </ActionLink>
