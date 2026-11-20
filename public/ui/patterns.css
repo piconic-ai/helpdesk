@@ -592,8 +592,7 @@ html:has(dialog:modal) {
   overflow-wrap: anywhere;
 }
 [data-ui='extension-card'] > header h3 {
-  min-width: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   line-height: var(--typography-title-sm-lineHeight);
 }
 [data-ui='extension-card'] > header form {

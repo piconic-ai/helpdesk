@@ -463,9 +463,6 @@ form:has(input[name='role']) > small {
     transition: none !important;
   }
 }
-.nav-compact-name {
-  display: none;
-}
 @media (min-width: 768px) and (max-width: 1060px) {
   .app-shell {
     --components-app-sidebar-width: 64px;
@@ -508,29 +505,12 @@ form:has(input[name='role']) > small {
   .app-sidebar .account-navigation {
     flex-wrap: wrap;
   }
-  .app-sidebar .sidebar-item:has(.sidebar-count, .nav-compact-name) {
+  .app-sidebar .sidebar-item:has(.sidebar-count) {
     padding-inline: 0;
     gap: var(--spacing-xxs);
   }
   .app-sidebar .sidebar-count {
     margin: 0;
-  }
-  .app-sidebar .nav-compact-name {
-    display: block;
-    max-inline-size: 100%;
-    font: var(--typography-caption);
-    white-space: normal;
-    text-align: center;
-    text-wrap: balance;
-  }
-  .app-sidebar a:has(.nav-compact-name) {
-    flex-direction: column;
-    justify-content: center;
-    min-height: var(--layout-touch-target);
-    gap: 0;
-  }
-  .sidebar-item-active .nav-compact-name {
-    color: inherit;
   }
 }
 .image-file-picker:has([data-file-presentation]:not([hidden])) {
@@ -1061,12 +1041,8 @@ form[action='/articles/edit']
 [data-list='rules'] details[open] form + [data-ui='actions'] {
   margin-block-start: var(--spacing-sm);
 }
-@media (min-width: 768px) {
-  [data-ui='metrics']:has(
-    > [data-ui='extension-card']:nth-child(4):last-child
-  ) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+[data-ui='metrics']:has(> [data-ui='extension-card']) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
 }
 form.issue-section {
   width: min(100%, 560px);

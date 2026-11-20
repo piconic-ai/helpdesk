@@ -74,7 +74,6 @@ function navItem(
   icon: GlyphName,
   active: boolean,
   count?: number,
-  compactName?: string,
 ) {
   return (
     <a
@@ -85,11 +84,6 @@ function navItem(
     >
       {glyph(icon)}
       <span>{name}</span>
-      {compactName && (
-        <small className="nav-compact-name" aria-hidden="true">
-          {compactName}
-        </small>
-      )}
       {count !== undefined && <span className="sidebar-count">{count}</span>}
     </a>
   )
@@ -121,14 +115,11 @@ function extensionMenu(frame: ConsoleFrame) {
         navItem(
           route.path,
           route.label,
-          route.extension.icon ?? 'extension',
+          route.path === '/voices'
+            ? 'voices'
+            : (route.extension.icon ?? 'extension'),
           frame.path === route.path || frame.path.startsWith(route.path + '/'),
           route.extension.count || undefined,
-          route.id === 'metrics'
-            ? route.path === '/voices'
-              ? '声の集計'
-              : '対応状況の集計'
-            : undefined,
         ),
       )}
     </nav>
