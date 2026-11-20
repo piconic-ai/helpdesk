@@ -78,6 +78,44 @@ test('承認・破棄の各確認は背後を操作できず Esc で元の操作
   })
 })
 
+test('画面の切り替え中に開いた確認は元の会話を離れると閉じる', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/conversation/10')
+  const feedback = page
+    .getByRole('navigation', { name: '受信箱', exact: true })
+    .getByRole('link', { name: /^フィードバック/ })
+  const destination = new URL(await feedback.getAttribute('href'), scene.origin)
+    .href
+  const requested = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  await page.route(
+    destination,
+    async (route) => {
+      requested.resolve()
+      await release.promise
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  const dialog = page.getByRole('dialog')
+  try {
+    await feedback.click()
+    await requested.promise
+    await button(page, '問い合わせに変更').click()
+    await expect(dialog).toContainText('運営画面をキーボードで使っています')
+  } finally {
+    release.resolve()
+  }
+  await expect(page).toHaveURL(destination)
+  await expect(dialog).toBeHidden()
+  const row = page.locator('[data-inbox-results] li[data-number="10"]')
+  await expect(row).toContainText('受付済み')
+  await row.getByRole('link').click()
+  await expect(button(page, '問い合わせに変更')).toBeVisible()
+})
+
 test('統合・変換・起票の各確認で相手と内容を読み、Esc で元の会話に戻る', async ({
   page,
   scene,

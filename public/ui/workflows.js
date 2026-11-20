@@ -2,6 +2,11 @@ const confirmation = document.getElementById('action-confirmation')
 const shortcuts = document.getElementById('keyboard-help')
 const permitted = new WeakSet()
 
+// The dialog lives outside the routed region, but its action belongs to the page being left.
+document.addEventListener('helpdesk:leave', () => {
+  if (confirmation?.open) confirmation.close()
+})
+
 function openDialog(dialog, trigger) {
   if (document.querySelector('dialog[open]')) return
   const previousPopover = trigger?.closest(':popover-open')

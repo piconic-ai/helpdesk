@@ -10,9 +10,12 @@ async function inbox(page, scene) {
 }
 async function openFeedback(page) {
   await page
+    .getByRole('navigation', { name: '受信箱', exact: true })
     .getByRole('link', { name: /^フィードバック/ })
-    .first()
     .click()
+  await expect(
+    page.getByRole('heading', { name: 'フィードバック', level: 1 }),
+  ).toBeVisible()
 }
 async function publishFeedback(page, origin, body) {
   await page.goto(origin + '/help/feedback/slide')
@@ -98,16 +101,19 @@ test.describe('公開受付', () => {
     await inbox(page, scene)
     await openFeedback(page)
     await capture(page, 'J7', '02-inbox', '未確認のフィードバックが並ぶ')
-    await page.getByRole('link', { name: new RegExp(first) }).click()
-    await expect(page).toHaveURL((url) =>
-      /^\/conversation\/\d+$/.test(url.pathname),
-    )
+    const rows = page.locator('[data-inbox-results]')
+    await rows.getByRole('link', { name: new RegExp(first) }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(first)
     await page.getByRole('button', { name: '確認済みにする' }).click()
-    await expect(page.getByRole('main')).toContainText('確認済み')
+    await expect(page.getByRole('status')).toContainText(
+      'フィードバックを確認済みにしました。',
+    )
     await capture(page, 'J7', '03-reviewed', '1件目を確認済みにする')
     await openFeedback(page)
-    await page.getByRole('link', { name: new RegExp(other) }).click()
+    await rows.getByRole('link', { name: new RegExp(other) }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(other)
     await page.getByRole('button', { name: '問い合わせに変更' }).click()
+    await expect(page.getByRole('dialog')).toContainText(other)
     await confirmSubmission(page)
     await page
       .getByRole('textbox', { name: '返信', exact: true })
