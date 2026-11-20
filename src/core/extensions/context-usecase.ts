@@ -98,11 +98,18 @@ export function extensionContext(
       const source = c.env.candidateSources?.[ext.id]
       return source ? source(c.env.DB, product, text) : []
     },
-    judge: (model, question, articles, name) => {
+    judge: (model, question, articles, name, kind) => {
       requirePermission('external_fetch')
       if (!c.env.AI || !c.env.judgeArticles)
         throw new Error('Configure the Workers AI binding AI')
-      return c.env.judgeArticles(c.env.AI, model, question, articles, name)
+      return c.env.judgeArticles(
+        c.env.AI,
+        model,
+        question,
+        articles,
+        name,
+        kind,
+      )
     },
     ...extensionStorage(c.env.DB, ext.id),
     assign: (number, email) =>

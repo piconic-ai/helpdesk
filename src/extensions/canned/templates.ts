@@ -4,6 +4,7 @@ const body = z.string().trim().min(1).max(4000)
 export const template = z.object({
   name: z.string().trim().min(1).max(100),
   body,
+  product: z.string().min(1).optional(),
 })
 export const templateConfig = z
   .object({
@@ -25,14 +26,30 @@ export const templateConfig = z
       }),
   })
   .strict()
-export async function savedTemplates(ctx: ExtensionContext) {
-  return templatesFromSettings(ctx.config, await ctx.list('template/'))
+export async function savedTemplates(ctx: ExtensionContext, product?: string) {
+  const all = templatesFromSettings(ctx.config, await ctx.list('template/'))
+  return product
+    ? new Map(
+        [...all].filter(
+          ([, item]) => !item.product || item.product === product,
+        ),
+      )
+    : all
+}
+
+export function fillTemplate(
+  body: string,
+  contact: { name: string; productName: string },
+) {
+  return body.replace(/\{\{(name|product)\}\}/g, (_, field) =>
+    field === 'name' ? contact.name : contact.productName,
+  )
 }
 export function templatesFromSettings(
   config: unknown,
   rows: { key: string; value: unknown }[],
 ) {
-  const result = new Map(
+  const result = new Map<string, z.infer<typeof template>>(
     Object.entries(templateConfig.parse(config).templates).map(([id, item]) => [
       id,
       typeof item === 'string'

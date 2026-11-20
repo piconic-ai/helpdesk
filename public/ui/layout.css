@@ -359,6 +359,31 @@ form:has(input[name='role']) > small {
   margin: 0;
   width: auto;
 }
+.reply-suggestions {
+  &[hidden],
+  & > div[hidden] {
+    display: none;
+  }
+  display: grid;
+  gap: var(--spacing-xxs);
+  padding-block-end: var(--spacing-xs);
+  border-block-end: 1px solid var(--colors-hairline);
+  & > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xxs);
+  }
+  & span {
+    color: var(--colors-muted);
+    font: var(--typography-caption);
+  }
+  & button {
+    max-inline-size: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
 .candidate-offer {
   display: grid;
   gap: var(--spacing-xs);

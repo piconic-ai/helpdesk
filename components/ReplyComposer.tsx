@@ -2,7 +2,29 @@
 
 import { navigate } from '@barefootjs/router'
 import { createSignal, onMount } from '@barefootjs/client'
+import type { CannedChoice } from '../src/extensions/canned/suggestions'
 import { TabsList, TabsTrigger } from './PatternTabs'
+
+type SelectedTemplate = Pick<CannedChoice, 'id' | 'body' | 'presentation'> & {
+  use: string
+}
+
+function isCannedChoice(value: unknown): value is CannedChoice {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'kind' in value &&
+    value.kind === 'canned' &&
+    'id' in value &&
+    typeof value.id === 'string' &&
+    'title' in value &&
+    typeof value.title === 'string' &&
+    'body' in value &&
+    typeof value.body === 'string' &&
+    'presentation' in value &&
+    typeof value.presentation === 'string'
+  )
+}
 
 interface ReplyComposerProps {
   number: number
@@ -14,6 +36,12 @@ interface ReplyComposerProps {
   offerToWrite?: boolean
   closed?: boolean
   noteOnly?: boolean
+}
+function suggestedArticles(articles: ReplyComposerProps['articles'] = []) {
+  return articles.filter((article) => article.url.includes('?suggestion='))
+}
+function showSuggestions(note: boolean, articles: number, templates: number) {
+  return !note && (articles > 0 || templates > 0)
 }
 function submitLabel(note: boolean, sending: boolean) {
   if (note) return sending ? '保存中…' : 'メモを残す'
@@ -50,7 +78,74 @@ function submissionErrorText(status: number | null, isNote: boolean) {
 
 export function ReplyComposer(props: ReplyComposerProps) {
   const [interactive, setInteractive] = createSignal(false)
-  onMount(() => setInteractive(true))
+  const [suggestedTemplates, setSuggestedTemplates] = createSignal<
+    CannedChoice[]
+  >([])
+  const articleSuggestions = suggestedArticles(props.articles)
+  const selections = new Array<SelectedTemplate>()
+  const cannedPath = '/conversation/' + props.number + '/canned-'
+  onMount(() => {
+    setInteractive(true)
+    if (props.hasCanned && !props.noteOnly) void loadTemplates()
+  })
+
+  async function loadTemplates() {
+    try {
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const response = await fetch(cannedPath + 'suggestions')
+        if (response.status === 202) {
+          await new Promise((resolve) => setTimeout(resolve, 250))
+          continue
+        }
+        if (response.ok) {
+          const choices: unknown = await response.json()
+          if (Array.isArray(choices) && choices.every(isCannedChoice))
+            setSuggestedTemplates(choices)
+        }
+        return
+      }
+    } catch {
+      return
+    }
+  }
+
+  function recordTemplate(
+    item: SelectedTemplate,
+    action: 'selected' | 'unchanged' | 'edited',
+  ) {
+    void fetch(cannedPath + 'selection', {
+      method: 'POST',
+      body: new URLSearchParams({
+        id: item.use,
+        presentation: item.presentation,
+        template: item.id,
+        action,
+      }),
+      keepalive: true,
+    }).catch(() => undefined)
+  }
+
+  function insertTemplate(event: MouseEvent) {
+    const button =
+      event.target instanceof Element
+        ? event.target.closest('button[data-template]')
+        : null
+    if (!(button instanceof HTMLButtonElement)) return
+    const item = suggestedTemplates().find(
+      ({ id }) => id === button.dataset.template,
+    )
+    const area = button.form?.querySelector('textarea[data-draft-slot="reply"]')
+    if (!item || !(area instanceof HTMLTextAreaElement) || area.readOnly) return
+    const body = item.body.replace(/\r\n?/g, '\n')
+    if (area.value.length + body.length > area.maxLength) return
+    const position = area.selectionStart
+    area.setRangeText(body, position, position, 'end')
+    area.dispatchEvent(new Event('input', { bubbles: true }))
+    area.focus()
+    const selected = { ...item, body, use: crypto.randomUUID() }
+    selections.push(selected)
+    recordTemplate(selected, 'selected')
+  }
   const [replyBody, setReplyBody] = createSignal('')
   const [preview, setPreview] = createSignal(false)
   const [note, setNote] = createSignal(props.noteOnly ?? false)
@@ -148,9 +243,22 @@ export function ReplyComposer(props: ReplyComposerProps) {
     setNote(isNote)
     setFailureStatus(!isNote && unknownReply() ? 0 : null)
   }
+  function recordSubmittedTemplates(value: string) {
+    const submitted = value.replace(/\r\n?/g, '\n')
+    const lastMatched = new Map<string, number>()
+    for (const item of selections.splice(0)) {
+      const position = submitted.indexOf(
+        item.body,
+        lastMatched.get(item.body) ?? 0,
+      )
+      if (position >= 0) lastMatched.set(item.body, position + item.body.length)
+      recordTemplate(item, position >= 0 ? 'unchanged' : 'edited')
+    }
+  }
   function finishSubmission(form: HTMLFormElement, operation: string) {
     const submitted = form.querySelector('textarea:not(:disabled)')
     if (submitted instanceof HTMLTextAreaElement) {
+      if (operation !== 'note') recordSubmittedTemplates(submitted.value)
       submitted.value = ''
       submitted.dispatchEvent(new Event('input', { bubbles: true }))
     }
@@ -252,6 +360,48 @@ export function ReplyComposer(props: ReplyComposerProps) {
       >
         会話を再開できませんでした。状態を確認して、もう一度お試しください。
       </p>
+      <section
+        className="reply-suggestions"
+        aria-label="返信の候補"
+        hidden={
+          !showSuggestions(
+            note(),
+            articleSuggestions.length,
+            suggestedTemplates().length,
+          )
+        }
+      >
+        <div hidden={!articleSuggestions.length}>
+          <span>記事</span>
+          {articleSuggestions.map((article) => (
+            <button
+              key={article.url}
+              type="button"
+              className="button-quiet"
+              data-url={article.url}
+              disabled={!interactive() || sending()}
+              onClick={attachArticle}
+            >
+              {article.title}
+            </button>
+          ))}
+        </div>
+        <div hidden={!suggestedTemplates().length}>
+          <span>定型文</span>
+          {suggestedTemplates().map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="button-quiet"
+              data-template={item.id}
+              disabled={sending()}
+              onClick={insertTemplate}
+            >
+              {item.title}
+            </button>
+          ))}
+        </div>
+      </section>
       <label className="composer-field" hidden={note()}>
         <span className="sr-only">返信</span>
         <textarea

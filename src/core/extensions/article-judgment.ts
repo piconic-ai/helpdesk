@@ -4,3 +4,4 @@ export type Judgment = {
   needsHuman: number
 }
 export type JudgmentModel = 'clef' | 'clef-flash'
+export type JudgmentKind = 'article' | 'canned'

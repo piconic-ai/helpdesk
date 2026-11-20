@@ -3,6 +3,7 @@ import type {
   CandidateSummary,
   Judgment,
   JudgmentModel,
+  JudgmentKind,
 } from '../../core/extensions/article-judgment'
 
 const answer = z.object({
@@ -36,13 +37,14 @@ function clip(text: string, length: number) {
   return text.slice(0, length).replace(/[\uD800-\uDBFF]$/u, '')
 }
 
-const articleSlot = (i: number) => 'article.' + i
+const candidateSlot = (kind: JudgmentKind, i: number) => kind + '.' + i
 const contextLimits = { clef: 65536, 'clef-flash': 24576 }
 export function buildClefRequest(
   model: JudgmentModel,
   question: string,
   articles: CandidateSummary[],
   name = '',
+  kind: JudgmentKind = 'article',
 ) {
   if (articles.length > 20) throw new Error('At most 20 article candidates')
   const questions: Record<string, { type: 'noul'; instructions: string }> = {
@@ -53,9 +55,12 @@ export function buildClefRequest(
     },
   }
   const candidates = articles.map((article, i) => {
-    questions[articleSlot(i)] = {
+    questions[candidateSlot(kind, i)] = {
       type: 'noul',
-      instructions: `Does article ${i} help answer the customer's question?`,
+      instructions:
+        kind === 'canned'
+          ? `Can saved reply ${i} be used to respond to this customer's inquiry?`
+          : `Does article ${i} help answer the customer's question?`,
     }
     return {
       id: String(i),
@@ -67,7 +72,8 @@ export function buildClefRequest(
     model,
     state: {
       question: clip(privateText(question, name), 2000),
-      articles: candidates,
+      articles: kind === 'article' ? candidates : [],
+      ...(kind === 'canned' ? { saved_replies: candidates } : {}),
     },
     questions,
   }
@@ -88,11 +94,12 @@ export function buildClefRequest(
 export function readClefAnswer(
   raw: unknown,
   articles: Pick<CandidateSummary, 'id'>[],
+  kind: JudgmentKind = 'article',
 ): Judgment {
   const { answers } = response.parse(raw)
   const scores = articles.map(({ id }, i) => ({
     id,
-    score: answer.parse(answers[articleSlot(i)]).noul,
+    score: answer.parse(answers[candidateSlot(kind, i)]).noul,
   }))
   return { scores, needsHuman: answer.parse(answers.needs_human).noul }
 }
@@ -103,9 +110,10 @@ export async function judgeArticles(
   question: string,
   articles: CandidateSummary[],
   name?: string,
+  kind: JudgmentKind = 'article',
 ): Promise<Judgment> {
   if (!articles.length) return { scores: [], needsHuman: 0 }
-  const input = buildClefRequest(model, question, articles, name)
+  const input = buildClefRequest(model, question, articles, name, kind)
   const timeout = new AbortController()
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
@@ -119,7 +127,7 @@ export async function judgeArticles(
       binding.run(`@cf/cloudflare/${model}`, input, { signal: timeout.signal }),
       deadline,
     ])
-    return readClefAnswer(result, articles)
+    return readClefAnswer(result, articles, kind)
   } finally {
     clearTimeout(timer)
   }

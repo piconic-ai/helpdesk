@@ -31,6 +31,13 @@ import {
   templatesFromSettings,
 } from '../extensions/canned/templates'
 import { cannedSettings } from './canned-settings-page'
+import { groupedDetail } from '../core/extensions/triage-usecase'
+import {
+  cannedCounts,
+  cannedUse,
+  recordCannedUse,
+  replyTemplateChoices,
+} from '../extensions/canned/suggestions-usecase'
 import { Hono, type Context as HttpContext } from 'hono'
 import { z } from 'zod'
 import type { AppEnv } from '../core/operators/middleware'
@@ -97,6 +104,54 @@ const frame = (c: RequestContext) =>
   })
 const key = (product: string, id: string) =>
   '/articles/edit?' + new URLSearchParams({ product, id })
+app.get('/conversation/:number/canned-suggestions', async (c) => {
+  const ctx = context(c)
+  authorize(ctx, 'read', scopes)
+  const api = active(c, 'canned')
+  const number = z.coerce
+    .number()
+    .int()
+    .positive()
+    .safeParse(c.req.param('number'))
+  if (!api || !number.success) return c.notFound()
+  c.header('Cache-Control', 'no-store')
+  const { conversation, messages, labels } = await groupedDetail(
+    c.env,
+    number.data,
+  )
+  const inbound = messages.findLast((message) => message.kind === 'inbound')
+  if (
+    !inbound ||
+    conversation.kind !== 'inquiry' ||
+    conversation.status.kind === 'spam'
+  )
+    return c.json([])
+  const choices = await replyTemplateChoices(c.env.DB, api, {
+    number: conversation.number,
+    inbound,
+    labels: labels.map(({ name }) => name),
+  })
+  return choices ? c.json(choices) : c.body(null, 202)
+})
+app.post('/conversation/:number/canned-selection', async (c) => {
+  const ctx = context(c)
+  authorize(ctx, 'read', scopes)
+  const number = z.coerce
+    .number()
+    .int()
+    .positive()
+    .safeParse(c.req.param('number'))
+  const use = cannedUse.safeParse(await c.req.parseBody())
+  if (!number.success || !use.success) return c.body(null, 400)
+  if (!active(c, 'canned')) return c.notFound()
+  const saved = await recordCannedUse(
+    c.env.DB,
+    number.data,
+    ctx.operator.email,
+    use.data,
+  )
+  return c.body(null, saved ? 204 : 404)
+})
 app.post('/conversation/:number/article-selection', async (c) => {
   const api = active(c, 'articles')
   if (!api) return c.notFound()
@@ -555,6 +610,8 @@ app.get('/extensions/:id', async (c) => {
         new Map(window.rows),
         versions,
         templates.size > 0,
+        state.products,
+        await cannedCounts(c.env.DB),
       )
     } else {
       const rules = rulesFromSettings(
@@ -620,7 +677,9 @@ app.post('/extensions/canned/save', async (c) => {
   const api = active(c, 'canned')
   if (!api) return c.notFound()
   const form = await c.req.parseBody()
-  const item = template.parse(form)
+  const item = template.parse({ ...form, product: form.product || undefined })
+  if (item.product && !(await publicProduct(c.env, item.product)))
+    return c.notFound()
   const id = z.string().max(100).parse(form.id)
   if (id && !(await savedTemplates(api)).has(id)) return c.notFound()
   return settingResult(

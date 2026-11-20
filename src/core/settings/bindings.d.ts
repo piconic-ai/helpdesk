@@ -2,6 +2,7 @@ import type {
   CandidateSummary,
   Judgment,
   JudgmentModel,
+  JudgmentKind,
 } from '../extensions/article-judgment'
 import type { Registry } from '../extensions/registry'
 export interface Bindings {
@@ -26,6 +27,7 @@ export interface Bindings {
     question: string,
     articles: CandidateSummary[],
     name?: string,
+    kind?: JudgmentKind,
   ) => Promise<Judgment>
   DB: D1Database
   RAW: R2Bucket

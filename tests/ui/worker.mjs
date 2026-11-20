@@ -3,6 +3,20 @@ import worker from './worker.js'
 let sequence = 0
 const clock = Date.now.bind(Date)
 let clockStart
+function cannedFixture(state) {
+  if (state.question.includes('Clef unavailable fixture'))
+    throw new Error('Clef unavailable fixture')
+  const answers = { needs_human: { type: 'noul', noul: 0 } }
+  for (const [index, reply] of state.saved_replies.entries()) {
+    const topic = state.question.includes('請求先を変更しました')
+      ? '請求先'
+      : '領収書'
+    const matches =
+      state.question.includes(topic) && reply.title.includes(topic)
+    answers['canned.' + index] = { type: 'noul', noul: matches ? 0.95 : 0.05 }
+  }
+  return { answers }
+}
 // Local models replay fixed scores so interface tests never call Workers AI.
 function modelFixture(model, input) {
   if (model === '@cf/baai/bge-reranker-base')
@@ -11,6 +25,7 @@ function modelFixture(model, input) {
         { id: 0, score: input.query.includes('領収書') ? 0.95 : 0.05 },
       ],
     }
+  if (input.state.saved_replies) return cannedFixture(input.state)
   const { question, articles } = input.state
   const words = ['領収書', '共有リンク']
   const answers = {

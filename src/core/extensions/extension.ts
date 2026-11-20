@@ -3,6 +3,7 @@ import type {
   CandidateSummary,
   Judgment,
   JudgmentModel,
+  JudgmentKind,
 } from './article-judgment'
 import type {
   PreviousInput,
@@ -98,6 +99,7 @@ export type ExtensionContext = {
     question: string,
     articles: CandidateSummary[],
     name?: string,
+    kind?: JudgmentKind,
   ) => Promise<Judgment>
   assign: (number: number, email: string) => Promise<void>
   label: (number: number, label: string) => Promise<void>
@@ -166,7 +168,10 @@ export type Panel = {
       Record<string, string | { label: string; description: string }>
     >
   >
-  choices?: (ctx: ExtensionContext) => Promise<Record<string, string[]>>
+  choices?: (
+    ctx: ExtensionContext,
+    number?: number,
+  ) => Promise<Record<string, string[]>>
   links?: (
     ctx: ExtensionContext,
     number?: number,
