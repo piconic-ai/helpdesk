@@ -134,7 +134,7 @@ routes.get('/issues/choices/:number', async (c) => {
   const api = enabled(c)
   if (!api) return c.notFound()
   const number = positive.parse(c.req.param('number'))
-  const { product } = await api.contact(number)
+  const { product, subject } = await api.contact(number)
   if (
     !(await configuredRepository(api, product)) ||
     !api.secret('GITHUB_TOKEN')
@@ -145,7 +145,7 @@ routes.get('/issues/choices/:number', async (c) => {
     repo,
     demo: api.demoGithub,
     backlink: origin + '/conversation/' + number,
-    choices: await issueChoices(api, repo),
+    ...(await issueChoices(api, repo, number, subject)),
   })
 })
 routes.post('/issues/drafts', async (c) => {

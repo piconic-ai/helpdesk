@@ -22,7 +22,13 @@ import {
   storedPreview,
   type Linked,
 } from './issues'
-import { githubIssue, linkComment, backlinkExists } from './github-client'
+import {
+  githubIssue,
+  linkComment,
+  backlinkExists,
+  selectableIssues,
+} from './github-client'
+import { matchingIssue } from './match-issue'
 
 const repositoryOverride = z.union([
   repositorySchema,
@@ -287,4 +293,22 @@ export async function pollIssues(ctx: ExtensionContext) {
     throw new AggregateError(failures, 'GitHub issue synchronization failed')
 }
 
-export { selectableIssues as issueChoices } from './github-client'
+export async function issueChoices(
+  ctx: ExtensionContext,
+  repo: string,
+  number: number,
+  subject: string,
+) {
+  const [choices, body, links] = await Promise.all([
+    selectableIssues(ctx, repo),
+    ctx.inboundBody(number),
+    loadLinks(ctx, 'link/' + repo.toLowerCase() + '/'),
+  ])
+  const linked = new Set(
+    links.filter((link) => link.number === number).map((link) => link.issue),
+  )
+  return {
+    choices,
+    suggested: matchingIssue(choices, subject, body, linked)?.number,
+  }
+}

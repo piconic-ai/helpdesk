@@ -624,6 +624,16 @@ export function conversationPanels(
         )}
       </>
     ),
+    issueSuggestion: contextual.some((p) =>
+      actionsFor(p, conversation).some((op) => op.name === 'issues.preview'),
+    ) && (
+      <Button
+        type="button"
+        variant="ghost"
+        data-issue-suggestion=""
+        hidden
+      ></Button>
+    ),
     related: extensionPanels(contextual, number, conversation),
     snooze: command('snooze'),
     canned: command('canned'),

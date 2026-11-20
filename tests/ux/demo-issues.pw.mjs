@@ -327,3 +327,36 @@ test('承認した返信を取り消し、同じ下書きから編集を再開�
       .first('delivery'),
   ).toBe('awaiting_approval')
 })
+
+test('関連情報を開く前に会話に合う課題を1件示し、確認した課題にだけ紐づける', async ({
+  page,
+  demo,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(demo.origin + '/conversation/1')
+  const candidate = page.getByRole('button', {
+    name: /関連しそうな課題：領収書の宛名を変更できるようにする/,
+  })
+  await expect(candidate).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /^関連しそうな課題：/ }),
+  ).toHaveCount(1)
+  await expect(page.locator('#related-info')).toBeHidden()
+  await candidate.click()
+  const picker = page.locator('[data-issue-picker]')
+  await expect(picker.locator('select')).toHaveValue('43')
+  await picker.getByRole('button', { name: '既存の課題と紐づける' }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '既存の課題と紐づける' })
+    .click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.goto(demo.origin + '/issues/example/helpdesk/43')
+  const voices = page.getByRole('region', { name: /紐づく声/ })
+  await expect(voices.locator('a[href="/conversation/1"]')).toBeVisible()
+  await page.goto(demo.origin + '/conversation/1')
+  await expect(
+    page.locator('[data-issue-picker] select option').first(),
+  ).toBeAttached()
+  await expect(candidate).toHaveCount(0)
+})

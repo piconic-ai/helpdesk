@@ -1,10 +1,11 @@
-window.onHelpdeskPage(() => {
+window.onHelpdeskPage((signal) => {
   for (const picker of document.querySelectorAll('[data-issue-picker]')) {
     const form = picker.querySelector('form')
     const search = form.querySelector('[type=search]')
     const select = form.elements.issue
     const button = form.querySelector('button')
     const status = form.querySelector('[role=status]')
+    const suggestion = document.querySelector('[data-issue-suggestion]')
     let choices
     function filter() {
       const value = select.value
@@ -25,21 +26,36 @@ window.onHelpdeskPage(() => {
     }
     let loading = false
     async function load() {
-      if (!picker.open || choices || loading) return
+      if (choices || loading) return
       loading = true
       status.textContent = '課題を読み込んでいます。'
       try {
         const response = await fetch(
           '/issues/choices/' + picker.dataset.issuePicker,
+          { signal },
         )
         if (!response.ok) throw new Error()
         const data = await response.json()
+        if (signal.aborted) return
         form.dataset.repo = data.repo
         form.dataset.backlink = data.backlink
         form.dataset.demo = String(data.demo === true)
         choices = data.choices
         filter()
+        const match = choices.find((i) => i.number === data.suggested)
+        if (suggestion && match) {
+          suggestion.textContent = '関連しそうな課題：' + match.title
+          suggestion.hidden = false
+          suggestion.addEventListener('click', () => {
+            openPicker()
+            search.value = match.title
+            filter()
+            select.value = String(match.number)
+            select.focus()
+          })
+        }
       } catch {
+        if (signal.aborted) return
         status.textContent =
           '課題を読み込めませんでした。設定を確認し、もう一度開いてください。'
       } finally {
@@ -49,18 +65,23 @@ window.onHelpdeskPage(() => {
     search.addEventListener('input', () => {
       if (choices) filter()
     })
-    picker.addEventListener('toggle', load)
-    if (picker.open) void load()
+    function openPicker() {
+      const drawer = picker.closest('[popover]')
+      if (drawer && !drawer.matches(':popover-open')) drawer.showPopover()
+      picker.open = true
+      search.focus()
+    }
+    picker.addEventListener('toggle', () => {
+      if (picker.open) void load()
+    })
+    if (suggestion || picker.open) void load()
     if (new URLSearchParams(location.search).get('issue') === 'link') {
-      const open = () => {
-        const drawer = picker.closest('[popover]')
-        if (drawer && !drawer.matches(':popover-open')) drawer.showPopover()
-        picker.open = true
-        search.focus()
-      }
       if (document.readyState === 'loading')
-        window.addEventListener('DOMContentLoaded', open, { once: true })
-      else open()
+        window.addEventListener('DOMContentLoaded', openPicker, {
+          once: true,
+          signal,
+        })
+      else openPicker()
     }
   }
 })

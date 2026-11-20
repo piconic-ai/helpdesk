@@ -385,7 +385,13 @@ function replyReceipt(
 
 export function conversationPage(
   data: Details,
-  panels: { related: Child; snooze: Child; canned: Child; feedback: Child },
+  panels: {
+    related: Child
+    snooze: Child
+    canned: Child
+    feedback: Child
+    issueSuggestion?: Child
+  },
   frame: ConsoleFrame,
   metadata: Awaited<ReturnType<typeof inboxMetadata>>,
   files: Files,
@@ -474,6 +480,7 @@ export function conversationPage(
       }
       aside={threadContext(data, panels.related, product?.name ?? c.product)}
     >
+      {panels.issueSuggestion}
       {timelineView(
         data,
         frame,
