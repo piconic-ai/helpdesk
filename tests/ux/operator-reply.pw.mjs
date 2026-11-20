@@ -1,4 +1,4 @@
-import { expect, test } from './harness.mjs'
+import { confirmSubmission, expect, test } from './harness.mjs'
 
 test('狭い会話画面では最新の対応と未達の返信へ先頭から移動できる', async ({
   page,
@@ -346,6 +346,51 @@ test('送信予定を一覧で確認し、トーストを閉じた後も会話�
   await message.getByRole('button', { name: '今すぐ送る' }).click()
   await expect(message).toContainText('送信済み', { timeout: 15000 })
   await expect(message.getByRole('button', { name: '取り消す' })).toHaveCount(0)
+})
+
+test('担当変更の表示を待つ間に承認した別の下書きも一度だけ送信予定になる', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/conversation/5')
+  const loading = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  const approvals = []
+  await page.route(
+    /\/conversation\/5\?.*updates=thread/,
+    async (route) => {
+      loading.resolve()
+      await release.promise
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  page.on('request', (req) => {
+    if (
+      req.method() === 'POST' &&
+      new URL(req.url()).pathname === '/actions/approve'
+    )
+      approvals.push(req)
+  })
+  const draft = page.locator('.draft-review')
+  await page.locator('[popovertarget=thread-assignee]').click()
+  await page.getByRole('button', { name: '佐藤 優', exact: true }).click()
+  try {
+    await loading.promise
+    await draft.getByRole('button', { name: '承認して送信' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    expect(approvals).toHaveLength(0)
+    await confirmSubmission(page)
+    await expect.poll(() => approvals.length).toBe(1)
+  } finally {
+    release.resolve()
+  }
+  await expect(draft).toHaveCount(0)
+  await expect(page.locator('article.message-outbound')).toContainText(
+    '送信予定',
+  )
+  await expect(page.locator('[data-ui=attributes]')).toContainText('佐藤 優')
+  expect(approvals).toHaveLength(1)
 })
 
 test('会話の操作と配送結果の反映中も、入力中の返信と開いた履歴を保つ', async ({

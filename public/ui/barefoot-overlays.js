@@ -226,9 +226,9 @@ function prepareSearch(panel) {
   search.setAttribute('aria-label', search.placeholder)
   search.addEventListener('input', () => {
     const q = search.value.trim().toLocaleLowerCase()
-    for (const option of menuItems(panel)) {
+    for (const option of panel.querySelectorAll('button,a[href]')) {
       if (
-        !option.matches('button,a[href]') ||
+        option.closest('[popover]') !== panel ||
         option.matches('[popovertarget], [data-manage-labels]')
       )
         continue

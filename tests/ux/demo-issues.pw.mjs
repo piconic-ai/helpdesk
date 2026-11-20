@@ -356,6 +356,11 @@ test('関連情報を開く前に会話に合う課題を1件示し、確認し�
   await expect(
     page.getByText('選択した Issue を会話に関連付けました。'),
   ).toBeVisible()
+  await expect(picker).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '比較する期間を選ぶ' }),
+  ).toBeVisible()
+  await expect(candidate).toHaveCount(0)
   await page.goto(demo.origin + '/issues/example/helpdesk/43')
   const voices = page.getByRole('region', { name: /紐づく声/ })
   await expect(voices.locator('a[href="/conversation/1"]')).toBeVisible()

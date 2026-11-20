@@ -153,8 +153,8 @@ window.onHelpdeskPage((signal) => {
       url.searchParams.set('notice', change.action)
     else url.searchParams.delete('notice')
     if (menu && menu.id !== 'thread-labels') menu.hidePopover()
-    await saved(url)
-    if (window.helpdeskThread?.number === number)
+    const updated = await saved(url)
+    if (updated && window.helpdeskThread?.number === number)
       window.helpdeskThread.showChange(change, receipt)
   }
   function showChange(change, receipt) {

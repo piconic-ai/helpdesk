@@ -100,8 +100,6 @@ function message(
   const canSend =
     c.kind === 'inquiry' &&
     (c.status.kind === 'open' || c.status.kind === 'pending')
-  const label =
-    m.kind === 'inbound' ? name : m.kind === 'note' ? noteLabel : '返信'
   return (
     <Message
       kind={m.kind}
@@ -116,7 +114,7 @@ function message(
       ])}
       header={
         <>
-          <h2>{messageHeading(m.kind, label, c.contact)}</h2>
+          <h2>{messageHeading(m.kind, name, c.contact)}</h2>
           {stamp(m.created_at, now)}
         </>
       }
@@ -166,8 +164,10 @@ function messageHeading(
       <ContactAvatar name={label} email={contact} />
       相手 · {label}
     </>
+  ) : kind === 'note' ? (
+    noteLabel
   ) : (
-    label
+    '返信'
   )
 }
 
@@ -398,6 +398,60 @@ function replyReceipt(
   return threadNotice(query.notice, number, query.undoId)
 }
 
+function threadAttributes(
+  data: Details,
+  frame: ConsoleFrame,
+  productName: string,
+) {
+  const c = data.conversation
+  const activity =
+    data.messages.findLast((m) => m.delivery === 'failed') ??
+    data.messages.findLast((m) => m.delivery === 'awaiting_approval') ??
+    data.messages.at(-1)
+  return (
+    <AttributeRow>
+      <code data-ticket-reference="">{c.reference}</code>
+      <ProductMark
+        product={{ id: c.product, name: productName }}
+        size="heading"
+      />
+      {channelIcon(c.origin)}
+      <div
+        data-thread-part="status"
+        data-version={c.kind + '/' + c.status.kind}
+      >
+        {statusPicker(c)}
+      </div>
+      <div
+        data-thread-part="assignee"
+        data-version={JSON.stringify(
+          c.kind === 'inquiry' ? c.assignment : null,
+        )}
+      >
+        {c.kind === 'inquiry' && assignment(c, frame)}
+      </div>
+      <div
+        data-thread-part="labels"
+        data-version={JSON.stringify([data.labels, frame.labels])}
+      >
+        {labelPicker(
+          c.number,
+          data.labels,
+          frame.labels,
+          frame.labelColors,
+          frame.labelDirectory,
+        )}
+      </div>
+      <div
+        data-thread-part="activity"
+        data-version={JSON.stringify([activity?.id, activity?.delivery])}
+      >
+        {activity && <ThreadActivity message={activity} />}
+      </div>
+    </AttributeRow>
+  )
+}
+
 export function conversationPage(
   data: Details,
   panels: {
@@ -435,10 +489,6 @@ export function conversationPage(
   )
   const names = frame.operators
   const info = metadata.get(c.number)
-  const activity =
-    data.messages.findLast((m) => m.delivery === 'failed') ??
-    data.messages.findLast((m) => m.delivery === 'awaiting_approval') ??
-    data.messages.at(-1)
   const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
   const { next, previous } = adjacentOpen(frame.openNumbers, c.number)
   const search = frame.query.inbox ?? ''
@@ -491,48 +541,7 @@ export function conversationPage(
           </ActionBar>
         </ThreadToolbar>
       }
-      attributes={
-        <AttributeRow>
-          <code data-ticket-reference="">{reference}</code>
-          <ProductMark
-            product={{ id: c.product, name: info?.productName ?? c.product }}
-            size="heading"
-          />
-          {channelIcon(c.origin)}
-          <div
-            data-thread-part="status"
-            data-version={c.kind + '/' + c.status.kind}
-          >
-            {statusPicker(c)}
-          </div>
-          <div
-            data-thread-part="assignee"
-            data-version={JSON.stringify(
-              c.kind === 'inquiry' ? c.assignment : null,
-            )}
-          >
-            {c.kind === 'inquiry' && assignment(c, frame)}
-          </div>
-          <div
-            data-thread-part="labels"
-            data-version={JSON.stringify([data.labels, frame.labels])}
-          >
-            {labelPicker(
-              c.number,
-              data.labels,
-              frame.labels,
-              frame.labelColors,
-              frame.labelDirectory,
-            )}
-          </div>
-          <div
-            data-thread-part="activity"
-            data-version={JSON.stringify([activity?.id, activity?.delivery])}
-          >
-            {activity && <ThreadActivity message={activity} />}
-          </div>
-        </AttributeRow>
-      }
+      attributes={threadAttributes(data, frame, info?.productName ?? c.product)}
       aside={threadContext(
         data,
         panels.related,

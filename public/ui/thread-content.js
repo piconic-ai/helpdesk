@@ -56,7 +56,7 @@ function syncChoices(part, fresh) {
   return true
 }
 
-export function syncThread(doc) {
+function syncAttributes(doc) {
   for (const next of doc.querySelectorAll('[data-thread-part][data-version]')) {
     const part = document.querySelector(
       '[data-thread-part="' + next.dataset.threadPart + '"]',
@@ -65,39 +65,41 @@ export function syncThread(doc) {
     if (!syncChoices(part, next)) part.replaceChildren(...next.childNodes)
     part.dataset.version = next.dataset.version
   }
-  for (const next of doc.querySelectorAll(
-    '#related-info [data-extension] [data-thread-part="extension-summary"]',
-  )) {
-    const id = next.closest('[data-extension]').id
-    const current = document
-      .getElementById(id)
-      ?.querySelector('[data-thread-part="extension-summary"]')
-    if (!current) continue
-    if (!current.isEqualNode(next)) {
-      current.replaceChildren(...next.childNodes)
-      if (id === 'extension-issues')
-        current
-          .closest('[data-extension]')
-          .querySelector('[data-issue-picker]')
-          ?.dispatchEvent(new Event('helpdesk:issue-links'))
-    }
-    const panel = current.closest('[data-extension]')
-    const incoming = next.closest('[data-extension]')
-    const operations = new Map(
-      [...panel.querySelectorAll('[data-context-operation]')].map((node) => [
-        node.dataset.contextOperation,
-        node,
-      ]),
-    )
-    for (const node of incoming.querySelectorAll('[data-context-operation]')) {
-      if (operations.delete(node.dataset.contextOperation)) continue
-      panel.insertBefore(
-        node.cloneNode(true),
-        panel.querySelector('[data-issue-picker]'),
-      )
-    }
-    for (const stale of operations.values()) stale.remove()
+}
+
+function syncRelated(next) {
+  const id = next.closest('[data-extension]').id
+  const current = document
+    .getElementById(id)
+    ?.querySelector('[data-thread-part="extension-summary"]')
+  if (!current) return
+  if (!current.isEqualNode(next)) {
+    current.replaceChildren(...next.childNodes)
+    if (id === 'extension-issues')
+      current
+        .closest('[data-extension]')
+        .querySelector('[data-issue-picker]')
+        ?.dispatchEvent(new Event('helpdesk:issue-links'))
   }
+  const panel = current.closest('[data-extension]')
+  const incoming = next.closest('[data-extension]')
+  const operations = new Map(
+    [...panel.querySelectorAll('[data-context-operation]')].map((node) => [
+      node.dataset.contextOperation,
+      node,
+    ]),
+  )
+  for (const node of incoming.querySelectorAll('[data-context-operation]')) {
+    if (operations.delete(node.dataset.contextOperation)) continue
+    panel.insertBefore(
+      node.cloneNode(true),
+      panel.querySelector('[data-issue-picker]'),
+    )
+  }
+  for (const stale of operations.values()) stale.remove()
+}
+
+function syncSteps(doc) {
   for (const next of doc.querySelectorAll(
     '.thread-toolbar [aria-label$="未対応へ"]',
   )) {
@@ -106,6 +108,15 @@ export function syncThread(doc) {
     )
     if (current && !current.isEqualNode(next)) current.replaceWith(next)
   }
+}
+
+export function syncThread(doc) {
+  syncAttributes(doc)
+  for (const next of doc.querySelectorAll(
+    '#related-info [data-extension] [data-thread-part="extension-summary"]',
+  ))
+    syncRelated(next)
+  syncSteps(doc)
   const timeline = document.querySelector('#thread-messages')
   syncEntries(timeline, doc.querySelector('#thread-messages'))
   const area = document.querySelector('#reply-area')
