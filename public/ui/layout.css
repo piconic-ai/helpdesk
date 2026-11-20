@@ -1257,3 +1257,25 @@ body:has([data-empty-composer]:not([hidden]))
 [data-token-projects] [hidden] {
   display: none;
 }
+
+.project-member-list [data-ui='list-row'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--spacing-xs) var(--spacing-md);
+  align-items: start;
+}
+.project-member-list [data-ui='list-row'] > div,
+.project-member-list [data-ui='list-row'] > div > span {
+  display: grid;
+  gap: var(--spacing-xs);
+  overflow-wrap: anywhere;
+}
+.project-member-list .member-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.project-member-list .member-admin-note,
+.project-member-list [data-ui='list-row'] > details[open] {
+  grid-column: 1 / -1;
+}

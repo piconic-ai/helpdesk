@@ -272,8 +272,13 @@ export const ActionBar = ({ children }: Content) => (
 export const CandidateList = ({ children }: Content) => (
   <div data-ui="candidates">{children}</div>
 )
-export const RowList = ({ children }: Content) => (
-  <ul data-ui="row-list">{children}</ul>
+export const RowList = ({
+  children,
+  className,
+}: Content & { className?: string }) => (
+  <ul data-ui="row-list" className={className}>
+    {children}
+  </ul>
 )
 export const MetricGrid = ({ children }: Content) => (
   <Grid data-ui="metrics">{children}</Grid>

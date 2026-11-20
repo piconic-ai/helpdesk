@@ -30,7 +30,7 @@ function memberControls(
 ) {
   if (last)
     return (
-      <small>
+      <small className="member-admin-note">
         最後の管理者です。先にほかのメンバーを管理者にしてください。
       </small>
     )
@@ -90,16 +90,22 @@ export function membersPage(
         </Notice>
       )}
       <FormSection title={'所属するメンバー（' + members.length + '人）'}>
-        <RowList>
+        <RowList className="project-member-list">
           {members.map((m, i) => (
             <ListRow
               title={
-                <>
+                <span className="member-identity">
                   {operatorAvatar(m)} {m.displayName}
+                </span>
+              }
+              description={
+                <>
+                  <span>{m.email}</span>
+                  <small>
+                    {(m.invited ? '招待中 ・ ' : '') + roles[m.role]}
+                  </small>
                 </>
               }
-              description={m.email}
-              status={(m.invited ? '招待中 ・ ' : '') + roles[m.role]}
               action={memberControls(
                 url,
                 m,
