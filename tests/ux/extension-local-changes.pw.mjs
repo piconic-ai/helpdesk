@@ -103,3 +103,53 @@ test.describe('スヌーズの利用設定', () => {
     await expect(count).toHaveText(String(before))
   })
 })
+
+test('続けて確定した変更は画面を離れても両方保存される', async ({
+  page,
+  scene,
+}) => {
+  const path = '/settings/projects/slide/extensions'
+  await page.goto(scene.origin + path)
+  const first = page.locator('#extension-articles form[data-extension-change]')
+  const action = await first.getAttribute('action')
+  const held = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  await page.route(
+    scene.origin + action,
+    async (route) => {
+      if (route.request().method() === 'POST') {
+        held.resolve()
+        await release.promise
+      }
+      await route.continue()
+    },
+    { times: 1 },
+  )
+  await first.getByRole('button', { name: '無効にする' }).click()
+  await held.promise
+  const second = page.locator('#extension-issues form[data-extension-change]')
+  const secondAction = await second.getAttribute('action')
+  const finished = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      response.url() === new URL(secondAction, scene.origin).href,
+  )
+  try {
+    await second.getByRole('button', { name: '無効にする' }).click()
+    await expect(second).toHaveAttribute('aria-busy', 'true')
+    await page.getByRole('link', { name: 'プロジェクトの設定に戻る' }).click()
+    await expect(
+      page.getByRole('link', { name: /^利用する拡張/ }),
+    ).toBeVisible()
+  } finally {
+    release.resolve()
+  }
+  await finished
+  await page.getByRole('link', { name: /^利用する拡張/ }).click()
+  for (const id of ['articles', 'issues'])
+    await expect(
+      page
+        .locator('#extension-' + id)
+        .getByRole('button', { name: '有効にする' }),
+    ).toBeVisible()
+})

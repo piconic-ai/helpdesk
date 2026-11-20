@@ -126,7 +126,6 @@ window.onHelpdeskPage((signal) => {
       const button = event.submitter
       const body = new FormData(form, button)
       queue = queue.then(async () => {
-        if (signal.aborted) return
         try {
           await change(form, body, signal)
         } catch {
