@@ -1,3 +1,5 @@
+import { jsonQuery } from '/components/local-requests.js'
+
 window.onHelpdeskPage((signal) => {
   for (const picker of document.querySelectorAll('[data-issue-picker]')) {
     const form = picker.querySelector('form')
@@ -30,13 +32,10 @@ window.onHelpdeskPage((signal) => {
       loading = true
       status.textContent = '課題を読み込んでいます。'
       try {
-        const response = await fetch(
+        const data = await jsonQuery(
           '/issues/choices/' + picker.dataset.issuePicker,
-          { signal },
+          signal,
         )
-        if (!response.ok) throw new Error()
-        const data = await response.json()
-        if (signal.aborted) return
         form.dataset.repo = data.repo
         form.dataset.reference = data.reference
         form.dataset.demo = String(data.demo === true)

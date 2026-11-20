@@ -76,3 +76,23 @@ export function jsonMutation(url, body, { accept } = {}) {
     ),
   )
 }
+
+export function syncPageCounts(doc) {
+  const links = new Map(
+    [...doc.querySelectorAll('.sidebar-item[href]')].map((link) => [
+      link.getAttribute('href'),
+      link,
+    ]),
+  )
+  for (const link of document.querySelectorAll('.sidebar-item[href]')) {
+    const next = links.get(link.getAttribute('href'))
+    if (!next) continue
+    const count = link.querySelector('.sidebar-count')
+    const updated = next.querySelector('.sidebar-count')
+    if (!updated) count?.remove()
+    else if (!count) link.append(updated.cloneNode(true))
+    else if (count.textContent !== updated.textContent)
+      count.textContent = updated.textContent
+  }
+  if (doc.title && doc.title !== document.title) document.title = doc.title
+}
