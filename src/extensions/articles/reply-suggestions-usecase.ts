@@ -1,3 +1,4 @@
+import { articleExcerpt } from './excerpt'
 import type { ExtensionContext } from '../../core/extensions/extension'
 import { backgroundArticles } from '../article-suggestions-usecase'
 import { published } from './articles-usecase'
@@ -10,7 +11,9 @@ export async function replyArticleChoices(
 ) {
   const catalog = await published(ctx, product)
   const all = catalog.map((a) => ({
+    id: a.id,
     title: a.title,
+    excerpt: articleExcerpt(a.body),
     path: publicPath(product, a.id),
   }))
   if (
@@ -32,15 +35,12 @@ export async function replyArticleChoices(
       number: inbound.number,
       key: inbound.id,
     },
-    catalog,
+    all,
   )
   if (!offer) return all
   const chosen = new Set(offer.articles.map((a) => a.id))
   return {
-    links: [
-      ...offer.articles,
-      ...all.filter((_, index) => !chosen.has(catalog[index].id)),
-    ],
+    links: [...offer.articles, ...all.filter((a) => !chosen.has(a.id))],
     offerToWrite: chosen.size === 0,
   }
 }

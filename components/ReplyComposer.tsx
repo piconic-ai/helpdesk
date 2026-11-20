@@ -10,7 +10,7 @@ interface ReplyComposerProps {
   contact: string
   subject?: string
   hasCanned?: boolean
-  articles?: { title: string; url: string }[]
+  articles?: { title: string; url: string; excerpt?: string }[]
   offerToWrite?: boolean
   closed?: boolean
   noteOnly?: boolean
@@ -404,6 +404,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
                       >
                         {article.title}
                       </button>
+                      {article.excerpt && <p>{article.excerpt}</p>}
                     </li>
                   ))}
                 </ul>

@@ -175,7 +175,7 @@ export type Panel = {
   >
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
-export type ReplyLink = { title: string; path: string }
+export type ReplyLink = { title: string; path: string; excerpt?: string }
 export type Extension = {
   icon?: GlyphName
   navigationCount?: (ctx: ExtensionContext) => Promise<number>

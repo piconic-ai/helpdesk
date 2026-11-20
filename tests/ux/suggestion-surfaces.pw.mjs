@@ -106,6 +106,11 @@ test('W3 公開フォームから記事で解決し、問い合わせを送ら�
   await page.getByLabel('連絡先メールアドレス').fill('reader@example.net')
   await page.getByRole('button', { name: '送信', exact: true }).click()
   const link = page.getByRole('link', { name: /領収書を発行する/ })
+  await expect(
+    page.getByText('購入履歴から、支払いごとに領収書を発行できます。', {
+      exact: true,
+    }),
+  ).toBeVisible()
   const presentation = new URL(
     await link.getAttribute('href'),
     scene.origin,
@@ -166,6 +171,9 @@ test('運営の返信には関連する記事を先頭に添え、記事がな�
     .first()
     .getByRole('button')
   await expect(candidate).toHaveText('領収書を発行する')
+  await expect(page.locator('#reply-articles li').first()).toContainText(
+    '購入履歴から、支払いごとに領収書を発行できます。',
+  )
   const link = new URL(await candidate.getAttribute('data-url'))
   const presentation = link.searchParams.get('suggestion')
   expect(presentation).toBeTruthy()

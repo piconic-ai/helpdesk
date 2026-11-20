@@ -153,6 +153,7 @@ export async function replyLinks(
       .flatMap((r) => (Array.isArray(r) ? r : r.links))
       .map((link) => ({
         title: link.title,
+        excerpt: link.excerpt,
         url: new URL(link.path, origin).href,
       })),
   }

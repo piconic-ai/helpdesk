@@ -25,6 +25,16 @@ export async function presentArticles(ctx: ExtensionContext, input: Request) {
   if (raw == null) return
   const result = recommendation.parse(raw)
   const { contact, number, key } = input
+  const interactive = surface === 'form' || surface === 'chat'
+  const excerpts =
+    interactive && result.articles.length
+      ? z.record(z.string(), z.string()).parse(
+          (await ctx.resource('articles', 'excerpts', {
+            product,
+            ids: result.articles.map((a) => a.id),
+          })) ?? {},
+        )
+      : {}
   const presentation = await ctx.presentSuggestion({
     product,
     question: question.slice(0, 100000),
@@ -41,6 +51,7 @@ export async function presentArticles(ctx: ExtensionContext, input: Request) {
     articles: result.articles.map(({ id, title, url }) => ({
       id,
       title,
+      excerpt: excerpts[id],
       url: url + '?suggestion=' + encodeURIComponent(presentation),
     })),
   }
@@ -58,7 +69,7 @@ export function suggestionIds(value: unknown) {
 export async function backgroundArticles(
   ctx: ExtensionContext,
   input: Request & { surface: 'ack' | 'composer'; number: number; key: string },
-  published: { id: string; title: string }[],
+  published: { id: string; title: string; excerpt?: string }[],
 ) {
   const { product, surface, number, key } = input
   const byKey = { product, surface, number, key }
@@ -78,6 +89,7 @@ export async function backgroundArticles(
             {
               id,
               title: article.title,
+              excerpt: article.excerpt,
               path: `/help/articles/${encodeURIComponent(product)}/${encodeURIComponent(id)}?suggestion=${encodeURIComponent(presentation)}`,
             },
           ]

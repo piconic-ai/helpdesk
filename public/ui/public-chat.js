@@ -144,6 +144,7 @@ function showMatches(
     })
     const row = element('li', null)
     row.append(link)
+    if (item.excerpt) row.append(element('p', item.excerpt))
     list.append(row)
   })
   const choices = element('div', null, { class: 'chat-choices' })

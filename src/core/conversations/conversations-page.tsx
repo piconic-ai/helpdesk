@@ -362,7 +362,7 @@ export function conversationPage(
   frame: ConsoleFrame,
   metadata: Awaited<ReturnType<typeof inboxMetadata>>,
   files: Files,
-  articles: { title: string; url: string }[] = [],
+  articles: { title: string; url: string; excerpt?: string }[] = [],
   holds: Awaited<ReturnType<typeof pendingReplyUndos>> = [],
   offerToWrite = false,
 ) {

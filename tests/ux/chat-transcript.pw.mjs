@@ -19,6 +19,11 @@ test('解決した記事を記録し、問い合わせは本人が送るまで�
   await ask.click()
   const article = page.getByRole('link', { name: '領収書を発行する' })
   await expect(article).toBeVisible()
+  await expect(
+    page.getByText('購入履歴から、支払いごとに領収書を発行できます。', {
+      exact: true,
+    }),
+  ).toBeVisible()
   expect(
     await question.evaluate((input) => input.matches(':user-invalid')),
   ).toBe(false)

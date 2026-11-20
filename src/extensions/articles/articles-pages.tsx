@@ -1,3 +1,4 @@
+import { articleExcerpt } from './excerpt'
 import { raw } from 'hono/html'
 import { PageLinks } from '../../ui/listing'
 import { paginateRows } from '../../ui/pagination'
@@ -35,6 +36,7 @@ export function articleIndex(
           <PublicLinks
             items={results.rows.map((a) => ({
               label: a.title,
+              description: articleExcerpt(a.body),
               path: publicPath(product, a.id),
             }))}
           />

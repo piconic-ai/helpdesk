@@ -177,7 +177,7 @@ export function receiptPage(
 }
 
 export function matchingArticles(
-  items: { id: string; title: string; url: string }[],
+  items: { id: string; title: string; url: string; excerpt?: string }[],
   policy: IntakePolicy,
   question: string,
   presentation?: string,
@@ -196,6 +196,7 @@ export function matchingArticles(
           items={items.map((a) => ({
             label: a.title + '（新しいタブ）',
             path: a.url,
+            description: a.excerpt,
           }))}
         />
         {presentation && (
@@ -262,7 +263,7 @@ export function intakeUnavailable() {
 
 export function formSuggestions(
   product: string,
-  items: { title: string; url: string }[],
+  items: { title: string; url: string; excerpt?: string }[],
   policy: IntakePolicy,
   fields: Fields,
 ) {
@@ -276,6 +277,7 @@ export function formSuggestions(
           items={items.map((a) => ({
             label: a.title + '（新しいタブ）',
             path: a.url,
+            description: a.excerpt,
           }))}
         />
         <p>記事で解決した場合は、記事の「はい」で結果を記録できます。</p>

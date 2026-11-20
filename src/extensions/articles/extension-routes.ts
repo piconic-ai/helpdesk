@@ -8,6 +8,7 @@ import {
   attach,
   candidate,
   published,
+  publishedExcerpts,
   saveArticle,
   attachArticle,
   suggestArticle,
@@ -31,6 +32,7 @@ export const articles: Extension = {
   resources: [
     { name: 'acknowledgmentLinks', run: acknowledgmentLinks },
     { name: 'published', run: published },
+    { name: 'excerpts', run: publishedExcerpts },
     {
       name: 'candidates',
       async run(ctx, input) {

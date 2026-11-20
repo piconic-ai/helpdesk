@@ -1,3 +1,4 @@
+import { articleExcerpt } from './excerpt'
 import { z } from 'zod'
 import type { ExtensionContext } from '../../core/extensions/extension'
 import {
@@ -27,6 +28,24 @@ export async function published(ctx: ExtensionContext, input: unknown) {
   return (await ctx.list(articleKey(product, '')))
     .map((r) => article.parse(r.value))
     .filter((a) => a.status === 'published' && a.product === product)
+}
+export async function publishedExcerpts(ctx: ExtensionContext, input: unknown) {
+  const { product, ids } = z
+    .object({ product: productId, ids: z.array(article.shape.id).max(3) })
+    .parse(input)
+  const excerpts = await Promise.all(
+    ids.map(async (id) => {
+      const record = article.safeParse(await ctx.get(articleKey(product, id)))
+      if (
+        !record.success ||
+        record.data.product !== product ||
+        record.data.status !== 'published'
+      )
+        return
+      return [id, articleExcerpt(record.data.body)] as const
+    }),
+  )
+  return Object.fromEntries(excerpts.filter((entry) => entry !== undefined))
 }
 export async function saveArticle(ctx: ExtensionContext, input: unknown) {
   const { candidateNumber, ...data } = edit.parse(input)
