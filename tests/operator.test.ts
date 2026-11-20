@@ -1,5 +1,5 @@
 import { extensionModeSQL } from './extension-mode'
-import { beforeAll, afterAll, expect, test } from 'vitest'
+import { beforeAll, afterAll, describe, expect, test } from 'vitest'
 import { app } from '../worker'
 import { testPlatform } from './platform'
 import type { Bindings } from '../src/core/settings/bindings'
@@ -83,64 +83,75 @@ test('F01-AC11/28 unauthenticated visitors and non-admin operators cannot manage
     ).status,
   ).toBe(500)
 })
-test('F01-AC12/13/14/22/24/25/31 filter, search, history, internal notes, closure and activity', async () => {
-  const contact = 'reader@example.com'
-  await seed('Earlier inquiry', contact)
-  const number = await seed('Printing question', contact)
-  for (const [name, fields] of [
-    ['assign', { email: agent }],
-    ['label', { action: 'add', label: 'printer' }],
-    ['note', { body: 'Yellow ink' }],
-  ] as const) {
-    expect(
-      (await request('/actions/' + name, agent, { number, ...fields })).status,
-    ).toBe(303)
-  }
-  for (const query of [
-    'query=yellow',
-    'query=reader',
-    'query=Printing',
-    'product=alpha',
-    'label=printer',
-    'assignee=' + agent,
-  ]) {
-    expect(await (await request('/?' + query)).text()).toContain(
-      'Printing question',
+describe('F01-AC12/13/14/22/24/25/31 operator inbox', () => {
+  let number: string
+  beforeAll(async () => {
+    const contact = 'reader@example.com'
+    await seed('Earlier inquiry', contact)
+    number = await seed('Printing question', contact)
+    for (const [name, fields] of [
+      ['assign', { email: agent }],
+      ['label', { action: 'add', label: 'printer' }],
+      ['note', { body: 'Yellow ink' }],
+    ] as const) {
+      expect(
+        (await request('/actions/' + name, agent, { number, ...fields }))
+          .status,
+      ).toBe(303)
+    }
+  })
+
+  test.each([
+    ['query=yellow', true],
+    ['query=reader', true],
+    ['query=Printing', true],
+    ['product=alpha', true],
+    ['label=printer', true],
+    ['assignee=' + agent, true],
+    ['query=pencil', false],
+    ['product=beta', false],
+    ['label=missing', false],
+    ['assignee=' + admin, false],
+    ['status=pending', false],
+  ] as const)(
+    'filters %s, includes the inquiry: %s',
+    async (query, included) => {
+      const response = await request('/?' + query)
+      expect(response.status).toBe(200)
+      expect((await response.text()).includes('Printing question')).toBe(
+        included,
+      )
+    },
+  )
+
+  test('shows contact history and records who assigned the inquiry', async () => {
+    const page = await (await request('/conversation/' + number)).text()
+    expect(page).toContain('Earlier inquiry')
+    expect(page).toContain('Yellow ink')
+    expect(page).toContain('担当者を変更')
+    const event = await env.DB.prepare(
+      "SELECT actor,at FROM events WHERE number=? AND kind='assigned'",
     )
-  }
-  for (const query of [
-    'query=pencil',
-    'product=beta',
-    'label=missing',
-    'assignee=' + admin,
-    'status=pending',
-  ]) {
-    expect(await (await request('/?' + query)).text()).not.toContain(
-      'Printing question',
-    )
-  }
-  const page = await (await request('/conversation/' + number)).text()
-  expect(page).toContain('Earlier inquiry')
-  expect(page).toContain('Yellow ink')
-  expect(page).toContain('担当者を変更')
+      .bind(number)
+      .first()
+    expect(event?.actor).toBe(JSON.stringify({ kind: 'operator', id: agent }))
+    expect(event?.at).toEqual(expect.any(Number))
+  })
+})
+
+test('closing an inquiry moves it between inbox views without sending mail', async () => {
+  const number = await seed('Completed inquiry', 'closed@example.com')
   expect(
     (await request('/actions/status', agent, { number, event: 'closed' }))
       .status,
   ).toBe(303)
-  expect(await (await request('/')).text()).not.toContain('Printing question')
+  expect(await (await request('/')).text()).not.toContain('Completed inquiry')
   expect(await (await request('/?status=closed')).text()).toContain(
-    'Printing question',
+    'Completed inquiry',
   )
   expect(await env.DB.prepare('SELECT count(*) n FROM outbox').first('n')).toBe(
     0,
   )
-  const event = await env.DB.prepare(
-    "SELECT actor,at FROM events WHERE number=? AND kind='assigned'",
-  )
-    .bind(number)
-    .first()
-  expect(event?.actor).toBe(JSON.stringify({ kind: 'operator', id: agent }))
-  expect(event?.at).toEqual(expect.any(Number))
 })
 test('F01-AC29/30 deletion and expiry remove private objects from R2; expiry preserves conversation metadata', async () => {
   const contact = 'forget@example.com'
