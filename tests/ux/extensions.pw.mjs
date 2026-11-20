@@ -67,10 +67,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
   await capture(page, 'J8', '01-preview', '送信先と公開する内容を確認')
   await page.getByRole('button', { name: '確認した内容で起票' }).click()
   await expect.poll(() => scene.github.created.length).toBe(1)
-  expect(scene.github.created[0].body).toContain(summary)
-  expect(scene.github.created[0].body).toContain(
-    'https://helpdesk.example.test/conversation/1',
-  )
+  expect(scene.github.created[0].body).toBe(summary + '\n\nSLD-1')
   await expect(
     page.locator('[data-extension="issues"] a[href*="github.com"]'),
   ).toBeVisible()

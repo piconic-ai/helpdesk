@@ -79,10 +79,17 @@ async function answer(page) {
   await button(page, '請求を付ける').click()
   await expect(page.locator('[data-ui=attributes]')).toContainText('請求')
   const reply = page.getByRole('textbox', { name: '返信', exact: true })
-  await reply.fill('こちらの記事で、領収書を発行する手順をご確認ください。')
+  const suggestions = page.getByRole('region', { name: '返信の候補' })
+  await suggestions.getByRole('button', { name: '確認中のお知らせ' }).click()
+  await expect(reply).toHaveValue(/Slide の担当者が確認しています/)
+  await reply.press('ControlOrMeta+End')
+  await reply.press('Enter')
+  await reply.pressSequentially(
+    'こちらの記事で、領収書を発行する手順をご確認ください。',
+  )
   await button(page, '記事を添える').click()
   await page.getByLabel('記事の題名で検索').fill('領収書')
-  await button(page, '領収書を発行する').click()
+  await button(page.locator('#reply-articles'), '領収書を発行する').click()
   await expect(reply).toHaveValue(/\/help\/articles\/slide\/receipt/)
   await button(page, 'プレビュー').click()
   const preview = page.getByRole('region', { name: '返信のプレビュー' })
@@ -242,7 +249,7 @@ async function publicVoices(page, scene) {
   await expect(receipt).toContainText(
     /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
   )
-  const number = Number((await receipt.textContent()).match(/#(\d+)/)[1])
+  const number = Number((await receipt.textContent()).match(/SLD-(\d+)/)[1])
   await record(
     customer,
     '06-chat-receipt',

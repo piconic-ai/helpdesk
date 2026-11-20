@@ -12,7 +12,9 @@ function cannedFixture(state) {
       ? '請求先'
       : '領収書'
     const matches =
-      state.question.includes(topic) && reply.title.includes(topic)
+      (state.question.includes(topic) && reply.title.includes(topic)) ||
+      (state.question.includes('購入したプラン') &&
+        reply.title === '確認中のお知らせ')
     answers['canned.' + index] = { type: 'noul', noul: matches ? 0.95 : 0.05 }
   }
   return { answers }
