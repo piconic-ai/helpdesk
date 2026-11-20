@@ -142,6 +142,10 @@ export async function deleteReviewedProject(
       'INSERT OR IGNORE INTO pending_deletions SELECT raw_key FROM inbound_failures WHERE ' +
         mailbox,
     ),
+    statement(
+      "INSERT OR IGNORE INTO pending_deletions SELECT 'attachments/'||substr(raw_key,5)||'/' FROM inbound_failures WHERE " +
+        mailbox,
+    ),
     statement('DELETE FROM inbound_jobs WHERE ' + mailbox),
     statement('DELETE FROM inbound_failures WHERE ' + mailbox),
     statement('DELETE FROM intake_windows WHERE product=?'),

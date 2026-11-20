@@ -167,7 +167,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
       {marks}
       <RowLabels
         labels={m.labels}
-        colors={frame.labelColors}
+        colors={m.labelColors}
         limit={Math.min(2, 3 - marks.length - Number(mixed))}
       />
       {mixed && badge(row.status.kind)}

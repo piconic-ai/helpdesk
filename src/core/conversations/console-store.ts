@@ -59,6 +59,9 @@ export async function rowDetails(
   ), reads AS (
     SELECT x.target,MAX(e.at) AS at,MAX(e.id) AS id FROM events e JOIN members x ON x.source=e.number
     WHERE e.kind='conversation_viewed' AND json_extract(e.actor,'$.kind')='operator' AND json_extract(e.actor,'$.id')=?3 GROUP BY x.target
+  ), row_labels AS (
+    SELECT DISTINCT x.target,l.name FROM labels l JOIN members x ON x.source=l.number
+    WHERE x.target IN (SELECT value FROM json_each(?1))
   ), last_inbound AS (
     SELECT target,MAX(created_at) AS at FROM entries WHERE kind='inbound' GROUP BY target
   )
@@ -70,7 +73,8 @@ export async function rowDetails(
     )) AS unread,
     EXISTS(SELECT 1 FROM entries f WHERE f.target=c.number AND f.delivery='failed') AS failed,
     EXISTS(SELECT 1 FROM entries f JOIN reply_holds h ON h.message=f.id JOIN outbox o ON o.message=f.id WHERE f.target=c.number AND f.delivery='queued' AND o.phase='ready') AS scheduled,
-    (SELECT json_group_array(name) FROM (SELECT DISTINCT l.name FROM labels l JOIN members x ON x.source=l.number WHERE x.target=c.number ORDER BY l.name)) AS labels
+    (SELECT json_group_array(name) FROM (SELECT name FROM row_labels WHERE target=c.number ORDER BY name)) AS labels,
+    (SELECT json_group_object(d.name,d.color) FROM row_labels rl JOIN project_labels d ON d.product=c.product AND d.name=rl.name WHERE rl.target=c.number AND d.color IS NOT NULL) AS labelColors
   FROM conversations c JOIN products p ON p.id=c.product LEFT JOIN entries m ON m.target=c.number AND m.position=1
   LEFT JOIN reads r ON r.target=c.number LEFT JOIN last_inbound i ON i.target=c.number
   WHERE c.number IN (SELECT value FROM json_each(?1))`
@@ -101,6 +105,11 @@ export async function rowDetails(
         unread: z.number(),
         failed: z.number(),
         scheduled: z.number(),
+        labelColors: z
+          .string()
+          .transform((s) =>
+            z.record(z.string(), z.int().min(0).max(7)).parse(JSON.parse(s)),
+          ),
         labels: z
           .string()
           .transform((s) => z.array(z.string()).parse(JSON.parse(s))),

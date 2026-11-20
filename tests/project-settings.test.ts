@@ -1,3 +1,4 @@
+import { rowDetails } from '../src/core/conversations/console-store'
 import { beforeEach, afterEach, expect, it } from 'vitest'
 import { testPlatform } from './platform'
 import { app } from '../worker'
@@ -123,6 +124,15 @@ it('renames, colors, copies and removes labels only within the selected project'
       'name',
     ),
   ).toBe('Shared')
+})
+it('shows the project color on each inbox row when the same label is used with different colors', async () => {
+  await submit('/settings/projects/a/labels', { label: 'Shared', color: '2' })
+  await submit('/settings/projects/b/labels', { label: 'Shared', color: '5' })
+  const rows = await rowDetails(platform.DB, [1, 2], {}, admin, false)
+  expect(rows.map((r) => [r.number, r.labelColors.Shared])).toEqual([
+    [1, 2],
+    [2, 5],
+  ])
 })
 it('retains the other project when a contact is forgotten or an expiry policy runs', async () => {
   await submit('/actions/retention', { product: 'a', days: '1' })
