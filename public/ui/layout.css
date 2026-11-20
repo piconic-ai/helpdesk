@@ -1274,3 +1274,9 @@ body:has([data-empty-composer]:not([hidden]))
 .project-member-list [data-ui='list-row'] > details[open] {
   grid-column: 1 / -1;
 }
+
+@media (max-width: 767px) {
+  .project-member-list [data-ui='list-row'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
