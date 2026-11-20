@@ -185,6 +185,9 @@ export type Panel = {
   >
   content?: (ctx: ExtensionContext, number?: number) => Promise<string>
 }
+export type ConfigurationGap =
+  | string
+  | { message: string; project: string; action: string }
 export type ReplyLink = { title: string; path: string; excerpt?: string }
 export type Extension = {
   icon?: GlyphName
@@ -193,7 +196,7 @@ export type Extension = {
   configurationGaps?: (
     ctx: ExtensionContext,
     products: { id: string; name: string }[],
-  ) => Promise<string[]>
+  ) => Promise<ConfigurationGap[]>
   replyLinks?: (
     ctx: ExtensionContext,
     product: string,

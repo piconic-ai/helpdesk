@@ -1,3 +1,4 @@
+import { extensionSettingsPath } from '../settings/project-setting-links'
 import { projectTerm } from '../settings/project-term'
 import { displayReference } from '../conversations/ticket-reference'
 import { metricValue } from '../../ui/metric-value'
@@ -49,6 +50,7 @@ const groups: Record<string, string[]> = {
 }
 function extensionSettings(entry: ExtensionEntry) {
   const label = extensionLabel(entry.id)
+  const next = entry.configurationGaps.find((gap) => typeof gap !== 'string')
   const required = [...entry.missing, ...(entry.needsAI ? ['AI'] : [])]
   const toggle = (
     <form
@@ -90,7 +92,7 @@ function extensionSettings(entry: ExtensionEntry) {
         <>
           {entry.summary && <p>{entry.summary}</p>}
           {entry.configurationGaps.map((gap) => (
-            <small>{gap}</small>
+            <small>{typeof gap === 'string' ? gap : gap.message}</small>
           ))}
           {required.length > 0 && (
             <small>設定が必要：{required.join('、')}</small>
@@ -103,8 +105,11 @@ function extensionSettings(entry: ExtensionEntry) {
               詳細
             </ActionLink>
             {entry.enabled && (
-              <ActionLink variant="outline" href={'/extensions/' + entry.id}>
-                設定
+              <ActionLink
+                variant="outline"
+                href={extensionSettingsPath(entry.id, next?.project)}
+              >
+                {next?.action ?? '設定'}
               </ActionLink>
             )}
           </div>

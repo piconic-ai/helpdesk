@@ -35,8 +35,16 @@ export const issues: Extension = {
     const repos = await Promise.all(
       products.map((project) => configuredRepository(ctx, project.id)),
     )
-    const missing = repos.filter((repo) => !repo).length
-    return missing ? [`起票先が未設定のプロジェクト ${missing}件`] : []
+    const missing = products.filter((_, index) => !repos[index])
+    return missing.length
+      ? [
+          {
+            message: `起票先が未設定のプロジェクト ${missing.length}件`,
+            project: missing[0].id,
+            action: '起票先を設定',
+          },
+        ]
+      : []
   },
   secrets: ['GITHUB_TOKEN'],
   permissions: ['external_fetch', 'read_body'],

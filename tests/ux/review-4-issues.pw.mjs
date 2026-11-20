@@ -128,6 +128,15 @@ test('設定が必要な会話から起票先とシークレットの設定方�
   const remote = await startScene(['issues'], '.', { githubToken: false })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   try {
+    await page.goto(remote.origin + '/extensions')
+    const missing = page.locator('[data-extension="issues"]')
+    await expect(missing).toContainText('起票先が未設定のプロジェクト 1件')
+    await missing.getByRole('link', { name: '起票先を設定' }).click()
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === '/extensions/issues' &&
+        url.searchParams.get('product') === 'desk',
+    )
     await page.goto(remote.origin + '/conversation/3')
     const panel = page.locator('[data-extension=issues]')
     await expect(panel).toContainText('リポジトリ、GITHUB_TOKEN')
