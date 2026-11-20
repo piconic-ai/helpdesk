@@ -65,10 +65,28 @@
   function read(field) {
     return field.type === 'checkbox' ? String(field.checked) : field.value
   }
-  function restore({ field, key, initial }, reset = false) {
+  function forget({ field, key, companion }) {
+    put(key, null)
+    if (!companion) return
+    put(companion, null)
+    delete field.dataset.cannedSelections
+  }
+  function restoreSelections(field, companion, value) {
+    if (!companion) return
+    delete field.dataset.cannedSelections
+    try {
+      const entry = JSON.parse(get(companion) ?? 'null')
+      if (entry?.value === value && typeof entry.selections === 'string')
+        field.dataset.cannedSelections = entry.selections
+    } catch {
+      put(companion, null)
+    }
+  }
+  function restore({ field, key, initial, companion }, reset = false) {
     const stored = get(key)
     if (stored === null && !reset) return
     const value = stored ?? initial
+    restoreSelections(field, companion, value)
     if (read(field) === value) return
     if (field.type === 'checkbox') field.checked = value === 'true'
     else field.value = value
@@ -113,14 +131,31 @@
     const entries = editable.map((field, i) => ({
       field,
       key: scope + ':' + slots[i],
+      companion: slots[i] === 'reply' ? scope + ':reply:canned' : null,
       initial:
         field instanceof HTMLTextAreaElement ? field.defaultValue : read(field),
     }))
     drafts.set(form, entries)
+    form.addEventListener('reset', (event) => {
+      queueMicrotask(() => {
+        if (!event.defaultPrevented) for (const entry of entries) forget(entry)
+      })
+    })
     for (const entry of entries) {
       const save = () => {
         const value = read(entry.field)
-        put(entry.key, value === entry.initial ? null : value)
+        if (value === entry.initial) {
+          forget(entry)
+          return
+        }
+        put(entry.key, value)
+        if (entry.companion) {
+          const selections = entry.field.dataset.cannedSelections
+          put(
+            entry.companion,
+            selections ? JSON.stringify({ value, selections }) : null,
+          )
+        }
       }
       entry.field.addEventListener('input', save)
       entry.field.addEventListener('change', save)
@@ -164,7 +199,7 @@
       .closest?.('a[data-discard-draft]')
       ?.closest('form')
     if (!form || event.defaultPrevented) return
-    for (const entry of drafts.get(form) ?? []) put(entry.key, null)
+    for (const entry of drafts.get(form) ?? []) forget(entry)
   })
   consumeReceipt()
   function restoreForms() {

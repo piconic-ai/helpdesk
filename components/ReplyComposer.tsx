@@ -5,7 +5,7 @@ import { createSignal, onMount } from '@barefootjs/client'
 import type { CannedChoice } from '../src/extensions/canned/suggestions'
 import { TabsList, TabsTrigger } from './PatternTabs'
 
-type SelectedTemplate = Pick<CannedChoice, 'id' | 'body' | 'presentation'> & {
+type SelectedTemplate = CannedChoice & {
   use: string
 }
 
@@ -24,6 +24,22 @@ function isCannedChoice(value: unknown): value is CannedChoice {
     'presentation' in value &&
     typeof value.presentation === 'string'
   )
+}
+
+function readTemplateSelections(area: HTMLTextAreaElement): SelectedTemplate[] {
+  try {
+    const stored: unknown = JSON.parse(area.dataset.cannedSelections ?? '[]')
+    return Array.isArray(stored)
+      ? stored.filter(
+          (item): item is SelectedTemplate =>
+            isCannedChoice(item) &&
+            'use' in item &&
+            typeof item.use === 'string',
+        )
+      : []
+  } catch {
+    return []
+  }
 }
 
 interface ReplyComposerProps {
@@ -82,7 +98,6 @@ export function ReplyComposer(props: ReplyComposerProps) {
     CannedChoice[]
   >([])
   const articleSuggestions = suggestedArticles(props.articles)
-  const selections = new Array<SelectedTemplate>()
   const cannedPath = '/conversation/' + props.number + '/canned-'
   onMount(() => {
     setInteractive(true)
@@ -138,12 +153,15 @@ export function ReplyComposer(props: ReplyComposerProps) {
     if (!item || !(area instanceof HTMLTextAreaElement) || area.readOnly) return
     const body = item.body.replace(/\r\n?/g, '\n')
     if (area.value.length + body.length > area.maxLength) return
+    area.focus()
     const position = area.selectionStart
     area.setRangeText(body, position, position, 'end')
-    area.dispatchEvent(new Event('input', { bubbles: true }))
-    area.focus()
     const selected = { ...item, body, use: crypto.randomUUID() }
-    selections.push(selected)
+    area.dataset.cannedSelections = JSON.stringify([
+      ...readTemplateSelections(area),
+      selected,
+    ])
+    area.dispatchEvent(new Event('input', { bubbles: true }))
     recordTemplate(selected, 'selected')
   }
   const [replyBody, setReplyBody] = createSignal('')
@@ -243,10 +261,12 @@ export function ReplyComposer(props: ReplyComposerProps) {
     setNote(isNote)
     setFailureStatus(!isNote && unknownReply() ? 0 : null)
   }
-  function recordSubmittedTemplates(value: string) {
-    const submitted = value.replace(/\r\n?/g, '\n')
+  function recordSubmittedTemplates(area: HTMLTextAreaElement) {
+    const submitted = area.value.replace(/\r\n?/g, '\n')
     const lastMatched = new Map<string, number>()
-    for (const item of selections.splice(0)) {
+    const selections = readTemplateSelections(area)
+    delete area.dataset.cannedSelections
+    for (const item of selections) {
       const position = submitted.indexOf(
         item.body,
         lastMatched.get(item.body) ?? 0,
@@ -258,7 +278,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
   function finishSubmission(form: HTMLFormElement, operation: string) {
     const submitted = form.querySelector('textarea:not(:disabled)')
     if (submitted instanceof HTMLTextAreaElement) {
-      if (operation !== 'note') recordSubmittedTemplates(submitted.value)
+      if (operation !== 'note') recordSubmittedTemplates(submitted)
       submitted.value = ''
       submitted.dispatchEvent(new Event('input', { bubbles: true }))
     }

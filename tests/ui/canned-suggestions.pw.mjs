@@ -47,6 +47,11 @@ test('suggests scoped templates alongside articles and inserts them into an edit
     ).toBe(0)
 
     await editor.fill('前文。山田 花 様、Slideサポートです。後文。')
+    await page.reload()
+    await openReplyControls(page)
+    await expect(editor).toHaveValue(
+      '前文。山田 花 様、Slideサポートです。後文。',
+    )
     const registered = page.waitForResponse(
       (response) =>
         response.url().endsWith('/canned-selection') &&
@@ -82,6 +87,30 @@ test('suggests scoped templates alongside articles and inserts them into an edit
       strip.getByRole('button', { name: '請求先の案内' }),
     ).toBeVisible()
     await expect(template).toHaveCount(0)
+
+    const selected = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/canned-selection') &&
+        response.request().postData()?.includes('action=selected'),
+    )
+    await strip.getByRole('button', { name: '請求先の案内' }).click()
+    expect((await selected).status()).toBe(204)
+    await expect(editor).toHaveValue('山田 花 様、Slideです。')
+    await editor.evaluate((field) => field.form.reset())
+    await expect(editor).toHaveValue('')
+    await page.reload()
+    await openReplyControls(page)
+    await expect(editor).toHaveValue('')
+    await editor.fill('この返信は手入力です。')
+    await page.getByRole('button', { name: '送信', exact: true }).click()
+    await expect(editor).toHaveValue('')
+    expect(
+      await scene.db
+        .prepare(
+          "SELECT edited FROM canned_uses WHERE template='slide-billing'",
+        )
+        .first('edited'),
+    ).toBeNull()
 
     await page.goto(scene.origin + '/extensions/canned')
     const row = page.getByRole('listitem').filter({ hasText: '領収書の案内' })
