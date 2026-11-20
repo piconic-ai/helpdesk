@@ -71,3 +71,13 @@ test('sends redacted, typed noul questions for canned replies and maps scores ba
     ).scores,
   ).toEqual([{ id: 'stored-id', score: 0.87 }])
 })
+
+test('orders statistically equal results consistently and ignores out-of-range scores', () => {
+  expect(
+    rankTemplates([
+      { id: 'z', score: 0.7 },
+      { id: 'a', score: 0.7 },
+      { id: 'invalid', score: 1.1 },
+    ]),
+  ).toEqual(['a', 'z'])
+})

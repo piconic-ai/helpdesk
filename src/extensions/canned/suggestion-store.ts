@@ -15,16 +15,27 @@ export async function cachedTemplates(
     .bind(id, input.number, input.inbound, input.now)
     .first<string>('id')
   if (claimed) {
-    const ids = await rank()
-    await db.batch([
-      ...ids.map((template, position) =>
+    try {
+      const ids = await rank()
+      await db.batch([
+        ...ids.map((template, position) =>
+          db
+            .prepare(`INSERT INTO canned_impressions(presentation,template,position)
+            SELECT id,?2,?3 FROM canned_presentations WHERE id=?1`)
+            .bind(id, template, position),
+        ),
         db
-          .prepare(`INSERT INTO canned_impressions(presentation,template,position)
-          SELECT id,?2,?3 FROM canned_presentations WHERE id=?1`)
-          .bind(id, template, position),
-      ),
-      db.prepare('UPDATE canned_presentations SET ready=1 WHERE id=?').bind(id),
-    ])
+          .prepare('UPDATE canned_presentations SET ready=1 WHERE id=?')
+          .bind(id),
+      ])
+    } catch (error) {
+      await db
+        .prepare('DELETE FROM canned_presentations WHERE id=? AND ready=0')
+        .bind(id)
+        .run()
+        .catch(() => undefined)
+      throw error
+    }
   }
   const result = await db
     .prepare(`SELECT p.id, i.template FROM canned_presentations p
