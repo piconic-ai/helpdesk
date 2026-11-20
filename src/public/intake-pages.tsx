@@ -149,13 +149,11 @@ export function receiptPage(
   fields: Fields,
   responseTime: string | null,
 ) {
-  const title =
-    (kind === 'feedback'
+  const accepted =
+    kind === 'feedback'
       ? 'フィードバックを受け付けました'
-      : '問い合わせを受け付けました') +
-    '（' +
-    reference +
-    '）'
+      : '問い合わせを受け付けました'
+  const ticket = '（' + reference + '）'
   const entries: [string, string | undefined][] = []
   if (kind === 'chat') entries.push(['質問', fields.question])
   entries.push([
@@ -165,10 +163,13 @@ export function receiptPage(
   if (kind !== 'feedback' && responseTime)
     entries.push(['返信の目安', responseTime])
   return {
-    title,
+    title: accepted + ticket,
     html: String(
       <DetailPage title={titles[kind]}>
-        <Notice kind="success">{title}</Notice>
+        <Notice kind="success">
+          {accepted}
+          <bdi data-ticket-reference="">{ticket}</bdi>
+        </Notice>
         <ReceiptDetails entries={entries} />
         {kind === 'feedback' && <p>フィードバックへの返信はありません。</p>}
       </DetailPage>,

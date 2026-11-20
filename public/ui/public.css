@@ -147,3 +147,7 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+.public-surface [data-ticket-reference] {
+  white-space: nowrap;
+}

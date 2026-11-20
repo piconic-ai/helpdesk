@@ -23,6 +23,7 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   page,
   scene,
 }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
   const body = '匿名で送った表示についての提案'
   await page.goto(scene.origin + '/help/feedback/slide')
   await page.getByLabel('ご意見・ご要望').fill(body)
@@ -32,6 +33,14 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   await expect(page.getByRole('status')).toContainText(
     /フィードバックを受け付けました（[A-Z]{2,5}-\d+）/,
   )
+  const ticket = page.getByRole('status').locator('[data-ticket-reference]')
+  expect(
+    await ticket.evaluate((node) => {
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      return range.getClientRects().length
+    }),
+  ).toBe(1)
   await expect(
     page.getByText('フィードバックへの返信はありません。'),
   ).toBeVisible()
