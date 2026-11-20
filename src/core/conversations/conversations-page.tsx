@@ -105,6 +105,9 @@ function message(
       kind={m.kind}
       entry={'message/' + m.id}
       revision={JSON.stringify([
+        Boolean(m.body),
+        Boolean(m.html),
+        files.length,
         m.delivery,
         m.reason,
         held,

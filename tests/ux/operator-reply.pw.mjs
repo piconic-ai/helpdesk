@@ -348,6 +348,30 @@ test('送信予定を一覧で確認し、トーストを閉じた後も会話�
   await expect(message.getByRole('button', { name: '取り消す' })).toHaveCount(0)
 })
 
+test('担当変更の反映時に、保存期間を過ぎて消去された本文も消える', async ({
+  page,
+  scene,
+}) => {
+  const original = '保存期間を過ぎた本文'
+  await scene.db
+    .prepare("UPDATE messages SET body=? WHERE id='in-1'")
+    .bind(original)
+    .run()
+  await page.goto(scene.origin + '/conversation/1')
+  await expect(page.getByText(original, { exact: true })).toBeVisible()
+  const reply = page.getByRole('textbox', { name: '返信', exact: true })
+  await reply.fill('編集を続ける返信')
+  await scene.db
+    .prepare(
+      "UPDATE messages SET body='', html=NULL, raw_key=NULL WHERE id='in-1'",
+    )
+    .run()
+  await page.locator('[popovertarget=thread-assignee]').click()
+  await page.getByRole('button', { name: '佐藤 優', exact: true }).click()
+  await expect(page.getByText(original, { exact: true })).toHaveCount(0)
+  await expect(reply).toHaveValue('編集を続ける返信')
+})
+
 test('担当変更の表示を待つ間に承認した別の下書きも一度だけ送信予定になる', async ({
   page,
   scene,
