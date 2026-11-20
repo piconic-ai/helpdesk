@@ -552,3 +552,21 @@ it('keeps raw unanswered questions and the draft they can start behind operator 
     expect(await page(route)).toContain(question)
   }
 })
+
+it('offers conversations for issue creation only when their project has both a token and a repository', async () => {
+  await studio()
+  await enable('issues')
+  await platform.DB.prepare(
+    "INSERT INTO conversations(product,mailbox,contact,subject,status,created_at) VALUES('studio','help@example.org','reader@example.org','Print receipts on A4','open',1)",
+  ).run()
+  const token = { ...env, GITHUB_TOKEN: 'local-test-only' }
+  const path = '/issues/new'
+  expect(await page(path, token)).toContain('起票できる会話はありません')
+  await platform.DB.prepare(
+    "INSERT INTO issues_data(key,value) VALUES('repository/studio',?)",
+  )
+    .bind(JSON.stringify('example/studio'))
+    .run()
+  expect(await page(path)).toContain('起票できる会話はありません')
+  expect(await page(path, token)).toContain('Print receipts on A4')
+})

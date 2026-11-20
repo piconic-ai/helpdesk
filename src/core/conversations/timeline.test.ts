@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { threadTimeline, nextThreadAction } from './timeline'
+import { threadTimeline, nextThreadAction, timelineChange } from './timeline'
 
 const message = (at: number) => ({ id: 'm' + at, created_at: at })
 const change = (id: number, at: number, kind = 'assigned') => ({
@@ -71,4 +71,51 @@ it('points to approval before replying, gives the wait from the oldest unanswere
   expect(nextThreadAction('closed', [], now)).toBe(
     '完了しました。再開するには返信を書きます',
   )
+})
+
+it('shows the next action for reviewed feedback, unanswered mail and queued replies', () => {
+  expect(nextThreadAction('received', [], 0)).toBe('フィードバックを確認する')
+  expect(nextThreadAction('reviewed', [], 0)).toBe(
+    'フィードバックは確認済みです',
+  )
+  expect(nextThreadAction('spam', [], 0)).toBe(
+    '必要なら迷惑メールを解除してください',
+  )
+  const queued = { kind: 'outbound', created_at: 0, delivery: 'queued' }
+  expect(nextThreadAction('pending', [queued], 0)).toBe(
+    '返信の送信を待っています',
+  )
+  const sent = { ...queued, delivery: 'sent', sent_at: 60000 }
+  const inbound = { kind: 'inbound', created_at: 0 }
+  expect(nextThreadAction('open', [inbound, sent], 90000)).toBe('返信する')
+  expect(
+    nextThreadAction(
+      'open',
+      [sent, { ...inbound, created_at: 120000 }],
+      180000,
+    ),
+  ).toBe('返信する（1分待たせています）')
+})
+
+it('identifies the changed assignee and removed label in the timeline', () => {
+  const operators = [{ email: 'agent@example.org', displayName: '森 海斗' }]
+  const display = (kind: string, value: unknown) =>
+    timelineChange({ kind, payload: JSON.stringify(value) }, operators)
+  expect(display('assigned', { to: 'agent@example.org' })).toBe(
+    '担当者を変更　森 海斗',
+  )
+  expect(display('assigned', { to: 'former@example.org' })).toBe(
+    '担当者を変更　former@example.org',
+  )
+  expect(display('assigned', { to: null })).toBe('担当を解除')
+  expect(display('label_changed', { label: '請求', action: 'remove' })).toBe(
+    'ラベル「請求」を解除',
+  )
+  expect(
+    display('rules.applied', {
+      condition: '領収書',
+      label: '請求',
+      assignee: 'agent@example.org',
+    }),
+  ).toBe('振り分けルールを適用　領収書 · 請求 · 森 海斗')
 })
