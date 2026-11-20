@@ -33,7 +33,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await expect(
     page.locator('[data-extension=issues] a[href*="github.com"]'),
   ).toBeVisible()
-  await page.locator('nav a[href="/issues"]').click()
+  await page.locator('nav a[href="/issues?product=slide"]').click()
   const main = page.getByRole('main')
   await expect(main.getByRole('row').filter({ hasText: title })).toContainText(
     '2件',
@@ -51,8 +51,8 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await expect(
     page.getByRole('button', { name: '再開する', exact: true }),
   ).toBeVisible()
-  await page.locator('nav a[href="/issues"]').click()
-  await expect(page).toHaveURL(scene.origin + '/issues')
+  await page.locator('nav a[href="/issues?product=slide"]').click()
+  await expect(page).toHaveURL(scene.origin + '/issues?product=slide')
   await scene.closeIssue()
   const pending = main.getByRole('region', { name: /知らせる待ち/ })
   await expect(async () => {
@@ -68,7 +68,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await closedDraft.getByRole('button', { name: '下書きを破棄' }).click()
   await confirmSubmission(page)
   await expect(closedDraft).toHaveCount(0)
-  await page.locator('nav a[href="/issues"]').click()
+  await page.locator('nav a[href="/issues?product=slide"]').click()
   await pending.getByRole('link', { name: title }).click()
   await expect(
     main.getByRole('link', { name: /SLD-1 .*下書きを破棄/ }),
@@ -96,14 +96,12 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await draft.getByRole('button', { name: '今すぐ送る' }).click()
   await expect(draft).toContainText('送信済み', { timeout: 15000 })
 
-  await page.locator('nav a[href="/issues"]').click()
+  await page.locator('nav a[href="/issues?product=slide"]').click()
   await expect(pending).toContainText('2件の声のうち1件')
   await page.getByRole('link', { name: '対応状況の集計' }).click()
   const metric = page.locator('[data-ui=metric-card]').filter({
     has: page.getByRole('heading', { name: '声が改善に届いた割合' }),
   })
-  await expect(metric.locator('strong')).toHaveText('10%')
-  await choose(page, 'プロジェクト', 'slide')
   await expect(metric.locator('strong')).toHaveText('11.1%')
   await expect(metric).toContainText('1件 / 9件')
   await metric
@@ -118,6 +116,8 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     '03-delivered',
     '承認後に配送された会話を選択期間・プロジェクトの分母で確認',
   )
+  await choose(page, 'プロジェクト', '')
+  await expect(metric.locator('strong')).toHaveText('10%')
   await choose(page, 'プロジェクト', 'desk')
   await expect(metric.locator('strong')).toHaveText('0%')
 })
@@ -205,7 +205,7 @@ test('課題の拡張を無効にすると、一覧と下書き作成を利用�
   ).toBe(404)
 })
 
-test('同じ課題に複数のプロジェクトから届いた声をまとめ、割合は製品単位で示す', async ({
+test('同じ課題を抱える各プロジェクトで声と修正前後の割合を確認する', async ({
   page,
   scene,
 }) => {
@@ -235,16 +235,27 @@ test('同じ課題に複数のプロジェクトから届いた声をまとめ�
       timeout: 1000,
     })
   }).toPass()
-  await expect(table.getByRole('row')).toHaveCount(2)
-  await expect(table).toContainText('2件')
-  await table.getByRole('link', { name: '領収書の一括ダウンロード' }).click()
-  await expect(
-    page.getByRole('heading', {
-      name: 'Slide の修正前後（目安）',
-      exact: true,
-    }),
-  ).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: 'Desk の修正前後（目安）', exact: true }),
-  ).toBeVisible()
+  const rows = table.locator('tbody tr')
+  await expect(rows).toHaveCount(2)
+  for (const [project, reference] of [
+    ['Slide', 'SLD-1'],
+    ['Desk', 'DSK-1'],
+  ]) {
+    const row = rows.filter({ hasText: project })
+    await expect(row).toContainText('1件')
+    await row.getByRole('link', { name: '領収書の一括ダウンロード' }).click()
+    await expect(page).toHaveURL(
+      (url) => url.searchParams.get('product') === project.toLowerCase(),
+    )
+    await expect(
+      page.getByRole('heading', {
+        name: project + ' の修正前後（目安）',
+        exact: true,
+      }),
+    ).toBeVisible()
+    const voices = page.getByRole('region', { name: /紐づく声/ })
+    await expect(voices.getByRole('link')).toHaveCount(1)
+    await expect(voices.getByRole('link')).toContainText(reference)
+    await page.goBack()
+  }
 })

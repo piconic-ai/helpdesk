@@ -136,6 +136,9 @@ test('同じ GitHub Issue を共有する6プロジェクトの課題と紐づ�
   const mailbox = db.prepare(
     'INSERT INTO mailboxes(address,product) VALUES(?,?)',
   )
+  const enableIssues = db.prepare(
+    "INSERT INTO project_extension_settings(product,extension,enabled,enabled_by) VALUES(?,'issues',1,'sato@example.com')",
+  )
   const conversation = db.prepare(
     "INSERT INTO conversations(number,product,mailbox,contact,subject,status,created_at) VALUES(?,?,?,?,?,'open',?)",
   )
@@ -147,6 +150,7 @@ test('同じ GitHub Issue を共有する6プロジェクトの課題と紐づ�
       number = 500 + i
     statements.push(
       product.bind(id, '製品' + i),
+      enableIssues.bind(id),
       mailbox.bind(address, id),
       conversation.bind(
         number,

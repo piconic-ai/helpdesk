@@ -144,7 +144,7 @@ test('拡張と設定の概要で検索条件を組み合わせ、解除でき�
   await main.getByLabel('提供状態').selectOption('disabled')
   await expect(main).toContainText('条件に合う拡張機能はありません。')
   await page.reload()
-  await main.getByRole('link', { name: '無効 を解除' }).click()
+  await main.getByRole('link', { name: '停止中 を解除' }).click()
   await expect(article).toBeVisible()
   await main.getByRole('link', { name: '検索：articles を解除' }).click()
   await expect(main.getByRole('heading', { name: '受け付ける' })).toBeVisible()

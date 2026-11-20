@@ -2,7 +2,7 @@ import { choose } from './choice.mjs'
 import { startScene } from '../ui/seed.mjs'
 import { test, expect, confirmSubmission } from './harness.mjs'
 test.use({ extensions: ['canned', 'rules'] })
-test('定型文・ルール・並べ替え・拡張有効化を結果から元に戻す', async ({
+test('定型文・ルール・並べ替え・拡張の提供開始を結果から元に戻す', async ({
   page,
   scene,
 }) => {
@@ -45,11 +45,13 @@ test('定型文・ルール・並べ替え・拡張有効化を結果から元�
   await expect(rows.first()).toContainText('先に追加')
   await page.goto(scene.origin + '/extensions')
   const card = page.locator('[data-extension="snooze"]')
-  await card.getByRole('switch', { name: /有効にする/ }).click()
+  await card.getByRole('switch', { name: /スヌーズを提供する/ }).click()
   await expect(page.getByRole('dialog')).toContainText('使用する権限')
   await confirmSubmission(page)
   await undo()
-  await expect(card.getByRole('switch', { name: /有効にする/ })).toBeVisible()
+  await expect(
+    card.getByRole('switch', { name: /スヌーズを提供する/ }),
+  ).toBeVisible()
 })
 
 const multiAdmin = test.extend({

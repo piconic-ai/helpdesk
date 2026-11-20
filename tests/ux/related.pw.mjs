@@ -138,7 +138,10 @@ test.describe('C 受信メールの拡張処理', () => {
   })
 })
 
-test('C 設定で有効にした拡張から使い始め方へ進む', async ({ page, scene }) => {
+test('C 拡張を提供する前に動作と権限を確認し、提供を開始して使い始め方へ進む', async ({
+  page,
+  scene,
+}) => {
   const installed = [
     'issues',
     'canned',
@@ -157,12 +160,25 @@ test('C 設定で有効にした拡張から使い始め方へ進む', async ({ 
       await disable.click()
       await confirmSubmission(page)
     }
-    await expect(card.getByRole('link', { name: '設定' })).toHaveCount(0)
+    const details = card.getByRole('link', { name: '詳細', exact: true })
+    await details.click()
+    const main = page.getByRole('main')
+    await expect(
+      main.getByRole('heading', { name: 'この拡張の動作' }),
+    ).toBeVisible()
+    await expect(main.getByText('いつ動くか', { exact: true })).toBeVisible()
+    await expect(main.getByText('何が起きるか', { exact: true })).toBeVisible()
+    await expect(
+      main.getByRole('heading', { name: '使用する権限' }),
+    ).toBeVisible()
+    await expect(main.getByRole('link', { name: '設定を開く' })).toHaveCount(0)
+    await main.getByRole('link', { name: '拡張の管理に戻る' }).click()
     await card.getByRole('switch', { name: /を提供する/ }).click()
     await expect(page.getByRole('dialog')).toContainText('使用する権限')
     await confirmSubmission(page)
-    await card.getByRole('link', { name: '設定' }).click()
-    await expect(page.getByRole('main')).toContainText(
+    await details.click()
+    await main.getByRole('link', { name: '設定を開く' }).click()
+    await expect(main).toContainText(
       /設定|テストメール|会話|受信箱|保存後に条件に合うメールを受信/,
     )
     await expect(page.locator('aside a[href*="#"]')).toHaveCount(0)
@@ -172,7 +188,7 @@ test('C 設定で有効にした拡張から使い始め方へ進む', async ({ 
     page,
     'C-extensions',
     '01-enabled',
-    '7つの拡張を有効にし、それぞれの使い始め方と戻り先を確認',
+    '7つの拡張の動作と権限を確認し、提供を開始して設定と戻り先を確認',
   )
 })
 

@@ -39,9 +39,11 @@ test('ページを読み直さず受信箱・会話・課題を移動して戻�
     .locator('#navigation')
     .getByRole('link', { name: /^課題(?:\s*\d+)?$/ })
     .click()
-  await expect(page).toHaveURL(/\/issues$/)
+  await expect(page).toHaveURL(scene.origin + '/issues?product=slide')
   await expect(
-    page.locator('#navigation a[aria-current=page][href="/issues"]'),
+    page.locator(
+      '#navigation a[aria-current=page][href="/issues?product=slide"]',
+    ),
   ).toBeVisible()
   await page.goBack()
   await expect(page.locator('.thread-toolbar')).toBeVisible()

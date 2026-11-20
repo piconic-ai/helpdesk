@@ -160,9 +160,23 @@ test('J9 窓口を作成し、拡張の案内から新プロジェクトの公�
   await card.getByRole('switch', { name: /提供する/ }).click()
   await expect(page.getByRole('dialog')).toContainText('使用する権限')
   await confirmSubmission(page)
-  await card.getByRole('link', { name: '設定' }).click()
+  await expect(card.getByRole('switch')).toBeChecked()
+  await page
+    .locator('aside')
+    .getByRole('link', { name: '設定', exact: true })
+    .click()
+  await page.getByRole('link', { name: /^プロジェクトの設定/ }).click()
   await choose(page, 'プロジェクト', { label: 'Catalog' })
   await page.getByRole('button', { name: '設定を開く' }).click()
+  await page.getByRole('link', { name: /^利用する拡張/ }).click()
+  const form = page.locator('[data-ui=form-section]').filter({
+    has: page.getByRole('heading', { name: '問い合わせフォーム', exact: true }),
+  })
+  await form.getByRole('button', { name: '有効にする' }).click()
+  await expect(form.getByRole('button', { name: '無効にする' })).toBeVisible()
+  const offProject = await page.request.get(scene.origin + '/help/form/slide')
+  expect(offProject.status()).toBe(404)
+  await form.getByRole('link', { name: '設定', exact: true }).click()
   const product = page
     .locator('section')
     .filter({
