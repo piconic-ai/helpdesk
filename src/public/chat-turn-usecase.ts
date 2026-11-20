@@ -54,6 +54,7 @@ export async function chatTurn(
   return {
     kind: 'receipt',
     number: result.number,
+    reference: (await ctx.contact(result.number)).reference,
     email: data.email,
     responseTime,
   }

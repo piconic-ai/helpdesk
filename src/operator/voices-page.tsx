@@ -1,3 +1,4 @@
+import { displayReference } from '../core/conversations/ticket-reference'
 import { ProductMark, ProductSelect } from '../ui/product-mark'
 import { LabelDot } from '../ui/inbox-parts'
 import { CountBar, Sparkline } from '../ui/trends'
@@ -214,7 +215,7 @@ export function voicesResults(
         <RowList>
           {result.rows.map((row) => (
             <ListRow
-              title={'#' + row.number + ' ' + row.subject}
+              title={displayReference(frame, row) + ' ' + row.subject}
               href={'/conversation/' + row.number}
               description={
                 <Cluster as="span" className="voice-result-meta" gap="xs">

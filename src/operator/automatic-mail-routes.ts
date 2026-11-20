@@ -8,6 +8,7 @@ import {
 import { authorize } from '../core/operations/catalog'
 import { context, scopes } from '../core/operations/operations-routes'
 import type { AppEnv } from '../core/operators/middleware'
+import { ticketReference } from '../core/conversations/ticket-reference'
 import { replySubject } from '../core/outbound/compose'
 import {
   acknowledgmentText,
@@ -88,14 +89,14 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
   const wording = draft
     ? editedMessage(id, draft)
     : wordingFor(id, current.wording, product.language)
-  const number = 123
+  const reference = ticketReference(product.ticketPrefix, 123)
   const preview =
     id === 'auto-ack'
-      ? acknowledgmentText(product.name, number, wording)
+      ? acknowledgmentText(product.name, reference, wording)
       : surveyText(
           surveyConfig.parse(installed.settings).helpdeskOrigin,
           product.id,
-          number,
+          reference,
           'example',
           wording,
         )
@@ -112,7 +113,7 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
         revision: draft?.revision ?? current.revision,
         subject: replySubject(
           wording.language === 'ja' ? 'お問い合わせの例' : 'Sample inquiry',
-          number,
+          reference,
         ),
         preview,
       },

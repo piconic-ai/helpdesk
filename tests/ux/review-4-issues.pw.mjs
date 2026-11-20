@@ -39,14 +39,14 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     '2件',
   )
   await main.getByRole('link', { name: title }).click()
-  await expect(main.getByRole('link', { name: /#6 / })).toBeVisible()
+  await expect(main.getByRole('link', { name: /SLD-6 / })).toBeVisible()
   await capture(
     page,
     'review-4-issues',
     '01-open',
     '別々の2件の声が同じ課題に集まる',
   )
-  await main.getByRole('link', { name: /#1 / }).click()
+  await main.getByRole('link', { name: /SLD-1 / }).click()
   await page.getByRole('button', { name: '完了にする', exact: true }).click()
   await expect(
     page.getByRole('button', { name: '再開する', exact: true }),
@@ -63,7 +63,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await expect(main).toContainText('12.5%（1 / 8件）')
   await expect(main).toContainText('100%（1 / 1件）')
   await expect(main).toContainText('目安')
-  await main.getByRole('link', { name: /#1 .*再開して承認/ }).click()
+  await main.getByRole('link', { name: /SLD-1 .*再開して承認/ }).click()
   const closedDraft = page.locator('article').filter({ hasText: title })
   await closedDraft.getByRole('button', { name: '下書きを破棄' }).click()
   await confirmSubmission(page)
@@ -71,7 +71,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await page.locator('nav a[href="/issues"]').click()
   await pending.getByRole('link', { name: title }).click()
   await expect(
-    main.getByRole('link', { name: /#1 .*下書きを破棄/ }),
+    main.getByRole('link', { name: /SLD-1 .*下書きを破棄/ }),
   ).toBeVisible()
   await main.getByRole('link', { name: '課題の一覧に戻る' }).click()
   await pending.getByRole('link', { name: '承認待ち 1件を確認する' }).click()
@@ -85,7 +85,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     '02-closure',
     '修正前後の比率と通知待ちの会話を確認',
   )
-  await main.getByRole('link', { name: /#1 / }).click()
+  await main.getByRole('link', { name: /SLD-1 / }).click()
   await expect(page.getByRole('button', { name: '承認して送信' })).toHaveCount(
     0,
   )

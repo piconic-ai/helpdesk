@@ -156,6 +156,24 @@ it('F01-AC4 F01-AC5 F01-AC6 F01-AC23 F01-AC26 F01-AC27 threads only the same con
     expect(await send(id, hint)).toBe(number)
     expect(await status(number)).toBe('open')
   }
+  await env.DB.prepare(
+    "UPDATE conversations SET product='second' WHERE number=?",
+  )
+    .bind(number)
+    .run()
+  expect(await send('old-prefix', 'Subject: Re: [AAAAA-' + number + ']')).toBe(
+    number,
+  )
+  expect(await send('new-prefix', 'Subject: Re: [AAAAB-' + number + ']')).toBe(
+    number,
+  )
+  expect(
+    await send(
+      'foreign-prefix',
+      'Subject: Re: [AAAAA-' + number + ']',
+      'other@example.org',
+    ),
+  ).not.toBe(number)
   expect(
     await send(
       'different',

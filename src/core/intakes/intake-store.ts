@@ -1,6 +1,10 @@
 import { mailLanguage } from '../settings/mail-language'
 import { inquirySuggestionStatements } from '../suggestions/suggestion-store'
 import { z } from 'zod'
+import {
+  ticketPrefixSchema,
+  ticketReference,
+} from '../conversations/ticket-reference'
 import type { Intake } from './intake'
 import type { Actor } from '../conversations/state'
 import { insertDraft } from '../outbound/reply-store'
@@ -106,12 +110,13 @@ export async function draft(
 export async function contactInfo(db: D1Database, number: number) {
   const row = await db
     .prepare(
-      `SELECT coalesce(c.contact_name,c.contact) AS name,p.name AS productName,coalesce(s.language,'ja') AS language,c.product,c.contact AS email,c.mailbox,c.subject,c.status FROM conversations c JOIN products p ON c.product=p.id LEFT JOIN product_senders s ON s.product=c.product WHERE c.number=?`,
+      `SELECT coalesce(c.contact_name,c.contact) AS name,p.name AS productName,t.prefix AS ticketPrefix,coalesce(s.language,'ja') AS language,c.product,c.contact AS email,c.mailbox,c.subject,c.status FROM conversations c JOIN products p ON c.product=p.id JOIN product_ticket_prefixes t ON t.product=c.product LEFT JOIN product_senders s ON s.product=c.product WHERE c.number=?`,
     )
     .bind(number)
     .first()
-  return z
+  const { ticketPrefix, ...contact } = z
     .object({
+      ticketPrefix: ticketPrefixSchema,
       name: z.string(),
       productName: z.string(),
       language: mailLanguage,
@@ -122,6 +127,7 @@ export async function contactInfo(db: D1Database, number: number) {
       status: z.string(),
     })
     .parse(row)
+  return { ...contact, reference: ticketReference(ticketPrefix, number) }
 }
 export async function consumeWindow(
   db: D1Database,

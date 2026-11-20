@@ -30,12 +30,14 @@ test('J12 チャットで読んだ記事で解決できない質問をそのま�
   await capture(page, 'J12', '02-handoff', '質問を引き継いで返信先を入力する')
   await page.getByRole('button', { name: '送信', exact: true }).click()
   const receipt = page.getByRole('status')
-  await expect(receipt).toContainText(/問い合わせを受け付けました（#\d+）/)
+  await expect(receipt).toContainText(
+    /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
+  )
   await expect(page.getByText(question, { exact: true })).toBeVisible()
   await expect(
     page.getByText('reader@example.net', { exact: true }),
   ).toBeVisible()
-  const number = (await receipt.innerText()).match(/#\d+/)[0]
+  const number = (await receipt.innerText()).match(/[A-Z]{2,5}-\d+/)[0]
   await capture(
     page,
     'J12',
@@ -203,7 +205,7 @@ test('受付の確認が失敗しても、入力した件名・本文・宛先�
   await expect(page.getByLabel('連絡先メールアドレス')).toHaveValue(email)
   await page.getByRole('button', { name: '送信', exact: true }).click()
   await expect(page.getByRole('status')).toContainText(
-    /問い合わせを受け付けました（#\d+）/,
+    /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
   )
   await expect(page.getByText(email, { exact: true })).toBeVisible()
 })

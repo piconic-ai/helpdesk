@@ -8,7 +8,7 @@ import { invoke, describe } from '../../core/operations/runtime-usecase'
 import type { Context, Scope } from '../../core/operations/catalog-usecase'
 import { issues } from './extension-usecase'
 import { preview } from './issues'
-import { issueDestination, panelLinks } from './issues-usecase'
+import { issueDestination, linkIssue, panelLinks } from './issues-usecase'
 import { issueBoard, issueNotice, synchronizeIssue } from './board-usecase'
 
 test.each([
@@ -136,7 +136,7 @@ test('F06-AC1 only the reviewing human can publish exactly the approved preview'
       url: 'https://api.github.com/repos/acme/desktop/issues',
       data: {
         title: 'Improve search',
-        body: summary + '\n\n[#1](https://helpdesk.example/conversation/1)',
+        body: summary + '\n\nAAAAA-1',
       },
     },
   ])
@@ -144,12 +144,15 @@ test('F06-AC1 only the reviewing human can publish exactly the approved preview'
 test('F06-AC2 an existing issue links back to each conversation and can be found from either conversation', async () => {
   await invoke(ctx, scopes, 'issues.link', { number: 2, issue: 42 })
   await invoke(ctx, scopes, 'issues.link', { number: 2, issue: 42 })
-  expect(posted.slice(1)).toEqual([
-    {
-      url: 'https://api.github.com/repos/acme/desktop/issues/42/comments',
-      data: { body: '[#2](https://helpdesk.example/conversation/2)' },
-    },
-  ])
+  expect(posted.slice(1)).toEqual([])
+  const api = extensionContext(ctx, enabled.active[0])
+  await expect(
+    linkIssue(
+      { ...api, demoGithub: true, config: { repositories: { app: repo } } },
+      { number: 2, issue: 42 },
+    ),
+  ).resolves.toMatchObject({ url: '/issues/acme/desktop/42' })
+
   expect(
     await invoke(ctx, scopes, 'issues.links', { product: 'app', issue: 42 }),
   ).toEqual([1, 2].map((number) => ({ number, repository: repo, issue: 42 })))
@@ -160,7 +163,7 @@ test('F06-AC2 an existing issue links back to each conversation and can be found
         icon: { name: 'issue_open', label: '開いている' },
         href: 'https://github.com/acme/desktop/issues/42',
       },
-      { label: '会話 #1 Confidential subject', href: '/conversation/1' },
+      { label: '会話 AAAAA-1 Confidential subject', href: '/conversation/1' },
     ],
   )
 })
@@ -309,24 +312,54 @@ test('external article and issue requests reject redirects without forwarding cr
   }
 })
 
-test.each([true, false])(
-  'real GitHub posts require a public HTTPS link even when local=%s',
-  async (local) => {
-    const api = extensionContext(ctx, enabled.active[0])
-    for (const origin of [
-      'http://helpdesk.example',
-      'https://127.0.0.1',
-      'https://localhost',
-    ]) {
-      const actualGithub = {
-        ...api,
-        local,
-        demoGithub: false,
-        config: { repositories: { app: repo }, helpdeskOrigin: origin },
-      }
-      await expect(issueDestination(actualGithub, 'app')).rejects.toThrow(
-        'public HTTPS',
-      )
-    }
-  },
-)
+test('does not require an origin to select the repository', async () => {
+  const api = extensionContext(ctx, enabled.active[0])
+  await expect(
+    issueDestination(
+      { ...api, config: { repositories: { app: repo } } },
+      'app',
+    ),
+  ).resolves.toMatchObject({ repo })
+})
+
+test('requires a fresh preview for drafts with a legacy backlink or changed prefix', async () => {
+  const api = extensionContext(ctx, enabled.active[0])
+  const confirmation = crypto.randomUUID()
+  await api.put('preview/' + confirmation, {
+    confirmation,
+    number: 1,
+    repository: repo,
+    title: 'Improve search',
+    body: 'Public summary\n\n[#1](https://helpdesk.example/conversation/1)',
+    by: ctx.operator.email,
+    expiresAt: ctx.now + 1000,
+  })
+  const before = posted.length
+  await expect(
+    invoke(ctx, scopes, 'issues.create', { number: 1, confirmation }),
+  ).rejects.toThrow('Preview this issue again')
+  await expect(
+    invoke(ctx, scopes, 'issues.preview', {
+      number: 1,
+      title: 'Improve search',
+      summary: 'https://helpdesk.example/conversation/1',
+    }),
+  ).rejects.toThrow()
+  const draft = preview.parse(
+    await invoke(ctx, scopes, 'issues.preview', {
+      number: 1,
+      title: 'Improve search',
+      summary: 'Public summary',
+    }),
+  )
+  await ctx.env.DB.prepare(
+    "UPDATE product_ticket_prefixes SET prefix='APP' WHERE product='app'",
+  ).run()
+  await expect(
+    invoke(ctx, scopes, 'issues.create', {
+      number: 1,
+      confirmation: draft.confirmation,
+    }),
+  ).rejects.toThrow('Preview this issue again')
+  expect(posted).toHaveLength(before)
+})

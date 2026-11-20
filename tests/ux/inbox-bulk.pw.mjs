@@ -4,7 +4,7 @@ import { capture, expect, test } from './harness.mjs'
 const row = (page, number) =>
   page.locator('.inbox-item[data-number="' + number + '"] a.conversation-row')
 const check = (page, number) =>
-  page.getByRole('checkbox', { name: '#' + number + 'を選択', exact: true })
+  page.getByRole('checkbox', { name: 'SLD-' + number + 'を選択', exact: true })
 const bulkChoice = async (bar, name, option) => {
   await bar.getByRole('button', { name, exact: true }).click()
   await bar.getByRole('button', { name: option, exact: true }).click()

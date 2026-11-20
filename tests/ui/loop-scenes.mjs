@@ -346,7 +346,7 @@ const entries = [
       confirmation(
         page,
         page.locator('form[action="/actions/issues.link"] button').first(),
-        'コメントとして投稿',
+        'にこの会話を紐づけます',
       ),
   ],
   [

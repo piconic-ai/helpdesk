@@ -103,9 +103,7 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   await dialog.getByRole('button', { name: '確認した内容で起票' }).click()
   await expect
     .poll(() => demo.github.created)
-    .toEqual([
-      { title, body: summary + '\n\n[#1](' + demo.origin + '/conversation/1)' },
-    ])
+    .toEqual([{ title, body: summary + '\n\nSLD-1' }])
   await board()
   await expect(open.getByRole('row').filter({ hasText: title })).toContainText(
     '1件',
@@ -131,12 +129,10 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   await expect(second.getByLabel('題で探す')).toHaveValue(title)
   await linkButton.click()
   await dialog.getByRole('button', { name: '既存の課題と紐づける' }).click()
-  await expect
-    .poll(() => demo.github.comments)
-    .toEqual([{ body: '[#6](' + demo.origin + '/conversation/6)' }])
   await board()
   const row = open.getByRole('row').filter({ hasText: title })
   await expect(row).toContainText('2件')
+  expect(demo.github.comments).toEqual([])
   await row.getByRole('link').click()
   await expect(
     main.getByRole('heading', { name: '紐づく声 2件' }),
@@ -171,7 +167,7 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
       .getByRole('link', { name: '承認待ち ' + (2 - index) + '件を確認する' })
       .click()
     await voices
-      .getByRole('link', { name: new RegExp('#' + number + ' .*承認待ち') })
+      .getByRole('link', { name: new RegExp('SLD-' + number + ' .*承認待ち') })
       .click()
     await expect(page).toHaveURL(
       new RegExp('/conversation/' + number + '(?:\\?|$)'),
@@ -227,10 +223,7 @@ test('デモの確認ページで公開する要約を修正し、確認後の�
       .toEqual([
         {
           title: 'Desk の一覧を改善する',
-          body:
-            '公開する要約を修正しました。\n\n[#3](' +
-            demo.origin +
-            '/conversation/3)',
+          body: '公開する要約を修正しました。\n\nDSK-3',
         },
       ])
   } finally {

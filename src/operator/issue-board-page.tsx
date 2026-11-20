@@ -1,3 +1,4 @@
+import { displayReference } from '../core/conversations/ticket-reference'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
 import { issueUrl } from '../extensions/issues/issues'
@@ -255,7 +256,10 @@ export function issueDetailPage(
           </Notice>
         )}
         <IssueNoticeReview
-          notices={notices}
+          notices={notices.map((n) => ({
+            ...n,
+            reference: displayReference(frame, n),
+          }))}
           action={path(issue) + '/approve'}
         />
         <IssueVoices
@@ -263,6 +267,10 @@ export function issueDetailPage(
             r.voices.map((v) => ({
               number: v.number,
               href: '/conversation/' + v.number,
+              reference: displayReference(frame, {
+                product: r.product,
+                number: v.number,
+              }),
               ...contacts.get(v.number),
               delivery: delivery(v),
             })),
@@ -309,7 +317,13 @@ export function issueNewPage(
       {frame.demoGithub && <p>デモ用の模擬 GitHub に起票します。</p>}
       <FormSection title="起票する内容">
         {choices.length ? (
-          <NewIssueForm action="/actions/issues.preview" choices={choices} />
+          <NewIssueForm
+            action="/actions/issues.preview"
+            choices={choices.map((c) => ({
+              ...c,
+              reference: displayReference(frame, c),
+            }))}
+          />
         ) : (
           <EmptyState icon="issues">
             起票できる会話はありません。起票先とトークンを設定したプロダクトの会話から追加できます。

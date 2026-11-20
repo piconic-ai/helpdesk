@@ -16,58 +16,31 @@ import {
   lookupInput,
   postFor,
   previewInput,
-  productRepo,
   configSchema,
   repository as repositorySchema,
   storedPreview,
   type Linked,
 } from './issues'
-import {
-  githubIssue,
-  linkComment,
-  backlinkExists,
-  selectableIssues,
-} from './github-client'
+import { githubIssue, selectableIssues } from './github-client'
 import { matchingIssue } from './match-issue'
 
 const repositoryOverride = z.union([
   repositorySchema,
-  z.object({
-    repo: repositorySchema,
-    origin: configSchema.shape.helpdeskOrigin,
-  }),
+  z.object({ repo: repositorySchema }),
 ])
-async function repositoryConfig(ctx: ExtensionContext, product: string) {
-  const config = configSchema.parse(ctx.config)
-  const value = await ctx.get('repository/' + product)
-  if (value == null) return config
-  const saved = repositoryOverride.parse(value)
-  const repo = typeof saved === 'string' ? saved : saved.repo
-  return {
-    repositories: { ...config.repositories, [product]: repo },
-    helpdeskOrigin:
-      typeof saved === 'string' ? config.helpdeskOrigin : saved.origin,
-  }
-}
 export async function configuredRepository(
   ctx: ExtensionContext,
   product: string,
 ) {
-  return (await repositoryConfig(ctx, product)).repositories[product]
+  const value = await ctx.get('repository/' + product)
+  if (value == null) return configSchema.parse(ctx.config).repositories[product]
+  const saved = repositoryOverride.parse(value)
+  return typeof saved === 'string' ? saved : saved.repo
 }
 export async function issueDestination(ctx: ExtensionContext, product: string) {
-  const destination = productRepo(await repositoryConfig(ctx, product), product)
-  const url = new URL(destination.origin)
-  if (
-    !(ctx.local && ctx.demoGithub) &&
-    (url.protocol !== 'https:' ||
-      /^(?:127\.|0\.0\.0\.0$|\[::1\]$|(?:.*\.)?localhost$)/i.test(url.hostname))
-  ) {
-    throw new Error(
-      'Configure a public HTTPS helpdesk origin for GitHub conversation links.',
-    )
-  }
-  return destination
+  const repo = await configuredRepository(ctx, product)
+  if (!repo) throw new Error('Configure a GitHub repository for this product')
+  return { repo }
 }
 function operator(ctx: ExtensionContext) {
   if (ctx.actor.kind !== 'operator')
@@ -78,27 +51,25 @@ function operator(ctx: ExtensionContext) {
 export async function previewIssue(ctx: ExtensionContext, input: unknown) {
   const by = operator(ctx)
   const { number, title, summary } = previewInput.parse(input)
-  const { product } = await ctx.contact(number)
-  const { repo, origin } = await issueDestination(ctx, product)
+  const { product, reference } = await ctx.contact(number)
+  const { repo } = await issueDestination(ctx, product)
   const confirmation = crypto.randomUUID()
   const proposal = {
     number,
     confirmation,
     repository: repo,
-    ...postFor(number, title, summary, origin),
+    summary,
+    reference,
+    ...postFor(reference, title, summary),
   }
   await ctx.put('preview/' + confirmation, {
     ...proposal,
     by,
     expiresAt: ctx.now + 15 * 60000,
   })
-  return {
-    ...proposal,
-    summary,
-    conversationUrl: origin + '/conversation/' + number,
-  }
+  return proposal
 }
-async function saveLink(ctx: ExtensionContext, link: Linked, origin: string) {
+async function saveLink(ctx: ExtensionContext, link: Linked) {
   const key = linkPrefix(link.repository, link.issue) + link.number
   await ctx.create(key, link)
   await ctx.emit(
@@ -110,7 +81,7 @@ async function saveLink(ctx: ExtensionContext, link: Linked, origin: string) {
   return {
     ...link,
     url: ctx.demoGithub
-      ? new URL('/issues/' + issueKey(link.repository, link.issue), origin).href
+      ? '/issues/' + issueKey(link.repository, link.issue)
       : issueUrl(link.repository, link.issue),
   }
 }
@@ -124,12 +95,16 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
     proposal.expiresAt < ctx.now
   )
     throw new Error('Preview this issue again before creating it')
-  const { repo, origin } = await issueDestination(
-    ctx,
-    (await ctx.contact(number)).product,
-  )
+  const { product, reference } = await ctx.contact(number)
+  const { repo } = await issueDestination(ctx, product)
   if (proposal.repository !== repo)
     throw new Error('Repository changed. Preview the issue again.')
+  const content = previewInput.safeParse(proposal)
+  if (!content.success || proposal.reference !== reference)
+    throw new Error('Preview this issue again before creating it')
+  const post = postFor(reference, content.data.title, content.data.summary)
+  if (proposal.body !== post.body || proposal.title !== post.title)
+    throw new Error('Preview this issue again before creating it')
   if (!ctx.secret('GITHUB_TOKEN'))
     throw new Error('Configure GITHUB_TOKEN for the issues extension')
   if (!(await ctx.create('claimed/' + confirmation, proposal.expiresAt)))
@@ -137,25 +112,21 @@ export async function createIssue(ctx: ExtensionContext, input: unknown) {
       'This preview has already been submitted. Check the repository before retrying.',
     )
   const remote = await githubIssue(ctx, repo, {
-    create: { title: proposal.title, body: proposal.body },
+    create: post,
   })
   await rememberIssue(ctx, repo, remote, proposal.title)
-  const saved = await saveLink(
-    ctx,
-    {
-      number,
-      repository: repo,
-      issue: remote.number,
-    },
-    origin,
-  )
+  const saved = await saveLink(ctx, {
+    number,
+    repository: repo,
+    issue: remote.number,
+  })
   await ctx.remove('preview/' + confirmation)
   return saved
 }
 export async function linkIssue(ctx: ExtensionContext, input: unknown) {
   const { number, issue } = linkInput.parse(input)
   operator(ctx)
-  const { repo, origin } = await issueDestination(
+  const { repo } = await issueDestination(
     ctx,
     (await ctx.contact(number)).product,
   )
@@ -164,17 +135,8 @@ export async function linkIssue(ctx: ExtensionContext, input: unknown) {
     if (!ctx.secret('GITHUB_TOKEN'))
       throw new Error('Configure GITHUB_TOKEN for the issues extension')
     await refreshIssueState(ctx, repo, issue)
-    const body = '[#' + number + '](' + origin + '/conversation/' + number + ')'
-    if (await ctx.create('backlink/' + key, true)) {
-      await linkComment(ctx, repo, issue, body)
-    } else if (!(await backlinkExists(ctx, repo, issue, body))) {
-      throw new Error(
-        'Check the issue and add the following backlink before retrying: ' +
-          body,
-      )
-    }
   }
-  return saveLink(ctx, { repository: repo, number, issue }, origin)
+  return saveLink(ctx, { repository: repo, number, issue })
 }
 async function loadLinks(ctx: ExtensionContext, prefix: string) {
   const rows = await ctx.list(prefix)
@@ -244,7 +206,7 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
         sibling.number !== number
       )
         addresses.set('/conversation/' + sibling.number, {
-          label: '会話 #' + sibling.number,
+          label: '会話',
         })
     }
   })
@@ -252,7 +214,11 @@ export async function panelLinks(ctx: ExtensionContext, number?: number) {
     Array.from(addresses, async ([href, link]) => {
       if (!href.startsWith('/conversation/')) return { href, ...link }
       const other = await ctx.contact(Number(href.split('/').at(-1)))
-      return { ...link, href, label: link.label + ' ' + other.subject }
+      return {
+        ...link,
+        href,
+        label: link.label + ' ' + other.reference + ' ' + other.subject,
+      }
     }),
   )
 }

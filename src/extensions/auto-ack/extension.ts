@@ -73,7 +73,7 @@ export const autoAck: Extension = {
           e.number,
           acknowledgmentText(
             contact.productName,
-            e.number,
+            contact.reference,
             wordingFor('auto-ack', await ctx.get(messageKey(contact.product))),
           ) + related,
           'receipt',

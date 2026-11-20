@@ -42,7 +42,7 @@ for (const policy of ['auto-ack', 'survey']) {
         .getByRole('button', { name: 'プレビュー', exact: true })
         .click()
       await expect(preview).toContainText(wording)
-      await expect(preview).toContainText('[#123]')
+      await expect(preview).toContainText('[SLD-123]')
       await expect(preview).toContainText('自動送信')
       if (!receipt)
         await expect(preview).toContainText('/help/survey/slide/example')

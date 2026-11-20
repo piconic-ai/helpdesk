@@ -121,8 +121,8 @@ function submissionDetails(form, trigger) {
   if (action === '/actions/discard' && !form.closest('.banner-success'))
     return [
       label,
-      '会話 #' +
-        form.elements.number.value +
+      '会話 ' +
+        document.querySelector('[data-ticket-reference]').textContent +
         ' の下書き1件を削除します。\n' +
         (
           form.closest('.draft-review')?.querySelector('textarea')?.value ||
@@ -138,16 +138,9 @@ function submissionDetails(form, trigger) {
         form.dataset.repo +
         ' の「' +
         form.elements.issue.selectedOptions[0].textContent.trim() +
-        '」に、この会話へのリンクをコメントとして投稿します。\n' +
-        '会話 #' +
-        form.elements.number.value +
-        ' · ' +
-        new URL(form.dataset.backlink).host +
-        (['localhost', '127.0.0.1', '[::1]'].includes(
-          new URL(form.dataset.backlink).hostname,
-        )
-          ? '（この端末で開けます）'
-          : ''),
+        '」にこの会話を紐づけます。\n' +
+        '会話 ' +
+        form.dataset.reference,
     ]
   if (action === '/actions/merge.combine')
     return [
@@ -162,8 +155,8 @@ function submissionDetails(form, trigger) {
   if (action === '/actions/feedback.convert')
     return [
       label,
-      'フィードバック #' +
-        form.elements.number.value +
+      'フィードバック ' +
+        document.querySelector('[data-ticket-reference]').textContent +
         '「' +
         document.querySelector('h1').textContent.trim() +
         '」を返信できる問い合わせに変更します。',
@@ -246,7 +239,7 @@ async function reviewIssue(form, trigger) {
         content.querySelector('[data-public-target]').textContent,
         content.querySelector('h2').textContent,
         content.querySelector('pre').textContent,
-        content.querySelector('[data-public-link]').textContent,
+        content.querySelector('[data-public-reference]').textContent,
       ].join('\n'),
       '確認した内容で起票',
       () => {

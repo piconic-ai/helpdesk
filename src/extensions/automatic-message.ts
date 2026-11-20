@@ -45,19 +45,19 @@ export function editedMessage(
 }
 export function acknowledgmentText(
   productName: string,
-  number: number,
+  reference: string,
   wording: Message,
 ) {
   const header =
     wording.language === 'ja'
-      ? `${productName} からの自動送信です [#${number}]。`
-      : `This is an automated acknowledgment from ${productName} [#${number}].`
+      ? `${productName} からの自動送信です [${reference}]。`
+      : `This is an automated acknowledgment from ${productName} [${reference}].`
   return header + '\n\n' + wording.body
 }
 export function surveyText(
   origin: string,
   product: string,
-  number: number,
+  reference: string,
   token: string,
   wording: Message,
 ) {
@@ -67,7 +67,7 @@ export function surveyText(
   )
   const header =
     wording.language === 'ja'
-      ? `お問い合わせ [#${number}] についての自動送信です。`
-      : `Automated follow-up for [#${number}].`
+      ? `お問い合わせ [${reference}] についての自動送信です。`
+      : `Automated follow-up for [${reference}].`
   return header + '\n\n' + wording.body + ' ' + url.href
 }

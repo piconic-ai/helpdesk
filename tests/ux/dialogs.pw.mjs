@@ -86,15 +86,15 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
   const merge = page.locator('[data-extension="merge"]')
   await merge.getByRole('button', { name: '会話を統合', exact: true }).click()
   await expect(merge.locator('option:checked')).toHaveText(
-    /^#\d+\s+ワークスペース/,
+    /^[A-Z]{2,5}-\d+\s+ワークスペース/,
   )
-  await expect(merge).toContainText('統合元：#1')
+  await expect(merge).toContainText('統合元：SLD-1')
   await merge
     .locator('form')
     .getByRole('button', { name: '会話を統合' })
     .click()
   const confirmMerge = page.locator('dialog:modal')
-  await expect(confirmMerge).toContainText('「#1 ')
+  await expect(confirmMerge).toContainText('「SLD-1 ')
   await expect(confirmMerge).toContainText(
     '共通の返信先：customer1@example.net',
   )
@@ -125,7 +125,7 @@ test('統合・変換・起票の各確認で相手と内容を読み、Esc で�
   expect(scene.github.created).toHaveLength(0)
   await page.goto(scene.origin + '/extensions/issues/link/1')
   await inspectModal(page, formButton(page, '/actions/issues.link'), {
-    content: 'コメントとして投稿',
+    content: 'にこの会話を紐づけます',
   })
   expect(scene.github.comments).toHaveLength(0)
   await page.goto(scene.origin + '/conversation/10')

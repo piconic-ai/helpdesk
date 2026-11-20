@@ -3,6 +3,7 @@ import { inboxSearch, threadUrl } from './inbox-location'
 import type { Result } from './inbox-page'
 import { ProductMark } from '../../ui/product-mark'
 import { ContactAvatar } from '../../ui/operator-identity'
+import { displayReference } from './ticket-reference'
 import { ConversationRow } from '../../ui/patterns'
 import { Button, Input } from '../../ui/controls'
 import {
@@ -151,9 +152,10 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
   const marks = rowMarks(m, approval, mixed)
   const previewSource =
     (approval || m.previewKind === 'note') && previewAuthor(m)
+  const reference = displayReference(frame, row)
   const preview = (
     <RowPreview
-      number={row.number}
+      reference={reference}
       text={previewSource ? previewSource + ' · ' + m.preview : m.preview}
       icon={channelIcon(row.origin)}
     >
@@ -182,7 +184,7 @@ export function conversationRow(row: Row, meta: Metadata, frame: ConsoleFrame) {
           type="checkbox"
           data-assignee={assignee ?? ''}
           data-labels={JSON.stringify(m.labels)}
-          aria-label={'#' + row.number + 'を選択'}
+          aria-label={reference + 'を選択'}
           value={row.number}
         />
       }

@@ -6,7 +6,7 @@ import {
   configSchema,
   issueRef,
   previewInput,
-  preview,
+  issuePreviewResult,
   confirmInput,
   linked,
   linkInput,
@@ -23,7 +23,9 @@ import {
 } from './issues-usecase'
 
 const noticesInput = issueRef.extend({ product: z.string().min(1) })
-const withUrl = linked.extend({ url: z.url() })
+const withUrl = linked.extend({
+  url: z.union([z.url(), z.string().startsWith('/issues/')]),
+})
 export const issues: Extension = {
   id: 'issues',
   icon: 'issues',
@@ -64,7 +66,7 @@ export const issues: Extension = {
       permission: 'write',
       humanOnly: true,
       input: previewInput,
-      output: preview.extend({ summary: z.string(), conversationUrl: z.url() }),
+      output: issuePreviewResult,
       run: previewIssue,
     },
     {
@@ -80,7 +82,7 @@ export const issues: Extension = {
     {
       name: 'link',
       description:
-        'Link this existing GitHub issue and post a backlink containing only the inquiry number.',
+        'Link this existing GitHub issue to the conversation in helpdesk.',
       humanOnly: true,
       permission: 'write',
       input: linkInput,

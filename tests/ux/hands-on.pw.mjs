@@ -9,7 +9,7 @@ const button = (page, name) => page.getByRole('button', { name, exact: true })
 const row = (page, n) =>
   page
     .locator('a.conversation-row')
-    .filter({ has: page.getByText('#' + n, { exact: true }) })
+    .filter({ has: page.getByText(new RegExp('^[A-Z]{2,5}-' + n + '$')) })
 const record = (page, step, description) =>
   capture(page, 'hands-on', step, description)
 
@@ -89,12 +89,12 @@ async function answer(page) {
   await expect(preview).toContainText('support@example.com')
   await expect(preview).toContainText('customer6@example.net')
   await expect(preview).toContainText(
-    'Re: 購入手続き後に届いたメールのご確認 [#6]',
+    'Re: 購入手続き後に届いたメールのご確認 [SLD-6]',
   )
   await record(
     page,
     '02-preview',
-    '問い合わせ #6 に記事を添え、窓口・宛先・番号付き件名を確認',
+    '問い合わせ SLD-6 に記事を添え、窓口・宛先・番号付き件名を確認',
   )
   await button(page, '送信して完了').click()
   await expect(
@@ -239,7 +239,9 @@ async function publicVoices(page, scene) {
   await customerContact(customer)
   await button(customer, '送信').click()
   const receipt = customer.getByRole('status')
-  await expect(receipt).toContainText(/問い合わせを受け付けました（#\d+）/)
+  await expect(receipt).toContainText(
+    /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
+  )
   const number = Number((await receipt.textContent()).match(/#(\d+)/)[1])
   await record(
     customer,
@@ -388,7 +390,7 @@ async function settings(page) {
   )
 }
 
-test('ハンズオンの例示データで #6 の回答から内部メモ・再送・承認・設定へ進める', async ({
+test('ハンズオンの例示データで SLD-6 の回答から内部メモ・再送・承認・設定へ進める', async ({
   page,
   scene,
 }) => {

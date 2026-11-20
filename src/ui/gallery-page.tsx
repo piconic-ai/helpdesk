@@ -130,7 +130,7 @@ function InboxExample({ query }: { query: URLSearchParams }) {
               }
               preview={
                 <RowPreview
-                  number={r.id}
+                  reference={'SLD-' + r.id}
                   text="サポートへのお問い合わせです。"
                   icon={inboxIcon('受信')}
                 >

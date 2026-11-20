@@ -1,10 +1,11 @@
+import { ticketPrefixSchema } from '../conversations/ticket-reference'
 import { labelEdit } from '../conversations/labels'
 import {
   editLabelDirectory,
   labelDirectory,
 } from '../conversations/label-colors-store'
 import { z } from 'zod'
-import { listContacts } from '../operations/operator-store'
+import { listContacts, setTicketPrefix } from '../operations/operator-store'
 import type { Context } from '../operations/catalog-usecase'
 
 export function sendingDomains(declaration: string | undefined) {
@@ -48,5 +49,20 @@ export function changeLabel(ctx: Context, input: Record<string, unknown>) {
   return editLabelDirectory(
     ctx.env.DB,
     labelEdit.parse({ action: 'color', ...input }),
+  )
+}
+
+export function changeTicketPrefix(
+  ctx: Context,
+  product: string,
+  input: unknown,
+) {
+  const prefix = ticketPrefixSchema.safeParse(input)
+  if (!prefix.success) return 'invalid'
+  return setTicketPrefix(
+    ctx.env.DB,
+    { actor: JSON.stringify(ctx.actor), now: ctx.now },
+    product,
+    prefix.data,
   )
 }

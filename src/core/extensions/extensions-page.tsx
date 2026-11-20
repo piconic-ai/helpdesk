@@ -1,3 +1,4 @@
+import { displayReference } from '../conversations/ticket-reference'
 import { metricValue } from '../../ui/metric-value'
 import { IssuePostFields } from '../../ui/issue-board'
 import { glyph } from '../../ui/glyph'
@@ -339,17 +340,18 @@ function formField(
   p: Panel,
   number?: number,
   data?: Details,
+  frame?: ConsoleFrame,
 ) {
   if (key === 'product' && data)
     return <input type="hidden" name={key} value={data.conversation.product} />
-  if (key === 'target' && data)
+  if (key === 'target' && data && frame)
     return (
       <label>
         統合先の問い合わせ
         <NativeSelect name="target" required>
           {mergeTargets(data).map((t) => (
             <option value={t.number}>
-              #{t.number} {t.subject}
+              {displayReference(frame, t)} {t.subject}
             </option>
           ))}
         </NativeSelect>
@@ -395,7 +397,13 @@ function formField(
     )
   return operationField(op, key, p, number)
 }
-function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
+function actionForm(
+  op: Operation,
+  p: Panel,
+  number?: number,
+  data?: Details,
+  frame?: ConsoleFrame,
+) {
   return (
     <PanelForm
       method="post"
@@ -404,13 +412,16 @@ function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
         op.name === 'merge.combine' ? data?.conversation.contact : undefined
       }
       data-source={
-        op.name === 'merge.combine' && data
-          ? '#' + number + ' ' + data.conversation.subject
+        op.name === 'merge.combine' && data && frame
+          ? displayReference(frame, data.conversation) +
+            ' ' +
+            data.conversation.subject
           : undefined
       }
     >
       {op.name === 'issues.preview' && <h3>GitHub に公開する課題</h3>}
       {data &&
+        frame &&
         ['merge.combine', 'issues.preview', 'articles.suggest'].includes(
           op.name,
         ) && (
@@ -420,14 +431,15 @@ function actionForm(op: Operation, p: Panel, number?: number, data?: Details) {
               : data.conversation.kind === 'feedback'
                 ? '元のフィードバック：'
                 : '元の問い合わせ：'}
-            #{number} {data.conversation.subject}
+            {displayReference(frame, data.conversation)}{' '}
+            {data.conversation.subject}
           </PanelSummary>
         )}
       {op.name === 'issues.preview' && p.content && (
         <PanelSummary>{p.content}</PanelSummary>
       )}
       {Object.keys(op.inputSchema.properties ?? {}).map((key) =>
-        formField(op, key, p, number, data),
+        formField(op, key, p, number, data, frame),
       )}
       <Button variant={op.name === 'feedback.review' ? 'default' : 'outline'}>
         {op.name === 'merge.combine'
@@ -466,7 +478,12 @@ const panelTriggers: Record<string, string> = {
   'issues.impact': '比較する期間を選ぶ',
   'snooze.defer': '保留する日時を選ぶ',
 }
-function panel(p: Panel, number?: number, data?: Details) {
+function panel(
+  p: Panel,
+  number?: number,
+  data?: Details,
+  frame?: ConsoleFrame,
+) {
   const ops = actionsFor(p, data)
   if (!ops.length && !p.content && !p.links.length && !p.script) return null
   if (
@@ -507,7 +524,7 @@ function panel(p: Panel, number?: number, data?: Details) {
           op.name === 'snooze.resume' ||
           p.slot === 'settings'
         )
-          return actionForm(op, p, number, data)
+          return actionForm(op, p, number, data, frame)
         const label =
           panelTriggers[op.name] ?? operationLabel(op.name, op.description)
         return (
@@ -516,7 +533,7 @@ function panel(p: Panel, number?: number, data?: Details) {
             label={label}
             variant={op === ops[0] ? 'outline' : 'ghost'}
           >
-            {actionForm(op, p, number, data)}
+            {actionForm(op, p, number, data, frame)}
             {op.name === 'issues.preview' && (
               <Button
                 type="button"
@@ -556,14 +573,16 @@ export function extensionPanels(
   data: Panel[],
   number?: number,
   conversation?: Details,
+  frame?: ConsoleFrame,
 ) {
-  return <>{data.map((p) => panel(p, number, conversation))}</>
+  return <>{data.map((p) => panel(p, number, conversation, frame))}</>
 }
 
 export function conversationPanels(
   data: Panel[],
   number: number,
   conversation: Details,
+  frame: ConsoleFrame,
 ) {
   const contextual = data.filter(
     (p) => !['snooze', 'canned', 'feedback'].includes(p.id),
@@ -584,7 +603,7 @@ export function conversationPanels(
           id="reply-templates"
           data-slot="popover-content"
         >
-          {ops.map((op) => actionForm(op, p, number, conversation))}
+          {ops.map((op) => actionForm(op, p, number, conversation, frame))}
         </section>
       )
     return (
@@ -596,7 +615,7 @@ export function conversationPanels(
           {id === 'snooze' && (
             <PanelSummary>{summaryFor(p, conversation)}</PanelSummary>
           )}
-          {ops.map((op) => actionForm(op, p, number, conversation))}
+          {ops.map((op) => actionForm(op, p, number, conversation, frame))}
         </Disclosure>
       </div>
     )
@@ -605,7 +624,7 @@ export function conversationPanels(
     feedback: feedback && (
       <>
         {actionsFor(feedback, conversation).map((op) =>
-          actionForm(op, feedback, number, conversation),
+          actionForm(op, feedback, number, conversation, frame),
         )}
         {!conversation.conversation.contact && (
           <>
@@ -634,7 +653,7 @@ export function conversationPanels(
         hidden
       ></Button>
     ),
-    related: extensionPanels(contextual, number, conversation),
+    related: extensionPanels(contextual, number, conversation, frame),
     snooze: command('snooze'),
     canned: command('canned'),
   }
@@ -648,7 +667,7 @@ export function issuePreview(
     number: number
     confirmation: string
     summary: string
-    conversationUrl: string
+    reference: string
   },
   frame: ConsoleFrame,
 ) {
@@ -664,15 +683,7 @@ export function issuePreview(
           {result.repository}
         </p>
         <BodyText>{result.summary}</BodyText>
-        <p data-public-link="">
-          掲載するリンク：
-          <a href={result.conversationUrl}>会話 #{result.number}</a>
-          {' · '}
-          {new URL(result.conversationUrl).host}
-          {['127.0.0.1', 'localhost', '[::1]'].includes(
-            new URL(result.conversationUrl).hostname,
-          ) && '（この端末で開けます）'}
-        </p>
+        <p data-public-reference="">問い合わせ番号：{result.reference}</p>
         <form action="/actions/issues.create" method="post">
           <Input
             name="confirmation"

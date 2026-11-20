@@ -91,12 +91,10 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   await page.getByRole('button', { name: '既存の課題と紐づける' }).click()
   await expect(page.getByRole('dialog')).toContainText('example/helpdesk')
   await confirmSubmission(page)
-  await expect
-    .poll(() => scene.github.comments)
-    .toEqual([{ body: '[#1](https://helpdesk.example.test/conversation/1)' }])
   await expect(
     page.locator('[data-extension=issues] a[href*="github.com"]'),
   ).toContainText('42')
+  expect(scene.github.comments).toEqual([])
   await capture(
     page,
     'C-issue-link',

@@ -112,6 +112,7 @@ it('F04-AC1: the core writes a conversation, inbound text and events in one D1 b
   expect(await templateContact(local, number)).toEqual({
     name: 'Aki',
     productName: 'My Shop',
+    reference: 'AAAAA-' + number,
     language: 'ja',
     subject: 'Question',
     email: 'user@example.com',

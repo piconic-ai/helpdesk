@@ -144,7 +144,7 @@ it('F09-AC1/3 sends one numbered auto acknowledgment with a standing approval an
   await send(row!.id)
   expect(sent.at(-1)).toMatchObject({
     to: 'reader@example.com',
-    text: expect.stringMatching(/automated.*\[#1\]/),
+    text: expect.stringMatching(/automated.*\[AAAAA-1\]/),
     headers: { 'Auto-Submitted': 'auto-generated' },
   })
   expect(
@@ -163,14 +163,14 @@ it('F08-AC1/2/3 uses safe webhook defaults and sends mail only to registered ope
     })
   try {
     await run(notify, receive, {})
-    expect(calls[0]).toMatchObject({ text: '#1 Printer' })
+    expect(calls[0]).toMatchObject({ text: 'AAAAA-1 Printer' })
     await run(
       notify,
       { ...receive, kind: 'assigned', payload: { to: admin } },
       { format: 'discord', includeBody: true, email: admin },
     )
     expect(calls[1]).toMatchObject({
-      content: '#1 Printer\nprivate customer content',
+      content: 'AAAAA-1 Printer\nprivate customer content',
       allowed_mentions: { parse: [] },
     })
     const id = await p.DB.prepare(

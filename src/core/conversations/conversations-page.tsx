@@ -61,6 +61,7 @@ import {
 } from './console-page'
 import type { Result } from './inbox-page'
 import type { pendingReplyUndos } from '../outbound/reply-usecase'
+import { displayReference } from './ticket-reference'
 import { replySubject, senderLabel } from '../outbound/compose'
 import {
   assignment,
@@ -282,10 +283,17 @@ function pageAtIntake(events: Details['events']) {
     return
   }
 }
-function threadContext(data: Details, panels: Child, productName: string) {
+function threadContext(
+  data: Details,
+  panels: Child,
+  productName: string,
+  frame: ConsoleFrame,
+) {
   const sourcePage = pageAtIntake(data.events)
   return (
-    <ThreadPanel context={'#' + data.conversation.number + ' · ' + productName}>
+    <ThreadPanel
+      context={displayReference(frame, data.conversation) + ' · ' + productName}
+    >
       {sourcePage && (
         <FormSection title="チャットを開いたページ">
           <p>{sourcePage}</p>
@@ -297,7 +305,7 @@ function threadContext(data: Details, panels: Child, productName: string) {
           data.history.map((r) => (
             <p>
               <a data-context-link="" href={'/conversation/' + r.number}>
-                <code>#{r.number}</code> {r.subject}
+                <code>{displayReference(frame, r)}</code> {r.subject}
               </a>
             </p>
           ))
@@ -400,6 +408,7 @@ export function conversationPage(
   offerToWrite = false,
 ) {
   const c = data.conversation
+  const reference = displayReference(frame, c)
   const schedules = new Map(
     holds.map((h) => [h.id, replyUndoForm(c.number, h)]),
   )
@@ -466,7 +475,7 @@ export function conversationPage(
       }
       attributes={
         <AttributeRow>
-          <code>#{c.number}</code>
+          <code data-ticket-reference="">{reference}</code>
           <ProductMark
             product={{ id: c.product, name: info?.productName ?? c.product }}
             size="heading"
@@ -478,7 +487,12 @@ export function conversationPage(
           {activity && <ThreadActivity message={activity} />}
         </AttributeRow>
       }
-      aside={threadContext(data, panels.related, product?.name ?? c.product)}
+      aside={threadContext(
+        data,
+        panels.related,
+        product?.name ?? c.product,
+        frame,
+      )}
     >
       {panels.issueSuggestion}
       {timelineView(
@@ -510,7 +524,7 @@ export function conversationPage(
           contact={c.contact}
           noteOnly={!reply}
           closed={c.status.kind === 'closed'}
-          subject={replySubject(c.subject, c.number)}
+          subject={replySubject(c.subject, reference)}
           hasCanned={Boolean(panels.canned)}
           articles={articles}
           offerToWrite={offerToWrite}

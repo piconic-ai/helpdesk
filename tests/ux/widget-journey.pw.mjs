@@ -81,9 +81,11 @@ test(
         page,
         child.getByRole('button', { name: '送信', exact: true }),
       )
-      const confirmation = child.getByText(/問い合わせを受け付けました（#\d+）/)
+      const confirmation = child.getByText(
+        /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
+      )
       await expect(confirmation).toBeVisible()
-      const number = (await confirmation.innerText()).match(/#(\d+)/)[1]
+      const number = (await confirmation.innerText()).match(/[A-Z]{2,5}-\d+/)[0]
       await expect(
         child.getByText('example-billing@example.net', { exact: true }),
       ).toBeVisible()
@@ -100,7 +102,7 @@ test(
       const row = page
         .locator('a.conversation-row')
         .filter({ hasText: question })
-      await expect(row).toContainText('#' + number)
+      await expect(row).toContainText(number)
       await row.click()
       await expect(page.locator('.message-inbound')).toContainText(question)
       await expect(

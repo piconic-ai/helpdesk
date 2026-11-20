@@ -124,6 +124,7 @@ export type ExtensionContext = {
   addInboundMessage: (number: number, body: string) => Promise<{ id: string }>
   draft: (number: number, body: string, key?: string) => Promise<{ id: string }>
   contact: (number: number) => Promise<{
+    reference: string
     name: string
     productName: string
     language: MailLanguage

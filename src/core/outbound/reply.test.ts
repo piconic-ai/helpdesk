@@ -78,7 +78,7 @@ it('F01-AC17 F01-AC18 F01-AC19 F01-AC21 F01-AC31: two deliveries send one thread
     from: 'support@example.org',
     to: 'user@example.org',
     text: 'Working!',
-    subject: `Re: Subject [#${number}]`,
+    subject: `Re: Subject [AAAAA-${number}]`,
     headers: {
       'In-Reply-To': '<in@example.org>',
       References: '<original@example.org> <in@example.org>',

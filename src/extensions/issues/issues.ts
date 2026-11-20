@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+const publicText = (value: string) => !/\/conversation\/\d+/i.test(value)
+const publicTextError = '運営画面へのリンクを削除してください。'
+
 const slug =
   /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9_][A-Za-z0-9._-]*$/
 export const repository = z
@@ -8,10 +11,6 @@ export const repository = z
   .regex(slug, 'Expected owner/repository')
 export const configSchema = z.object({
   repositories: z.record(z.string().min(1), repository),
-  helpdeskOrigin: z.url().refine((value) => {
-    const url = new URL(value)
-    return ['https:', 'http:'].includes(url.protocol) && url.origin === value
-  }, 'Expected a public helpdesk origin without a path'),
 })
 export const positive = z.coerce.number().int().positive().safe()
 export const previewInput = z.object({
@@ -21,11 +20,17 @@ export const previewInput = z.object({
     .trim()
     .min(1)
     .max(200)
+    .refine(publicText, publicTextError)
     .refine(
       (title) => !/^Inquiry #\d+$/i.test(title),
       '課題の内容が分かる題を入力してください。',
     ),
-  summary: z.string().trim().min(1).max(2000),
+  summary: z
+    .string()
+    .trim()
+    .min(1)
+    .max(2000)
+    .refine(publicText, publicTextError),
 })
 export const confirmInput = z.object({
   number: positive,
@@ -48,37 +53,24 @@ export const preview = z.object({
   title: z.string(),
   body: z.string(),
 })
-export const storedPreview = preview.extend({
-  by: z.string(),
-  expiresAt: z.number(),
+export const issuePreviewResult = preview.extend({
+  summary: z.string(),
+  reference: z.string(),
 })
+export const storedPreview = issuePreviewResult
+  .partial({ summary: true, reference: true })
+  .extend({
+    by: z.string(),
+    expiresAt: z.number(),
+  })
 export function postFor(
-  number: number,
+  reference: string,
   title: string,
   summary: string,
-  origin: string,
 ): IssuePost {
-  return {
-    title,
-    body:
-      summary +
-      '\n\n[#' +
-      number +
-      '](' +
-      origin +
-      '/conversation/' +
-      number +
-      ')',
-  }
+  return { title, body: summary + '\n\n' + reference }
 }
 export const issueUrl = (repo: string, issue: number) =>
   'https://github.com/' + repo + '/issues/' + issue
 export const linkPrefix = (repo: string, issue: number) =>
   'link/' + repo.toLowerCase() + '/' + issue + '/'
-export function productRepo(config: unknown, product: string) {
-  const settings = configSchema.parse(config)
-  const repo = settings.repositories[product]
-  if (typeof repo !== 'string')
-    throw new Error('Configure a GitHub repository for this product')
-  return { repo, origin: settings.helpdeskOrigin }
-}

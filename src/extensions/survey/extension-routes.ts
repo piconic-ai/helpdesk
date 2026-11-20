@@ -34,7 +34,7 @@ async function invite(ctx: ExtensionContext, e: ExtensionEvent) {
     surveyText(
       surveyConfig.parse(ctx.config).helpdeskOrigin,
       c.product,
-      e.number,
+      c.reference,
       token,
       wordingFor('survey', await ctx.get(messageKey(c.product)), c.language),
     ),
@@ -46,7 +46,10 @@ async function lookup(ctx: ExtensionContext, product: string, path: string) {
   if (!token.success) return null
   const row = ticket.safeParse(await ctx.get('token/' + token.data))
   if (!row.success || row.data.product !== product) return null
-  return { token: token.data, ...row.data }
+  const contact = await ctx.contact(row.data.number).catch(() => null)
+  return (
+    contact && { token: token.data, ...row.data, reference: contact.reference }
+  )
 }
 export const survey: Extension = {
   id: 'survey',
@@ -57,7 +60,7 @@ export const survey: Extension = {
   async publicPage(ctx, product, path) {
     const row = await lookup(ctx, product, path)
     if (!row) return null
-    return surveyForm(row.number)
+    return surveyForm(row.reference)
   },
   async publicAction(ctx, product, path, request) {
     const row = await lookup(ctx, product, path)
@@ -70,6 +73,6 @@ export const survey: Extension = {
     await ctx.create(key, input.data === 'yes')
     const resolved = z.boolean().parse(await ctx.get(key))
     await ctx.emit('answered', row.number, { product, resolved }, row.token)
-    return surveyReceipt(row.number)
+    return surveyReceipt(row.reference)
   },
 }

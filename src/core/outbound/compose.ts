@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import {
+  ticketPrefixSchema,
+  ticketReference,
+  ticketSubjectTag,
+} from '../conversations/ticket-reference'
 import { addressSchema, numberSchema } from '../conversations/state'
 
 export const replyEnvelopeSchema = z.object({
@@ -7,6 +12,7 @@ export const replyEnvelopeSchema = z.object({
   operatorName: z.string().nullish(),
   contact: addressSchema,
   number: numberSchema,
+  ticketPrefix: ticketPrefixSchema,
   subject: z.string(),
   body: z.string().min(1),
   in_reply_to: z.string().nullable(),
@@ -15,13 +21,13 @@ export const replyEnvelopeSchema = z.object({
 
 export type ReplyEnvelope = z.infer<typeof replyEnvelopeSchema>
 
-export function replySubject(subject: string, number: number) {
+export function replySubject(subject: string, reference: string) {
   const clean = subject
     .replace(/[\r\n]+/g, ' ')
-    .replace(/\s*\[#\d+\]/g, '')
+    .replace(new RegExp(ticketSubjectTag.source, 'g'), '')
     .replace(/^re:\s*/i, '')
     .trim()
-  return `Re: ${clean} [#${number}]`
+  return `Re: ${clean} [${reference}]`
 }
 
 export function senderLabel(
@@ -61,7 +67,10 @@ export function composeReply(reply: ReplyEnvelope) {
   return {
     from: name ? { name, email: reply.mailbox } : reply.mailbox,
     to: reply.contact,
-    subject: replySubject(reply.subject, reply.number),
+    subject: replySubject(
+      reply.subject,
+      ticketReference(reply.ticketPrefix, reply.number),
+    ),
     text: reply.body,
     headers,
   }

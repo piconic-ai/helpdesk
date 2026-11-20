@@ -344,7 +344,7 @@ The UI text is mostly Japanese. Every type decision below is made for mixed Japa
 - Two body sizes with different jobs: `{typography.body}` (14px / 1.6) for console chrome, lists, forms; `{typography.reading}` (16px / 1.75) for anything a person reads as prose — message bodies, the composer, help articles.
 - Weight carries hierarchy: 600 for titles, unread subjects, and the active item; 400 otherwise. No 700.
 - Reading measure is capped at 680px for message bodies and articles.
-- Conversation numbers (`#123`), email addresses, and message headers use `{typography.code}`.
+- Conversation numbers (`SLD-123`), email addresses, and message headers use `{typography.code}`.
 - Timestamps are relative within 7 days ("3時間前") with the absolute time in a `title` attribute; absolute after that.
 
 ## Layout
@@ -389,7 +389,7 @@ Nothing else casts a shadow. No gradients, no glass, no dark surfaces.
 **`conversation-row`** — Two lines, 64px, hairline below.
 
 - Line 1 starts with the product mark and name, followed by the sender's full display name and さん, then the subject. Use `body-strong` for unread senders and `body` for read senders. Preserve both names when space is tight. Ellipsize the subject and excerpt. Set the right-aligned time in `caption` `{colors.muted}`.
-- Line 2: `#123` in `code` `{colors.muted}`, a one-line body preview in `{colors.muted}`, then label chips (max 2, then "+n") and indicators; the assignee avatar is right-aligned. Show the status only in mixed-status views.
+- Line 2: `SLD-123` in `code` `{colors.muted}`, a one-line body preview in `{colors.muted}`, then label chips (max 2, then "+n") and indicators; the assignee avatar is right-aligned. Show the status only in mixed-status views.
 - The two-line content is one link; selection and quick-action buttons are adjacent controls. Hover fills `{colors.surface-soft}`. Selected uses `conversation-row-selected`.
 - A row with a failed send shows `delivery-failed` in place of the preview's trailing space. This is the one place a red element may appear in the list.
 
@@ -435,7 +435,7 @@ Below the text area, left: a single line "差出人: contact@slide.community →
 
 **`help-article`** — 680px column, `title-lg` heading, `reading` body, `{colors.link}` links. The header pairs the product name with its 28px mark. Footer has one line: 解決しませんでしたか？ and a link to contact.
 
-**`chat-widget`** — 360px, raised. One text area and one button. The result includes the original question. An article list offers a handoff to the contact form. A submitted inquiry shows the confirmation 問い合わせを受け付けました（#123）. It never shows generated prose, a typing indicator, or a human name or avatar.
+**`chat-widget`** — 360px, raised. One text area and one button. The result includes the original question. An article list offers a handoff to the contact form. A submitted inquiry shows the confirmation 問い合わせを受け付けました（SLD-123）. It never shows generated prose, a typing indicator, or a human name or avatar.
 
 **Feedback form** — One text area, an optional email field, one button. The confirmation states plainly that the feedback inbox does not send replies.
 

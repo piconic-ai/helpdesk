@@ -19,7 +19,7 @@ async function notifyEvent(ctx: ExtensionContext, e: ExtensionEvent) {
   const url = ctx.secret('NOTIFY_WEBHOOK_URL')
   if (!url && !conf.email) return
   const contact = await ctx.contact(e.number)
-  const headline = '#' + e.number + ' ' + contact.subject
+  const headline = contact.reference + ' ' + contact.subject
   const body = conf.includeBody
     ? await ctx.inboundBody(
         e.number,

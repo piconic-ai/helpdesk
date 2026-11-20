@@ -24,7 +24,7 @@ export async function issueNoticeDrafts(db: D1Database, ids: string[]) {
   if (!ids.length) return []
   const { results } = await db
     .prepare(
-      `SELECT m.id,m.number,m.body,c.contact AS email,c.subject,c.status
+      `SELECT m.id,m.number,m.body,c.contact AS email,c.subject,c.status,c.product
      FROM messages m JOIN conversations c ON c.number=m.number
      WHERE m.id IN (SELECT value FROM json_each(?))
        AND m.kind='outbound' AND m.delivery IN ('draft','awaiting_approval') AND m.approval IS NULL
@@ -39,6 +39,7 @@ export async function issueNoticeDrafts(db: D1Database, ids: string[]) {
       email: string
       subject: string
       status: string
+      product: string
     }>()
   return Promise.all(
     results.map(async (draft) => {

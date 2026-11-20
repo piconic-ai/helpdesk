@@ -38,7 +38,7 @@ window.onHelpdeskPage((signal) => {
         const data = await response.json()
         if (signal.aborted) return
         form.dataset.repo = data.repo
-        form.dataset.backlink = data.backlink
+        form.dataset.reference = data.reference
         form.dataset.demo = String(data.demo === true)
         choices = data.choices
         filter()

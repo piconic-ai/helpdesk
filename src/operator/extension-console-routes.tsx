@@ -781,10 +781,7 @@ app.post('/extensions/issues/repository', async (c) => {
     .parse(await c.req.parseBody())
   if (!(await frame(c)).products.some((p) => p.id === input.product))
     return c.notFound()
-  await api.put('repository/' + input.product, {
-    repo: input.repository,
-    origin: new URL(c.req.url).origin,
-  })
+  await api.put('repository/' + input.product, input.repository)
   return c.redirect('/extensions/issues?saved=1', 303)
 })
 app.get('/extensions/issues/link/:number', (c) => {

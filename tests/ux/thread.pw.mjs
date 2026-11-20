@@ -47,7 +47,7 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
   await expect(preview).toContainText('support@example.com')
   await expect(preview).toContainText('person@example.net')
   await expect(preview).toContainText(
-    new RegExp('Re: ' + subject + ' \\[#[0-9]+\\]'),
+    new RegExp('Re: ' + subject + ' \\[[A-Z]{2,5}-[0-9]+\\]'),
   )
   await expect(preview).toContainText(answer)
   await capture(

@@ -250,7 +250,7 @@ function showContact() {
   focusVisible(form.elements.email)
 }
 function showReceipt(form, receipt) {
-  const name = element('p', copy.receipt + '（#' + receipt.number + '）', {
+  const name = element('p', copy.receipt + '（' + receipt.reference + '）', {
     role: 'status',
     tabindex: '-1',
   })

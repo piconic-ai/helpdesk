@@ -30,7 +30,7 @@ test('W2 連絡先を空にして意見を送り、一覧で確認・取り消�
   await expect(email).toHaveAccessibleName(/任意/)
   await page.getByRole('button', { name: '送信', exact: true }).click()
   await expect(page.getByRole('status')).toContainText(
-    /フィードバックを受け付けました（#\d+）/,
+    /フィードバックを受け付けました（[A-Z]{2,5}-\d+）/,
   )
   await expect(
     page.getByText('フィードバックへの返信はありません。'),

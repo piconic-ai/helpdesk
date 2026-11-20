@@ -128,7 +128,7 @@ it.each(['auto-ack', 'survey'])(
     const envelope = send.mock.calls[0][0]
     expect(envelope).toMatchObject({
       to: 'customer@example.net',
-      subject: 'Re: Billing [#1]',
+      subject: 'Re: Billing [AAAAA-1]',
       headers: { 'Auto-Submitted': 'auto-generated' },
     })
     expect(envelope.text).toContain(form.body)
@@ -192,4 +192,18 @@ it('records initial administrator approval once when a mailbox activates a sendi
   expect(records.results.map((row) => JSON.parse(row.actor))).toEqual([
     { kind: 'operator', id: admin },
   ])
+})
+
+it('only lets administrators save a unique uppercase ticket prefix', async () => {
+  const path = '/settings/ticket-prefix/a'
+  const edit = '/settings/mailboxes?edit=a'
+  const initial = await request(edit)
+  expect(await initial.text()).toContain('AAAAA')
+  expect((await request(path, { prefix: 'bad' })).status).toBe(400)
+  expect((await request(path, { prefix: 'AAAAB' })).status).toBe(409)
+  expect(
+    (await request(path, { prefix: 'SALE' }, 'agent@example.org')).status,
+  ).toBe(403)
+  expect((await request(path, { prefix: 'SALE' })).status).toBe(303)
+  expect(await (await request(edit)).text()).toContain('value="SALE"')
 })

@@ -18,7 +18,9 @@ async function publishFeedback(page, origin, body) {
   await page.getByLabel('ご意見・ご要望').fill(body)
   await customerContact(page)
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText(/受け付けました（#\d+）/)
+  await expect(page.getByRole('status')).toContainText(
+    /受け付けました（[A-Z]{2,5}-\d+）/,
+  )
 }
 
 test.describe('公開受付', () => {
@@ -58,8 +60,10 @@ test.describe('公開受付', () => {
     )
     await page.getByRole('button', { name: '送信', exact: true }).click()
     const receipt = page.getByRole('status')
-    await expect(receipt).toHaveText(/問い合わせを受け付けました（#\d+）/)
-    const number = (await receipt.innerText()).match(/#\d+/)[0]
+    await expect(receipt).toHaveText(
+      /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
+    )
+    const number = (await receipt.innerText()).match(/[A-Z]{2,5}-\d+/)[0]
     await capture(page, 'J6', '03-receipt', '問い合わせ番号を受け取る')
     await inbox(page, scene)
     const row = page.getByRole('link', { name: new RegExp(question) })
@@ -177,7 +181,9 @@ test('J9 窓口を作成し、拡張の案内から新プロダクトの公開�
     .fill('届いているか確認してください。')
   await customerContact(page)
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText(/受け付けました（#\d+）/)
+  await expect(page.getByRole('status')).toContainText(
+    /受け付けました（[A-Z]{2,5}-\d+）/,
+  )
   await capture(page, 'J9', '03-public', '公開フォームから受付番号を取得')
   await inbox(page, scene)
   await page.getByRole('link', { name: /新しい窓口への相談/ }).click()
@@ -278,4 +284,23 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
     '02-invalid',
     '未入力の欄に修正方法が表示される',
   )
+})
+
+test('問い合わせ番号の接頭辞は重複を検出し、保存後の会話と返信に表示する', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/settings/mailboxes?edit=slide')
+  const prefix = page.getByLabel('問い合わせ番号の接頭辞')
+  await expect(prefix).toHaveValue('SLD')
+  await prefix.fill('DSK')
+  await page.getByRole('button', { name: '接頭辞を保存' }).click()
+  await expect(page.getByRole('alert')).toContainText(
+    'この接頭辞はすでに使用されています。',
+  )
+  await prefix.fill('HELP')
+  await page.getByRole('button', { name: '接頭辞を保存' }).click()
+  await expect(prefix).toHaveValue('HELP')
+  await page.goto(scene.origin + '/conversation/1')
+  await expect(page.getByText('HELP-1', { exact: true })).toBeVisible()
 })

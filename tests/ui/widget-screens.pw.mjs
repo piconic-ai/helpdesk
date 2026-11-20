@@ -46,7 +46,7 @@ async function show(page, id, site) {
   await email.fill('reader@example.com')
   await frame.getByRole('button', { name: '送信', exact: true }).click()
   await expect(
-    frame.getByText(/問い合わせを受け付けました（#\d+）/),
+    frame.getByText(/問い合わせを受け付けました（[A-Z]{2,5}-\d+）/),
   ).toBeVisible()
 }
 

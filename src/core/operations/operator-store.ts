@@ -1,3 +1,4 @@
+import type { TicketPrefix } from '../conversations/ticket-reference'
 import { z } from 'zod'
 import {
   eventStatement,
@@ -172,4 +173,30 @@ export async function listContacts(db: D1Database) {
       }),
     )
     .parse(rows.results)
+}
+
+export async function setTicketPrefix(
+  db: D1Database,
+  a: Audit,
+  product: string,
+  prefix: TicketPrefix,
+) {
+  const [updated, , project] = await db.batch([
+    db
+      .prepare(`UPDATE product_ticket_prefixes SET prefix=?1 WHERE product=?2 AND
+      NOT EXISTS (SELECT 1 FROM product_ticket_prefixes WHERE prefix=?1 AND product!=?2)`)
+      .bind(prefix, product),
+    db
+      .prepare(`INSERT INTO events(kind,actor,payload,at)
+      SELECT 'ticket_prefix_changed',?,?,? WHERE changes()=1`)
+      .bind(a.actor, JSON.stringify({ product, prefix }), a.now),
+    db
+      .prepare('SELECT product FROM product_ticket_prefixes WHERE product=?')
+      .bind(product),
+  ])
+  return updated.meta.changes
+    ? 'saved'
+    : project.results.length
+      ? 'duplicate'
+      : 'missing'
 }

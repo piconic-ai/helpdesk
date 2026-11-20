@@ -219,6 +219,7 @@ export function IssueVoices({
 }: {
   voices: {
     number: number
+    reference: string
     name?: string
     email?: string | null
     subject?: string
@@ -240,7 +241,7 @@ export function IssueVoices({
         {voices.map((v) => (
           <li>
             <a href={v.href}>
-              <span className="issue-number">#{v.number}</span>
+              <span className="issue-number">{v.reference}</span>
               <ContactAvatar name={v.name} email={v.email} />
               <span className="issue-voice-caption">
                 <strong>{v.name}</strong>
@@ -285,6 +286,7 @@ export function NewIssueForm({
 }: {
   choices: {
     number: number
+    reference: string
     subject: string
     product: string
     productName: string
@@ -308,7 +310,7 @@ export function NewIssueForm({
           {choices.map((c) => (
             <option value={c.number}>
               <span className="choice-reference">
-                #{c.number}{' '}
+                {c.reference}{' '}
                 <ProductMark product={{ id: c.product, name: c.productName }} />
               </span>{' '}
               <span data-choice-subject="">{c.subject}</span>
@@ -329,6 +331,7 @@ export function IssueNoticeReview({
   action: string
   notices: {
     number: number
+    reference: string
     subject: string
     email: string
     reviewKey: string
@@ -349,7 +352,7 @@ export function IssueNoticeReview({
       {notices.map((n) => (
         <fieldset className="settings-card" data-layout="stack" data-gap="sm">
           <legend>
-            #{n.number} {n.subject}
+            {n.reference} {n.subject}
           </legend>
           <label>
             <input

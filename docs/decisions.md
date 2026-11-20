@@ -1,6 +1,7 @@
 # 設計上の決定
 
-- 問い合わせ番号は D1 がデプロイ全体で採番する。表示は `#123`、件名は `[#123]` とする。既定値として実装する。
+- 問い合わせ番号は D1 がデプロイ全体で採番する。表示は `SLD-123`、件名は `[SLD-123]` とする。接頭辞は管理者が窓口の設定から英大文字2〜5字で設定する。移行時と新規登録時に重複しない初期値を割り当てる。返信は同じ差出人と窓口の条件で、古い接頭辞や `[#123]` からも通し番号でたどる。
+- GitHub Issue の本文は確認済みの要約と問い合わせ番号を載せる。既存 Issue との紐づけは運営画面で保持する。
 - 初回の運営者登録と権限の決定は同じ SQL 文で行う。Access の発行元、宛先、署名、有効期限とメールアドレスを検証する。[Access JWT の検証](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)
 - 送信結果の Message-ID を保存し、返信には元メールの In-Reply-To と References を設定する。Cloudflare が受理したか不明な送信を自動で再試行すると二重送信になり得るため、確実に失敗した送信だけを再送対象とする。[送信 API](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)・[ヘッダー](https://developers.cloudflare.com/email-service/reference/headers/)
 

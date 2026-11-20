@@ -161,6 +161,16 @@ async function seed(db, raw, extensions) {
     ),
     query('INSERT INTO products VALUES (?,?)', 'slide', 'Slide'),
     query('INSERT INTO products VALUES (?,?)', 'desk', 'Desk'),
+    query(
+      'UPDATE product_ticket_prefixes SET prefix=? WHERE product=?',
+      'SLD',
+      'slide',
+    ),
+    query(
+      'UPDATE product_ticket_prefixes SET prefix=? WHERE product=?',
+      'DSK',
+      'desk',
+    ),
     query('INSERT INTO mailboxes VALUES (?,?)', 'support@example.com', 'slide'),
     query('INSERT INTO mailboxes VALUES (?,?)', 'desk@example.com', 'desk'),
     ...extensions.flatMap((id) => [

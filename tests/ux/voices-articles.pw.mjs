@@ -47,8 +47,8 @@ test('A3 声を受付期間・プロダクト・ラベル別に集計し、同�
         url.search.includes(condition),
     )
     await expect(main.getByRole('listitem')).toHaveCount(2)
-    await expect(main.getByRole('link', { name: /^#1 / })).toBeVisible()
-    await expect(main.getByRole('link', { name: /^#10 / })).toBeVisible()
+    await expect(main.getByRole('link', { name: /^SLD-1 / })).toBeVisible()
+    await expect(main.getByRole('link', { name: /^SLD-10 / })).toBeVisible()
     await expect(main).toContainText('フィードバック')
     await capture(
       page,
@@ -59,7 +59,7 @@ test('A3 声を受付期間・プロダクト・ラベル別に集計し、同�
     await page.goBack()
   }
   await main.getByRole('link', { name: '新しい受付', exact: true }).click()
-  await main.getByRole('link', { name: /^#10 / }).click()
+  await main.getByRole('link', { name: /^SLD-10 / }).click()
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     '運営画面をキーボードで使っています',
   )
@@ -83,7 +83,7 @@ test('A4 元の会話を見ながら候補を記事にし、候補一覧から�
   await page.getByRole('link', { name: 'ヘルプ記事', exact: true }).click()
   await page.getByRole('link', { name: /候補（1件）/ }).click()
   await expect(
-    page.getByRole('link', { name: '元の会話 #1', exact: true }),
+    page.getByRole('link', { name: '元の会話 SLD-1', exact: true }),
   ).toHaveAttribute('href', '/conversation/1')
   await capture(
     page,
@@ -94,7 +94,7 @@ test('A4 元の会話を見ながら候補を記事にし、候補一覧から�
   await page.getByRole('link', { name: new RegExp(topic) }).click()
   await expect(page.getByLabel('題名')).toHaveValue(topic)
   await expect(page.getByRole('blockquote')).toContainText('経理に提出するため')
-  const source = page.getByRole('link', { name: '元の会話 #1 を開く' })
+  const source = page.getByRole('link', { name: '元の会話 SLD-1 を開く' })
   const tab = page.waitForEvent('popup')
   await source.click()
   const original = await tab

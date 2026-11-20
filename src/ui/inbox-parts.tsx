@@ -78,13 +78,13 @@ export function RowHeadline({
   )
 }
 export function RowPreview({
-  number,
+  reference,
   sender,
   text,
   icon,
   children,
 }: {
-  number: number
+  reference: string
   sender?: string
   text: string
   icon?: Child
@@ -92,7 +92,7 @@ export function RowPreview({
 }) {
   return (
     <>
-      <code className="row-number">#{number}</code>
+      <code className="row-number">{reference}</code>
       {icon}
       {sender && (
         <span className="row-mobile-sender" title={sender}>

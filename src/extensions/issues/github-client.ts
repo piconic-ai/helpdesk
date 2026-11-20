@@ -50,42 +50,6 @@ export async function githubIssue(
     throw new Error('GitHub issue request returned HTTP ' + response.status)
   return result.parse(await response.json())
 }
-export async function linkComment(
-  ctx: ExtensionContext,
-  repo: string,
-  issue: number,
-  body: string,
-) {
-  const response = await githubRequest(ctx, repo, '/' + issue + '/comments', {
-    body,
-  })
-  if (!response.ok)
-    throw new Error('GitHub backlink returned HTTP ' + response.status)
-}
-
-export async function backlinkExists(
-  ctx: ExtensionContext,
-  repo: string,
-  issue: number,
-  body: string,
-) {
-  let page = 1
-  for (;;) {
-    const response = await githubRequest(
-      ctx,
-      repo,
-      '/' + issue + '/comments?per_page=100&page=' + page,
-    )
-    if (!response.ok) throw new Error('Cannot check existing GitHub backlinks')
-    const comments = z
-      .array(z.object({ body: z.string() }))
-      .parse(await response.json())
-    if (comments.some((comment) => comment.body === body)) return true
-    if (!response.headers.get('Link')?.includes('rel="next"')) return false
-    page++
-  }
-}
-
 export async function selectableIssues(ctx: ExtensionContext, repo: string) {
   const items = []
   let page = 1

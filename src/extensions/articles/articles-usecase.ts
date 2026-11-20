@@ -113,9 +113,14 @@ export async function settingsContent(ctx: ExtensionContext) {
         (a.status === 'published' ? '公開' : '下書き') +
         ')',
     )
-  const topics = (await ctx.list('candidate/'))
-    .map((r) => candidate.parse(r.value))
-    .map((c) => '#' + c.number + ' · ' + c.topic)
+  const entries = await ctx.list('candidate/')
+  const topics = await Promise.all(
+    entries.map(async ({ value }) => {
+      const entry = candidate.parse(value)
+      const contact = await ctx.contact(entry.number).catch(() => null)
+      return contact ? contact.reference + ' · ' + entry.topic : entry.topic
+    }),
+  )
   return [...docs, ...topics].join('\n')
 }
 export async function startVisit(

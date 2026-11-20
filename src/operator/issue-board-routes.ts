@@ -134,17 +134,17 @@ routes.get('/issues/choices/:number', async (c) => {
   const api = enabled(c)
   if (!api) return c.notFound()
   const number = positive.parse(c.req.param('number'))
-  const { product, subject } = await api.contact(number)
+  const { product, subject, reference } = await api.contact(number)
   if (
     !(await configuredRepository(api, product)) ||
     !api.secret('GITHUB_TOKEN')
   )
     return c.notFound()
-  const { repo, origin } = await issueDestination(api, product)
+  const { repo } = await issueDestination(api, product)
   return c.json({
     repo,
     demo: api.demoGithub,
-    backlink: origin + '/conversation/' + number,
+    reference,
     ...(await issueChoices(api, repo, number, subject)),
   })
 })

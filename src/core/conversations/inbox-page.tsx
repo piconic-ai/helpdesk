@@ -344,13 +344,13 @@ function feedbackNotice(q: Query) {
   if (q.notice === 'feedback.unreview')
     return (
       <Notice toast kind="success">
-        #{number} を未確認に戻しました。
+        フィードバックを未確認に戻しました。
       </Notice>
     )
   if (q.notice !== 'feedback.review') return null
   return (
     <Notice toast kind="success">
-      #{number} を確認済みにしました。
+      フィードバックを確認済みにしました。
       {action(
         'feedback.unreview',
         '元に戻す',

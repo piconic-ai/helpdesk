@@ -47,7 +47,6 @@ export const extensions: Registration[] = [
     enabled: false,
     settings: {
       repositories: {},
-      helpdeskOrigin: 'https://helpdesk.example.com',
     },
   },
 ]

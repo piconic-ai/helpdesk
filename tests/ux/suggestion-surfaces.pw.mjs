@@ -83,7 +83,7 @@ test('公開フォームでは送信前に記事を読み、そのまま送る�
     send.click(),
   ])
   const receipt = await page.getByRole('status').innerText()
-  expect(receipt).toMatch(/問い合わせを受け付けました（#\d+）/)
+  expect(receipt).toMatch(/問い合わせを受け付けました（[A-Z]{2,5}-\d+）/)
   expect(await retry.text()).toContain(receipt)
   expect(await count()).toBe(1)
   expect(await reactions(scene, presentation)).toEqual([

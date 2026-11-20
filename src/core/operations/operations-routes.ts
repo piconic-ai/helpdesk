@@ -29,6 +29,7 @@ import {
   mailboxInput,
   settingsContacts,
   changeLabel,
+  changeTicketPrefix,
   settingsLabels,
   sendingDomains,
 } from '../settings/console-settings-usecase'
@@ -185,6 +186,39 @@ app.post('/settings/mailboxes', async (c) => {
   await run(ctx, 'mailbox', input)
   return c.redirect('/settings/mailboxes?saved=yes', 303)
 })
+app.post('/settings/ticket-prefix/:product', async (c) => {
+  const ctx = context(c)
+  authorize(ctx, 'admin', scopes)
+  const product = c.req.param('product')
+  const settings = '/settings/mailboxes?edit=' + encodeURIComponent(product)
+  const form = await c.req.parseBody()
+  const result = await changeTicketPrefix(ctx, product, form.prefix)
+  if (result === 'missing') return c.notFound()
+  if (result === 'saved') return c.redirect(settings + '&saved=prefix', 303)
+  const frame = await consoleFrame(c.env, ctx.operator, '/settings/mailboxes', {
+    edit: product,
+  })
+  if (!frame.products.some((item) => item.id === product)) return c.notFound()
+  c.status(result === 'duplicate' ? 409 : 400)
+  return c.render(
+    settingsSectionPage(
+      'mailboxes',
+      await run(ctx, 'settings', {}),
+      sendingDomains(c.env.SENDING_DOMAINS),
+      [],
+      frame,
+      undefined,
+      [],
+      {
+        input: typeof form.prefix === 'string' ? form.prefix.slice(0, 5) : '',
+        message:
+          result === 'duplicate'
+            ? 'この接頭辞はすでに使用されています。'
+            : '問い合わせ番号の接頭辞は英大文字2〜5字で入力してください。',
+      },
+    ),
+  )
+})
 app.post('/settings/public-intakes/:product', async (c) => {
   const form = await c.req.parseBody()
   const destination = z
@@ -219,6 +253,18 @@ app.get('/conversation/:number', async (c) => {
       ? { number, id: lastInbound.id }
       : undefined,
   )
+  const frame = await consoleFrame(
+    c.env,
+    ctx.operator,
+    c.req.path,
+    {
+      product: data.conversation.product,
+      notice: c.req.query('notice') ?? '',
+      undoId: z.uuid().safeParse(c.req.query('undoId')).data ?? '',
+      inbox,
+    },
+    ctx.now,
+  )
   return c.render(
     conversationPage(
       data,
@@ -226,19 +272,9 @@ app.get('/conversation/:number', async (c) => {
         await panels(ctx, scopes, 'conversation', number),
         number,
         data,
+        frame,
       ),
-      await consoleFrame(
-        c.env,
-        ctx.operator,
-        c.req.path,
-        {
-          product: data.conversation.product,
-          notice: c.req.query('notice') ?? '',
-          undoId: z.uuid().safeParse(c.req.query('undoId')).data ?? '',
-          inbox,
-        },
-        ctx.now,
-      ),
+      frame,
       await inboxMetadata(c.env, [number], ctx.operator),
       await threadFiles(c.env, data.attachments),
       choices.articles,
@@ -356,7 +392,7 @@ async function extensionResponse(
         number: z.number(),
         confirmation: z.string(),
         summary: z.string(),
-        conversationUrl: z.url(),
+        reference: z.string(),
       })
       .parse(result)
     return c.render(

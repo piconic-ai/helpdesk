@@ -198,11 +198,14 @@ function addressFields(domains: string[]) {
     </>
   )
 }
+type PrefixError = { input: string; message: string }
+
 function mailboxPage(
   data: Data,
   domains: string[],
   frame: ConsoleFrame,
   notice: ReturnType<typeof Notice> | false,
+  prefixError?: PrefixError,
 ) {
   const path = '/settings/mailboxes'
   const back = { href: path, label: 'プロダクトと窓口に戻る' }
@@ -265,6 +268,32 @@ function mailboxPage(
       back={back}
     >
       {notice}
+      <FormSection title="問い合わせ番号">
+        <form
+          method="post"
+          action={'/settings/ticket-prefix/' + encodeURIComponent(product.id)}
+        >
+          <Field
+            label="問い合わせ番号の接頭辞"
+            description="重複しない英大文字2〜5字を入力してください。"
+          >
+            <Input
+              name="prefix"
+              value={prefixError?.input ?? product.ticketPrefix}
+              required
+              pattern="[A-Z]{2,5}"
+              aria-invalid={prefixError ? 'true' : undefined}
+              aria-describedby={prefixError ? 'ticket-prefix-error' : undefined}
+            />
+          </Field>
+          {prefixError && (
+            <p id="ticket-prefix-error" role="alert">
+              {prefixError.message}
+            </p>
+          )}
+          <Button>接頭辞を保存</Button>
+        </form>
+      </FormSection>
       <FormSection title="アイコンとメール差出人">
         <Disclosure title="プロダクトのアイコンを変更">
           <ProductIconForm product={product} />
@@ -515,13 +544,15 @@ function settingsNotice(section: Section, saved?: string) {
   return (
     (saved === 'yes' ||
       (section === 'mailboxes' &&
-        (saved === 'sender' || saved === 'icon'))) && (
+        (saved === 'sender' || saved === 'icon' || saved === 'prefix'))) && (
       <Notice toast kind="success">
         {saved === 'icon'
           ? 'プロダクトのアイコンを保存しました。'
           : saved === 'sender'
             ? 'メールの差出人を保存しました。'
-            : notices[section]}
+            : saved === 'prefix'
+              ? '問い合わせ番号の接頭辞を保存しました。'
+              : notices[section]}
       </Notice>
     )
   )
@@ -534,6 +565,7 @@ export function settingsSectionPage(
   frame: ConsoleFrame,
   saved: string | undefined,
   labels: { name: string; count: number }[],
+  prefixError?: PrefixError,
 ) {
   const list = listRows(data.operators, frame.query, (person) => ({
     text: person.displayName + ' ' + person.email,
@@ -549,7 +581,7 @@ export function settingsSectionPage(
   return shell(
     title,
     section === 'mailboxes' ? (
-      mailboxPage(data, domains, frame, notice)
+      mailboxPage(data, domains, frame, notice, prefixError)
     ) : section === 'labels' ? (
       <ListPage title={title} back={back} action={addLabel()}>
         {notice}

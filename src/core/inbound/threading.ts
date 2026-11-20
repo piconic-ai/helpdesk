@@ -1,3 +1,5 @@
+import { ticketSubjectTag } from '../conversations/ticket-reference'
+
 export function messageIds(value: string) {
   return value.match(/<[^<>\s]{1,998}>/g) ?? []
 }
@@ -10,7 +12,7 @@ export function threadHints(
   const ids = [
     ...new Set([...messageIds(inReplyTo), ...messageIds(references).reverse()]),
   ].slice(0, 48)
-  const number = Number(/\[#([1-9]\d*)\]/.exec(subject)?.[1])
+  const number = Number(ticketSubjectTag.exec(subject)?.[1])
   return {
     ids,
     number:

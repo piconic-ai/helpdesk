@@ -65,7 +65,7 @@ it('accepts a hosted form on its registered origin and keeps invalid input for c
   }
   const response = await post('form', input)
   expect(response.status).toBe(200)
-  expect(await response.text()).toMatch(/受け付けました（#\d+）/)
+  expect(await response.text()).toMatch(/受け付けました（[A-Z]{2,5}-\d+）/)
   const invalid = await post('form', { ...input, email: 'invalid' })
   expect(invalid.status).toBe(400)
   const page = await invalid.text()
@@ -101,7 +101,9 @@ it('asks for a contact only when the visitor chooses to hand over an unanswered 
     ).first('n'),
   ).toBe(0)
   const accepted = await post('chat', { question, email: 'reader@example.org' })
-  expect(await accepted.text()).toMatch(/問い合わせを受け付けました（#\d+）/)
+  expect(await accepted.text()).toMatch(
+    /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
+  )
   expect(
     await platform.DB.prepare(
       "SELECT contact FROM conversations WHERE origin='chat'",
@@ -232,7 +234,8 @@ it('uses per-product reply guidance on receipts and lets the visitor correct a r
   for (const value of Object.values(fields)) expect(retry).toContain(value)
   expect(retry).toContain('name="publicKey" value="published-key"')
   const receipt = await (await post('form', fields)).text()
-  for (const value of ['#', fields.email, '2営業日以内'])
+  expect(receipt).toMatch(/問い合わせを受け付けました（[A-Z]{2,5}-\d+）/)
+  for (const value of [fields.email, '2営業日以内'])
     expect(receipt).toContain(value)
   const response = await post('feedback', {
     body: '希望します',
@@ -248,7 +251,7 @@ it('accepts anonymous feedback without linking unrelated people or exposing a re
   expect(second.status).toBe(200)
   const receipt = await second.text()
   expect(receipt).toContain('登録なし')
-  const number = receipt.match(/（#(\d+)）/)![1]
+  const number = receipt.match(/（[A-Z]{2,5}-(\d+)）/)![1]
   const thread = await app.request(origin + '/conversation/' + number, {}, env)
   const html = await thread.text()
   expect(thread.status).toBe(200)
@@ -493,7 +496,9 @@ it.each(['error', 'timeout'] as const)(
     const response = await post('form', input, origin, bindings)
     expect(calls).toBe(1)
     expect(response.status).toBe(200)
-    expect(await response.text()).toMatch(/問い合わせを受け付けました（#\d+）/)
+    expect(await response.text()).toMatch(
+      /問い合わせを受け付けました（[A-Z]{2,5}-\d+）/,
+    )
     expect(
       await platform.DB.prepare(
         'SELECT highest_score,articles FROM suggestion_presentations WHERE contact=? AND question=?',

@@ -79,7 +79,7 @@ test('W4 声の内訳から開いた会話を記事候補にして、同じ声�
       .getByRole('main')
       .getByRole('link', { name: 'Slide', exact: true })
       .click()
-    await page.getByRole('link', { name: /^#1 / }).click()
+    await page.getByRole('link', { name: /^SLD-1 / }).click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       '領収書の宛名を変更できますか',
     )
@@ -100,7 +100,7 @@ test('W4 声の内訳から開いた会話を記事候補にして、同じ声�
       '経理に提出するため',
     )
     await expect(
-      page.getByRole('link', { name: '元の会話 #1 を開く' }),
+      page.getByRole('link', { name: '元の会話 SLD-1 を開く' }),
     ).toHaveAttribute('href', '/conversation/1')
   })
 })
@@ -121,8 +121,12 @@ test.describe('公開受付の案内', () => {
     scene,
   }) => {
     await page.goto(scene.origin + '/help/survey/slide/' + surveyId)
-    await expect(page.getByText('問い合わせ #8', { exact: true })).toBeVisible()
+    await expect(
+      page.getByText('問い合わせ SLD-8', { exact: true }),
+    ).toBeVisible()
     await page.getByRole('button', { name: 'はい', exact: true }).click()
-    await expect(page.getByText('問い合わせ #8', { exact: true })).toBeVisible()
+    await expect(
+      page.getByText('問い合わせ SLD-8', { exact: true }),
+    ).toBeVisible()
   })
 })

@@ -145,7 +145,7 @@ export function intakePage(
 
 export function receiptPage(
   kind: FormKind,
-  number: number,
+  reference: string,
   fields: Fields,
   responseTime: string | null,
 ) {
@@ -153,8 +153,8 @@ export function receiptPage(
     (kind === 'feedback'
       ? 'フィードバックを受け付けました'
       : '問い合わせを受け付けました') +
-    '（#' +
-    number +
+    '（' +
+    reference +
     '）'
   const entries: [string, string | undefined][] = []
   if (kind === 'chat') entries.push(['質問', fields.question])

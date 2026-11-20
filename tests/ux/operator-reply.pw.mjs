@@ -76,7 +76,7 @@ test('W1 長い差出人でも製品名が読め、最後の担当変更と拡�
   await page.reload()
   const row = page
     .locator('a.conversation-row')
-    .filter({ has: page.getByText('#11', { exact: true }) })
+    .filter({ has: page.getByText('SLD-11', { exact: true }) })
   for (const width of [375, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     const sender = row.locator('.row-sender')

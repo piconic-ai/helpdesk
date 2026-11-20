@@ -75,7 +75,12 @@ async function submitForm(
       suggestionIds: suggestionIds(fields.presentations),
     }),
   )
-  return receiptPage('form', result.number, fields, responseTime)
+  return receiptPage(
+    'form',
+    (await ctx.contact(result.number)).reference,
+    fields,
+    responseTime,
+  )
 }
 async function submit(
   kind: FormKind,
@@ -88,13 +93,15 @@ async function submit(
 ) {
   if (kind === 'form')
     return submitForm(ctx, product, intake, policy, fields, responseTime)
-  if (kind === 'feedback')
+  if (kind === 'feedback') {
+    const result = receipt.parse(await intake.run(ctx, product, fields))
     return receiptPage(
       kind,
-      receipt.parse(await intake.run(ctx, product, fields)).number,
+      (await ctx.contact(result.number)).reference,
       fields,
       responseTime,
     )
+  }
   if (!fields.email && fields.handoff !== 'yes') {
     const text = question.shape.question.parse(fields.question)
     const offer = await presentArticles(ctx, {
@@ -125,7 +132,12 @@ async function submit(
     ...fields,
     suggestionIds: suggestionIds(fields.presentations),
   })
-  return receiptPage(kind, result.number, fields, responseTime)
+  return receiptPage(
+    kind,
+    (await ctx.contact(result.number)).reference,
+    fields,
+    responseTime,
+  )
 }
 function validationMessage(kind: FormKind, error: z.ZodError) {
   if (kind !== 'feedback')
