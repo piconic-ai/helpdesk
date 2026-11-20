@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { app } from '../worker'
+import { history } from '../src/core/extensions/history-store'
 import type { Bindings } from '../src/core/settings/bindings'
 import { issueToken } from '../src/core/operators/tokens-usecase'
 import { configure } from '../src/core/extensions/registry-usecase'
@@ -136,4 +137,33 @@ it('skips events before project approval and records the approving manager on it
     "SELECT number,json_extract(approval,'$.enabledBy') AS approver FROM messages WHERE kind='outbound'",
   ).all()
   expect(messages.results).toEqual([{ number: 1, approver: manager }])
+})
+
+it('includes a shared issue closure in the history of each linked project only', async () => {
+  const repo = 'example/shared'
+  const event = (number: number | null, kind: string, issue: number) =>
+    env.DB.prepare(
+      'INSERT INTO events(number,kind,actor,at,payload) VALUES(?,?,?,1,?)',
+    ).bind(
+      number,
+      kind,
+      JSON.stringify({ kind: 'system' }),
+      JSON.stringify({ repository: repo, issue }),
+    )
+  await env.DB.batch([
+    event(1, 'issues.linked', 42),
+    event(2, 'issues.linked', 43),
+    event(null, 'issues.closed', 42),
+    event(null, 'issues.closed', 43),
+    event(null, 'issues.closed', 44),
+  ])
+  async function closed(project: string) {
+    return (await history(env.DB, 'issues.closed', [project])).map(
+      (e) => e.payload.issue,
+    )
+  }
+  expect(await closed('slide')).toEqual([42])
+  expect(await closed('desk')).toEqual([43])
+  await event(1, 'issues.linked', 43).run()
+  expect(await closed('slide')).toEqual([42, 43])
 })

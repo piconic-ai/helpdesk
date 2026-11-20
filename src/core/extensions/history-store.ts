@@ -56,8 +56,12 @@ export async function history(
       payload: { product, ...JSON.parse(e.payload) },
     }))
 }
-// A deployment-wide event has no project. Project-tagged events can exist before a conversation opens.
-const visibleEvent = `(?2 IS NULL OR coalesce(c.product,json_extract(e.payload,'$.product')) IN (SELECT value FROM json_each(?2)))`
+const visibleEvent = `(?2 IS NULL
+  OR coalesce(c.product,json_extract(e.payload,'$.product')) IN (SELECT value FROM json_each(?2))
+  OR (e.number IS NULL AND EXISTS (
+    SELECT 1 FROM shared_event_projects shared
+    WHERE shared.event=e.id AND shared.product IN (SELECT value FROM json_each(?2))
+  )))`
 const visibleConversation =
   '(?1 IS NULL OR c.product IN (SELECT value FROM json_each(?1)))'
 export async function snapshotCounts(
