@@ -1,8 +1,8 @@
 # Embed the help chat
 
-Enable Help Chat and Help Articles for the product. In the operator console, open **拡張の管理 → ヘルプチャット**. Select the product, start its public intake if needed, and register the origin that will host the button, including its scheme and non-default port. For example, register `https://app.example.com` to open the chat on `https://app.example.com/billing`. The standalone chat is available at `/help/chat/<product>`.
+A deployment administrator enables Help Chat and Help Articles in **拡張の管理**. As a project administrator, open **設定 → プロジェクトの設定**, choose the project, and open **ヘルプチャット** under **拡張の設定**. Start its public intake if needed and register the origin that will host the button, including its scheme and non-default port. For example, register `https://app.example.com` to open the chat on `https://app.example.com/billing`. The standalone chat is available at `/help/chat/<product>`.
 
-Copy the product's script tag and add it to the host page.
+Copy the project's script tag and add it to the host page.
 
 ```html
 <script src="https://help.example.com/widget.js" data-product="slide" referrerpolicy="no-referrer" async></script>
@@ -12,7 +12,7 @@ The address stays the same when the Worker is updated. The browser loads the lau
 
 | Attribute | Use |
 | --- | --- |
-| `data-product` | Required product ID. Copy it from that product's settings. |
+| `data-product` | Required project ID. Copy it from that project's settings. |
 | `data-position` | Set `bottom-left` or use the default `bottom-right`. |
 | `data-label` | Set the text on the launcher. The default Japanese label is ヘルプ. |
 | `data-launcher` | Set `none` when the host supplies its own button. |
@@ -38,7 +38,7 @@ The customer can edit the prefilled address before submitting. Prefilling provid
 
 Allow the helpdesk origin in the host's `script-src` and `frame-src` CSP directives. Add the origin alongside the sources already required by the host. Keep the operator interface behind its normal access controls. For an externally facing installation, visitors need to be able to load the launcher, public help pages and their assets. An installation that protects the whole helpdesk hostname with Cloudflare Access also requires these visitors to sign in.
 
-The chat response restricts framing with `frame-ancestors`. Register each embedding origin on the corresponding product. On the public form, the Worker checks the intake key, rate limit and any configured Turnstile requirement. Parent and frame messages check the sender's window and origin.
+The chat response restricts framing with `frame-ancestors`. Register each embedding origin on the corresponding project. On the public form, the Worker checks the intake key, rate limit and any configured Turnstile requirement. Parent and frame messages check the sender's window and origin.
 
 The host sends its origin and pathname when the panel opens. A submitted conversation displays them under **関連情報 → チャットを開いたページ**. The integration strips the query and fragment. Keep private information out of application path segments. The host does not receive the questions, suggested articles or contact form contents. Setting `referrerpolicy="no-referrer"` on the script also protects the referrer on the initial script request.
 

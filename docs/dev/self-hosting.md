@@ -22,7 +22,7 @@ pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/self-ho
 pnpm exec wrangler dev --local --ip 127.0.0.1 --port "${HELPDESK_PORT:-8787}" --persist-to .wrangler/self-host --var ENVIRONMENT:local --var LOCAL_OPERATOR:operator@example.com --var SENDING_DOMAINS:example.com
 ```
 
-**端末 2** を同じディレクトリで開きます。画面で操作する場合は `http://127.0.0.1:8787/settings` を開き、**プロダクトと窓口** を開いて製品名と窓口アドレスを登録します。以下は同じフォームを curl で操作する例です。新しい環境で最初にアクセスした `operator@example.com` が管理者になります。API トークンは発行時だけ表示されるので、この端末の環境変数に受け取ります。
+**端末 2** を同じディレクトリで開きます。画面で操作する場合は `http://127.0.0.1:8787/settings` を開き、**全体の設定 → プロジェクトと窓口 → プロジェクトを追加** を開いて、プロジェクト名と窓口アドレスを登録します。以下は curl で同じ窓口を登録する例です。新しい環境で最初にアクセスした `operator@example.com` が全体の管理者になります。API トークンは発行時だけ表示されるので、この端末の環境変数に受け取ります。
 
 <!-- verify:configure -->
 ```sh
@@ -106,7 +106,7 @@ Zero Trust の Access で運営画面のホスト全体を対象に Self-hosted 
 }
 ```
 
-CLI・MCP を使う場合は、`/api/*` と `/mcp` にパスを限定した Access アプリの Bypass ポリシーを作り、Worker の Bearer トークン認証へ通します。公開フォームやヘルプを提供する場合は、使う拡張の公開 URL とヘルプの戻り先 `/help/`、公開画面が読み込む3つの静的な CSS（`/styles.css`、`/ui/public.css`、`/ui/tokens.css`）をパス限定の例外にします。運営画面・設定・トークン発行の URL は運営者だけに許可します。[CLI と MCP の認証](machine-access.md)・[Access のパスの優先順位](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
+CLI・MCP を使う場合は、`/api/*` と `/mcp` にパスを限定した Access アプリの Bypass ポリシーを作り、Worker の Bearer トークン認証へ通します。公開フォームやヘルプを提供する場合は、使う拡張の公開 URL、ヘルプの入口 `/help/`、アイコン `/help/product-icon/*`、静的ファイルの `/styles.css`、`/ui/*`、`/components/*` をパス限定の例外にします。埋め込みチャットを使う場合は `/widget.js` も公開します。運営画面・設定・トークン発行の URL は運営者だけに許可します。[CLI と MCP の認証](machine-access.md)・[Access のパスの優先順位](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
 
 ## 送受信を設定する
 
@@ -159,8 +159,11 @@ git status --short --branch
 
 ## 最初の窓口を開設して確認する
 
-1. 初回セットアップ担当者が Access を通って `https://desk.example.com/settings` にログインします。最初の運営者に管理権限が付いたことを確認してから Access の許可対象に他の担当者を加えます。2 人目以降の初期権限は agent です。
-2. **窓口を登録** で製品 ID、表示名、窓口アドレスを登録します。登録時に画面に表示される自動送信の対象・条件を確認してください。必要に応じて **拡張の管理** で有効な送信拡張を調整します。Email Routing でこのアドレスを Worker に向けます。
-3. **API トークン** で読み取り権限のトークンを発行し、端末で `HELPDESK_URL` に本番 URL、`HELPDESK_TOKEN` に表示された値を設定します。`node cli/helpdesk.mjs doctor` で窓口・送信ドメインの不足を確認し、表示された設定を修正します。Cloudflare 側も照合する場合は端末だけに `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ZONE_IDS`（対象ゾーン ID のカンマ区切り）を渡し、`node cli/helpdesk.mjs --live doctor` を実行します。通常の診断は宣言済みドメイン、実照合はゾーンの Email Sending API が返す有効なドメインを確認します。[送信ドメイン一覧 API](https://developers.cloudflare.com/api/resources/email_sending/subresources/subdomains/methods/list/)
-4. 外部の検証用メールから窓口に送信し、受信箱に 1 件現れることを確認します。返信をプレビューして送信し、外部の受信箱で From、本文、スレッド表示を確認します。さらにその返信へ返事を送り、同じ会話に届くことを確認します。
-5. 保存期間を **設定** で設定します。必要な場合は **拡張の管理** で export を有効にし、ローカル例のエクスポートコマンドを本番 URL と読み取りトークンで実行します。サンプルのアドレスやメッセージを実際の値に置き換え、エクスポートに期待した履歴が含まれることを確認してください。
+1. 初回セットアップ担当者が Access を通って `https://desk.example.com/settings` にログインします。最初の運営者が「全体の設定」を開けることを確認します。
+2. **全体の設定 → プロジェクトと窓口 → プロジェクトを追加** でプロジェクト名を入力し、窓口のアドレスを指定します。自動送信を行う拡張が有効なら対象・条件を読み、**自動送信を承認して窓口を登録** を押します。必要に応じて **拡張の管理** で有効な送信拡張を調整します。Email Routing でこのアドレスを Worker に向けます。
+3. 他の運営者を加えるには、Access の Allow ポリシーにその人を追加します。**プロジェクトの設定** で対象を選び、**メンバー → メールアドレスで招待** でログインに使うアドレスと役割を登録します。招待された人が Access を通って初めてログインすると、そのプロジェクトが受信箱に表示されます。
+4. **全体の設定 → API トークンの管理** で読み取り権限のトークンを発行し、端末で `HELPDESK_URL` に本番 URL、`HELPDESK_TOKEN` に表示された値を設定します。`node cli/helpdesk.mjs doctor` で窓口・送信ドメインの不足を確認し、表示された設定を修正します。Cloudflare 側も照合する場合は端末だけに `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ZONE_IDS`（対象ゾーン ID のカンマ区切り）を渡し、`node cli/helpdesk.mjs --live doctor` を実行します。通常の診断は宣言済みドメイン、実照合はゾーンの Email Sending API が返す有効なドメインを確認します。[送信ドメイン一覧 API](https://developers.cloudflare.com/api/resources/email_sending/subresources/subdomains/methods/list/)
+5. 外部の検証用メールから窓口に送信し、受信箱に 1 件現れることを確認します。返信をプレビューして送信し、外部の受信箱で From、本文、スレッド表示を確認します。さらにその返信へ返事を送り、同じ会話に届くことを確認します。
+6. **プロジェクトの設定** で対象を選び、**保存期間** を設定します。必要な場合は **拡張の管理** で export を有効にし、ローカル例のエクスポートコマンドを本番 URL と読み取りトークンで実行します。サンプルのアドレスやメッセージを実際の値に置き換え、エクスポートに期待した履歴が含まれることを確認してください。
+
+外部の利用者に公開ヘルプの入口を案内する場合は、対象のプロジェクトで公開受付を開始します。「公開のヘルプ」で「ヘルプの入口にこのプロジェクトを掲載する」を選び、「公開設定を保存」を押します。ログアウトしたブラウザで `https://desk.example.com/help/` を開き、掲載したプロジェクトから窓口へ進めることを確認してください。

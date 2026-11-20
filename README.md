@@ -1,6 +1,6 @@
 # helpdesk
 
-A self-hosted email helpdesk for developers supporting several products. Read requests in one inbox, reply from each product’s own address, and keep the conversation on the customer’s existing email thread.
+A self-hosted email helpdesk for developers supporting several projects. Read requests in one inbox, reply from each project’s own address, and keep the conversation on the customer’s existing email thread.
 
 An operator can turn a conversation into a GitHub issue, publish help articles, or use the CLI and MCP server to find requests and prepare replies for approval. Install the Worker, D1, private R2 storage and Queues in your Cloudflare account.
 

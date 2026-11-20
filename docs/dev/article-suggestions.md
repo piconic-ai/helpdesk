@@ -1,10 +1,10 @@
 # Choosing related help articles
 
-Helpdesk asks a decision model whether each published article can answer a question. The visitor reads the article written by the product team. Clef supplies probabilities. Its output contains no answer text for the customer.
+Helpdesk asks a decision model whether each published article can answer a question. The visitor reads the article written by the project team. Clef supplies probabilities. Its output contains no answer text for the customer.
 
 ## What goes into a decision
 
-Helpdesk considers published articles for one product. With up to 20 articles, all are eligible. Larger libraries use D1 full-text search to shortlist up to 20. In one Workers AI request, Helpdesk sends the question text, the candidate titles and their short summaries. An article without a summary uses the opening of its body. A separate yes/no question asks whether a person needs to inspect the customer's account or data. Human routing preserves the option of reading relevant articles.
+Helpdesk considers published articles for one project. With up to 20 articles, all are eligible. Larger libraries use D1 full-text search to shortlist up to 20. In one Workers AI request, Helpdesk sends the question text, the candidate titles and their short summaries. An article without a summary uses the opening of its body. A separate yes/no question asks whether a person needs to inspect the customer's account or data. Human routing preserves the option of reading relevant articles.
 
 The model receives no conversation transcript, contact profile, attachments or credentials. Operators should keep personal information out of public article titles and summaries. Helpdesk removes known contact details before inference. The input and response are bounded, and a failed model call takes the customer to the normal inquiry flow. Retention and contact deletion also apply to the stored question used to review recommendations.
 
@@ -16,10 +16,10 @@ On November 19, 2026 the listed prices per million input tokens were USD 0.038 f
 
 ## Choose a threshold
 
-At the default threshold of 0.6, an article with probability 0.60 is omitted and a 0.61 is eligible. The three highest eligible results are shown. Compare thresholds using labeled examples before changing the value for a product. Inspect false positives first. An irrelevant article can delay a customer who already needs an operator. Measure unanswered questions as well, then follow the article's opened and resolved rates after deployment. [Japanese evaluation procedure and results](../reports/suggest-eval.md)
+At the default threshold of 0.6, an article with probability 0.60 is omitted and a 0.61 is eligible. The three highest eligible results are shown. Compare thresholds using labeled examples before changing the value for a project. Inspect false positives first. An irrelevant article can delay a customer who already needs an operator. Measure unanswered questions as well, then follow the article's opened and resolved rates after deployment. [Japanese evaluation procedure and results](../reports/suggest-eval.md)
 
 ## Read the results in the operator console
 
-Open **拡張の管理 → ヘルプチャット → 記事のおすすめを設定** under the product name to change the percentage, either model, or whether automatic acknowledgments include suggestions. New products start with suggestions in acknowledgment mail turned off. The automatic acknowledgment extension must also be enabled for the product to send a receipt. For delivery links, configure the public article origin in the Articles extension.
+Open the project in **設定 → プロジェクトの設定**, then choose **ヘルプチャット → 記事のおすすめを設定** to change the percentage, either model, or whether automatic acknowledgments include suggestions. New projects start with suggestions in acknowledgment mail turned off. The automatic acknowledgment extension must also be enabled for the project to send a receipt. For delivery links, configure the public article origin in the Articles extension.
 
-In **対応状況**, the self-resolution rate counts chat and form presentations that showed at least one article in the selected period. The numerator counts presentations that ended as resolved with no recorded inquiry by the end of that period. The article list includes all four surfaces when counting presentations and opens. An article shown at least three times with zero resolutions receives a review label. **記事が無かった質問** lets an operator start an article from an unanswered question for the selected product.
+In **対応状況の集計**, the self-resolution rate counts chat and form presentations that showed at least one article in the selected period. The numerator counts presentations that ended as resolved with no recorded inquiry by the end of that period. The article list includes all four surfaces when counting presentations and opens. An article shown at least three times with zero resolutions receives a review label. **記事が無かった質問** lets an operator start an article from an unanswered question for the selected project.
