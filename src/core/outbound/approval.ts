@@ -1,5 +1,7 @@
 import type { Actor, Approval, Delivery } from '../conversations/state'
 
+export class ReplyStateConflict extends Error {}
+
 export function replyDelivery(
   actor: Actor,
 ): Extract<Delivery, { kind: 'queued' | 'awaiting_approval' }> {

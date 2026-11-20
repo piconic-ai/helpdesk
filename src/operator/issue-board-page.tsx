@@ -3,6 +3,7 @@ import { shell } from '../core/conversations/console-page'
 import { issueUrl } from '../extensions/issues/issues'
 import { issueKey } from '../extensions/issues/outcomes'
 import type { issueBoard } from '../extensions/issues/board-usecase'
+import type { IssueNoticeDraft } from './issue-voices-store'
 import { Stack } from '../ui/layout'
 import {
   IssueImpact,
@@ -10,6 +11,7 @@ import {
   PendingIssues,
   IssueTable,
   IssueVoices,
+  IssueNoticeReview,
   NewIssueForm,
 } from '../ui/issue-board'
 import {
@@ -191,6 +193,7 @@ export function issueDetailPage(
   rows: Row[],
   contacts: Map<number, Contact>,
   drafts?: string,
+  notices: IssueNoticeDraft[] = [],
 ) {
   const names = productNames(frame)
   const [issue] = aggregate(rows, names)
@@ -238,6 +241,23 @@ export function issueDetailPage(
         {issue.state === 'closed' && issue.needsDraft && (
           <DraftButton issue={issue} primary={!issue.awaitingApproval} />
         )}
+        {drafts === 'select' && (
+          <Notice kind="info">承認する宛先を選んでください。</Notice>
+        )}
+        {drafts === 'approved' && (
+          <Notice toast kind="success">
+            選んだ下書きを承認しました。
+          </Notice>
+        )}
+        {drafts === 'changed' && (
+          <Notice kind="info">
+            下書きの状態が変わりました。宛先と文面をもう一度確認してください。
+          </Notice>
+        )}
+        <IssueNoticeReview
+          notices={notices}
+          action={path(issue) + '/approve'}
+        />
         <IssueVoices
           voices={rows.flatMap((r) =>
             r.voices.map((v) => ({

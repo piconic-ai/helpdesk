@@ -237,3 +237,60 @@ test('デモの確認ページで公開する要約を修正し、確認後の�
     await page.close()
   }
 })
+
+test('課題の詳細で宛先と文面を読んだ下書きだけをまとめて承認する', async ({
+  page,
+  demo,
+}) => {
+  const detail = demo.origin + '/issues/example/helpdesk/42'
+  await page.goto(detail)
+  await page.getByRole('button', { name: '課題を閉じる（デモ用）' }).click()
+  const pending = page.getByRole('region', { name: /知らせる待ち/ })
+  await pending.getByRole('button', { name: '下書きを作る' }).click()
+  const form = page.getByRole('form', { name: '知らせの下書きを承認' })
+  const submit = form.getByRole('button', {
+    name: '選んだ下書きを承認して送信',
+  })
+  await expect(form.getByRole('checkbox')).toHaveCount(3)
+  const selected = []
+  for (const n of [4, 7]) {
+    const checkbox = form.getByRole('checkbox', {
+      name: new RegExp('customer' + n + '@example.net'),
+    })
+    await expect(checkbox).not.toBeChecked()
+    await expect(
+      form
+        .getByRole('group')
+        .filter({ hasText: 'customer' + n + '@example.net' }),
+    ).toContainText('への対応が完了しました。')
+    selected.push(await checkbox.getAttribute('value'))
+    await checkbox.check()
+  }
+  const post = async (values) => {
+    const data = new FormData()
+    for (const value of values) data.append('notice', value)
+    return page.request.post(detail + '/approve', {
+      multipart: data,
+      headers: { Origin: demo.origin },
+      maxRedirects: 0,
+    })
+  }
+  expect((await post([selected[0], 'outside-this-issue'])).status()).toBe(409)
+  await submit.click()
+  await expect(form.getByRole('checkbox')).toHaveCount(1)
+  await expect(form.getByRole('checkbox')).toHaveAccessibleName(
+    /customer11@example.net/,
+  )
+  expect((await post(selected)).status()).toBe(409)
+  await expect
+    .poll(async () =>
+      (
+        await demo.db
+          .prepare(
+            "SELECT DISTINCT number FROM messages WHERE number IN (4,7,11) AND delivery='sent' AND body LIKE '%への対応が完了しました。' ORDER BY number",
+          )
+          .all()
+      ).results.map((row) => row.number),
+    )
+    .toEqual([4, 7])
+})

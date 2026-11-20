@@ -314,3 +314,54 @@ export function NewIssueForm({
     </form>
   )
 }
+
+export function IssueNoticeReview({
+  notices,
+  action,
+}: {
+  action: string
+  notices: {
+    number: number
+    subject: string
+    email: string
+    reviewKey: string
+    body: string
+    canApprove: boolean
+  }[]
+}) {
+  if (!notices.length) return null
+  return (
+    <form
+      method="post"
+      action={action}
+      aria-label="知らせの下書きを承認"
+      data-layout="stack"
+      data-gap="md"
+    >
+      <h2>知らせの下書きを承認</h2>
+      {notices.map((n) => (
+        <fieldset className="settings-card" data-layout="stack" data-gap="sm">
+          <legend>
+            #{n.number} {n.subject}
+          </legend>
+          <label>
+            <input
+              type="checkbox"
+              name="notice"
+              value={n.reviewKey}
+              disabled={!n.canApprove}
+            />{' '}
+            {n.email || '宛先未設定'}
+          </label>
+          <p className="notice-draft-body">{n.body}</p>
+          <a href={'/conversation/' + n.number}>
+            {n.canApprove ? '会話で文面を編集する' : '会話で状態を確認する'}
+          </a>
+        </fieldset>
+      ))}
+      {notices.some((n) => n.canApprove) && (
+        <Button variant="default">選んだ下書きを承認して送信</Button>
+      )}
+    </form>
+  )
+}

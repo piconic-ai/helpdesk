@@ -319,12 +319,11 @@ export async function issueBoard(ctx: ExtensionContext) {
           prepared.get('notified/' + linkKey(link)),
           deliveries,
         )
-        const delivery = deliveries.get(
-          keyedDraftId(voice.number, 'issues:' + attempt.key),
-        )
+        const message = keyedDraftId(voice.number, 'issues:' + attempt.key)
         return {
           ...voice,
-          delivery,
+          message,
+          delivery: deliveries.get(message),
           informed: (sent?.get(voice.number) ?? -1) >= (closedAt ?? 0),
         }
       })

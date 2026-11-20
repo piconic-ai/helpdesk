@@ -4,6 +4,7 @@ import type { AppEnv } from '../core/operators/middleware'
 import { context, scopes } from '../core/operations/operations-routes'
 import { invoke } from '../core/operations/runtime-usecase'
 import { extensionContext } from '../core/extensions/context-usecase'
+import { ReplyStateConflict } from '../core/outbound/approval'
 import { consoleFrame } from '../core/conversations/console-usecase'
 import { issueCreationChoices, issueDetail } from './issue-board-usecase'
 import {
@@ -45,15 +46,17 @@ routes.get('/issues/new', async (c) => {
   const choices = await issueCreationChoices(c.env.DB, api, layout.products)
   return c.render(issueNewPage(layout, choices))
 })
-routes.get('/issues/:owner/:repo/:issue', async (c) => {
+async function currentIssue(c: Context<AppEnv>) {
   const api = enabled(c)
-  if (!api) return c.notFound()
+  if (!api) return
   const params = issueRef.safeParse({
     repository: c.req.param('owner') + '/' + c.req.param('repo'),
     issue: c.req.param('issue'),
   })
-  if (!params.success) return c.notFound()
-  const detail = await issueDetail(c.env.DB, api, params.data)
+  if (params.success) return issueDetail(c.env.DB, api, params.data)
+}
+routes.get('/issues/:owner/:repo/:issue', async (c) => {
+  const detail = await currentIssue(c)
   if (!detail) return c.notFound()
   return c.render(
     issueDetailPage(
@@ -61,8 +64,43 @@ routes.get('/issues/:owner/:repo/:issue', async (c) => {
       detail.rows,
       detail.contacts,
       c.req.query('drafts'),
+      detail.drafts,
     ),
   )
+})
+routes.post('/issues/:owner/:repo/:issue/approve', async (c) => {
+  const detail = await currentIssue(c)
+  if (!detail) return c.notFound()
+  const selected = new Set((await c.req.formData()).getAll('notice'))
+  const drafts = detail.drafts.filter(
+    (d) => d.canApprove && selected.has(d.reviewKey),
+  )
+  const destination =
+    '/issues/' + issueKey(detail.rows[0].repository, detail.rows[0].issue)
+  if (!selected.size) return c.redirect(destination + '?drafts=select', 303)
+  if (selected.size !== drafts.length) {
+    c.status(409)
+    return c.render(
+      issueDetailPage(
+        await frame(c),
+        detail.rows,
+        detail.contacts,
+        'changed',
+        detail.drafts,
+      ),
+    )
+  }
+  const ctx = context(c)
+  try {
+    for (const draft of drafts) {
+      await invoke(ctx, scopes, 'approve', { id: draft.id, body: draft.body })
+    }
+  } catch (error) {
+    if (!(error instanceof ReplyStateConflict)) throw error
+    // Another operator advanced one of the drafts after the page was checked.
+    return c.redirect(destination + '?drafts=changed', 303)
+  }
+  return c.redirect(destination + '?drafts=approved', 303)
 })
 routes.post('/issues/:owner/:repo/:issue/demo-close', async (c) => {
   const service = c.env.DEMO_GITHUB

@@ -1198,3 +1198,8 @@ body:has([data-empty-composer]:not([hidden]))
 .reply-preview [data-ui='actions'] {
   justify-content: space-between;
 }
+
+.notice-draft-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

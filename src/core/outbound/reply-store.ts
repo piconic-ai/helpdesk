@@ -5,6 +5,7 @@ import {
   type Actor,
   type Approval,
 } from '../conversations/state'
+import { ReplyStateConflict } from './approval'
 import { replyEnvelopeSchema } from './compose'
 import { outboxRowSchema } from './outbound-schema'
 import { holdReply, releaseHeldStatus } from './reply-hold-store'
@@ -177,7 +178,7 @@ export async function requeueReply(
     ...queueWrites(db, input, crypto.randomUUID()),
   ])
   if (!result.results.length)
-    throw new Error(`Reply cannot be queued from ${from}`)
+    throw new ReplyStateConflict(`Reply cannot be queued from ${from}`)
 }
 
 export async function discardDraft(

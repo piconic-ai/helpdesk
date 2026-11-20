@@ -2,7 +2,7 @@ import type { ExtensionContext } from '../core/extensions/extension'
 import { issueBoard } from '../extensions/issues/board-usecase'
 import { configuredRepository } from '../extensions/issues/issues-usecase'
 import { issueKey } from '../extensions/issues/outcomes'
-import { issueVoiceSummaries } from './issue-voices-store'
+import { issueNoticeDrafts, issueVoiceSummaries } from './issue-voices-store'
 
 export async function issueCreationChoices(
   db: D1Database,
@@ -35,9 +35,20 @@ export async function issueDetail(
     (r) => issueKey(r.repository, r.issue) === key,
   )
   if (!rows.length) return
-  const contacts = await issueVoiceSummaries(
-    db,
-    rows.flatMap((r) => r.voices.map((v) => v.number)),
-  )
-  return { rows, contacts: new Map(contacts.map((v) => [v.number, v])) }
+  const voices = rows.flatMap((row) => row.voices)
+  const [contacts, drafts] = await Promise.all([
+    issueVoiceSummaries(
+      db,
+      voices.map((v) => v.number),
+    ),
+    issueNoticeDrafts(
+      db,
+      rows[0].state === 'closed'
+        ? voices
+            .filter((v) => !v.informed && v.delivery === 'reply_drafted')
+            .map((v) => v.message)
+        : [],
+    ),
+  ])
+  return { rows, contacts: new Map(contacts.map((v) => [v.number, v])), drafts }
 }
