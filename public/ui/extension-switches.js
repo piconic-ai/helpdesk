@@ -1,4 +1,8 @@
-import { jsonMutation, pageQuery } from '/components/local-requests.js'
+import {
+  jsonMutation,
+  pageQuery,
+  syncPageCounts,
+} from '/components/local-requests.js'
 
 // A filtered card can disappear and return in its original group when undone.
 function insertInOrder(parent, element) {
@@ -90,6 +94,7 @@ async function change(form, body, signal) {
   const restoreFocus = form.contains(document.activeElement)
   const id = 'extension-' + form.dataset.extensionChange
   updateCard(snapshot, id)
+  syncPageCounts(snapshot)
   updateExtensionNavigation(snapshot)
   showResult(snapshot)
   if (restoreFocus) {

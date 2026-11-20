@@ -76,3 +76,30 @@ test('プロジェクトの無効化と再開でフォーカス、ほかのカ�
   expect(await articles.evaluate((node) => node.isConnected)).toBe(true)
   expect(await helpLink.evaluate((node) => node.isConnected)).toBe(true)
 })
+
+test.describe('スヌーズの利用設定', () => {
+  test.use({ extensions: ['snooze', 'articles', 'issues', 'feedback'] })
+  test('スヌーズを停止すると未対応に戻る会話の件数もその場で増える', async ({
+    page,
+    scene,
+  }) => {
+    await scene.db
+      .prepare('INSERT OR REPLACE INTO snooze_data VALUES(?,?)')
+      .bind(
+        'until/1',
+        JSON.stringify({ number: 1, until: Date.now() + 86_400_000 }),
+      )
+      .run()
+    await page.goto(scene.origin + '/settings/projects/slide')
+    await page.getByRole('link', { name: /^利用する拡張/ }).click()
+    const card = page.locator('#extension-snooze')
+    const count = page.locator(
+      '.sidebar-views a[href*="status=open"] .sidebar-count',
+    )
+    const before = Number(await count.textContent())
+    await card.getByRole('button', { name: '無効にする' }).click()
+    await expect(count).toHaveText(String(before + 1))
+    await card.getByRole('button', { name: '有効にする' }).click()
+    await expect(count).toHaveText(String(before))
+  })
+})
