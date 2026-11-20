@@ -65,11 +65,28 @@ test('W1 長い差出人でも製品名が読め、最後の担当変更と拡�
   page,
   scene,
 }) => {
+  const contact =
+    '株式会社サンプル経理部門 カスタマーサポート窓口担当 関西支社法人契約グループ運営管理チーム 山田 花'
+  await scene.db
+    .prepare('UPDATE conversations SET contact_name=? WHERE number=11')
+    .bind(contact)
+    .run()
+  await page.reload()
   const row = page
     .locator('a.conversation-row')
     .filter({ has: page.getByText('#11', { exact: true }) })
   for (const width of [375, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
+    const sender = row.locator('.row-sender')
+    const fullName = await sender.textContent()
+    await expect(sender).toHaveAttribute('title', fullName)
+    await expect(row).toHaveAccessibleName(new RegExp(fullName))
+    const lines = await sender.evaluate(
+      (el) =>
+        el.getBoundingClientRect().height /
+        parseFloat(getComputedStyle(el).lineHeight),
+    )
+    expect(lines).toBeLessThanOrEqual(2.05)
     const product = row.locator('.row-product')
     await expect(product).toContainText('Slide')
     const fits = await product.evaluate(

@@ -741,12 +741,14 @@ button[popovertarget][aria-expanded='true'],
   grid-template-rows: auto auto;
 }
 [data-inbox-view] .inbox-item .row-sender {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   flex: 0 1 auto;
   max-width: 40%;
   white-space: normal;
   overflow-wrap: anywhere;
-  overflow: visible;
+  overflow: hidden;
 }
 [data-inbox-view] .inbox-item .row-product {
   max-width: 30%;
@@ -897,8 +899,9 @@ button[popovertarget][aria-expanded='true'],
     line-height: var(--spacing-lg);
   }
   [data-inbox-view] .inbox-item .row-origin .row-sender {
-    display: inline;
-    max-width: none;
+    display: -webkit-inline-box;
+    vertical-align: top;
+    max-width: calc(100% - var(--spacing-xs));
     margin-inline-start: var(--spacing-xs);
   }
   [data-inbox-view] .inbox-item .row-product {
