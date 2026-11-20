@@ -66,7 +66,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await main.getByRole('link', { name: /#1 .*再開して承認/ }).click()
   const closedDraft = page
     .locator('article')
-    .filter({ hasText: '問題の修正が完了しました' })
+    .filter({ hasText: title })
   await closedDraft.getByRole('button', { name: '下書きを破棄' }).click()
   await confirmSubmission(page)
   await expect(closedDraft).toHaveCount(0)
@@ -93,7 +93,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await page.getByRole('button', { name: '再開する', exact: true }).click()
   const draft = page
     .locator('article')
-    .filter({ hasText: '問題の修正が完了しました' })
+    .filter({ hasText: title })
   await draft.getByRole('button', { name: '承認して送信' }).click()
   await confirmSubmission(page)
   await expect(async () => {

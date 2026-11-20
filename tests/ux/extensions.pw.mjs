@@ -86,7 +86,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
     await expect(
       page
         .locator('article.message-outbound')
-        .filter({ hasText: '問題の修正が完了しました' }),
+        .filter({ hasText: '領収書を見つけやすくする' }),
     ).toContainText('送信済み', { timeout: 1000 })
   }).toPass({ timeout: 15000 })
   await capture(
