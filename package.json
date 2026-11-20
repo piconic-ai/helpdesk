@@ -1,6 +1,7 @@
 {
   "name": "@piconic-ai/helpdesk",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "pnpm build && wrangler dev",

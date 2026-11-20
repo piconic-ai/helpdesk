@@ -7,3 +7,7 @@
 まずローカルでサンプルメールを受信して返信を試してください。自分の Cloudflare アカウントで使う場合は、セルフホストの手順に沿って窓口のドメインと Access を設定します。
 
 [ヘルプチャットの埋め込み](docs/dev/embedding.md) · [ローカル開発手順](docs/dev/development.md)・[セルフホスト](docs/dev/self-hosting.md)・[CLI と MCP](docs/dev/machine-access.md)・[拡張の作り方](docs/dev/extensions.md)・[English](README.md)
+
+## ライセンス
+
+Helpdesk のライセンスは [MIT](LICENSE) です。BarefootJS 由来の UI 部品には、[元の著作権表示とライセンス](src/ui/BAREFOOT-LICENSE)を同梱しています。

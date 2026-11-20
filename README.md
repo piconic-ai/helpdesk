@@ -9,3 +9,7 @@ Start with the local walkthrough, then follow the self-hosting guide to connect 
 To try the inbox with sample conversations, run `pnpm install --frozen-lockfile` and `pnpm dev:demo`, then open [the demo inbox](http://127.0.0.1:8788/). You can reply, leave an internal note, or ask a question in [the help chat](http://127.0.0.1:8788/help/chat/slide). Email delivery and article recommendations are simulated locally. The sample data resets when you restart the demo.
 
 [Embed the help chat](docs/dev/embedding.md) · [Local walkthrough](docs/dev/development.md) · [Self-hosting](docs/dev/self-hosting.md) · [CLI and MCP](docs/dev/machine-access.md) · [Extension development](docs/dev/extensions.md) · [日本語](README.ja.md)
+
+## License
+
+Helpdesk uses the [MIT License](LICENSE). The UI components adapted from BarefootJS retain the [BarefootJS copyright and license notice](src/ui/BAREFOOT-LICENSE).
