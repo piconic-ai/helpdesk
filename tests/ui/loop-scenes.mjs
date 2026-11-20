@@ -4,6 +4,9 @@ import { fixedTime, operator } from './seed.mjs'
 const button = (page, name) => page.getByRole('button', { name, exact: true })
 
 async function popup(page, id) {
+  const relocated = page.locator('#bulk-more [popovertarget="' + id + '"]')
+  if (id !== 'bulk-more' && (await relocated.count()))
+    await popup(page, 'bulk-more')
   await page
     .locator('[popovertarget="' + id + '"]:visible')
     .first()
@@ -339,15 +342,19 @@ const entries = [
   ],
   [
     'link-confirm',
-    'GitHub に投稿するリンクを確認する',
+    'GitHub の既存の課題との紐づけを確認する',
     '/extensions/issues/link/1',
     ['issues'],
-    (page) =>
-      confirmation(
+    async (page) => {
+      await confirmation(
         page,
-        page.locator('form[action="/actions/issues.link"] button').first(),
-        'にこの会話を紐づけます',
-      ),
+        page.getByRole('button', { name: '既存の課題と紐づける', exact: true }),
+        '会話 SLD-1',
+      )
+      const dialog = page.getByRole('dialog', { name: '既存の課題と紐づける' })
+      await expect(dialog).toContainText('にこの会話を紐づけます')
+      await expect(dialog).not.toContainText('コメントとして投稿')
+    },
   ],
   [
     'chat-solved',

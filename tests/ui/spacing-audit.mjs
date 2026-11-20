@@ -2,7 +2,10 @@
 export function inspectSpacing() {
   const problems = new Set()
   const name = (el) =>
-    el.dataset.ui || el.id || el.textContent.trim().slice(0, 18) || el.localName
+    el.dataset.ui ||
+    el.getAttribute('id') ||
+    el.textContent.trim().slice(0, 18) ||
+    el.localName
   const visible = (el) =>
     el.checkVisibility() && el.getBoundingClientRect().width > 0
   const main =
@@ -22,7 +25,7 @@ export function inspectSpacing() {
   function boxesWithin(el) {
     if (
       !visible(el) ||
-      getComputedStyle(el).position === 'absolute' ||
+      ['absolute', 'fixed'].includes(getComputedStyle(el).position) ||
       el.matches('[popover], dialog:not(:modal)')
     )
       return []
