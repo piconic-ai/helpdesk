@@ -1,3 +1,4 @@
+import { forProject, extensionProducts } from '../extensions/registry'
 import {
   can,
   inboxProductIds,
@@ -126,24 +127,30 @@ export async function consoleFrame(
     openNumbers,
     counts,
     extensions: await Promise.all(
-      (env.EXTENSIONS?.active ?? []).map(async (installed) => ({
-        id: installed.extension.id,
-        permitsMail: installed.extension.permissions.includes('send'),
-        icon: installed.extension.icon,
-        slots: installed.extension.panels?.map((p) => p.slot) ?? [],
-        count: await installed.extension.navigationCount?.(
-          extensionContext(
-            {
-              env,
-              operator,
-              actor: { kind: 'operator', id: operator.email },
-              now,
-              uuid: () => crypto.randomUUID(),
-            },
-            installed,
+      (env.EXTENSIONS?.active ?? [])
+        .filter((item) =>
+          product
+            ? forProject(item, product)
+            : extensionProducts(item, scope)?.length !== 0,
+        )
+        .map(async (installed) => ({
+          id: installed.extension.id,
+          permitsMail: installed.extension.permissions.includes('send'),
+          icon: installed.extension.icon,
+          slots: installed.extension.panels?.map((p) => p.slot) ?? [],
+          count: await installed.extension.navigationCount?.(
+            extensionContext(
+              {
+                env,
+                operator,
+                actor: { kind: 'operator', id: operator.email },
+                now,
+                uuid: () => crypto.randomUUID(),
+              },
+              installed,
+            ),
           ),
-        ),
-      })),
+        })),
     ),
     now,
   }

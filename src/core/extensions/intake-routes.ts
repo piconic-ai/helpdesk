@@ -1,3 +1,4 @@
+import { projectRegistry } from './registry'
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { AppEnv } from '../operators/middleware'
@@ -8,6 +9,8 @@ const app = new Hono<AppEnv>()
 app.use('/public/*', bodyLimit({ maxSize: 256 * 1024 }))
 app.on(['OPTIONS', 'POST'], '/public/:id/:product/:path', async (c) => {
   const { id, product, path } = c.req.param()
+  if (c.env.EXTENSIONS)
+    c.env = { ...c.env, EXTENSIONS: projectRegistry(c.env.EXTENSIONS, product) }
   const installed = c.env.EXTENSIONS?.active.find((i) => i.extension.id === id)
   const intake = installed?.extension.intakes?.find((i) => i.path === path)
   if (!installed || !intake) return c.notFound()

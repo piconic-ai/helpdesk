@@ -36,6 +36,7 @@ test('F02-AC1–6 registration validates config, isolates permissions and retrie
         },
       ],
     }
+    await p.DB.prepare("INSERT INTO products VALUES('sample','Sample')").run()
     const entries = [
       { extension: ext, enabled: true, settings: { label: 'sample' } },
       { extension: form, enabled: false, settings: {} },
@@ -102,7 +103,6 @@ test('F02-AC1–6 registration validates config, isolates permissions and retrie
         .first(),
     ).toEqual({ phase: 'done', attempt: 2 })
     await p.DB.batch([
-      p.DB.prepare("INSERT INTO products VALUES('sample','Sample')"),
       p.DB.prepare("INSERT INTO mailboxes VALUES('desk@example.net','sample')"),
     ])
     const { number } = await api.open({

@@ -1,3 +1,5 @@
+import { projectRegistry } from '../core/extensions/registry'
+import { conversationProject } from '../core/operators/project-targets-usecase'
 import { can } from '../core/operators/project-access'
 import { requireSettings } from '../core/settings/project-settings-usecase'
 import { requireProduct } from '../core/operators/project-permission'
@@ -48,7 +50,7 @@ import { Hono, type Context as HttpContext } from 'hono'
 import { z } from 'zod'
 import type { AppEnv } from '../core/operators/middleware'
 import { context, scopes } from '../core/operations/operations-routes'
-import { authorize } from '../core/operations/catalog'
+import { authorize, PermissionDenied } from '../core/operations/catalog'
 import { consoleFrame } from '../core/conversations/console-usecase'
 import { extensionContext } from '../core/extensions/context-usecase'
 import { invoke } from '../core/operations/runtime-usecase'
@@ -95,6 +97,41 @@ import {
 import { ruleSchema, storedRules } from '../extensions/rules/extension'
 import { rulesSettings } from './rules-console-page'
 const app = new Hono<AppEnv>()
+async function selectExtensionProject(
+  c: HttpContext<AppEnv>,
+  next: () => Promise<void>,
+) {
+  const selected = c.req.query('product')
+  const form = c.req.method === 'POST' ? await c.req.parseBody() : {}
+  const project = form.product || c.req.param('product') || selected
+  if (typeof project === 'string' && project && c.env.EXTENSIONS) {
+    if (!can(c.get('operator'), 'read', project).allowed)
+      throw new PermissionDenied('Permission denied')
+    c.env = { ...c.env, EXTENSIONS: projectRegistry(c.env.EXTENSIONS, project) }
+  }
+  await next()
+}
+for (const route of [
+  '/extensions/*',
+  '/articles',
+  '/articles/*',
+  '/issues',
+  '/issues/*',
+  '/metrics',
+  '/voices',
+  '/voices/*',
+])
+  app.use(route, selectExtensionProject)
+app.use('/extensions/chat/preview/:product', selectExtensionProject)
+app.use('/conversation/:number/*', async (c, next) => {
+  const product = await conversationProject(
+    c.env.DB,
+    Number(c.req.param('number')),
+  )
+  if (product && c.env.EXTENSIONS)
+    c.env = { ...c.env, EXTENSIONS: projectRegistry(c.env.EXTENSIONS, product) }
+  await next()
+})
 app.use('/extensions/*', async (c, next) => {
   await next()
   const location = c.res.headers.get('Location')
@@ -130,7 +167,12 @@ app.route('/', automaticMailRoutes)
 type RequestContext = HttpContext<AppEnv>
 function active(c: RequestContext, id: string) {
   const item = c.env.EXTENSIONS?.active.find((i) => i.extension.id === id)
-  return item && extensionContext(context(c), item)
+  if (!item) return
+  const api = extensionContext(context(c), item)
+  return api.visibleProducts?.length === 0 &&
+    !can(c.get('operator'), 'global').allowed
+    ? undefined
+    : api
 }
 const frame = (c: RequestContext) =>
   consoleFrame(c.env, c.get('operator'), c.req.path, {

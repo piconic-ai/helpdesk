@@ -208,14 +208,15 @@ export async function readPolicyMessage(
   namespace: string,
   key: string,
   enabledBy: string | null,
+  product?: string,
 ) {
   const row = await db
     .prepare(`SELECT
     (SELECT value FROM ${extensionTable(namespace)} WHERE key=?1) AS value,
     (SELECT token FROM extension_setting_changes WHERE namespace=?2 AND setting=?1) AS revision,
-    (SELECT at FROM events WHERE kind='extension_configured' AND json_extract(payload,'$.id')=?2
+    (SELECT at FROM events WHERE ((kind='extension_configured' AND json_extract(payload,'$.id')=?2) OR (kind='project_extension_configured' AND json_extract(payload,'$.product')=?4 AND json_extract(payload,'$.extension')=?2))
      AND json_extract(payload,'$.enabled')=1 AND json_extract(actor,'$.id')=?3 ORDER BY id DESC LIMIT 1) AS enabledAt`)
-    .bind(key, namespace, enabledBy)
+    .bind(key, namespace, enabledBy, product ?? null)
     .first<{
       value: string | null
       revision: string | null

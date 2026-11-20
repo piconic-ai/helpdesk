@@ -201,6 +201,7 @@ export async function discardDraft(
 }
 
 const claimSchema = replyEnvelopeSchema.extend({
+  product: z.string(),
   actor: z.string().transform((value) => actorSchema.parse(JSON.parse(value))),
   approval: z
     .string()
@@ -216,7 +217,7 @@ export async function claim(db: D1Database, id: string, now: number) {
       (SELECT id FROM messages WHERE id=? AND kind='outbound' AND delivery='queued' AND approval IS NOT NULL)`)
       .bind(now, id, now, id),
     db
-      .prepare(`SELECT c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,p.prefix AS ticketPrefix,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic, (s.operator_recipient IS NULL OR EXISTS(SELECT 1 FROM product_members pm WHERE pm.product=c.product AND pm.email=s.operator_recipient)) AS recipientAllowed
+      .prepare(`SELECT c.product,c.mailbox,o.sender_name AS senderName,o.operator_name AS operatorName,coalesce(s.operator_recipient,c.contact) AS contact,c.number,p.prefix AS ticketPrefix,c.subject,m.body,m.in_reply_to,m.refs,m.actor,m.approval,o.attempt,(s.message IS NOT NULL) AS automatic, (s.operator_recipient IS NULL OR EXISTS(SELECT 1 FROM product_members pm WHERE pm.product=c.product AND pm.email=s.operator_recipient)) AS recipientAllowed
       FROM messages m JOIN conversations c ON c.number=m.number JOIN outbox o ON o.message=m.id JOIN product_ticket_prefixes p ON p.product=c.product LEFT JOIN standing_messages s ON s.message=m.id WHERE m.id=?`)
       .bind(id),
   ])

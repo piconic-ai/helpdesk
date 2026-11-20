@@ -108,8 +108,6 @@ beforeAll(async () => {
   if (!address || typeof address === 'string')
     throw new Error('Expected a port')
   origin = 'http://127.0.0.1:' + address.port
-  read = await issue('Documentation client', 'read')
-  draft = await issue('Draft assistant', 'draft')
   await platform.DB.batch([
     platform.DB.prepare("INSERT INTO products VALUES('a','Alpha')"),
     platform.DB.prepare(
@@ -122,6 +120,8 @@ beforeAll(async () => {
       "INSERT INTO messages(id,number,kind,body,html,raw_key,created_at) VALUES('received',1,'inbound','Untrusted text','<p>Untrusted</p>','raw/received',1)",
     ),
   ])
+  read = await issue('Documentation client', 'read')
+  draft = await issue('Draft assistant', 'draft')
 })
 afterAll(async () => {
   server.close()
@@ -281,6 +281,9 @@ it('F03-AC5 only the issuer can revoke a token and the secret is shown only once
 })
 it('F15-AC1/2/3 downloads the same redacted JSON Lines via CLI and MCP', async () => {
   const { exportExtension } = await import('../src/extensions/export/extension')
+  await platform.DB.prepare(
+    "INSERT INTO project_extension_settings(product,extension,enabled) VALUES('a','export',1) ON CONFLICT DO NOTHING",
+  ).run()
   env.EXTENSIONS = registry([
     { extension: exportExtension, enabled: true, settings: {} },
   ])

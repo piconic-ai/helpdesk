@@ -126,7 +126,7 @@ export function globalSettings(
         {
           href: '/extensions',
           title: '拡張機能',
-          description: '全体で使用する拡張を選びます。',
+          description: '各プロジェクトに提供する拡張を選びます。',
         },
         {
           href: '/tokens',
@@ -228,6 +228,11 @@ export function projectHome(frame: ConsoleFrame, project: ProjectSettings) {
   const url = projectPath(id)
   const suffix = '?product=' + encodeURIComponent(id)
   const links: Row[] = [
+    {
+      title: '利用する拡張',
+      href: projectPath(id, 'extensions'),
+      description: project.name + 'で使う拡張を選びます。',
+    },
     {
       title: '窓口と差出人',
       href: '/settings/mailboxes?edit=' + encodeURIComponent(id),

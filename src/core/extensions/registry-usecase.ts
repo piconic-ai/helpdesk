@@ -6,7 +6,9 @@ import {
   activationNamespace,
 } from './admin-settings-store'
 import type { Bindings } from '../settings/bindings'
-import { registry, type Registration } from './registry'
+import { conversationProject } from '../operators/project-targets-store'
+import { projectExtensions } from './project-extensions-store'
+import { activeExtensions, registry, type Registration } from './registry'
 import { readOverrides, deliveryFailures } from './extension-store'
 import { describe } from '../operations/runtime-usecase'
 import type { Context, Scope } from '../operations/catalog-usecase'
@@ -33,7 +35,7 @@ export async function configure(
   await migrateExtensions(env.DB, installed.active, bundledIndexes)
   return {
     ...env,
-    EXTENSIONS: installed,
+    EXTENSIONS: await projectExtensions(env.DB, installed),
     PUBLIC_INTAKES: z
       .record(z.string(), intakePolicySchema)
       .parse(env.PUBLIC_INTAKES ?? publicIntakes),
@@ -105,7 +107,11 @@ export async function panels(
 ) {
   const result = []
   const operations = describe(ctx, scopes)
-  for (const installed of ctx.env.EXTENSIONS?.active ?? []) {
+  const product =
+    number === undefined
+      ? undefined
+      : await conversationProject(ctx.env.DB, number)
+  for (const installed of activeExtensions(ctx.env.EXTENSIONS, product)) {
     const api = extensionContext(ctx, installed)
     for (const panel of installed.extension.panels ?? []) {
       if (panel.slot !== slot) continue
@@ -138,7 +144,7 @@ export async function replyLinks(
   inbound?: { number: number; id: string },
 ) {
   const results = await Promise.all(
-    (ctx.env.EXTENSIONS?.active ?? []).map(
+    activeExtensions(ctx.env.EXTENSIONS, product).map(
       async (item) =>
         item.extension.replyLinks?.(
           extensionContext(ctx, item),

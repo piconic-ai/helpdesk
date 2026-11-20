@@ -34,6 +34,9 @@ beforeAll(async () => {
   await platform.DB.batch([
     platform.DB.prepare("INSERT INTO products VALUES('shop','Shop')"),
     platform.DB.prepare(
+      "INSERT INTO project_extension_settings(product,extension,enabled) VALUES('shop','articles',1)",
+    ),
+    platform.DB.prepare(
       "UPDATE product_lifecycle SET public_help=1 WHERE product='shop'",
     ),
     platform.DB.prepare(

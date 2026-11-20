@@ -1,3 +1,4 @@
+import { projectRegistry } from './registry'
 import { productIcon } from '../settings/product-icon-usecase'
 import { productIconSvg } from '../../ui/product-mark'
 import type { Bindings } from '../settings/bindings'
@@ -47,6 +48,8 @@ function articleLayout(id: string, method: string, path?: string) {
 }
 app.all('/help/:id/:product/:path{.*}?', async (c) => {
   const { id, product, path } = c.req.param()
+  if (c.env.EXTENSIONS)
+    c.env = { ...c.env, EXTENSIONS: projectRegistry(c.env.EXTENSIONS, product) }
   const item = c.env.EXTENSIONS?.active.find((x) => x.extension.id === id)
   if (!item) return c.notFound()
   const info = await publicProduct(c.env, product)

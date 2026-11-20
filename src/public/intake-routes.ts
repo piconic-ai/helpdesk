@@ -1,3 +1,4 @@
+import { projectRegistry } from '../core/extensions/registry'
 import { Hono, type Context } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { z } from 'zod'
@@ -235,6 +236,8 @@ app.on(['GET', 'POST'], htmlPath, async (c) => {
   const kind = kinds.parse(c.req.param('id')),
     product = c.req.param('product'),
     origin = new URL(c.req.url).origin
+  if (c.env.EXTENSIONS)
+    c.env = { ...c.env, EXTENSIONS: projectRegistry(c.env.EXTENSIONS, product) }
   const installed = c.env.EXTENSIONS?.active.find(
     (i) => i.extension.id === kind,
   )

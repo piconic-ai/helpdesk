@@ -1,3 +1,5 @@
+import { extensionProducts } from '../extensions/registry'
+import { actingProducts } from '../operators/project-permission'
 import { authorizeReferences } from '../operators/project-targets-usecase'
 import { z } from 'zod'
 import { coreOperations, type Context, type Scope } from './catalog-usecase'
@@ -16,18 +18,29 @@ function available(ctx: Context) {
     humanOnly: false,
     run: (i: unknown) => op.execute(ctx, i),
   }))
-  const extra = (ctx.env.EXTENSIONS?.active ?? []).flatMap((item) =>
-    (item.extension.operations ?? []).map((op) => ({
-      ...op,
-      name: item.extension.id + '.' + op.name,
-      humanOnly: op.humanOnly ?? false,
-      run: async (i: unknown) => {
-        const parsed = op.input.parse(i)
-        await authorizeReferences(ctx, op.permission, parsed)
-        return op.run(extensionContext(ctx, item), parsed)
-      },
-    })),
-  )
+  const extra = (ctx.env.EXTENSIONS?.active ?? [])
+    .filter(
+      (item) => extensionProducts(item, actingProducts(ctx))?.length !== 0,
+    )
+    .flatMap((item) =>
+      (item.extension.operations ?? []).map((op) => ({
+        ...op,
+        name: item.extension.id + '.' + op.name,
+        humanOnly: op.humanOnly ?? false,
+        run: async (i: unknown) => {
+          const parsed = op.input.parse(i)
+          await authorizeReferences(
+            {
+              ...ctx,
+              extensionProducts: extensionProducts(item, actingProducts(ctx)),
+            },
+            op.permission,
+            parsed,
+          )
+          return op.run(extensionContext(ctx, item), parsed)
+        },
+      })),
+    )
   return [...core, ...extra]
 }
 function permitted(

@@ -1,7 +1,6 @@
 import { inboxProductIds } from '../operators/project-access'
 import { authorizeCoreReferences } from '../operators/project-targets-usecase'
 import { changeInbox, undoInbox } from '../conversations/inbox-change-usecase'
-import { can } from '../operators/project-access'
 import { makeCatalog } from './catalog'
 import type { filterSchema } from '../conversations/filters'
 import {
@@ -34,6 +33,7 @@ import * as store from './operator-store'
 export type Scope = 'read' | 'draft' | 'write' | 'send' | 'admin'
 export type Context = {
   env: Bindings
+  extensionProducts?: readonly string[] | null
   operator: Operator
   actor: z.input<typeof actorSchema>
   now: number
@@ -111,18 +111,7 @@ export const handlers = {
   mailbox: (
     c: Context,
     i: { product: string; name: string; address: string },
-  ) =>
-    store.setMailbox(
-      c.env.DB,
-      audit(c),
-      i,
-      can(c.operator, 'global').allowed
-        ? (c.env.EXTENSIONS?.active
-            .filter((x) => x.extension.permissions.includes('send'))
-            .map((x) => x.extension.id) ?? [])
-        : [],
-      c.operator.email,
-    ),
+  ) => store.setMailbox(c.env.DB, audit(c), i),
   role: (
     c: Context,
     i: { email: string; role: 'admin' | 'agent'; displayName?: string },

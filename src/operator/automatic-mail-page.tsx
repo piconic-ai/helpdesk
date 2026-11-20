@@ -55,7 +55,7 @@ export function automaticMailPage(
             ? '初めて受け付けた問い合わせメールに自動で返信します。'
             : '問い合わせを完了すると、回答用のリンクを自動で送ります。'}
         </p>
-        <p>承認の対象は、すべての{projectTerm}です。</p>
+        <p>承認の対象は、{data?.productName ?? '選択したプロジェクト'}です。</p>
         {approval.by ? (
           <p>
             有効にした運営者：

@@ -43,6 +43,8 @@ import {
   projectOperators,
 } from './projects-page'
 import { projectPath } from './project-setting-links'
+import { projectExtensionPage } from './project-extension-page'
+import { saveProjectExtension } from '../extensions/project-extensions-usecase'
 import { membersPage } from './project-members-page'
 import { dataSectionPage, projectLabelsPage } from './project-section-page'
 import { projectTerm } from './project-term'
@@ -97,6 +99,32 @@ app.get('/settings/projects/:product', async (c) => {
   const data = await projectSettingValues(context(c), product)
   if (!data) return c.notFound()
   return c.render(projectHome(await frame(c, product), data.project))
+})
+app.get('/settings/projects/:product/extensions', async (c) => {
+  const product = c.req.param('product')
+  const data = await projectSettingValues(context(c), product)
+  if (!data) return c.notFound()
+  return c.render(
+    projectExtensionPage(
+      await frame(c, product),
+      data.project,
+      c.env.EXTENSIONS?.all.filter((item) => item.enabled) ?? [],
+    ),
+  )
+})
+app.post('/settings/projects/:product/extensions/:extension', async (c) => {
+  const product = c.req.param('product')
+  const enabled = z.enum(['yes', 'no']).parse((await c.req.parseBody()).enabled)
+  if (
+    !(await saveProjectExtension(
+      context(c),
+      product,
+      c.req.param('extension'),
+      enabled === 'yes',
+    ))
+  )
+    return c.notFound()
+  return c.redirect(projectPath(product, 'extensions') + '?saved=yes', 303)
 })
 app.get('/settings/operators', async (c) => {
   const operators = await settingsOperators(context(c))

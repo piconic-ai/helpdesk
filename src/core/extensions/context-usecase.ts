@@ -1,3 +1,4 @@
+import { conversationProject } from '../operators/project-targets-store'
 import { can } from '../operators/project-access'
 import { actingProducts, requireProduct } from '../operators/project-permission'
 import { requireConversations } from '../operators/project-targets-usecase'
@@ -31,7 +32,7 @@ import {
   saveDraft,
   templateContact,
 } from '../intakes/intake-usecase'
-import type { Installed } from './registry'
+import { extensionProducts, forProject, type Installed } from './registry'
 import type { Permission, ExtensionContext } from './extension'
 import { extensionStorage } from './extension-store'
 import { externalRequest } from './external-client'
@@ -40,7 +41,8 @@ export function extensionContext(
   c: Context,
   installed: Installed,
 ): ExtensionContext {
-  const products = actingProducts(c)
+  const products = extensionProducts(installed, actingProducts(c))
+  c = { ...c, extensionProducts: products }
   const ext = installed.extension
   const actor = { kind: 'extension', id: ext.id } as const
   function requirePermission(permission: Permission) {
@@ -58,8 +60,9 @@ export function extensionContext(
     operatorRecipient?: string,
   ) {
     requirePermission('send')
-    if (!installed.enabledBy)
-      throw new Error('Administrator must enable this sending policy')
+    const product = await conversationProject(c.env.DB, number)
+    const by = product && forProject(installed, product)?.enabledBy
+    if (!by) throw new Error('Administrator must enable this sending policy')
     await requireConversations(c, [number], 'send')
     return queueStanding(c.env, {
       number,
@@ -67,7 +70,7 @@ export function extensionContext(
       key,
       operatorRecipient,
       policy: ext.id,
-      enabledBy: installed.enabledBy,
+      enabledBy: by,
       now: c.now,
     })
   }
@@ -113,7 +116,21 @@ export function extensionContext(
         changeFeedback(c.env, number, c.actor, c.now, 'review'),
       ),
     resource: async (id, name, input) => {
-      const item = c.env.EXTENSIONS?.active.find((x) => x.extension.id === id)
+      const product =
+        typeof input === 'string'
+          ? input
+          : input &&
+              typeof input === 'object' &&
+              'product' in input &&
+              typeof input.product === 'string'
+            ? input.product
+            : undefined
+      const registered = c.env.EXTENSIONS?.active.find(
+        (x) => x.extension.id === id,
+      )
+      const item =
+        product && registered ? forProject(registered, product) : registered
+      if (product && products && !products.includes(product)) return undefined
       const resource = item?.extension.resources?.find((r) => r.name === name)
       return item && resource
         ? resource.run(extensionContext(c, item), input)
@@ -179,13 +196,13 @@ export function extensionContext(
       return templateContact(c.env, number)
     },
     inboundBody: async (number, id) => {
-      await requireConversations(c, [number], 'read')
       requirePermission('read_body')
+      await requireConversations(c, [number], 'read')
       return inboundBody(c.env.DB, number, id)
     },
     body: async (number) => {
-      await requireConversations(c, [number], 'read')
       requirePermission('read_body')
+      await requireConversations(c, [number], 'read')
       const rows = await c.env.DB.prepare(
         'SELECT body FROM messages WHERE number=? ORDER BY created_at,id',
       )

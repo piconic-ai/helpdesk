@@ -10,10 +10,17 @@ export function scopeBinding(products: ProductScope) {
 
 // A scheduled or public extension invocation has no operator grant to intersect.
 export function actingProducts(c: Context) {
-  return c.actor.kind === 'extension' ? null : visibleProductIds(c.operator)
+  const scope =
+    c.actor.kind === 'extension' ? null : visibleProductIds(c.operator)
+  if (!c.extensionProducts) return scope
+  return c.extensionProducts.filter(
+    (product) => !scope || scope.includes(product),
+  )
 }
 
 export function requireProduct(c: Context, product: string, permission: Scope) {
+  if (c.extensionProducts && !c.extensionProducts.includes(product))
+    throw new PermissionDenied('Extension disabled for this project')
   if (c.actor.kind === 'extension') return
   const action =
     permission === 'admin' ? 'manage' : permission === 'read' ? 'read' : 'work'

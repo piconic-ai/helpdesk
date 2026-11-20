@@ -41,7 +41,9 @@ beforeAll(async () => {
     ENVIRONMENT: 'local',
   } as unknown as Bindings
   await p.DB.batch([
-    p.DB.prepare("INSERT INTO products VALUES('shop','Web shop')"),
+    p.DB.prepare(
+      "INSERT INTO products VALUES('shop','Web shop'),('other','Other')",
+    ),
     p.DB.prepare("INSERT INTO mailboxes VALUES('shop@example.com','shop')"),
   ])
 })

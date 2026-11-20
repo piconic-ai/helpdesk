@@ -1,3 +1,4 @@
+import { forProject, type Registry } from '../extensions/registry'
 import { decideSend } from './schedule'
 import { z } from 'zod'
 import {
@@ -149,8 +150,21 @@ export function retryReply(
 ) {
   return queueExisting(env, input, 'failed')
 }
+function approvedForDelivery(
+  reply: NonNullable<Awaited<ReturnType<typeof claim>>>,
+  extensions?: Registry,
+) {
+  const approval = reply.approval
+  if (approval.kind !== 'standing' || !extensions) return true
+  const item = extensions.active.find(
+    (item) => item.extension.id === approval.policy,
+  )
+  return (
+    !!item && forProject(item, reply.product)?.enabledBy === approval.enabledBy
+  )
+}
 export async function deliverReply(
-  env: { DB: D1Database; EMAIL: EmailBinding },
+  env: { DB: D1Database; EMAIL: EmailBinding; EXTENSIONS?: Registry },
   id: string,
   clock: number | (() => number) = Date.now,
 ) {
@@ -167,6 +181,13 @@ export async function deliverReply(
   }
   const reply = await claim(env.DB, id, now)
   if (!reply) return holdDelay(env.DB, id, now)
+  if (!approvedForDelivery(reply, env.EXTENSIONS)) {
+    await finish(env.DB, id, reply.attempt, reply.actor, time(), {
+      kind: 'rejected',
+      reason: 'Project sending policy is no longer approved',
+    })
+    return
+  }
   if (!reply.recipientAllowed) {
     await finish(env.DB, id, reply.attempt, reply.actor, time(), {
       kind: 'rejected',

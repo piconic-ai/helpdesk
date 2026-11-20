@@ -5,7 +5,44 @@ export type Registration = {
   settings: unknown
   enabled: boolean
 }
-export type Installed = Registration & { enabledBy: string | null }
+export type Installed = Registration & {
+  enabledBy: string | null
+  projects?: ReadonlyMap<string, { by: string | null; afterEvent: number }>
+}
+export function forProject(item: Installed, product: string) {
+  if (!item.projects) return item
+  const setting = item.projects.get(product)
+  return setting
+    ? {
+        ...item,
+        enabledBy: setting.by,
+        projects: new Map([[product, setting]]),
+      }
+    : undefined
+}
+export function extensionProducts(
+  item: Installed,
+  scope: readonly string[] | null,
+) {
+  return item.projects
+    ? [...item.projects.keys()].filter(
+        (project) => scope === null || scope.includes(project),
+      )
+    : scope
+}
+export function activeExtensions(registry?: Registry, product?: string | null) {
+  const available = registry?.active ?? []
+  return product
+    ? available.flatMap((item) => forProject(item, product) ?? [])
+    : available
+}
+export function projectRegistry(registry: Registry, product: string): Registry {
+  return { ...registry, active: activeExtensions(registry, product) }
+}
+export function projectApprover(item: Installed, product?: string) {
+  return product ? (forProject(item, product)?.enabledBy ?? null) : null
+}
+
 export type Registry = { all: Installed[]; active: Installed[] }
 export function registry(
   entries: Registration[],

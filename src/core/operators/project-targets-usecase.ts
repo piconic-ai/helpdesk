@@ -68,3 +68,5 @@ export async function authorizeCoreReferences(
     await requireMedia(ctx, 'message', parsed.id, permission)
   }
 }
+
+export { conversationProject } from './project-targets-store'

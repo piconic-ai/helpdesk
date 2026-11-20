@@ -67,3 +67,10 @@ export async function projectOperators(db: D1Database, products: ProductScope) {
     .all<{ product: string; email: string }>()
   return Map.groupBy(rows.results, (row) => row.email)
 }
+
+export function conversationProject(db: D1Database, number: number) {
+  return db
+    .prepare('SELECT product FROM conversations WHERE number=?')
+    .bind(number)
+    .first<string>('product')
+}

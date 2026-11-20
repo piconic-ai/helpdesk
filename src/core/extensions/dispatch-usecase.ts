@@ -1,5 +1,8 @@
 import type { Bindings } from '../settings/bindings'
 import type { Context } from '../operations/catalog-usecase'
+import { conversationProject } from '../operators/project-targets-store'
+import type { ExtensionEvent } from './extension'
+import { forProject, type Installed } from './registry'
 import { claimEvent, due, finishEvent, scan } from './extension-store'
 import { extensionContext } from './context-usecase'
 
@@ -20,6 +23,20 @@ export async function enqueueEvents(env: Bindings, now: number) {
     )
   }
 }
+async function subscriptionFor(
+  db: D1Database,
+  item: Installed,
+  event: ExtensionEvent,
+) {
+  if (item.projects?.size === 0) return
+  const product =
+    event.number === null
+      ? event.payload.product
+      : await conversationProject(db, event.number)
+  if (typeof product !== 'string') return item
+  if (event.id <= (item.projects?.get(product)?.afterEvent ?? 0)) return
+  return forProject(item, product)
+}
 export async function deliverEvent(
   env: Bindings,
   id: string,
@@ -38,9 +55,12 @@ export async function deliverEvent(
     uuid: () => crypto.randomUUID(),
   }
   try {
-    const ctx = extensionContext(c, item)
-    for (const sub of item.extension.subscribers ?? [])
-      if (sub.kind === job.event.kind) await sub.run(ctx, job.event)
+    const scoped = await subscriptionFor(env.DB, item, job.event)
+    if (scoped) {
+      const ctx = extensionContext(c, scoped)
+      for (const sub of item.extension.subscribers ?? [])
+        if (sub.kind === job.event.kind) await sub.run(ctx, job.event)
+    }
     await finishEvent(env.DB, id, event, job.attempt, null, now)
   } catch (error) {
     await finishEvent(

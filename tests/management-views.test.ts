@@ -64,12 +64,15 @@ async function studio() {
 }
 async function enable(...ids: string[]) {
   await platform.DB.batch(
-    ids.map((id) =>
+    ids.flatMap((id) => [
       platform.DB.prepare('INSERT INTO extension_settings VALUES(?,1,?)').bind(
         id,
         admin,
       ),
-    ),
+      platform.DB.prepare(
+        'INSERT OR IGNORE INTO project_extension_settings(product,extension,enabled,enabled_by) SELECT id,?,1,? FROM products',
+      ).bind(id, admin),
+    ]),
   )
 }
 
@@ -279,9 +282,10 @@ it('directs an operator to the reply area for live teammate activity', async () 
 })
 
 it('shows the scope and record counts beside the anonymized export action', async () => {
+  await studio()
   await enable('export')
   const html = await page('/extensions/export')
-  expect(html).toContain('全期間・全プロジェクト')
+  expect(html).toContain('書き出しが有効なプロジェクト')
   expect(html).toContain('会話 0件・メッセージ 0件・操作履歴 0件')
   expect(html).toContain('書き出す個人情報')
 })
@@ -377,8 +381,11 @@ it('keeps rule priority visible while filtering and rejects stale assignment cho
       ...scoped,
       ...invalid,
     })
-    expect(response.status).toBe(400)
-    expect(await response.text()).toContain('選択した項目が見つかりません。')
+    if (invalid.product) expect(response.status).toBe(404)
+    else {
+      expect(response.status).toBe(400)
+      expect(await response.text()).toContain('選択した項目が見つかりません。')
+    }
   }
 })
 it('preserves legacy article dates and calculates ratings from votes on that product and article alone', async () => {

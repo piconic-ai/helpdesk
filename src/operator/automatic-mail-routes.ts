@@ -1,3 +1,4 @@
+import { projectApprover } from '../core/extensions/registry'
 import { projectTerm } from '../core/settings/project-term'
 import { Hono, type Context } from 'hono'
 import { z } from 'zod'
@@ -63,6 +64,7 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
   const selection = requested ?? frame.products[0]?.id
   const product = frame.products.find((p) => p.id === selection)
   if (selection && !product) return c.notFound()
+  const approvalBy = projectApprover(installed, selection)
   const key = messageKey(selection ?? '')
   let conflict = false
   if (form?.intent === 'save') {
@@ -93,9 +95,10 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
     c.env.DB,
     id,
     key,
-    installed.enabledBy,
+    approvalBy,
+    selection,
   )
-  const approval = { by: installed.enabledBy, at: current.enabledAt }
+  const approval = { by: approvalBy, at: current.enabledAt }
   if (!product) return c.render(automaticMailPage(id, frame, approval))
   const draft = form?.intent === 'preview' ? form : undefined
   const wording = draft

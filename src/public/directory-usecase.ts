@@ -1,3 +1,4 @@
+import { forProject } from '../core/extensions/registry'
 import { acceptsHostedSubmissions, contactDestination } from './contact'
 import { hostedProducts } from './product-store'
 import { hostedPolicy } from '../core/intakes/hosted-policy-usecase'
@@ -70,19 +71,24 @@ export async function helpDestinations(
     )
   const results = await Promise.all(
     products.map(async (p) => ({
-      matches: ctx
-        ? searchArticles(await published(ctx, p.id), query).map((a) => ({
-            label: a.title,
-            path: publicPath(a.product, a.id),
-          }))
-        : [],
+      matches:
+        ctx && articles && forProject(articles, p.id)
+          ? searchArticles(await published(ctx, p.id), query).map((a) => ({
+              label: a.title,
+              path: publicPath(a.product, a.id),
+            }))
+          : [],
       id: p.id,
       name: p.name,
       links: directoryLinks(
         p.id,
         p.mailbox,
         acceptsHostedSubmissions(p.policy),
-        enabled,
+        new Set(
+          env.EXTENSIONS?.active
+            .filter((item) => forProject(item, p.id))
+            .map((item) => item.extension.id),
+        ),
       ),
     })),
   )

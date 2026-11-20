@@ -29,9 +29,7 @@ for (const policy of ['auto-ack', 'survey']) {
       await expect(page).toHaveURL(
         (url) => url.searchParams.get('product') === 'slide',
       )
-      await expect(
-        page.getByText('承認の対象は、すべてのプロジェクトです。'),
-      ).toBeVisible()
+      await expect(page.getByText('承認の対象は、Slideです。')).toBeVisible()
       await page.getByLabel('自動送信の案内の言語').selectOption('ja')
       const body = page.getByRole('textbox', { name: /^本文/ })
       await body.fill(wording)

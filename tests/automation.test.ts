@@ -33,6 +33,17 @@ const receive = {
 }
 beforeAll(async () => {
   p = await testPlatform()
+  await p.DB.batch([
+    p.DB.prepare("INSERT INTO operators VALUES(?,'admin')").bind(admin),
+    p.DB.prepare("INSERT INTO products VALUES('shop','Shop')"),
+    p.DB.prepare("INSERT INTO mailboxes VALUES('mail@example.com','shop')"),
+    p.DB.prepare(
+      "INSERT INTO conversations(product,mailbox,contact,subject,status,created_at) VALUES('shop','mail@example.com','reader@example.com','Printer','open',1)",
+    ),
+    p.DB.prepare(
+      "INSERT INTO messages(id,number,kind,body,created_at) VALUES('mail',1,'inbound','private customer content',1)",
+    ),
+  ])
   const entries = [spam, notify, autoAck, metrics, survey].map((extension) => ({
     extension,
     settings:
@@ -60,17 +71,6 @@ beforeAll(async () => {
     now: 10,
     uuid: () => crypto.randomUUID(),
   }
-  await p.DB.batch([
-    p.DB.prepare("INSERT INTO operators VALUES(?,'admin')").bind(admin),
-    p.DB.prepare("INSERT INTO products VALUES('shop','Shop')"),
-    p.DB.prepare("INSERT INTO mailboxes VALUES('mail@example.com','shop')"),
-    p.DB.prepare(
-      "INSERT INTO conversations(product,mailbox,contact,subject,status,created_at) VALUES('shop','mail@example.com','reader@example.com','Printer','open',1)",
-    ),
-    p.DB.prepare(
-      "INSERT INTO messages(id,number,kind,body,created_at) VALUES('mail',1,'inbound','private customer content',1)",
-    ),
-  ])
 })
 afterAll(() => p?.dispose())
 function context(ext: Extension, settings?: unknown) {

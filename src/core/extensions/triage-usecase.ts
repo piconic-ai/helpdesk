@@ -1,3 +1,5 @@
+import { accessibleNumbers } from '../operators/project-targets-store'
+import { extensionProducts } from './registry'
 import type { ProductScope } from '../operators/project-permission'
 import type { filterSchema } from '../conversations/filters'
 import type { Bindings } from '../settings/bindings'
@@ -11,12 +13,24 @@ import type { Audit } from '../conversations/conversations-store'
 type Env = Pick<Bindings, 'DB' | 'EXTENSIONS'>
 export async function conversationAliases(env: Env) {
   const aliases: Aliases = {}
-  for (const { extension } of env.EXTENSIONS?.active ?? []) {
-    if (extension.aliases)
-      Object.assign(
-        aliases,
-        await extension.aliases(extensionStorage(env.DB, extension.id)),
-      )
+  for (const item of env.EXTENSIONS?.active ?? []) {
+    const { extension } = item
+    if (!extension.aliases) continue
+    const candidates = Object.entries(
+      await extension.aliases(extensionStorage(env.DB, extension.id)),
+    )
+    const numbers = candidates.flatMap(([child, parent]) => [
+      Number(child),
+      parent,
+    ])
+    const allowed = await accessibleNumbers(
+      env.DB,
+      numbers,
+      extensionProducts(item, null),
+    )
+    for (const [child, parent] of candidates)
+      if (allowed.has(Number(child)) && allowed.has(parent))
+        aliases[Number(child)] = parent
   }
   return aliases
 }
@@ -27,13 +41,19 @@ export async function visibleConversations(
   scope: ProductScope = null,
 ) {
   const hidden = new Set<number>()
-  for (const { extension } of env.EXTENSIONS?.active ?? []) {
-    if (extension.hidden)
-      for (const n of await extension.hidden(
-        extensionStorage(env.DB, extension.id),
-        now,
-      ))
-        hidden.add(n)
+  for (const item of env.EXTENSIONS?.active ?? []) {
+    const { extension } = item
+    if (!extension.hidden) continue
+    const candidates = await extension.hidden(
+      extensionStorage(env.DB, extension.id),
+      now,
+    )
+    const allowed = await accessibleNumbers(
+      env.DB,
+      candidates,
+      extensionProducts(item, scope),
+    )
+    for (const number of allowed) hidden.add(number)
   }
   const aliases = await conversationAliases(env)
   const groups = Object.fromEntries(

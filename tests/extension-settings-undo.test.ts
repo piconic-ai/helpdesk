@@ -15,6 +15,7 @@ beforeAll(async () => {
     LOCAL_OPERATOR: a,
   } as unknown as Bindings
   await platform.DB.batch([
+    platform.DB.prepare("INSERT INTO products VALUES('studio','Studio')"),
     platform.DB.prepare(
       "INSERT INTO operators VALUES(?,'admin'),(?,'admin')",
     ).bind(a, b),

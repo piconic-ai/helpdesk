@@ -57,6 +57,13 @@ it.each(['auto-ack', 'survey'])(
       intent: 'preview',
     }
     expect((await request(path, { enabled: 'yes' })).status).toBe(303)
+    expect(
+      (
+        await request('/settings/projects/a/extensions/' + policy, {
+          enabled: 'yes',
+        })
+      ).status,
+    ).toBe(303)
     const preview = await request(path + '/message', form)
     expect(preview.status).toBe(200)
     const html = await preview.text()
@@ -164,7 +171,7 @@ it('keeps approval time truthful for legacy settings and restricts editing to ac
   expect((await request(path + '/message', form)).status).toBe(404)
 })
 
-it('records initial administrator approval once when a mailbox activates a sending policy', async () => {
+it('records a project administrator’s approval without enabling automatic mail for another new mailbox', async () => {
   const path = '/extensions/auto-ack'
   expect(await (await request(path)).text()).toContain('自動送信は停止中')
   expect(
@@ -175,7 +182,14 @@ it('records initial administrator approval once when a mailbox activates a sendi
       })
     ).status,
   ).toBe(303)
-  const first = await (await request(path)).text()
+  const product = await local.DB.prepare(
+    "SELECT product FROM mailboxes WHERE address='shop@example.org'",
+  ).first<string>('product')
+  expect((await request(path + '?product=' + product)).status).toBe(404)
+  await request('/settings/projects/' + product + '/extensions/auto-ack', {
+    enabled: 'yes',
+  })
+  const first = await (await request(path + '?product=' + product)).text()
   expect(first).toContain(admin)
   expect(first).toMatch(/有効化日時：<time datetime=/)
   expect(
@@ -187,7 +201,7 @@ it('records initial administrator approval once when a mailbox activates a sendi
     ).status,
   ).toBe(303)
   const records = await local.DB.prepare(
-    "SELECT actor FROM events WHERE kind='extension_configured' AND json_extract(payload,'$.id')='auto-ack'",
+    "SELECT actor FROM events WHERE kind='project_extension_configured' AND json_extract(payload,'$.extension')='auto-ack'",
   ).all<{ actor: string }>()
   expect(records.results.map((row) => JSON.parse(row.actor))).toEqual([
     { kind: 'operator', id: admin },
