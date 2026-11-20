@@ -569,3 +569,8 @@ select:has(option svg, option .label-dot) option {
     padding-inline: var(--spacing-xxs);
   }
 }
+
+[data-thread-part],
+[data-context-operation] {
+  display: contents;
+}

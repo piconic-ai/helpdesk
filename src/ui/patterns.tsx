@@ -367,15 +367,24 @@ export const LoadingState = ({ label = '読み込み中' }: { label?: string }) 
   </div>
 )
 export function Message({
+  entry,
+  revision,
   kind,
   header,
   children,
 }: Content & {
+  entry?: string
+  revision?: string
   kind: 'inbound' | 'outbound' | 'note' | 'record'
   header?: Child
 }) {
   return (
-    <article data-ui="message" className={'message-' + kind}>
+    <article
+      data-thread-entry={entry}
+      data-thread-revision={revision}
+      data-ui="message"
+      className={'message-' + kind}
+    >
       {header && <header>{header}</header>}
       {children}
     </article>

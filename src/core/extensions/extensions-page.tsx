@@ -521,15 +521,17 @@ function panel(
           src={p.script}
         ></script>
       )}
-      {summary && <PanelSummary>{summary}</PanelSummary>}
-      {p.links.map((l) => (
-        <p>
-          {l.icon && glyph(l.icon.name, l.icon.label)}
-          <a href={l.href} data-context-link="">
-            {l.label}
-          </a>
-        </p>
-      ))}
+      <div data-thread-part={p.script ? undefined : 'extension-summary'}>
+        {summary && <PanelSummary>{summary}</PanelSummary>}
+        {p.links.map((l) => (
+          <p>
+            {l.icon && glyph(l.icon.name, l.icon.label)}
+            <a href={l.href} data-context-link="">
+              {l.label}
+            </a>
+          </p>
+        ))}
+      </div>
       {ops.map((op) => {
         if (
           op.name.startsWith('feedback.') ||
@@ -540,23 +542,25 @@ function panel(
         const label =
           panelTriggers[op.name] ?? operationLabel(op.name, op.description)
         return (
-          <Popover
-            id={'operation-' + p.id + '-' + op.name}
-            label={label}
-            variant={op === ops[0] ? 'outline' : 'ghost'}
-          >
-            {actionForm(op, p, number, data, frame)}
-            {op.name === 'issues.preview' && (
-              <Button
-                type="button"
-                variant="ghost"
-                popovertarget={'operation-' + p.id + '-' + op.name}
-                popovertargetaction="hide"
-              >
-                入力を閉じる
-              </Button>
-            )}
-          </Popover>
+          <div data-context-operation={op.name}>
+            <Popover
+              id={'operation-' + p.id + '-' + op.name}
+              label={label}
+              variant={op === ops[0] ? 'outline' : 'ghost'}
+            >
+              {actionForm(op, p, number, data, frame)}
+              {op.name === 'issues.preview' && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  popovertarget={'operation-' + p.id + '-' + op.name}
+                  popovertargetaction="hide"
+                >
+                  入力を閉じる
+                </Button>
+              )}
+            </Popover>
+          </div>
         )
       })}
       {ops.some((op) => op.name === 'issues.preview') && (

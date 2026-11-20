@@ -128,7 +128,7 @@ function extensionMenu(frame: ConsoleFrame) {
     </nav>
   )
 }
-function navigation(frame: ConsoleFrame) {
+export function navigation(frame: ConsoleFrame) {
   const active =
     frame.path === '/' ? selectedView(frame.query, frame.operator.email) : ''
   const product = frame.query.product ?? ''
@@ -294,6 +294,7 @@ export function shell(title: string, content: Child, frame?: ConsoleFrame) {
         <script type="module" src="/ui/barefoot-overlays.js"></script>
         <script defer src="/ui/toast.js"></script>
         <script defer src="/ui/console.js"></script>
+        <script type="module" src="/ui/thread-updates.js"></script>
         <script defer src="/ui/inbox.js"></script>
         <script defer src="/ui/live-filters.js"></script>
         <link rel="stylesheet" href="/ui/inbox.css" />

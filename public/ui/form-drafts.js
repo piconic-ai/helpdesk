@@ -220,6 +220,10 @@
     for (const form of document.forms) bind(form)
   }
   document.addEventListener('DOMContentLoaded', restoreForms)
+  document.addEventListener('helpdesk:thread-receipt', () => {
+    consumeReceipt()
+    restoreForms()
+  })
   document.addEventListener('helpdesk:page', () => {
     consumeReceipt()
     restoreForms()

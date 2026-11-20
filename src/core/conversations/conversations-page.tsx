@@ -1,3 +1,4 @@
+import { navigation } from '../../ui/console-shell'
 import { embeddingPage } from '../intakes/intake'
 import { threadUrl } from './inbox-location'
 import {
@@ -104,6 +105,15 @@ function message(
   return (
     <Message
       kind={m.kind}
+      entry={'message/' + m.id}
+      revision={JSON.stringify([
+        m.delivery,
+        m.reason,
+        held,
+        Boolean(schedule),
+        (draft || m.delivery === 'failed') && canSend,
+        data.uncertain.includes(m.id),
+      ])}
       header={
         <>
           <h2>{messageHeading(m.kind, label, c.contact)}</h2>
@@ -332,7 +342,7 @@ function timelineView(
     }
     const e = row.value
     return (
-      <TimelineEntry>
+      <TimelineEntry id={e.id}>
         {eventActor(e.actor, frame.operators)}{' '}
         <span>
           {changeSummary(e, frame.operators, frame.labelColors) ??
@@ -403,6 +413,7 @@ export function conversationPage(
   articles: { title: string; url: string; excerpt?: string }[] = [],
   holds: Awaited<ReturnType<typeof pendingReplyUndos>> = [],
   offerToWrite = false,
+  partial = false,
 ) {
   const c = data.conversation
   const reference = c.reference
@@ -456,12 +467,22 @@ export function conversationPage(
         <ThreadToolbar>
           {inboxBackLink(search, frame.operator.email)}
           <ActionBar>
-            {panels.feedback}
+            <div
+              data-thread-part="feedback"
+              data-version={c.kind + '/' + c.status.kind}
+            >
+              {panels.feedback}
+            </div>
             <a data-mobile-reply-link="" href="#reply-area">
               {reply ? '返信欄へ' : 'メモ欄へ'}
             </a>
             <ThreadPanelTrigger />
-            {threadActions(c, panels.snooze)}
+            <div
+              data-thread-part="actions"
+              data-version={c.kind + '/' + c.status.kind}
+            >
+              {threadActions(c, panels.snooze)}
+            </div>
             <StepLink
               previous
               href={previous ? threadUrl(previous, search) : undefined}
@@ -478,16 +499,38 @@ export function conversationPage(
             size="heading"
           />
           {channelIcon(c.origin)}
-          {statusPicker(c)}
-          {c.kind === 'inquiry' && assignment(c, frame)}
-          {labelPicker(
-            c.number,
-            data.labels,
-            frame.labels,
-            frame.labelColors,
-            frame.labelDirectory,
-          )}
-          {activity && <ThreadActivity message={activity} />}
+          <div
+            data-thread-part="status"
+            data-version={c.kind + '/' + c.status.kind}
+          >
+            {statusPicker(c)}
+          </div>
+          <div
+            data-thread-part="assignee"
+            data-version={JSON.stringify(
+              c.kind === 'inquiry' ? c.assignment : null,
+            )}
+          >
+            {c.kind === 'inquiry' && assignment(c, frame)}
+          </div>
+          <div
+            data-thread-part="labels"
+            data-version={JSON.stringify([data.labels, frame.labels])}
+          >
+            {labelPicker(
+              c.number,
+              data.labels,
+              frame.labels,
+              frame.labelColors,
+              frame.labelDirectory,
+            )}
+          </div>
+          <div
+            data-thread-part="activity"
+            data-version={JSON.stringify([activity?.id, activity?.delivery])}
+          >
+            {activity && <ThreadActivity message={activity} />}
+          </div>
         </AttributeRow>
       }
       aside={threadContext(
@@ -504,12 +547,14 @@ export function conversationPage(
         renderMessage,
         new Set(drafts.map((m) => m.id)),
       )}
-      <ReplyArea templates={panels.canned}>
+      <ReplyArea templates={panels.canned} noteOnly={!reply}>
         <NextThreadStep>
           {nextThreadAction(c.status.kind, data.messages, frame.now)}
         </NextThreadStep>
         {drafts.map(renderMessage)}
-        {replyReceipt(frame.query, c.number, holds)}
+        <div data-thread-part="receipt">
+          {replyReceipt(frame.query, c.number, holds)}
+        </div>
         {offerToWrite && (
           <form
             id="reply-article-candidate"
@@ -521,20 +566,39 @@ export function conversationPage(
             <input type="hidden" name="topic" value={c.subject} />
           </form>
         )}
-        <ReplyComposer
-          number={c.number}
-          mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
-          contact={c.contact}
-          noteOnly={!reply}
-          closed={c.status.kind === 'closed'}
-          subject={replySubject(c.subject, reference)}
-          hasCanned={Boolean(panels.canned)}
-          articles={articles}
-          offerToWrite={offerToWrite}
-        />
+        {!partial && (
+          <ReplyComposer
+            number={c.number}
+            mailbox={sender ? sender + ' <' + c.mailbox + '>' : c.mailbox}
+            contact={c.contact}
+            noteOnly={!reply}
+            closed={c.status.kind === 'closed'}
+            subject={replySubject(c.subject, reference)}
+            hasCanned={Boolean(panels.canned)}
+            articles={articles}
+            offerToWrite={offerToWrite}
+          />
+        )}
       </ReplyArea>
     </DetailPage>
   )
+  if (partial)
+    return (
+      <html>
+        <head>
+          <title>
+            {'(' + frame.counts.open + ') ' + c.subject + ' · Helpdesk'}
+          </title>
+        </head>
+        <body
+          data-thread-number={c.number}
+          data-thread-closed={String(c.status.kind === 'closed')}
+        >
+          <aside id="navigation">{navigation(frame)}</aside>
+          {main}
+        </body>
+      </html>
+    )
   return shell(c.subject, main, frame)
 }
 export { mailDocument as htmlMailPage } from '../../ui/mail-page'

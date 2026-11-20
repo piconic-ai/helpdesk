@@ -9,6 +9,7 @@ window.onHelpdeskPage((signal) => {
     const status = form.querySelector('[role=status]')
     const suggestion = document.querySelector('[data-issue-suggestion]')
     let choices
+    let suggested
     function filter() {
       const value = select.value
       const query = search.value.trim().toLocaleLowerCase()
@@ -41,17 +42,11 @@ window.onHelpdeskPage((signal) => {
         form.dataset.demo = String(data.demo === true)
         choices = data.choices
         filter()
-        const match = choices.find((i) => i.number === data.suggested)
-        if (suggestion && match) {
-          suggestion.textContent = '関連しそうな課題：' + match.title
-          suggestion.hidden = false
-          suggestion.addEventListener('click', () => {
-            openPicker()
-            search.value = match.title
-            filter()
-            select.value = String(match.number)
-            select.focus()
-          })
+        suggested = choices.find((i) => i.number === data.suggested)
+        if (suggestion) {
+          suggestion.hidden = !suggested
+          if (suggested)
+            suggestion.textContent = '関連しそうな課題：' + suggested.title
         }
       } catch {
         if (signal.aborted) return
@@ -70,6 +65,19 @@ window.onHelpdeskPage((signal) => {
       picker.open = true
       search.focus()
     }
+    suggestion?.addEventListener('click', () => {
+      if (!suggested) return
+      openPicker()
+      search.value = suggested.title
+      filter()
+      select.value = String(suggested.number)
+      select.focus()
+    })
+    picker.addEventListener('helpdesk:issue-links', () => {
+      choices = undefined
+      if (suggestion) suggestion.hidden = true
+      void load()
+    })
     picker.addEventListener('toggle', () => {
       if (picker.open) void load()
     })

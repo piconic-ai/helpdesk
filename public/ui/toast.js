@@ -121,6 +121,11 @@ window.onHelpdeskPage((signal) => {
     }
     queueMicrotask(resume)
   }
+  document.addEventListener(
+    'helpdesk:thread-toast',
+    (event) => show(event.detail),
+    { signal },
+  )
   window.helpdeskToast = (message, error = false) => {
     let node = document.querySelector('[data-change-notice]')
     if (!node) {

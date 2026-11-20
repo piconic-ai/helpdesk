@@ -226,10 +226,16 @@ function prepareSearch(panel) {
   search.setAttribute('aria-label', search.placeholder)
   search.addEventListener('input', () => {
     const q = search.value.trim().toLocaleLowerCase()
-    for (const option of options)
+    for (const option of menuItems(panel)) {
+      if (
+        !option.matches('button,a[href]') ||
+        option.matches('[popovertarget], [data-manage-labels]')
+      )
+        continue
       option.hidden = !(option.getAttribute('aria-label') || option.textContent)
         .toLocaleLowerCase()
         .includes(q)
+    }
   })
   panel.prepend(search)
 }

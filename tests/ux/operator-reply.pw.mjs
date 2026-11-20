@@ -348,6 +348,82 @@ test('送信予定を一覧で確認し、トーストを閉じた後も会話�
   await expect(message.getByRole('button', { name: '取り消す' })).toHaveCount(0)
 })
 
+test('会話の操作と配送結果の反映中も、入力中の返信と開いた履歴を保つ', async ({
+  page,
+  scene,
+}) => {
+  const at = Date.now() - 600000
+  await scene.db.batch(
+    Array.from({ length: 10 }, (_, i) =>
+      scene.db
+        .prepare(
+          "INSERT INTO messages(id,number,kind,body,created_at) VALUES(?,1,'inbound',?,?)",
+        )
+        .bind('partial-message-' + i, '以前の問い合わせ ' + i, at + i * 1000),
+    ),
+  )
+  await page.goto(scene.origin + '/conversation/1')
+  const history = page.locator('#thread-messages .timeline-fold')
+  await history.locator('summary').click()
+  const hideEvents = page.getByLabel('出来事を隠す')
+  await hideEvents.check()
+  const reply = page.getByRole('textbox', { name: '返信', exact: true })
+  const originalField = await reply.elementHandle()
+  const firstMessage = await page
+    .locator('#thread-messages article.message-inbound')
+    .first()
+    .elementHandle()
+  const pageLoads = []
+  page.on('request', (req) => {
+    const url = new URL(req.url())
+    if (
+      req.method() === 'GET' &&
+      url.pathname === '/conversation/1' &&
+      !url.searchParams.has('updates')
+    )
+      pageLoads.push(url.href)
+  })
+
+  await reply.fill('最初のお返事です。')
+  await page.getByRole('button', { name: '担当者を選ぶ' }).click()
+  await page.getByRole('button', { name: '佐藤 優', exact: true }).click()
+  await expect(page.locator('[data-ui=attributes]')).toContainText('佐藤 優')
+  await expect(reply).toHaveValue('最初のお返事です。')
+  await expect(history).toHaveAttribute('open', '')
+  await expect(hideEvents).toBeChecked()
+  await page.getByRole('button', { name: '送信', exact: true }).click()
+  const message = page
+    .locator('article.message-outbound')
+    .filter({ hasText: '最初のお返事です。' })
+  await expect(message).toContainText('送信予定')
+  await message.getByRole('button', { name: '今すぐ送る' }).click()
+
+  const unsent = Array.from({ length: 32 }, (_, i) => '書きかけの行 ' + i).join(
+    '\n',
+  )
+  await reply.fill(unsent)
+  const position = await reply.evaluate((el) => {
+    el.setSelectionRange(21, 29)
+    el.scrollTop = 40
+    return el.scrollTop
+  })
+  await expect(message).toContainText('送信済み', { timeout: 20000 })
+  await expect(reply).toBeFocused()
+  await expect(reply).toHaveValue(unsent)
+  expect(
+    await reply.evaluate((el) => [
+      el.selectionStart,
+      el.selectionEnd,
+      el.scrollTop,
+    ]),
+  ).toEqual([21, 29, position])
+  await expect(history).toHaveAttribute('open', '')
+  await expect(hideEvents).toBeChecked()
+  expect(await originalField.evaluate((el) => el.isConnected)).toBe(true)
+  expect(await firstMessage.evaluate((el) => el.isConnected)).toBe(true)
+  expect(pageLoads).toEqual([])
+})
+
 test('長い会話を時刻順にたどり、途中を開き、出来事を隠して次の操作へ進める', async ({
   page,
   scene,

@@ -174,18 +174,28 @@ app.get('/conversation/:number', async (c) => {
   const ctx = context(c)
   const data = await run(ctx, 'get', { number: c.req.param('number') })
   const number = data.conversation.number
-  await recordView(ctx, number)
-  const lastInbound = data.messages.findLast((m) => m.kind === 'inbound')
-  const choices = await replyLinks(
-    ctx,
-    data.conversation.product,
-    new URL(c.req.url).origin,
-    lastInbound &&
-      data.conversation.kind === 'inquiry' &&
-      data.conversation.status.kind !== 'spam'
-      ? { number, id: lastInbound.id }
-      : undefined,
+  const partial = c.req.query('updates') === 'thread'
+  if (
+    partial &&
+    data.messages.some(
+      (m) => m.id === c.req.query('delivery') && m.delivery === 'queued',
+    )
   )
+    return c.json({ queued: true })
+  if (!partial) await recordView(ctx, number)
+  const lastInbound = data.messages.findLast((m) => m.kind === 'inbound')
+  const choices = partial
+    ? { articles: [], offerToWrite: false }
+    : await replyLinks(
+        ctx,
+        data.conversation.product,
+        new URL(c.req.url).origin,
+        lastInbound &&
+          data.conversation.kind === 'inquiry' &&
+          data.conversation.status.kind !== 'spam'
+          ? { number, id: lastInbound.id }
+          : undefined,
+      )
   const frame = await consoleFrame(
     c.env,
     ctx.operator,
@@ -198,23 +208,23 @@ app.get('/conversation/:number', async (c) => {
     },
     ctx.now,
   )
-  return c.render(
-    conversationPage(
+  const page = conversationPage(
+    data,
+    conversationPanels(
+      await panels(ctx, scopes, 'conversation', number),
+      number,
       data,
-      conversationPanels(
-        await panels(ctx, scopes, 'conversation', number),
-        number,
-        data,
-        frame,
-      ),
       frame,
-      await inboxMetadata(c.env, [number], ctx.operator),
-      await threadFiles(c.env, data.attachments),
-      choices.articles,
-      await pendingReplyUndos(c.env, number, ctx.operator.email, ctx.now),
-      choices.offerToWrite,
     ),
+    frame,
+    await inboxMetadata(c.env, [number], ctx.operator),
+    await threadFiles(c.env, data.attachments),
+    choices.articles,
+    await pendingReplyUndos(c.env, number, ctx.operator.email, ctx.now),
+    choices.offerToWrite,
+    partial,
   )
+  return partial ? c.json({ html: await page.toString() }) : c.render(page)
 })
 app.get('/mail/:id', async (c) => {
   await requireMedia(context(c), 'message', c.req.param('id'), 'read')

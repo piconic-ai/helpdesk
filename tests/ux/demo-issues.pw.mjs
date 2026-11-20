@@ -132,6 +132,9 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   await expect(second.getByLabel('題で探す')).toHaveValue(title)
   await linkButton.click()
   await dialog.getByRole('button', { name: '既存の課題と紐づける' }).click()
+  await expect(
+    page.getByText('選択した Issue を会話に関連付けました。'),
+  ).toBeVisible()
   await board()
   const row = open.getByRole('row').filter({ hasText: title })
   await expect(row).toContainText('2件')
@@ -350,6 +353,9 @@ test('関連情報を開く前に会話に合う課題を1件示し、確認し�
     .getByRole('button', { name: '既存の課題と紐づける' })
     .click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(
+    page.getByText('選択した Issue を会話に関連付けました。'),
+  ).toBeVisible()
   await page.goto(demo.origin + '/issues/example/helpdesk/43')
   const voices = page.getByRole('region', { name: /紐づく声/ })
   await expect(voices.locator('a[href="/conversation/1"]')).toBeVisible()

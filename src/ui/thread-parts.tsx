@@ -79,11 +79,13 @@ export const ThreadPanelTrigger = () => (
 )
 export const ReplyArea = ({
   templates,
+  noteOnly,
   children,
-}: Content & { templates: Child }) => (
+}: Content & { templates: Child; noteOnly: boolean }) => (
   <Stack
     as="section"
     id="reply-area"
+    data-thread-note-only={String(noteOnly)}
     className="reply-area"
     aria-label="返信欄"
   >
@@ -105,7 +107,7 @@ export const ThreadTimeline = ({ children }: Content) => (
   </section>
 )
 export const DraftReference = ({ id, children }: Content & { id: string }) => (
-  <div className="timeline-draft">
+  <div className="timeline-draft" data-thread-entry={'draft/' + id}>
     <ActionLink variant="ghost" href={'#approve-' + id}>
       下書きを確認する
     </ActionLink>{' '}
@@ -116,7 +118,7 @@ export const TimelineFold = ({
   count,
   children,
 }: Content & { count: number }) => (
-  <details className="timeline-fold">
+  <details className="timeline-fold" data-thread-entry="fold">
     <summary>{count}件のやりとり</summary>
     {children}
   </details>
@@ -125,8 +127,8 @@ export const NextThreadStep = ({ children }: Content) => (
   <p className="thread-next">{children}</p>
 )
 
-export const TimelineEntry = ({ children }: Content) => (
-  <Message kind="record">
+export const TimelineEntry = ({ children, id }: Content & { id: number }) => (
+  <Message kind="record" entry={'event/' + id}>
     <p className="timeline-entry">{children}</p>
   </Message>
 )

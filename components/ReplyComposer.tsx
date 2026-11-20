@@ -2,6 +2,7 @@
 
 import { navigate } from '@barefootjs/router'
 import { createSignal, onMount } from '@barefootjs/client'
+import { jsonMutation } from '../src/browser/local-requests.js'
 import type { CannedChoice } from '../src/extensions/canned/suggestions'
 import { TabsList, TabsTrigger } from './PatternTabs'
 
@@ -40,6 +41,16 @@ function readTemplateSelections(area: HTMLTextAreaElement): SelectedTemplate[] {
   } catch {
     return []
   }
+}
+
+interface ThreadUpdates {
+  number: number
+  saved(target: string): Promise<void>
+}
+function currentThread(number: number) {
+  const thread = (window as Window & { helpdeskThread?: ThreadUpdates })
+    .helpdeskThread
+  return thread?.number === number ? thread : undefined
 }
 
 interface ReplyComposerProps {
@@ -113,6 +124,14 @@ export function ReplyComposer(props: ReplyComposerProps) {
   const cannedPath = '/conversation/' + props.number + '/canned-'
   onMount(() => {
     setInteractive(true)
+    const form = document
+      .querySelector(
+        '.composer input[name="number"][value="' + props.number + '"]',
+      )
+      ?.closest('form')
+    form?.addEventListener('helpdesk:thread-state', (event) => {
+      setClosed((event as CustomEvent<{ closed: boolean }>).detail.closed)
+    })
     if (props.hasCanned && !props.noteOnly) void loadTemplates()
   })
 
@@ -190,28 +209,20 @@ export function ReplyComposer(props: ReplyComposerProps) {
   let reopening: Promise<boolean> | undefined
 
   async function reopen() {
-    const currentHeader = document.querySelector('.thread-header')
     try {
-      await fetch('/actions/status', {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-        body: new URLSearchParams({
-          number: String(props.number),
-          event: 'reopened',
-        }),
+      const thread = currentThread(props.number)
+      const data = new URLSearchParams({
+        number: String(props.number),
+        event: 'reopened',
       })
-      const refreshed = await fetch(
-        '/conversation/' + props.number + '?notice=reopened',
-      )
-      if (!refreshed.ok) throw new Error('Unavailable conversation')
-      const documentCopy = new DOMParser().parseFromString(
-        await refreshed.text(),
-        'text/html',
-      )
-      const header = documentCopy.querySelector('.thread-header')
-      if (!header || !header.querySelector('.status-open, .status-pending'))
-        throw new Error('Reopen failed')
-      currentHeader?.replaceWith(header)
+      await jsonMutation('/actions/status', data, {
+        accept: 'application/json',
+      })
+      if (thread) {
+        const url = new URL(location.href)
+        url.searchParams.set('notice', 'reopened')
+        await thread.saved(url.href)
+      }
       setClosed(false)
       setReopenFailed(false)
       return true
@@ -287,15 +298,31 @@ export function ReplyComposer(props: ReplyComposerProps) {
       recordTemplate(item, position >= 0 ? 'unchanged' : 'edited')
     }
   }
-  function finishSubmission(form: HTMLFormElement, operation: string) {
-    const submitted = form.querySelector('textarea:not(:disabled)')
-    if (submitted instanceof HTMLTextAreaElement) {
+  function finishSubmission(
+    form: HTMLFormElement,
+    operation: string,
+    body: string,
+  ) {
+    const submitted = form.querySelector(
+      operation === 'note'
+        ? 'textarea[data-draft-slot=note]'
+        : 'textarea[data-draft-slot=reply]',
+    )
+    if (submitted instanceof HTMLTextAreaElement && submitted.value === body) {
       if (operation !== 'note') recordSubmittedTemplates(submitted)
       submitted.value = ''
       submitted.dispatchEvent(new Event('input', { bubbles: true }))
+      if (operation === 'note' && !props.noteOnly) setNote(false)
     }
-    if (form.isConnected)
-      void navigate('/conversation/' + props.number + '?notice=' + operation)
+    setSending(false)
+    setPreview(false)
+    if (form.isConnected) {
+      const url = new URL(location.href)
+      url.searchParams.set('notice', operation)
+      const thread = currentThread(props.number)
+      if (thread) void thread.saved(url.href)
+      else void navigate(url.href)
+    }
   }
   async function submit(event: SubmitEvent) {
     const form = event.currentTarget
@@ -320,21 +347,17 @@ export function ReplyComposer(props: ReplyComposerProps) {
         setSending(false)
         return
       }
-      const response = await fetch('/actions/' + operation, {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-        body: fields,
+      const receipt = await jsonMutation('/actions/' + operation, fields, {
+        accept: 'application/json',
       })
-      if (!response.ok) {
-        submissionFailed(response.status, isNote)
-        return
-      }
-      const receipt = await response.json()
       if (!isNote && !hasReplyReceipt(receipt))
         throw new Error('Missing submission receipt')
-      finishSubmission(form, operation)
-    } catch {
-      submissionFailed(0, isNote)
+      finishSubmission(form, operation, fields.get('body') ?? '')
+    } catch (error) {
+      submissionFailed(
+        Number((error as { status?: number })?.status) || 0,
+        isNote,
+      )
     }
   }
   return (
