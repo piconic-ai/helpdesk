@@ -64,9 +64,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   await expect(main).toContainText('100%（1 / 1件）')
   await expect(main).toContainText('目安')
   await main.getByRole('link', { name: /#1 .*再開して承認/ }).click()
-  const closedDraft = page
-    .locator('article')
-    .filter({ hasText: title })
+  const closedDraft = page.locator('article').filter({ hasText: title })
   await closedDraft.getByRole('button', { name: '下書きを破棄' }).click()
   await confirmSubmission(page)
   await expect(closedDraft).toHaveCount(0)
@@ -76,7 +74,8 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     main.getByRole('link', { name: /#1 .*下書きを破棄/ }),
   ).toBeVisible()
   await main.getByRole('link', { name: '課題の一覧に戻る' }).click()
-  await pending.getByRole('button', { name: '下書きを作る' }).click()
+  await pending.getByRole('link', { name: '承認待ち 1件を確認する' }).click()
+  await main.getByRole('button', { name: '下書きを作る' }).click()
   await expect(page.getByRole('status')).toContainText(
     '知らせの下書きを用意しました',
   )
@@ -91,9 +90,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     0,
   )
   await page.getByRole('button', { name: '再開する', exact: true }).click()
-  const draft = page
-    .locator('article')
-    .filter({ hasText: title })
+  const draft = page.locator('article').filter({ hasText: title })
   await draft.getByRole('button', { name: '承認して送信' }).click()
   await confirmSubmission(page)
   await expect(async () => {

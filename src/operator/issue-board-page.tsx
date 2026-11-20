@@ -39,6 +39,16 @@ function aggregate(rows: Row[], names: Map<string, string>) {
         name: names.get(p.product) ?? p.product,
       })),
       count: voices.length,
+      awaitingApproval: voices.filter(
+        (v) =>
+          !v.informed && v.kind === 'inquiry' && v.delivery === 'reply_drafted',
+      ).length,
+      needsDraft: voices.some(
+        (v) =>
+          !v.informed &&
+          v.kind === 'inquiry' &&
+          (!v.delivery || v.delivery === 'reply_discarded'),
+      ),
       productNames: products
         .map((p) => names.get(p.product) ?? p.product)
         .join('・'),
@@ -66,6 +76,18 @@ function DraftButton({ issue, primary }: { issue: Issue; primary: boolean }) {
       <input type="hidden" name="issue" value={issue.issue} />
       <Button variant={primary ? 'default' : 'outline'}>下書きを作る</Button>
     </form>
+  )
+}
+
+function PendingAction({ issue, primary }: { issue: Issue; primary: boolean }) {
+  if (!issue.awaitingApproval && issue.needsDraft)
+    return <DraftButton issue={issue} primary={primary} />
+  return (
+    <ActionLink href={path(issue)} variant={primary ? 'default' : 'outline'}>
+      {issue.awaitingApproval
+        ? '承認待ち ' + issue.awaitingApproval + '件を確認する'
+        : '配送状況を確認する'}
+    </ActionLink>
   )
 }
 
@@ -131,7 +153,7 @@ export function issueBoardPage(
             .map((issue, index) => ({
               ...issue,
               href: path(issue),
-              action: <DraftButton issue={issue} primary={index === 0} />,
+              action: <PendingAction issue={issue} primary={index === 0} />,
             }))}
         />
         <IssueTable
@@ -212,6 +234,9 @@ export function issueDetailPage(
           <Notice kind="info">
             新しい下書きの対象はありません。下の会話で配送状況を確認できます。
           </Notice>
+        )}
+        {issue.state === 'closed' && issue.needsDraft && (
+          <DraftButton issue={issue} primary={!issue.awaitingApproval} />
         )}
         <IssueVoices
           voices={rows.flatMap((r) =>

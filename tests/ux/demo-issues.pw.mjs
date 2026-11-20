@@ -164,7 +164,12 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   await rate('30%')
   for (const [index, number] of [1, 6].entries()) {
     await board()
-    await waiting.getByRole('link', { name: title }).click()
+    await expect(
+      waiting.getByRole('button', { name: '下書きを作る' }),
+    ).toHaveCount(0)
+    await waiting
+      .getByRole('link', { name: '承認待ち ' + (2 - index) + '件を確認する' })
+      .click()
     await voices
       .getByRole('link', { name: new RegExp('#' + number + ' .*承認待ち') })
       .click()

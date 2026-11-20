@@ -13,7 +13,7 @@ test('W4 課題の優先順位・詳細・検索の境界と既存の題の同�
   const pending = main.getByRole('region', { name: /知らせる待ち/ })
   await expect(pending).toContainText('2件の声のうち1件')
   await expect(
-    pending.getByRole('button', { name: '下書きを作る' }),
+    pending.getByRole('link', { name: '承認待ち 1件を確認する' }),
   ).toBeVisible()
   await expect(main.getByRole('table')).toHaveCount(2)
   await expect(main.getByRole('searchbox')).toHaveCount(0)
