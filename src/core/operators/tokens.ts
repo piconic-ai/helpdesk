@@ -5,6 +5,7 @@ export const tokenAccess = z.enum(['read', 'draft', 'write'])
 export const tokenRequest = z.object({
   label: z.string().trim().min(1).max(100),
   access: tokenAccess,
+  products: z.array(z.string().min(1)).min(1).optional(),
 })
 export const tokenSummary = tokenRequest.extend({
   id: z.uuid(),

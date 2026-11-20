@@ -38,6 +38,9 @@ beforeAll(async () => {
   const db = platform.DB
   await db.batch([
     db.prepare("INSERT INTO products(id,name) VALUES('test','Test')"),
+    db
+      .prepare("INSERT INTO product_members VALUES('test',?,'agent')")
+      .bind(second),
     db.prepare("INSERT INTO mailboxes VALUES('support@example.com','test')"),
     db.prepare(
       "WITH RECURSIVE n(v) AS(VALUES(1) UNION ALL SELECT v+1 FROM n WHERE v<12) INSERT INTO conversations(number,product,mailbox,contact,subject,kind,status,created_at) SELECT v,'test','support@example.com','reader@example.net','Test','inquiry','open',1 FROM n",

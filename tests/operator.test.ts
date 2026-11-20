@@ -42,6 +42,11 @@ beforeAll(async () => {
     ).status,
   ).toBe(303)
   await request('/', agent)
+  await platform.DB.prepare(
+    "INSERT INTO product_members(product,email,role) VALUES('alpha',?,'agent')",
+  )
+    .bind(agent)
+    .run()
 })
 afterAll(() => platform?.dispose())
 async function seed(subject: string, contact: string) {

@@ -74,10 +74,16 @@ machine.get('/tokens', async (c) =>
 )
 machine.post('/tokens', async (c) => {
   const owner = c.get('operator').email
+  const form = await c.req.formData()
+  const products = form.getAll('products')
   const secret = await issueToken(
     c.env,
     owner,
-    await c.req.parseBody(),
+    {
+      label: form.get('label'),
+      access: form.get('access'),
+      products: products.length ? products : undefined,
+    },
     Date.now(),
   )
   return c.html(

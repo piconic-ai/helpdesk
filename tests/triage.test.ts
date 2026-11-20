@@ -67,6 +67,9 @@ beforeAll(async () => {
     local.DB.prepare("INSERT INTO mailboxes VALUES('shop@example.com','shop')"),
     local.DB.prepare("INSERT INTO operators VALUES(?,'admin')").bind(owner),
     local.DB.prepare("INSERT INTO operators VALUES(?,'agent')").bind(other),
+    local.DB.prepare(
+      "INSERT INTO product_members VALUES('shop',?,'agent')",
+    ).bind(other),
   ])
 })
 afterAll(() => local?.dispose())
@@ -190,7 +193,7 @@ it('F19-AC1..3 other operators can read and reply while a colleague is typing; l
   const colleague: Context = {
     ...ctx,
     actor: { kind: 'operator', id: other },
-    operator: { email: other, role: 'agent' },
+    operator: { email: other, role: 'agent', memberships: { shop: 'agent' } },
   }
   const data = { number, tab: crypto.randomUUID(), mode: 'reading' }
   expect(await run('presence.heartbeat', data)).toEqual([])

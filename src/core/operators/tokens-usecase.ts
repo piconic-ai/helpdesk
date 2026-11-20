@@ -47,7 +47,12 @@ export async function machineIdentity(
   if (!identity) return null
   const ctx: Context = {
     env,
-    operator: { email: identity.email, role: identity.role },
+    operator: {
+      email: identity.email,
+      role: identity.role,
+      memberships: identity.memberships,
+      tokenProducts: identity.products,
+    },
     actor: { kind: 'agent', id: identity.id, onBehalfOf: identity.email },
     now: Date.now(),
     uuid: () => crypto.randomUUID(),

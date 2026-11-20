@@ -54,6 +54,9 @@ async function studio() {
   await platform.DB.batch([
     platform.DB.prepare("INSERT INTO products VALUES('studio','Studio')"),
     platform.DB.prepare(
+      "INSERT INTO product_members VALUES('studio','agent@example.org','agent')",
+    ),
+    platform.DB.prepare(
       "INSERT INTO mailboxes VALUES('help@example.org','studio')",
     ),
   ])

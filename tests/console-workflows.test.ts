@@ -24,6 +24,9 @@ beforeAll(async () => {
     ),
     platform.DB.prepare("INSERT INTO products VALUES('studio','Studio')"),
     platform.DB.prepare(
+      "INSERT INTO product_members VALUES('studio','support@example.org','agent')",
+    ),
+    platform.DB.prepare(
       "INSERT INTO mailboxes VALUES('help@example.org','studio')",
     ),
     platform.DB.prepare(
