@@ -198,6 +198,14 @@ it('restricts token issuance and recomputes its intersection with the owner memb
   const machine = (await machineIdentity(env, 'Bearer ' + adminToken))!
   expect(visibleProductIds(machine.ctx.operator)).toEqual(['desk'])
   expect(can(machine.ctx.operator, 'global').allowed).toBe(false)
+  await p.DB.prepare(
+    "UPDATE product_lifecycle SET archived_at=20 WHERE product='desk'",
+  ).run()
+  await expect(issueToken(env, admin, request, 21)).rejects.toThrow(
+    'Project scope',
+  )
+  const retained = await machineIdentity(env, 'Bearer ' + adminToken)
+  expect(visibleProductIds(retained!.ctx.operator)).toEqual(['desk'])
 })
 it('rejects new conversations in an archived project at the write boundary', async () => {
   await p.DB.prepare(

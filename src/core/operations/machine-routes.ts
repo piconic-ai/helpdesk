@@ -1,13 +1,14 @@
 import { consoleFrame } from '../conversations/console-usecase'
 import { operatorErrorPage } from '../conversations/console-page'
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { createMiddleware } from 'hono/factory'
 import type { Context, Scope } from './catalog-usecase'
 import { authenticate, type AppEnv } from '../operators/middleware'
 import {
   machineIdentity,
   issueToken,
-  listTokens,
+  tokenPageData,
   disableToken,
 } from '../operators/tokens-usecase'
 import { tokensPage } from '../operators/tokens-page'
@@ -65,7 +66,7 @@ machine.use('/tokens/*', authenticate)
 machine.get('/tokens', async (c) =>
   c.html(
     tokensPage(
-      await listTokens(c.env, c.get('operator').email),
+      await tokenPageData(c.env, c.get('operator')),
       undefined,
       await consoleFrame(c.env, c.get('operator'), '/tokens', c.req.query()),
       c.req.query('revoked') === '1',
@@ -76,19 +77,25 @@ machine.post('/tokens', async (c) => {
   const owner = c.get('operator').email
   const form = await c.req.formData()
   const products = form.getAll('products')
+  const scope = z
+    .enum(['all', 'selected'])
+    .nullable()
+    .parse(form.get('projectScope'))
+  const restrict =
+    scope === 'selected' || (scope === null && products.length > 0)
   const secret = await issueToken(
     c.env,
     owner,
     {
       label: form.get('label'),
       access: form.get('access'),
-      products: products.length ? products : undefined,
+      products: restrict ? products : undefined,
     },
     Date.now(),
   )
   return c.html(
     tokensPage(
-      await listTokens(c.env, owner),
+      await tokenPageData(c.env, c.get('operator')),
       secret,
       await consoleFrame(c.env, c.get('operator'), '/tokens'),
     ),

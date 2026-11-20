@@ -424,3 +424,28 @@ window.onHelpdeskPage((signal) => {
     sync()
   }
 })
+
+window.onHelpdeskPage(() => {
+  const scope = document.querySelector('[data-token-scope]')
+  const selected = scope?.querySelector('[value="selected"]')
+  if (!selected) return
+  const choices = [...scope.querySelectorAll('input[name=products]')]
+  const validate = () => {
+    const missing =
+      selected.checked && !choices.some((choice) => choice.checked)
+    selected.setCustomValidity(missing ? '対象を1件以上選んでください。' : '')
+  }
+  scope.addEventListener('change', validate)
+  validate()
+  const search = scope.querySelector('[data-token-search]')
+  search?.addEventListener('input', () => {
+    const query = search.value.trim().toLocaleLowerCase()
+    for (const choice of choices) {
+      const row = choice.closest('label')
+      row.hidden = !row.textContent.toLocaleLowerCase().includes(query)
+    }
+    scope.querySelector('[data-token-empty-search]').hidden = choices.some(
+      (choice) => !choice.closest('label').hidden,
+    )
+  })
+})

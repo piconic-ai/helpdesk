@@ -3,8 +3,10 @@ import {
   saveToken,
   tokenIdentity,
   ownedTokens,
+  tokenProjects,
   revokeToken,
 } from './tokens-store'
+import type { Operator } from './operators-store'
 import { scopesFor, tokenRequest } from './tokens'
 import type { Bindings } from '../settings/bindings'
 import type { Context } from '../operations/catalog-usecase'
@@ -67,3 +69,11 @@ export const disableToken = (
   id: string,
   now: number,
 ) => revokeToken(env.DB, owner, z.uuid().parse(id), now)
+
+export async function tokenPageData(env: Bindings, operator: Operator) {
+  const [tokens, projects] = await Promise.all([
+    ownedTokens(env.DB, operator.email),
+    tokenProjects(env.DB, operator),
+  ])
+  return { tokens, projects }
+}

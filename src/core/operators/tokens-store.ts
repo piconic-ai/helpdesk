@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { storedOperator, membershipJson } from './operators-store'
+import { visibleProductIds } from './project-access'
+import type { Operator } from './operators-store'
 import { PermissionDenied } from '../operations/catalog'
 import { tokenSummary, tokenAccess } from './tokens'
 
@@ -19,7 +21,8 @@ export async function saveToken(db: D1Database, token: Stored) {
         `INSERT INTO api_tokens(id,owner,label,access,created_at,digest,products)
         SELECT ?1,?2,?3,?4,?5,?6,?7 WHERE NOT EXISTS(
           SELECT 1 FROM json_each(?7) selected WHERE NOT EXISTS(
-            SELECT 1 FROM products p JOIN operators o ON o.email=?2
+            SELECT 1 FROM products p JOIN product_lifecycle l ON l.product=p.id AND l.archived_at IS NULL
+            JOIN operators o ON o.email=?2
             WHERE p.id=selected.value AND (o.role='admin' OR EXISTS(
               SELECT 1 FROM product_members m WHERE m.product=p.id AND m.email=o.email))
           )
@@ -85,4 +88,22 @@ export async function revokeToken(
       ),
   ])
   return deleted.meta.changes === 1
+}
+
+export async function tokenProjects(db: D1Database, operator: Operator) {
+  const ids = visibleProductIds(operator)
+  const rows = await db
+    .prepare(`SELECT p.id,p.name,l.archived_at AS archivedAt FROM products p JOIN product_lifecycle l ON l.product=p.id
+    WHERE ?1 IS NULL OR p.id IN (SELECT value FROM json_each(?1))
+    ORDER BY p.name,p.id`)
+    .bind(ids === null ? null : JSON.stringify(ids))
+    .all()
+  return z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      archivedAt: z.number().nullable(),
+    })
+    .array()
+    .parse(rows.results)
 }

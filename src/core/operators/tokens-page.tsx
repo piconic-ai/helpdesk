@@ -1,8 +1,9 @@
 import { listRows, ListFilters, PageLinks } from '../../ui/listing'
-import type { z } from 'zod'
+import { projectTerm } from '../settings/project-term'
+import { ProductMark } from '../../ui/product-mark'
+import type { tokenPageData } from './tokens-usecase'
 import { shell } from '../conversations/conversations-page'
 import type { ConsoleFrame } from '../conversations/console-usecase'
-import type { tokenSummary } from './tokens'
 import {
   ListPage,
   Notice,
@@ -20,8 +21,62 @@ const access = {
   draft: '閲覧・下書き',
   write: '閲覧・下書き・会話の管理',
 }
+type TokenPageData = Awaited<ReturnType<typeof tokenPageData>>
+const allProjects = 'アクセスできるすべての' + projectTerm
+
+function scopeSummary(
+  token: TokenPageData['tokens'][number],
+  projects: TokenPageData['projects'],
+) {
+  if (token.products === undefined) return allProjects
+  const selected = new Set(token.products)
+  const names = projects.filter((p) => selected.has(p.id)).map((p) => p.name)
+  return names.length ? names.join('、') : '現在アクセスできる対象はありません'
+}
+
+function TokenProjectScope({ projects }: Pick<TokenPageData, 'projects'>) {
+  const choices = projects.filter((p) => p.archivedAt === null)
+  return (
+    <fieldset className="template-choices" data-token-scope="">
+      <legend>{'対象の' + projectTerm}</legend>
+      <label>
+        <Input type="radio" name="projectScope" value="all" checked />
+        {allProjects}
+      </label>
+      {choices.length > 0 && (
+        <>
+          <label>
+            <Input type="radio" name="projectScope" value="selected" />
+            {projectTerm + 'を選ぶ'}
+          </label>
+          <div data-token-projects="" data-layout="stack" data-gap="xs">
+            {choices.length > 8 && (
+              <Input
+                type="search"
+                data-token-search=""
+                aria-label="候補を絞り込む"
+                placeholder="候補を絞り込む"
+              />
+            )}
+            {choices.map((p) => (
+              <label>
+                <Input type="checkbox" name="products" value={p.id} />
+                <span>
+                  <ProductMark product={p} />
+                </span>
+              </label>
+            ))}
+            <small data-token-empty-search="" hidden>
+              一致する候補はありません。
+            </small>
+          </div>
+        </>
+      )}
+    </fieldset>
+  )
+}
 export function tokensPage(
-  tokens: z.infer<typeof tokenSummary>[],
+  { tokens, projects }: TokenPageData,
   secret?: string,
   frame?: ConsoleFrame,
   revoked = false,
@@ -78,7 +133,7 @@ export function tokensPage(
           {list.rows.map((t) => (
             <ListRow
               title={t.label}
-              description={access[t.access]}
+              description={access[t.access] + ' · ' + scopeSummary(t, projects)}
               action={
                 <>
                   <Button
@@ -133,6 +188,7 @@ export function tokensPage(
               ))}
             </NativeSelect>
           </Field>
+          <TokenProjectScope projects={projects} />
           <Button variant="default">発行する</Button>
         </form>
       </FormSection>

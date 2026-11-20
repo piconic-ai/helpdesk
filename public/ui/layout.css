@@ -1249,3 +1249,8 @@ body:has([data-empty-composer]:not([hidden]))
     inset-inline-start: calc(-1 * var(--spacing-sm));
   }
 }
+
+[data-token-scope]:has([value='all']:checked) [data-token-projects],
+[data-token-projects] [hidden] {
+  display: none;
+}
