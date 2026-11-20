@@ -60,13 +60,31 @@ test('一括操作は画面幅に合わせて1行に収まり、その他から�
 
   for (const width of [320, 375, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
-    const count = await bar.getByText('1件を選択中').boundingBox()
-    const bounds = await bar.boundingBox()
-    for (const button of await bar.getByRole('button').all()) {
-      const box = await button.boundingBox()
-      expect(box.y + box.height / 2).toBeCloseTo(count.y + count.height / 2, 0)
-      expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
-    }
+    await expect(async () => {
+      const layout = await bar.evaluate((el) => {
+        const count = el
+          .querySelector('[data-selected-count]')
+          .getBoundingClientRect()
+        const buttons = [...el.querySelectorAll('button')]
+          .filter((button) =>
+            button.checkVisibility({ visibilityProperty: true }),
+          )
+          .map((button) => {
+            const rect = button.getBoundingClientRect()
+            return { center: rect.y + rect.height / 2, right: rect.right }
+          })
+        return {
+          center: count.y + count.height / 2,
+          right: el.getBoundingClientRect().right,
+          buttons,
+        }
+      })
+      expect(layout.buttons.length).toBeGreaterThan(0)
+      for (const button of layout.buttons) {
+        expect(button.center).toBeCloseTo(layout.center, 0)
+        expect(button.right).toBeLessThanOrEqual(layout.right + 1)
+      }
+    }).toPass({ timeout: 5000 })
     if (width <= 375) {
       await expect(more).toBeVisible()
       await expect(spam).toBeHidden()

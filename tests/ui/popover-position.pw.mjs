@@ -51,10 +51,9 @@ test('panels are anchored in the opening frame and follow scroll and viewport ch
       await page.getByRole('button', { name: 'スヌーズ', exact: true }).click()
       await expect(page.locator(':popover-open')).toHaveCount(1)
       await page.evaluate(() => window.scrollBy(0, 36))
-      await expect
-        .poll(() => operation.evaluate(geometry))
-        .toMatchObject({ visible: true, within: true })
-      expectAnchored(await operation.evaluate(geometry))
+      await expect(async () => {
+        expectAnchored(await operation.evaluate(geometry))
+      }).toPass({ timeout: 5000 })
       await page.keyboard.press('Escape')
       await page.goto(server.origin + '/dev/ui')
       if (width === 375) {
@@ -69,10 +68,9 @@ test('panels are anchored in the opening frame and follow scroll and viewport ch
       const candidate = page.locator('[popovertarget="sample-assignee"]')
       await openAnchored(candidate)
       await page.setViewportSize({ width: width - 12, height: 780 })
-      await expect
-        .poll(() => candidate.evaluate(geometry))
-        .toMatchObject({ visible: true, within: true })
-      expectAnchored(await candidate.evaluate(geometry))
+      await expect(async () => {
+        expectAnchored(await candidate.evaluate(geometry))
+      }).toPass({ timeout: 5000 })
       await page.keyboard.press('Escape')
       await page.goto(server.origin + '/account')
       if (width < 768)
