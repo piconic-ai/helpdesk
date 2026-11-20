@@ -85,6 +85,7 @@ function message(
   names: Names,
   now: number,
   held: boolean,
+  schedule?: Child,
 ) {
   const c = data.conversation
   const draft = m.delivery === 'draft' || m.delivery === 'awaiting_approval'
@@ -124,6 +125,7 @@ function message(
       )}
       {attachmentList(files)}
       {deliveryNotice(held, m.reason)}
+      {schedule}
       {canSend &&
         m.delivery === 'failed' &&
         !data.uncertain.includes(m.id) &&
@@ -339,6 +341,21 @@ function inboxBackLink(search: string, email: string) {
   )
 }
 
+function replyReceipt(
+  query: ConsoleFrame['query'],
+  number: number,
+  holds: Awaited<ReturnType<typeof pendingReplyUndos>>,
+) {
+  const own = holds.find((hold) => hold.canManage)
+  if (
+    own &&
+    (!query.notice ||
+      ['reply', 'replyAndClose', 'approve'].includes(query.notice))
+  )
+    return replyUndoForm(number, own, true)
+  return threadNotice(query.notice, number, query.undoId)
+}
+
 export function conversationPage(
   data: Details,
   panels: { related: Child; snooze: Child; canned: Child; feedback: Child },
@@ -349,12 +366,15 @@ export function conversationPage(
   holds: Awaited<ReturnType<typeof pendingReplyUndos>> = [],
   offerToWrite = false,
 ) {
+  const c = data.conversation
+  const schedules = new Map(
+    holds.map((h) => [h.id, replyUndoForm(c.number, h)]),
+  )
   const held = new Set(
     data.events
       .filter((e) => e.kind === 'reply_held')
       .map((e) => JSON.parse(e.payload).message),
   )
-  const c = data.conversation
   const product = frame.products.find((p) => p.id === c.product)
   const sender = senderLabel(
     product?.senderName,
@@ -429,6 +449,7 @@ export function conversationPage(
               names,
               frame.now,
               m.delivery === 'draft' && held.has(m.id),
+              schedules.get(m.id),
             ),
           })),
           ...displayEvents(data.events).flatMap((e) => {
@@ -452,9 +473,7 @@ export function conversationPage(
           .map((entry) => entry.view)}
       </ThreadTimeline>
       <ReplyArea templates={panels.canned}>
-        {!holds.length &&
-          threadNotice(frame.query.notice, c.number, frame.query.undoId)}
-        {holds.map((hold) => replyUndoForm(c.number, hold))}
+        {replyReceipt(frame.query, c.number, holds)}
         {offerToWrite && (
           <form
             id="reply-article-candidate"

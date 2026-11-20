@@ -109,7 +109,9 @@ test.describe('公開受付', () => {
       .fill('詳しい状況を教えていただけますか。')
     await page.getByRole('button', { name: '送信', exact: true }).click()
     await expect(
-      page.getByRole('button', { name: '取り消す', exact: true }),
+      page
+        .getByRole('form', { name: '送信予定の通知' })
+        .getByRole('button', { name: '取り消す', exact: true }),
     ).toBeVisible()
     await expect(async () => {
       await page.reload()

@@ -19,6 +19,7 @@ import { deleteContent, drainDeleted } from '../retention/retention-store'
 import {
   queueReply,
   undoReply,
+  sendReplyNow,
   approveReply,
   discardReply,
   retryReply,
@@ -79,6 +80,8 @@ export const handlers = {
   ) => changeGroupLabel(c.env, audit(c), i),
   reply: (c: Context, i: Reply) =>
     queueReply(c.env, { ...i, undoable: true, actor: c.actor, now: c.now }),
+  sendReplyNow: (c: Context, i: { id: string }) =>
+    sendReplyNow(c.env, { ...i, actor: c.actor, now: c.now }),
   undoReply: (c: Context, i: { id: string }) =>
     undoReply(c.env, { ...i, actor: c.actor, now: c.now }),
   retry: (c: Context, i: { id: string }) =>

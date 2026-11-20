@@ -51,7 +51,12 @@ export const results = {
   replyAndClose: receipt,
   discard: z.null(),
   retry: receipt,
-  undoReply: z.object({ number: z.int().positive(), body: z.string() }),
+  sendReplyNow: receipt,
+  undoReply: z.object({
+    number: z.int().positive(),
+    body: z.string(),
+    restoredDraft: z.string().optional(),
+  }),
   settings: z.object({
     operators: z
       .object({

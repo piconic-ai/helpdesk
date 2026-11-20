@@ -412,7 +412,10 @@ const entries = [
     thread,
     [],
     async (page) => {
-      const undo = button(page, '取り消す')
+      const undo = button(
+        page.getByRole('form', { name: '送信予定の通知' }),
+        '取り消す',
+      )
       if (!(await undo.isVisible())) {
         await page
           .getByRole('textbox', { name: '返信', exact: true })

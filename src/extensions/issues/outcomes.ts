@@ -78,7 +78,9 @@ export function deliveryStates(events: ExtensionEvent[]) {
       if (e.kind.startsWith('reply_'))
         states.set(
           e.payload.message,
-          e.kind === 'reply_held' ? 'reply_drafted' : e.kind,
+          e.kind === 'reply_held' || e.kind === 'reply_undone'
+            ? 'reply_drafted'
+            : e.kind,
         )
       else if (
         e.kind === 'issues.notice_drafted' &&

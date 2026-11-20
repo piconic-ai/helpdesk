@@ -1,3 +1,4 @@
+import { decideSend } from './schedule'
 import { z } from 'zod'
 import {
   actorSchema,
@@ -19,6 +20,9 @@ import {
 } from './reply-store'
 import {
   undoHeldReply,
+  releaseReplyNow,
+  scheduledSend,
+  holdInterruptedSend,
   replyHolds,
   holdDelay,
   replyDelayFor,
@@ -72,6 +76,17 @@ export async function queueReply(
   return { id }
 }
 
+export async function sendReplyNow(
+  env: QueueEnv,
+  input: z.input<typeof mutationSchema>,
+) {
+  const command = mutationSchema.parse(input)
+  const approval = operatorApproval(command.actor)
+  await releaseReplyNow(env.DB, command.id, approval.by, command.now)
+  await notify(env, command.id)
+  return { id: command.id }
+}
+
 export function undoReply(
   env: QueueEnv,
   input: z.input<typeof mutationSchema>,
@@ -97,8 +112,21 @@ async function queueExisting(
 ) {
   const command = approvalInput.parse(input)
   const approval = operatorApproval(command.actor)
-  await requeueReply(env.DB, { ...command, approval }, from)
-  await notify(env, command.id)
+  const delay =
+    from === 'awaiting_approval'
+      ? await replyDelayFor(env.DB, approval.by, command.id)
+      : 0
+  await requeueReply(
+    env.DB,
+    {
+      ...command,
+      approval,
+      holdUntil: delay ? command.now + delay * 1000 : undefined,
+      restoreDraft: delay > 0,
+    },
+    from,
+  )
+  await notify(env, command.id, delay)
   return { id: command.id }
 }
 export function approveReply(
@@ -128,6 +156,15 @@ export async function deliverReply(
 ) {
   const time = typeof clock === 'number' ? () => clock : clock
   const now = time()
+  const schedule = await scheduledSend(env.DB, id)
+  const decision = decideSend(schedule, now)
+  if (!schedule || decision === 'skip') return
+  if (decision === 'wait') return Math.ceil((schedule.sendAt - now) / 1000)
+  if (decision === 'hold') {
+    if (schedule.queuedEvent !== null)
+      await holdInterruptedSend(env.DB, id, schedule.queuedEvent, now)
+    return
+  }
   const reply = await claim(env.DB, id, now)
   if (!reply) return holdDelay(env.DB, id, now)
   const payload = composeReply(reply)

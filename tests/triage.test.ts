@@ -8,7 +8,7 @@ import { snooze } from '../src/extensions/snooze/extension'
 import { merge } from '../src/extensions/merge/extension'
 import { presence } from '../src/extensions/presence/extension'
 import { rules, matches } from '../src/extensions/rules/extension'
-import { deliverReply } from '../src/core/outbound/reply-usecase'
+import { deliverReply, queueReply } from '../src/core/outbound/reply-usecase'
 import { inboundJob } from '../src/core/inbound/job'
 import { ingest } from '../src/core/inbound/inbound-usecase'
 import {
@@ -386,3 +386,43 @@ it('F19-AC1..3 Chromium reports reading and typing through the actual presence p
     await browser.close()
   }
 }, 30000)
+
+it('keeps each operator’s send controls on their own scheduled reply across navigation', async () => {
+  const { number } = await receive(
+    'Scheduled replies',
+    'Can you confirm the update?',
+  )
+  const now = Date.now()
+  const reps = await Promise.all(
+    [owner, other].map((id, index) =>
+      queueReply(ctx.env, {
+        number,
+        body: 'Update from ' + id,
+        actor: { kind: 'operator', id },
+        undoable: true,
+        now: now + index,
+      }),
+    ),
+  )
+  const view = async (email: string, query = '') => {
+    const response = await app.request(
+      'http://desk.test/conversation/' + number + query,
+      {},
+      { ...ctx.env, LOCAL_OPERATOR: email },
+    )
+    expect(response.status).toBe(200)
+    return response.text()
+  }
+  const toast = (html: string) =>
+    html.match(
+      /<form\b[^>]*data-toast[^>]*data-undo-reply[^>]*>[\s\S]*?<\/form>/,
+    )?.[0]
+  for (const [index, email] of [owner, other].entries()) {
+    const html = await view(email)
+    expect(toast(html)).toContain(reps[index].id)
+    expect(html.match(/aria-label="この返信の送信予定"/g)).toHaveLength(2)
+  }
+  const withReceipt = await view(owner, '?notice=note')
+  expect(withReceipt).toContain('内部メモを保存しました。')
+  expect(toast(withReceipt)).toBeUndefined()
+})

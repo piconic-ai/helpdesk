@@ -297,44 +297,90 @@ window.onHelpdeskPage((signal) => {
     }
   }
 
-  for (const form of document.querySelectorAll('form[data-undo-reply]')) {
-    const button = form.querySelector('button')
-    const timer = setTimeout(() => {
-      form.hidden = true
-      if (!button.disabled) void refreshDelivery(form)
-    }, Number(form.dataset.undoReply))
-    signal.addEventListener('abort', () => clearTimeout(timer), { once: true })
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault()
-      if (button.disabled) return
-      button.disabled = true
-      try {
-        const response = await fetch(form.action, {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { Accept: 'application/json' },
+  const schedules = Map.groupBy(
+    document.querySelectorAll('form[data-undo-reply]'),
+    (form) => form.elements.id.value,
+  )
+  for (const forms of schedules.values()) {
+    const form = forms[0]
+    const until = Date.now() + Number(form.dataset.undoReply)
+    const stop = () => clearInterval(timer)
+    const finish = () => {
+      stop()
+      forms.forEach((node) => {
+        node.hidden = true
+      })
+      void refreshDelivery(form)
+    }
+    const tick = () => {
+      const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000))
+      if (!seconds) return finish()
+      for (const node of forms)
+        node.querySelector('[data-remaining]').textContent =
+          Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0')
+    }
+    const timer = setInterval(tick, 500)
+    signal.addEventListener('abort', stop, { once: true })
+    let submitting = false
+    for (const node of forms) {
+      node
+        .querySelector('[data-dismiss-scheduled]')
+        ?.addEventListener('click', () => {
+          node.hidden = true
         })
-        if (!response.ok) throw new Error()
-        const { number, body } = await response.json()
-        if (signal.aborted) return
-        const area = document.querySelector('textarea[data-draft-slot="reply"]')
-        area.value = [area.value, body].filter(Boolean).join('\n\n')
-        // Keep the restored draft, but edit it only after the undo receipt is displayed.
-        area.form.inert = true
-        area.dataset.restoringDraft = ''
-        area.dispatchEvent(new Event('input', { bubbles: true }))
-        delete area.dataset.restoringDraft
-        void window.helpdeskNavigate(
-          '/conversation/' + number + '?notice=undoReply',
-        )
-      } catch {
-        clearTimeout(timer)
-        form.hidden = false
-        form.setAttribute('role', 'alert')
-        form.querySelector('span').textContent =
-          '送信を取り消せませんでした。会話を再読み込みして送信状態を確認してください。'
-      }
-    })
+      node.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        if (submitting) return
+        const action =
+          event.submitter?.getAttribute('formaction') || node.action
+        submitting = true
+        try {
+          const response = await fetch(action, {
+            method: 'POST',
+            body: new FormData(node),
+            headers: { Accept: 'application/json' },
+          })
+          if (!response.ok) throw new Error()
+          if (signal.aborted) return
+          if (
+            new URL(action, location.href).pathname === '/actions/sendReplyNow'
+          ) {
+            finish()
+            return
+          }
+          stop()
+          const { number, body, restoredDraft } = await response.json()
+          if (!restoredDraft) {
+            const area = document.querySelector(
+              'textarea[data-draft-slot="reply"]',
+            )
+            area.value = [area.value, body].filter(Boolean).join('\n\n')
+            area.form.inert = true
+            area.dataset.restoringDraft = ''
+            area.dispatchEvent(new Event('input', { bubbles: true }))
+            delete area.dataset.restoringDraft
+          }
+          await window.helpdeskNavigate(
+            '/conversation/' +
+              number +
+              '?notice=' +
+              (restoredDraft ? 'undoApproval' : 'undoReply'),
+          )
+          if (restoredDraft)
+            document
+              .getElementById('approve-' + restoredDraft)
+              ?.querySelector('textarea')
+              ?.focus()
+        } catch {
+          submitting = false
+          if (!signal.aborted)
+            window.helpdeskToast(
+              '送信予定を変更できませんでした。会話の送信状態を確認して、もう一度お試しください。',
+              true,
+            )
+        }
+      })
+    }
   }
 
   const subject = document.querySelector('.thread-subject')

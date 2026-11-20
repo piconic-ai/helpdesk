@@ -97,7 +97,9 @@ async function answer(page) {
     '問い合わせ #6 に記事を添え、窓口・宛先・番号付き件名を確認',
   )
   await button(page, '送信して完了').click()
-  await expect(button(page, '取り消す')).toBeVisible()
+  await expect(
+    button(page.getByRole('form', { name: '送信予定の通知' }), '取り消す'),
+  ).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(async () => {
     await page.reload()
@@ -195,12 +197,14 @@ async function approve(page, scene) {
   await button(draft, '承認して送信').click()
   await confirmSubmission(page)
   await expect
-    .poll(() =>
-      scene.db
-        .prepare(
-          "SELECT body FROM messages WHERE id='reply-5' AND delivery='sent'",
-        )
-        .first('body'),
+    .poll(
+      () =>
+        scene.db
+          .prepare(
+            "SELECT body FROM messages WHERE id='reply-5' AND delivery='sent'",
+          )
+          .first('body'),
+      { timeout: 24000 },
     )
     .toBe(edited)
   await page.reload()

@@ -39,7 +39,11 @@ test('J5 記事をプレビューし公開してから返信に添える', async
   await expect(page.getByText(publicUrl, { exact: false }).last()).toBeVisible()
   await capture(page, 'J5', '03-composer', '返信プレビューで記事のリンクを確認')
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
+  await expect(
+    page
+      .getByRole('form', { name: '送信予定の通知' })
+      .getByRole('button', { name: '取り消す' }),
+  ).toBeVisible()
   await expect(page.locator('article.message-outbound')).toContainText(
     publicUrl,
   )

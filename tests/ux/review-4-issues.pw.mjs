@@ -93,10 +93,9 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
   const draft = page.locator('article').filter({ hasText: title })
   await draft.getByRole('button', { name: '承認して送信' }).click()
   await confirmSubmission(page)
-  await expect(async () => {
-    await page.reload()
-    await expect(draft).toContainText('送信済み', { timeout: 1000 })
-  }).toPass()
+  await draft.getByRole('button', { name: '今すぐ送る' }).click()
+  await expect(draft).toContainText('送信済み', { timeout: 15000 })
+
   await page.locator('nav a[href="/issues"]').click()
   await expect(pending).toContainText('2件の声のうち1件')
   await page.getByRole('link', { name: '対応状況の集計' }).click()

@@ -471,7 +471,9 @@ test('会話の保存結果と取り消しは直近の本文・宛先・操作�
     .getByRole('textbox', { name: '返信', exact: true })
     .fill('明細を確認しました。')
   await page.getByRole('button', { name: '送信して完了' }).click()
-  await assertVisibleContent(page.locator('[data-undo-reply]:visible'))
+  await assertVisibleContent(
+    page.locator('[data-toast][data-undo-reply]:visible'),
+  )
 })
 
 test('絞り込んだラベルが一括選択中も分かる', async ({ page, scene }) => {

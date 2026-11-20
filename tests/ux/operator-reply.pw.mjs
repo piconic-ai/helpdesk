@@ -43,7 +43,9 @@ test('W1 送信して完了を取り消すと本文と状態を復元し、相�
   const textarea = page.getByRole('textbox', { name: '返信', exact: true })
   await textarea.fill(body)
   await page.getByRole('button', { name: '送信して完了' }).click()
-  const undo = page.getByRole('button', { name: '取り消す' })
+  const undo = page
+    .getByRole('form', { name: '送信予定の通知' })
+    .getByRole('button', { name: '取り消す' })
   await expect(undo).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await page.reload()
@@ -314,4 +316,34 @@ test('375pxでプレビューから本文の編集に戻れる', async ({ page, 
   await edit.click()
   await expect(reply).toBeFocused()
   await expect(reply).toHaveValue('領収書は購入履歴から再発行できます。')
+})
+
+test('送信予定を一覧で確認し、トーストを閉じた後も会話から今すぐ送れる', async ({
+  page,
+  scene,
+}) => {
+  await page.goto(scene.origin + '/account')
+  await page
+    .getByLabel('返信を取り消せる時間', { exact: true })
+    .selectOption('300')
+  await page.getByRole('button', { name: 'アカウントを保存' }).click()
+  await page.goto(scene.origin + '/conversation/1')
+  const body = '今回はすぐにお返事します。'
+  await page.getByRole('textbox', { name: '返信', exact: true }).fill(body)
+  await page.getByRole('button', { name: '送信', exact: true }).click()
+  const toast = page.locator('form[data-toast][data-undo-reply]')
+  await expect(toast).toContainText(/送信予定.*[0-5]:\d{2}/)
+  await toast.getByRole('button', { name: '閉じる' }).click()
+  await expect(toast).toBeHidden()
+  await page.goto(scene.origin)
+  const row = page.locator('.inbox-item[data-number="1"]')
+  await expect(row).toContainText('送信予定')
+  await row.locator('a.conversation-row').click()
+  const message = page
+    .locator('article.message-outbound')
+    .filter({ hasText: body })
+  await expect(message.getByRole('button', { name: '取り消す' })).toBeVisible()
+  await message.getByRole('button', { name: '今すぐ送る' }).click()
+  await expect(message).toContainText('送信済み', { timeout: 15000 })
+  await expect(message.getByRole('button', { name: '取り消す' })).toHaveCount(0)
 })

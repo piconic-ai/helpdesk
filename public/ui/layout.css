@@ -851,19 +851,6 @@ button[popovertarget][aria-expanded='true'],
     display: block;
     min-width: 0;
   }
-  /* Only the first line shares space with the contact and owner. */
-  [data-inbox-view] .inbox-item .row-top::before {
-    content: '';
-    float: inline-end;
-    width: 6.5rem;
-    height: var(--spacing-lg);
-  }
-  [data-inbox-view] .inbox-item .row-origin::before {
-    content: '';
-    float: inline-start;
-    width: calc(var(--spacing-lg) + var(--spacing-md));
-    height: var(--spacing-lg);
-  }
   [data-inbox-view] .inbox-item .row-identity {
     grid-area: 1 / 1;
     align-self: start;
@@ -875,17 +862,19 @@ button[popovertarget][aria-expanded='true'],
     line-height: var(--typography-title-sm-lineHeight);
   }
   [data-inbox-view] .inbox-item .row-origin {
-    display: inline;
-    line-height: var(--spacing-lg);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+    margin-inline: calc(var(--spacing-lg) + var(--spacing-md))
+      calc(2 * var(--layout-touch-target) + var(--spacing-md));
+    min-height: var(--spacing-lg);
   }
   [data-inbox-view] .inbox-item .row-origin .row-sender {
-    display: -webkit-inline-box;
-    vertical-align: top;
-    max-width: calc(100% - var(--spacing-xs));
-    margin-inline-start: var(--spacing-xs);
+    min-width: 0;
+    max-width: none;
   }
   [data-inbox-view] .inbox-item .row-product {
-    max-width: none;
+    max-width: 60%;
   }
   [data-inbox-view] .inbox-item .row-top .row-subject {
     display: block;
@@ -968,10 +957,10 @@ button[popovertarget][aria-expanded='true'],
 }
 
 [data-undo-reply][data-toast]:not([hidden]) {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   padding-block: var(--spacing-xs);
 }
-[data-undo-reply][data-toast] > [role='status'] {
+[data-undo-reply][data-toast] > span {
   min-width: 0;
 }
 [data-undo-reply][data-toast] {
@@ -1178,4 +1167,12 @@ body:has([data-empty-composer]:not([hidden]))
 .notice-draft-body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  #reply-area:has([data-undo-reply][data-toast]:not([hidden]))
+    .composer-field
+    textarea:placeholder-shown:not(:focus) {
+    min-height: calc(2 * var(--layout-touch-target) + var(--spacing-md));
+  }
 }

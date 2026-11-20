@@ -105,6 +105,7 @@ function previewAuthor(m: RowDetails) {
 }
 function rowMarks(m: RowDetails, approval: boolean, mixed: boolean) {
   const marks = []
+  if (m.scheduled) marks.push(<Delivery state="queued">送信予定</Delivery>)
   if (m.failed)
     marks.push(
       <Delivery state="failed">
@@ -120,7 +121,7 @@ function rowMarks(m: RowDetails, approval: boolean, mixed: boolean) {
           : '別の返信が承認待ち'}
       </Delivery>,
     )
-  if (!approval && !m.failed && m.previewDelivery)
+  if (!approval && !m.failed && !m.scheduled && m.previewDelivery)
     marks.push(<Delivery state={m.previewDelivery} compact />)
   if (approval && m.previewDelivery === 'draft')
     marks.push(<Delivery state="draft" compact />)

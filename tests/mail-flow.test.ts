@@ -182,30 +182,17 @@ test('F01-AC1, F01-AC15, F01-AC16, F01-AC19, F01-AC23, F01-AC24: receive, read, 
     await preview.getByText(reply, { exact: true }).waitFor()
     expect(await preview.innerText()).toContain('support@example.com')
     await page.getByRole('button', { name: '送信', exact: true }).click()
-    await page.getByRole('button', { name: '取り消す' }).waitFor()
+    await page
+      .getByRole('form', { name: 'この返信の送信予定' })
+      .getByRole('button', { name: '取り消す' })
+      .waitFor()
     expect(await page.getByRole('dialog').count()).toBe(0)
-    await expect
-      .poll(
-        async () => {
-          await page.reload()
-          return page.locator('main').innerText()
-        },
-        { timeout: 15_000 },
-      )
-      .toContain('返信待ち')
-    await expect
-      .poll(
-        async () => {
-          await page.reload()
-          return page
-            .locator('article')
-            .filter({ hasText: reply })
-            .getByText('送信済み', { exact: true })
-            .count()
-        },
-        { timeout: 15000 },
-      )
-      .toBe(1)
+    const sent = page
+      .locator('article')
+      .filter({ hasText: reply })
+      .getByText('送信済み', { exact: true })
+    await sent.waitFor({ timeout: 30_000 })
+    expect(await page.locator('main').innerText()).toContain('返信待ち')
     await receive('mail-follow-up.eml')
     await expect
       .poll(

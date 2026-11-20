@@ -57,7 +57,11 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
     '相手に届く差出人・宛先・件名と本文を確認する',
   )
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
+  await expect(
+    page
+      .getByRole('form', { name: '送信予定の通知' })
+      .getByRole('button', { name: '取り消す' }),
+  ).toBeVisible()
   await expect(notice(page)).toContainText('送信')
   await seeDelivery(page, answer)
   const current = new URL(page.url()).pathname
@@ -97,7 +101,11 @@ test('J2 受信で再開し、返信して完了した後も相手の返信が�
   const answer = '招待メールをもう一度お送りしました。'
   await compose(page).fill(answer)
   await page.getByRole('button', { name: '送信して完了' }).click()
-  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
+  await expect(
+    page
+      .getByRole('form', { name: '送信予定の通知' })
+      .getByRole('button', { name: '取り消す' }),
+  ).toBeVisible()
   await expect(notice(page)).toContainText('完了')
   await seeDelivery(page, answer)
   await expect(status(page)).toContainText('完了')

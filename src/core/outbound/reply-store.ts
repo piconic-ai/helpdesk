@@ -24,6 +24,7 @@ type Submission = {
   actor: Actor
   now: number
   approval: Approval | null
+  restoreDraft?: boolean
   holdUntil?: number
   close?: boolean
 }
@@ -32,6 +33,7 @@ type Enqueue = {
   actor: Actor
   now: number
   approval: Approval
+  restoreDraft?: boolean
   holdUntil?: number
   close?: boolean
 }
@@ -72,6 +74,7 @@ function queueWrites(db: D1Database, input: Enqueue, attempt: string) {
             input.id,
             input.holdUntil,
             input.close ? 'closed' : 'pending',
+            input.restoreDraft === true,
           ),
         ]
       : statusWrites(db, input, attempt)),

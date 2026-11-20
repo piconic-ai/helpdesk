@@ -86,7 +86,10 @@ test('返信・内部メモ・承認待ちの編集を分け、送信を取り�
     page.getByRole('region', { name: '返信のプレビュー' }),
   ).toContainText('返信用の本文')
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await page.getByRole('button', { name: '取り消す' }).click()
+  await page
+    .getByRole('form', { name: '送信予定の通知' })
+    .getByRole('button', { name: '取り消す' })
+    .click()
   await expect(reply).toHaveValue('返信用の本文')
   await page.getByRole('tab', { name: '内部メモ', exact: true }).click()
   await expect(note).toHaveValue('社内メモのみ')

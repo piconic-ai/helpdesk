@@ -81,6 +81,7 @@ export function makeCatalog(handlers: typeof usecases) {
       address.extend({ body }),
       handlers.replyAndClose,
     ),
+    sendReplyNow: operation('send', message, handlers.sendReplyNow),
     undoReply: operation('send', message, handlers.undoReply),
     retry: operation('send', message, handlers.retry),
     settings: operation('admin', empty, handlers.settings),

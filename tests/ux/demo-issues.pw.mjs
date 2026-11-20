@@ -283,14 +283,47 @@ test('課題の詳細で宛先と文面を読んだ下書きだけをまとめ�
   )
   expect((await post(selected)).status()).toBe(409)
   await expect
-    .poll(async () =>
-      (
-        await demo.db
-          .prepare(
-            "SELECT DISTINCT number FROM messages WHERE number IN (4,7,11) AND delivery='sent' AND body LIKE '%への対応が完了しました。' ORDER BY number",
-          )
-          .all()
-      ).results.map((row) => row.number),
+    .poll(
+      async () =>
+        (
+          await demo.db
+            .prepare(
+              "SELECT DISTINCT number FROM messages WHERE number IN (4,7,11) AND delivery='sent' AND body LIKE '%への対応が完了しました。' ORDER BY number",
+            )
+            .all()
+        ).results.map((row) => row.number),
+      { timeout: 24000 },
     )
     .toEqual([4, 7])
+})
+
+test('承認した返信を取り消し、同じ下書きから編集を再開できる', async ({
+  page,
+  demo,
+}) => {
+  await page.goto(demo.origin + '/account')
+  await page
+    .getByLabel('返信を取り消せる時間', { exact: true })
+    .selectOption('300')
+  await page.getByRole('button', { name: 'アカウントを保存' }).click()
+  await page.goto(demo.origin + '/conversation/5')
+  const editor = page.getByRole('textbox', { name: '下書きの本文' })
+  const revised = '契約の更新日まで変更できます。'
+  await editor.fill(revised)
+  await page.getByRole('button', { name: '承認して送信' }).click()
+  const confirmation = page.getByRole('dialog')
+  await expect(confirmation).toContainText(revised)
+  await confirmation.getByRole('button', { name: '承認して送信' }).click()
+  await page
+    .getByRole('form', { name: 'この返信の送信予定' })
+    .getByRole('button', { name: '取り消す' })
+    .click()
+  await expect(editor).toHaveValue(revised)
+  await expect(editor).toBeFocused()
+  await expect(page.getByRole('button', { name: '承認して送信' })).toBeVisible()
+  expect(
+    await demo.db
+      .prepare("SELECT delivery FROM messages WHERE id='reply-5'")
+      .first('delivery'),
+  ).toBe('awaiting_approval')
 })

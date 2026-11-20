@@ -9,7 +9,9 @@ export function replyDelivery(
   return { kind: 'queued', approval: { kind: 'operator', by: actor.id } }
 }
 
-export function operatorApproval(actor: Actor): Approval {
+export function operatorApproval(
+  actor: Actor,
+): Extract<Approval, { kind: 'operator' }> {
   if (actor.kind !== 'operator')
     throw new Error('A human operator must approve this reply')
   return { kind: 'operator', by: actor.id }

@@ -56,6 +56,7 @@ export async function rowDetails(
       AND e.kind='message_received' AND e.id>coalesce(r.id,0)
     )) AS unread,
     EXISTS(SELECT 1 FROM entries f WHERE f.target=c.number AND f.delivery='failed') AS failed,
+    EXISTS(SELECT 1 FROM entries f JOIN reply_holds h ON h.message=f.id JOIN outbox o ON o.message=f.id WHERE f.target=c.number AND f.delivery='queued' AND o.phase='ready') AS scheduled,
     (SELECT json_group_array(name) FROM (SELECT DISTINCT l.name FROM labels l JOIN members x ON x.source=l.number WHERE x.target=c.number ORDER BY l.name)) AS labels
   FROM conversations c JOIN products p ON p.id=c.product LEFT JOIN entries m ON m.target=c.number AND m.position=1
   LEFT JOIN reads r ON r.target=c.number LEFT JOIN last_inbound i ON i.target=c.number
@@ -86,6 +87,7 @@ export async function rowDetails(
           .nullable(),
         unread: z.number(),
         failed: z.number(),
+        scheduled: z.number(),
         labels: z
           .string()
           .transform((s) => z.array(z.string()).parse(JSON.parse(s))),

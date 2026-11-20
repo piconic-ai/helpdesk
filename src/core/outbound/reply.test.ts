@@ -5,6 +5,7 @@ import { replyDelivery } from './approval'
 import {
   queueReply,
   undoReply,
+  sendReplyNow,
   retryReply,
   approveReply,
   discardReply,
@@ -206,7 +207,8 @@ it('requires a human approval for an agent reply', async () => {
   await deliverReply(env, id, now)
   expect(send).not.toHaveBeenCalled()
   await approveReply(env, { id, actor: operator, now })
-  await deliverReply(env, id, now)
+  expect(await deliverReply(env, id, now)).toBe(10)
+  await deliverReply(env, id, now + 10000)
   expect(send).toHaveBeenCalledTimes(1)
 })
 it('only the operator creates a sendable reply and sent always requires approval', () => {
@@ -277,7 +279,7 @@ it('keeps approval and discard exclusive when two operators act on the same draf
   ])
   expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
   const send = success()
-  await deliverReply({ ...local, EMAIL: { send } }, id, now)
+  await deliverReply({ ...local, EMAIL: { send } }, id, now + 10000)
   if (results[0].status === 'fulfilled') {
     expect(send).toHaveBeenCalledOnce()
     expect(send.mock.calls[0][0].text).toBe('Reviewed text')
@@ -426,3 +428,97 @@ it.each(['accepted', 'rejected'] as const)(
     ).toBe(result === 'accepted' ? instant : null)
   },
 )
+
+it('holds a reviewed agent reply for its approver and keeps its identity when undone', async () => {
+  const number = await receive()
+  const { id } = await queueReply(local, {
+    number,
+    actor: agent,
+    body: 'Original',
+    now,
+  })
+  await approveReply(local, { id, actor: operator, body: 'Reviewed', now })
+  const send = success()
+  const env = { ...local, EMAIL: { send } }
+  expect(await deliverReply(env, id, now + 9999)).toBe(1)
+  expect(send).not.toHaveBeenCalled()
+  await expect(
+    undoReply(local, {
+      id,
+      actor: { kind: 'operator', id: 'another@example.org' },
+      now: now + 1,
+    }),
+  ).rejects.toThrow()
+  expect(
+    await undoReply(local, { id, actor: operator, now: now + 2 }),
+  ).toMatchObject({ number, body: 'Reviewed', restoredDraft: id })
+  expect(
+    await local.DB.prepare(
+      'SELECT body,delivery,approval FROM messages WHERE id=?',
+    )
+      .bind(id)
+      .first(),
+  ).toEqual({ body: 'Reviewed', delivery: 'awaiting_approval', approval: null })
+  await deliverReply(env, id, now + 10000)
+  expect(send).not.toHaveBeenCalled()
+  await approveReply(local, { id, actor: operator, now: now + 10001 })
+  await deliverReply(env, id, now + 20001)
+  expect(send).toHaveBeenCalledOnce()
+})
+
+it('lets only the approver expedite a reply and makes send-now exclusive with undo', async () => {
+  const number = await receive()
+  const { id } = await queueReply(local, {
+    number,
+    actor: operator,
+    body: 'Once only',
+    undoable: true,
+    now,
+  })
+  await expect(
+    sendReplyNow(local, {
+      id,
+      actor: { kind: 'operator', id: 'other@example.org' },
+      now,
+    }),
+  ).rejects.toThrow()
+  const [sendNow, undo] = await Promise.allSettled([
+    sendReplyNow(local, { id, actor: operator, now: now + 1 }),
+    undoReply(local, { id, actor: operator, now }),
+  ])
+  expect(
+    [sendNow, undo].filter((result) => result.status === 'fulfilled'),
+  ).toHaveLength(1)
+  const send = success()
+  await Promise.all(
+    [now + 2, now + 10001].map((time) =>
+      deliverReply({ ...local, EMAIL: { send } }, id, time),
+    ),
+  )
+  expect(send).toHaveBeenCalledTimes(sendNow.status === 'fulfilled' ? 1 : 0)
+})
+
+it('returns a legacy pending reply to drafts when a newer customer event already exists', async () => {
+  const number = await receive()
+  const inbound = await local.DB.prepare(
+    'INSERT INTO events(number,kind,actor,at,payload) VALUES(?,\'message_received\',?,?,\'{"category":"human"}\') RETURNING id',
+  )
+    .bind(number, JSON.stringify({ kind: 'system' }), now)
+    .first<number>('id')
+  const { id } = await queueReply(local, {
+    number,
+    actor: operator,
+    body: 'Legacy schedule',
+    undoable: true,
+    now,
+  })
+  await local.DB.prepare(
+    'UPDATE reply_holds SET queued_event=? WHERE message=?',
+  )
+    .bind(Number(inbound) - 1, id)
+    .run()
+  const send = success()
+  await deliverReply({ ...local, EMAIL: { send } }, id, now + 10001)
+  expect(send).not.toHaveBeenCalled()
+  expect(await state(id)).toMatchObject({ delivery: 'draft' })
+})

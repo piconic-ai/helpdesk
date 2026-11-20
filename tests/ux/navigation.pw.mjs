@@ -115,7 +115,11 @@ test('返信後は同じ会話で配送結果まで更新される', async ({ pa
   const text = '領収書の更新を確認しました。'
   await page.getByRole('textbox', { name: '返信', exact: true }).fill(text)
   await page.getByRole('button', { name: '送信', exact: true }).click()
-  await expect(page.getByRole('button', { name: '取り消す' })).toBeVisible()
+  await expect(
+    page
+      .getByRole('form', { name: '送信予定の通知' })
+      .getByRole('button', { name: '取り消す' }),
+  ).toBeVisible()
   const message = page
     .locator('article.message-outbound')
     .filter({ hasText: text })

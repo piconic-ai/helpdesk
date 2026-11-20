@@ -158,31 +158,60 @@ export function draftReview(
 }
 export function replyUndoForm(
   number: number,
-  hold: { id: string; remaining: number; target: 'pending' | 'closed' },
+  hold: {
+    id: string
+    remaining: number
+    target: 'pending' | 'closed'
+    canManage: boolean
+  },
+  toast = false,
 ) {
+  const seconds = Math.ceil(hold.remaining / 1000)
   return (
     <form
       action="/actions/undoReply"
       method="post"
-      data-toast=""
+      aria-label={toast ? '送信予定の通知' : 'この返信の送信予定'}
+      data-toast={toast ? '' : undefined}
       data-undo-reply={hold.remaining}
       data-layout="cluster"
       data-gap="sm"
     >
       <Input type="hidden" name="id" value={hold.id} />
       <Input type="hidden" name="number" value={number} />
-      <span role="status">
-        {hold.target === 'closed'
-          ? '送信待ちです。送信後に会話を完了します。'
-          : 'まもなく返信を送信します。'}
+      <span>
+        <span role={toast ? 'status' : undefined}>
+          {hold.target === 'closed' ? '送信予定（送信後に完了）' : '送信予定'}
+        </span>{' '}
+        · あと{' '}
+        <span data-remaining="">
+          {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
+        </span>
       </span>
-      <Button variant="outline" type="submit">
-        取り消す
-      </Button>
+      {hold.canManage && (
+        <>
+          <Button
+            variant="outline"
+            type="submit"
+            formaction="/actions/sendReplyNow"
+          >
+            今すぐ送る
+          </Button>
+          <Button variant="outline" type="submit">
+            取り消す
+          </Button>
+        </>
+      )}
+      {toast && (
+        <Button type="button" variant="ghost" data-dismiss-scheduled="">
+          閉じる
+        </Button>
+      )}
     </form>
   )
 }
 const notices: Record<string, string> = {
+  undoApproval: '送信を取り消し、承認待ちの下書きに戻しました。',
   undoReply: '送信を取り消しました。返信欄で編集できます。',
   reply: '返信を送信待ちに追加しました。',
   replyAndClose: '返信と会話の完了を受け付けました。',
