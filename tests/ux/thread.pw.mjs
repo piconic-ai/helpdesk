@@ -5,16 +5,23 @@ const compose = (page) =>
 const status = (page) => page.locator('[data-ui=attributes]')
 const notice = (page) => page.locator('main [role="status"]').first()
 
-async function seeDelivery(page, body) {
-  await expect(async () => {
-    await page.reload()
-    await expect(
-      page
-        .locator('article')
-        .filter({ hasText: body })
-        .getByText('送信済み', { exact: true }),
-    ).toBeVisible({ timeout: 700 })
-  }).toPass({ timeout: 12000 })
+async function seeDelivery(page, scene, body) {
+  const number = Number(new URL(page.url()).pathname.split('/').pop())
+  const delivery = scene.db
+    .prepare(
+      "SELECT delivery FROM messages WHERE number=? AND kind='outbound' AND body=? ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind(number, body)
+  await expect
+    .poll(() => delivery.first('delivery'), { timeout: 20000 })
+    .toBe('sent')
+  await page.reload()
+  await expect(
+    page
+      .locator('article')
+      .filter({ hasText: body })
+      .getByText('送信済み', { exact: true }),
+  ).toBeVisible()
 }
 
 test('J1 新着メールを担当し、ラベルとプレビューを確認して返信する', async ({
@@ -63,7 +70,7 @@ test('J1 新着メールを担当し、ラベルとプレビューを確認し�
       .getByRole('button', { name: '取り消す' }),
   ).toBeVisible()
   await expect(notice(page)).toContainText('送信')
-  await seeDelivery(page, answer)
+  await seeDelivery(page, scene, answer)
   const current = new URL(page.url()).pathname
   await page.getByRole('link', { name: '次の未対応へ' }).click()
   await expect(status(page)).toContainText('未対応')
@@ -107,7 +114,7 @@ test('J2 受信で再開し、返信して完了した後も相手の返信が�
       .getByRole('button', { name: '取り消す' }),
   ).toBeVisible()
   await expect(notice(page)).toContainText('完了')
-  await seeDelivery(page, answer)
+  await seeDelivery(page, scene, answer)
   await expect(status(page)).toContainText('完了')
   await expect(page.getByText(/返信するには再開します/)).toBeVisible()
   await capture(
@@ -146,7 +153,11 @@ test('J3 失敗の理由を読んで再送する', async ({ page, scene }) => {
   await page.getByRole('button', { name: '再送', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(notice(page)).toContainText('再送')
-  await seeDelivery(page, '明細を確認してご案内いたします。')
+  await seeDelivery(
+    page,
+    scene,
+    'お問い合わせありがとうございます。明細を確認してご案内いたします。',
+  )
   await capture(page, 'J3', '03-delivered', '再送した返信が送信済みになる')
 })
 
@@ -176,7 +187,7 @@ test('J4 エージェントの下書きを直して承認し、別の下書き�
   await capture(page, 'J4', '02-edit', '送信前に下書きの文面を修正する')
   await review.getByRole('button', { name: '承認して送信' }).click()
   await confirmSubmission(page)
-  await seeDelivery(page, edited)
+  await seeDelivery(page, scene, edited)
   const unwanted = page
     .locator('article')
     .filter({ hasText: '破棄する予定の下書き' })

@@ -54,18 +54,22 @@ async function readInbox(page, scene) {
   await expect(row(page, 4)).toHaveCount(0)
   await search.fill('')
   await expect(page).toHaveURL(scene.origin + '/')
+  await expect(row(page, 4)).toBeVisible()
   await button(page, '絞り込み').click()
   await button(page, '担当者 すべて').click()
   await button(page, '佐藤 優').click()
   await expect(page).toHaveURL(/assignee=/)
   await expect(row(page, 4)).toBeVisible()
-  await page.getByRole('link', { name: '佐藤 優を外す' }).click()
+  const assignee = page.getByRole('link', { name: '佐藤 優を外す' })
+  await assignee.click()
+  await expect(assignee).toHaveCount(0)
   await button(page, '絞り込み').click()
   await choose(page, 'ラベル', '請求')
   await expect(page).toHaveURL(/label=/)
   await expect(row(page, 4)).toBeVisible()
   await expect(row(page, 6)).toHaveCount(0)
   await page.getByRole('link', { name: '請求を外す' }).click()
+  await expect(row(page, 6)).toBeVisible()
 }
 
 async function answer(page) {
