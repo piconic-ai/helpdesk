@@ -141,15 +141,18 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   await page.goto(scene.origin + '/extensions')
   const disable = page
     .locator('[data-extension="rules"]')
-    .getByRole('switch', { name: /無効にする/ })
+    .getByRole('switch', { name: /の提供を停止する/ })
   await disable.click()
   await expect(
-    page
-      .getByRole('dialog')
-      .getByRole('button', { name: '振り分けルールを無効にする', exact: true }),
+    page.getByRole('dialog').getByRole('button', {
+      name: '振り分けルールの提供を停止する',
+      exact: true,
+    }),
   ).toBeVisible({ timeout: 1000 })
   await page.keyboard.press('Escape')
-  await inspectModal(page, disable, { content: '無効にします' })
+  await inspectModal(page, disable, {
+    content: 'この拡張の新しい処理が停止します',
+  })
   await page.goto(scene.origin + '/extensions/rules')
   const editor = page.locator('form[action="/extensions/rules/add"]').last()
   await expect(

@@ -47,24 +47,15 @@ const groups: Record<string, string[]> = {
   直す: ['issues', 'merge'],
   整える: ['rules', 'notify', 'metrics', 'survey', 'export'],
 }
-const publicIntakeIds = ['form', 'chat', 'feedback']
 function extensionSettings(entry: ExtensionEntry) {
   const label = extensionLabel(entry.id)
-  const required = [
-    ...entry.configurationGaps,
-    ...entry.missing,
-    ...(entry.needsAI ? ['AI'] : []),
-  ]
+  const required = [...entry.missing, ...(entry.needsAI ? ['AI'] : [])]
   const toggle = (
     <form
       method="post"
       action={'/extensions/' + entry.id}
       data-permissions={permissionText(entry.permissions)}
-      data-public-intake={
-        publicIntakeIds.includes(entry.id)
-          ? `全${projectTerm}で機能が使えるようになります。受付は${projectTerm}ごとに開始します。`
-          : undefined
-      }
+      data-extension-offering=""
     >
       <input
         type="hidden"
@@ -76,14 +67,14 @@ function extensionSettings(entry: ExtensionEntry) {
         aria-checked={entry.enabled}
         variant="ghost"
         aria-label={
-          (entry.enabled ? '有効' : '無効') +
+          (entry.enabled ? '提供中' : '停止中') +
           '、' +
           label +
-          (entry.enabled ? 'を無効にする' : 'を有効にする')
+          (entry.enabled ? 'の提供を停止する' : 'を提供する')
         }
       >
         <SwitchTrack />
-        {entry.enabled ? '有効' : '無効'}
+        {entry.enabled ? '提供中' : '停止中'}
       </Button>
     </form>
   )
@@ -98,14 +89,25 @@ function extensionSettings(entry: ExtensionEntry) {
       settings={
         <>
           {entry.summary && <p>{entry.summary}</p>}
+          {entry.configurationGaps.map((gap) => (
+            <small>{gap}</small>
+          ))}
           {required.length > 0 && (
             <small>設定が必要：{required.join('、')}</small>
           )}
-          {entry.enabled && (
-            <ActionLink variant="outline" href={'/extensions/' + entry.id}>
-              設定
+          <div data-layout="cluster" data-gap="xs">
+            <ActionLink
+              variant="outline"
+              href={'/extensions/' + entry.id + '/details'}
+            >
+              詳細
             </ActionLink>
-          )}
+            {entry.enabled && (
+              <ActionLink variant="outline" href={'/extensions/' + entry.id}>
+                設定
+              </ActionLink>
+            )}
+          </div>
         </>
       }
     />
@@ -169,16 +171,14 @@ export function managementPage(
           path="/extensions"
           query={query}
           sortable={false}
-          filterLabel="有効状態"
+          filterLabel="提供状態"
           options={[
-            { value: 'enabled', label: '有効' },
-            { value: 'disabled', label: '無効' },
+            { value: 'enabled', label: '提供中' },
+            { value: 'disabled', label: '停止中' },
           ]}
         />
       }
-      description={
-        '有効 ' + data.entries.filter((e) => e.enabled).length + '件'
-      }
+      description={`この環境で提供する拡張を選びます。提供中の拡張をプロジェクトごとに有効にできます（提供中 ${data.entries.filter((e) => e.enabled).length}件）。`}
     >
       {restored && (
         <Notice toast kind={restored === 'yes' ? 'success' : 'error'}>
@@ -189,8 +189,8 @@ export function managementPage(
       )}
       {updated && (
         <Notice toast kind="success">
-          {extensionLabel(updated.id)}を{updated.enabled ? '有効' : '無効'}
-          にしました。
+          {extensionLabel(updated.id)}の提供を
+          {updated.enabled ? '開始' : '停止'}しました。
           {undo && (
             <form action="/extensions/undo-activation" method="post">
               <input type="hidden" name="changeId" value={undo} />
@@ -214,7 +214,7 @@ export function managementPage(
         sections
       ) : (
         <EmptyState icon="search">
-          条件に合う拡張機能はありません。検索条件や有効状態を変更してください。
+          条件に合う拡張機能はありません。検索条件や提供状態を変更してください。
         </EmptyState>
       )}
     </OverviewPage>,

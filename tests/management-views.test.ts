@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest'
 import { app } from '../worker'
 import type { Bindings } from '../src/core/settings/bindings'
 import { testPlatform } from './platform'
+import { extensions } from '../helpdesk.config'
 import { notify } from '../src/extensions/notify/extension'
 import { registry } from '../src/core/extensions/registry'
 
@@ -180,13 +181,13 @@ it('protects the last administrator and shows contact names and conversation cou
 it('combines activation filters with search, exposes consent permissions, and reports a stale undo', async () => {
   await studio()
   const disabled = await page('/extensions?q=survey&filter=disabled')
-  expect(disabled).toContain('解決アンケートを有効にする')
+  expect(disabled).toContain('解決アンケートを提供する')
   expect(disabled).toContain('data-permissions="メール送信"')
   expect(disabled).not.toContain('data-extension="metrics"')
   const active = await submit('/extensions/survey', { enabled: 'yes' })
   const first = await page(active)
-  expect(first).toContain('解決アンケートを有効にしました。')
-  expect(first).toContain('解決アンケートを無効にする')
+  expect(first).toContain('解決アンケートの提供を開始しました。')
+  expect(first).toContain('解決アンケートの提供を停止する')
   expect(await page('/extensions?q=survey&filter=disabled')).toContain(
     '条件に合う拡張機能はありません。',
   )
@@ -203,6 +204,37 @@ it('combines activation filters with search, exposes consent permissions, and re
   ).toContain('設定が更新されたため、元に戻せません。')
   expect((await request('/extensions/survey')).status).toBe(404)
 })
+
+it('explains each installed extension before activation and keeps its actions disabled', async () => {
+  env.EXTENSIONS = registry(
+    extensions.map((entry) => ({ ...entry, enabled: false })),
+  )
+  const catalogue = await page('/extensions')
+  const ids = [...catalogue.matchAll(/data-extension="([a-z-]+)"/g)].map(
+    (match) => match[1],
+  )
+  expect(ids.sort()).toEqual(
+    extensions.map((entry) => entry.extension.id).sort(),
+  )
+  for (const id of ids) {
+    expect(catalogue).toContain('href="/extensions/' + id + '/details"')
+    const details = await page('/extensions/' + id + '/details')
+    expect(details).toContain('いつ動くか')
+    expect(details).toContain('何が起きるか')
+    expect(details).toContain('使い始めるには')
+    expect(details).toContain('使用する権限')
+    expect(details).not.toContain('>設定を開く<')
+  }
+  expect((await request('/extensions/unknown/details')).status).toBe(404)
+  expect(
+    (
+      await request('/extensions/issues/details', undefined, {
+        ...env,
+        LOCAL_OPERATOR: 'agent@example.org',
+      })
+    ).status,
+  ).toBe(403)
+}, 20_000)
 
 it('shows the configured email-only notification destination in the card and guide', async () => {
   env.EXTENSIONS = registry([

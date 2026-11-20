@@ -157,7 +157,7 @@ test('J9 窓口を作成し、拡張の案内から新プロジェクトの公�
   await capture(page, 'J9', '01-mailbox', 'プロジェクトと送信窓口を登録')
   await page.getByRole('link', { name: '拡張の管理', exact: true }).click()
   const card = page.locator('[data-extension=form]')
-  await card.getByRole('switch', { name: /有効にする/ }).click()
+  await card.getByRole('switch', { name: /提供する/ }).click()
   await expect(page.getByRole('dialog')).toContainText('使用する権限')
   await confirmSubmission(page)
   await card.getByRole('link', { name: '設定' }).click()

@@ -152,13 +152,13 @@ test('C 設定で有効にした拡張から使い始め方へ進む', async ({ 
   for (const id of installed) {
     const card = page.locator('[data-extension="' + id + '"]')
     await expect(card.getByRole('heading')).toBeVisible()
-    const disable = card.getByRole('switch', { name: /を無効にする/ })
+    const disable = card.getByRole('switch', { name: /の提供を停止する/ })
     if (await disable.count()) {
       await disable.click()
       await confirmSubmission(page)
     }
     await expect(card.getByRole('link', { name: '設定' })).toHaveCount(0)
-    await card.getByRole('switch', { name: /を有効にする/ }).click()
+    await card.getByRole('switch', { name: /を提供する/ }).click()
     await expect(page.getByRole('dialog')).toContainText('使用する権限')
     await confirmSubmission(page)
     await card.getByRole('link', { name: '設定' }).click()

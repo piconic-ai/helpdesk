@@ -52,7 +52,7 @@ test('読み込み中に変更した検索と選択を一度に反映し、入�
       await page
         .getByRole('searchbox', { name: '拡張機能を検索' })
         .fill('articles')
-      await page.getByLabel('有効状態').selectOption('enabled')
+      await page.getByLabel('提供状態').selectOption('enabled')
     },
   )
   await expect(page).toHaveURL(/q=articles&filter=enabled$/)
@@ -141,7 +141,7 @@ test('拡張と設定の概要で検索条件を組み合わせ、解除でき�
   const article = main.locator('[data-extension=articles]')
   await expect(main.locator('[data-extension]')).toHaveCount(1)
   await expect(article.getByRole('switch')).toBeChecked()
-  await main.getByLabel('有効状態').selectOption('disabled')
+  await main.getByLabel('提供状態').selectOption('disabled')
   await expect(main).toContainText('条件に合う拡張機能はありません。')
   await page.reload()
   await main.getByRole('link', { name: '無効 を解除' }).click()

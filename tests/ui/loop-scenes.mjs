@@ -200,7 +200,7 @@ const entries = [
       confirmation(
         page,
         page.locator('[data-extension=rules]').getByRole('switch'),
-        '無効にします',
+        'この拡張の新しい処理が停止します',
       ),
   ],
   [

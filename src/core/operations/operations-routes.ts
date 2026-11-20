@@ -1,3 +1,4 @@
+import { extensionDetailsPage } from '../extensions/extension-details-page'
 import { requireMedia } from '../operators/project-targets-usecase'
 import {
   undoExtensionSetting,
@@ -227,6 +228,26 @@ app.get('/attachment', async (c) => {
         "attachment; filename*=UTF-8''" + encodeURIComponent(file.filename),
     },
   })
+})
+app.get('/extensions/:id/details', async (c) => {
+  const ctx = context(c)
+  const project = c.req.query('product')
+  authorize(ctx, 'admin', scopes, project)
+  const item = c.env.EXTENSIONS?.all.find(
+    (entry) => entry.extension.id === c.req.param('id'),
+  )
+  if (!item) return c.notFound()
+  const frame = await consoleFrame(
+    c.env,
+    ctx.operator,
+    c.req.path,
+    project ? { product: project } : {},
+  )
+  if (project && !frame.products.some((p) => p.id === project))
+    return c.notFound()
+  return c.render(
+    extensionDetailsPage(frame, item.extension, item.enabled, project),
+  )
 })
 app.get('/extensions', async (c) => {
   const ctx = context(c)

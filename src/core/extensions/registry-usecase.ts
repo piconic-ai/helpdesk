@@ -68,7 +68,7 @@ export async function toggle(ctx: Context, id: string, enabled: boolean) {
 }
 export async function management(ctx: Context) {
   if (ctx.operator.role !== 'admin') throw new Error('Administrator required')
-  const choices = await products(ctx.env.DB)
+  const choices = await products(ctx.env.DB, null, false)
   return {
     entries: await Promise.all(
       (ctx.env.EXTENSIONS?.all ?? []).map(async (i) => ({

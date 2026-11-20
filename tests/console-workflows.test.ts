@@ -117,7 +117,7 @@ it('requires administrator permissions for extension setup and only lists enable
   const disabled = await visit('/extensions/form', { enabled: 'no' })
   expect(
     await (await visit(disabled.headers.get('location')!)).text(),
-  ).toContain('無効にしました')
+  ).toContain('提供を停止しました')
   expect((await visit('/help/form/studio')).status).toBe(404)
   expect(await (await visit('/help/')).text()).not.toContain(
     '/help/form/studio',

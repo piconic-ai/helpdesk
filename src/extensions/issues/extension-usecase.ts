@@ -32,14 +32,11 @@ export const issues: Extension = {
   icon: 'issues',
   navigationCount: pendingIssueCount,
   async configurationGaps(ctx, products) {
-    const missing = await Promise.all(
-      products.map(async (p) =>
-        (await configuredRepository(ctx, p.id))
-          ? null
-          : p.name + ' のリポジトリ',
-      ),
+    const repos = await Promise.all(
+      products.map((project) => configuredRepository(ctx, project.id)),
     )
-    return missing.filter((name): name is string => name !== null)
+    const missing = repos.filter((repo) => !repo).length
+    return missing ? [`起票先が未設定のプロジェクト ${missing}件`] : []
   },
   secrets: ['GITHUB_TOKEN'],
   permissions: ['external_fetch', 'read_body'],

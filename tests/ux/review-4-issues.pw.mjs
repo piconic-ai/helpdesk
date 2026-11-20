@@ -178,7 +178,9 @@ test('課題の拡張を無効にすると、一覧と下書き作成を利用�
   page,
 }) => {
   await page.goto(scene.origin + '/extensions')
-  await page.getByRole('switch', { name: 'GitHub Issueを無効にする' }).click()
+  await page
+    .getByRole('switch', { name: 'GitHub Issueの提供を停止する' })
+    .click()
   await confirmSubmission(page)
   await expect(
     page.getByRole('link', { name: /^課題(?:\s*\d+)?$/ }),

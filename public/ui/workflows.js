@@ -181,21 +181,21 @@ function settingsConfirmation(action, form, trigger, label) {
   }
   if (action === '/extensions/rules/remove')
     return [label, form.dataset.ruleSummary + ' の振り分けルールを削除します。']
-  if (form.elements.enabled?.value === 'yes' && form.dataset.permissions)
-    return [
-      form.closest('[data-extension]').querySelector('h3').textContent +
-        'を有効にする',
-      (form.dataset.publicIntake ? form.dataset.publicIntake + '\n' : '') +
-        '使用する権限：' +
-        form.dataset.permissions,
-    ]
-  if (form.elements.enabled?.value === 'no')
-    return [
-      form.closest('[data-extension]').querySelector('h3').textContent +
-        'を無効にする',
-      form.closest('[data-extension]').querySelector('h3').textContent +
-        'を無効にします。設定は保持され、再度有効にするまで新しい処理は停止します。',
-    ]
+  if (form.hasAttribute('data-extension-offering')) {
+    const title = form
+      .closest('[data-extension]')
+      .querySelector('h3').textContent
+    return form.elements.enabled.value === 'yes'
+      ? [
+          title + 'を提供する',
+          'プロジェクトの管理者がこの拡張を有効にできるようになります。使用する権限：' +
+            form.dataset.permissions,
+        ]
+      : [
+          title + 'の提供を停止する',
+          'すべてのプロジェクトでこの拡張の新しい処理が停止します。',
+        ]
+  }
   if (action === '/articles/edit' && trigger?.value === 'publish')
     return [
       label,
