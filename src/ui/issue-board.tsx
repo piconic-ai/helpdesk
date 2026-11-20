@@ -1,3 +1,4 @@
+import { projectTerm } from '../core/settings/project-term'
 import { createElement } from 'hono/jsx'
 import { glyph } from './glyph'
 import { ProductMark } from './product-mark'
@@ -115,7 +116,7 @@ export function IssueTable({
           <thead>
             <tr>
               <th scope="col">課題</th>
-              <th scope="col">プロダクト</th>
+              <th scope="col">{projectTerm}</th>
               <th scope="col">声</th>
               {closed ? (
                 <>
@@ -134,7 +135,7 @@ export function IssueTable({
                   <a href={r.href}>{r.title}</a>
                   {r.awaitingSync && <small>状態を同期待ち</small>}
                 </th>
-                <td data-label="プロダクト">
+                <td data-label={projectTerm}>
                   <IssueProducts products={r.productMarks} />
                 </td>
                 <td data-label="声">{r.count}件</td>
@@ -209,7 +210,8 @@ export function IssueImpact({
         </div>
       </div>
       <small>
-        割合はこのプロダクトに届いた声のうち、この課題に関連する声の割合です。
+        割合はこの{projectTerm}
+        に届いた声のうち、この課題に関連する声の割合です。
       </small>
     </FormSection>
   )

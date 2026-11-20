@@ -1,4 +1,4 @@
-import { ProductSelect } from '../ui/product-mark'
+import { ProductSelect, ProjectPickerForm } from '../ui/product-mark'
 import { projectTerm } from '../core/settings/project-term'
 import { projectTemplateKey } from '../extensions/canned/templates'
 import type { cannedCounts } from '../extensions/canned/suggestion-store'
@@ -30,7 +30,7 @@ export function cannedSettings(
       <Input type="hidden" name="product" value={product} />
       <Field
         label="定型文の本文"
-        description="相手の名前には {{name}}、プロダクト名には {{product}} が使えます。"
+        description={`相手の名前には {{name}}、${projectTerm}名には {{product}} が使えます。`}
       >
         <Textarea required name="body" maxlength={4000}>
           {body}
@@ -45,10 +45,11 @@ export function cannedSettings(
   )
   return (
     <>
-      <form method="get" action="/extensions/canned">
-        <ProductSelect products={manageable} selected={product} />
-        <Button>設定を開く</Button>
-      </form>
+      <ProjectPickerForm
+        action="/extensions/canned"
+        products={manageable}
+        selected={product}
+      />
       <h2>保存済みの定型文</h2>
       {items.size ? (
         <RowList>

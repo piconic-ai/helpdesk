@@ -1,5 +1,6 @@
+import { projectTerm } from '../core/settings/project-term'
 import { ProductMark } from '../ui/product-mark'
-import { PageLinks } from '../ui/listing'
+import { matchesSearch, PageLinks } from '../ui/listing'
 import { paginateRows } from '../ui/pagination'
 import { ActionLink } from '../ui/controls'
 import {
@@ -40,6 +41,7 @@ export function helpLanding(
   }[],
   query: string,
   page?: string,
+  filter = '',
 ) {
   const search = products.some((p) =>
     p.links.some((link) => link.path.startsWith('/help/articles/')),
@@ -53,7 +55,10 @@ export function helpLanding(
     ),
     page,
   )
-  const directory = paginateRows(products, page)
+  const directory = paginateRows(
+    products.filter((p) => matchesSearch(p.name, filter)),
+    page,
+  )
   const result = query ? matches : directory
   const title = 'ヘルプ'
   return publicDocument(
@@ -62,24 +67,35 @@ export function helpLanding(
       title,
       html: String(
         <ListPage
-          title={query ? '記事の検索結果' : 'プロダクトから探す'}
+          title={query ? '記事の検索結果' : `${projectTerm}から探す`}
           description={
             query
               ? '記事 ' + matches.total + '件'
-              : 'プロダクト ' + directory.total + '件'
+              : `${projectTerm} ` + directory.total + '件'
           }
-          footer={<PageLinks path="/help/" query={{ q: query }} {...result} />}
+          footer={
+            <PageLinks path="/help/" query={{ q: query, filter }} {...result} />
+          }
           filters={
-            search && (
-              <PublicSearch label="すべてのヘルプ記事を検索" query={query} />
-            )
+            <>
+              {search && (
+                <PublicSearch label="すべてのヘルプ記事を検索" query={query} />
+              )}
+              {products.length > 8 && (
+                <PublicSearch
+                  name="filter"
+                  label={`${projectTerm}名で検索`}
+                  query={filter}
+                />
+              )}
+            </>
           }
         >
           {query && matches.total === 0 && (
             <EmptyState icon="search">該当する記事はありません。</EmptyState>
           )}
           {query && matches.total > 0 && <PublicLinks items={matches.rows} />}
-          {products.length ? (
+          {directory.total ? (
             (query ? products : directory.rows).map((p) => (
               <FormSection title={<ProductMark product={p} size="heading" />}>
                 <PublicLinks items={p.links} />
@@ -87,12 +103,14 @@ export function helpLanding(
             ))
           ) : (
             <EmptyState icon="articles">
-              ご利用のプロダクトの「お問い合わせ」または「ヘルプ」を開いてください。
+              {filter
+                ? `該当する${projectTerm}はありません。`
+                : `ご利用の${projectTerm}の「お問い合わせ」または「ヘルプ」を開いてください。`}
             </EmptyState>
           )}
         </ListPage>,
       ),
     },
-    { search },
+    { search: search || products.length > 8 },
   )
 }

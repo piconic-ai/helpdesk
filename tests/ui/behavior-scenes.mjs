@@ -6,26 +6,26 @@ const cases = [
   [
     'label-add',
     'ラベルを追加',
-    '/settings/labels',
+    '/settings/projects/slide/labels',
     (p) => p.getByRole('button', { name: 'ラベルを追加' }).click(),
   ],
   [
     'label-swatches',
     'ラベルの色を選ぶ',
-    '/settings/labels',
+    '/settings/projects/slide/labels',
     (p) => p.getByRole('button', { name: '経理の色を変更' }).click(),
   ],
   [
     'label-rename',
     'ラベル名を編集',
-    '/settings/labels',
+    '/settings/projects/slide/labels',
     (p) =>
       p.getByRole('button', { name: '経理の名前を変更', exact: true }).click(),
   ],
   [
     'label-merge',
     'ラベルをまとめる確認',
-    '/settings/labels',
+    '/settings/projects/slide/labels',
     async (p) => {
       await p.getByRole('button', { name: '操作：経理', exact: true }).click()
       await p
@@ -38,7 +38,7 @@ const cases = [
   [
     'label-delete',
     'ラベルを削除する確認',
-    '/settings/labels',
+    '/settings/projects/slide/labels',
     async (p) => {
       await p.getByRole('button', { name: '操作：経理', exact: true }).click()
       await p.getByRole('button', { name: '削除', exact: true }).click()

@@ -9,7 +9,7 @@ export const trendScenes = [
   },
   {
     id: 'voices-trends',
-    label: 'ラベル・プロダクト・月ごとの受付推移',
+    label: 'ラベル・プロジェクト・月ごとの受付推移',
     url: '/voices?start=2026-10-01&end=2026-11-18',
     heading: '声の集計',
   },

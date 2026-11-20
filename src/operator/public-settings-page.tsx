@@ -1,3 +1,4 @@
+import { extensionSettingsPath } from '../core/settings/project-setting-links'
 import { Disclosure, SaveActions } from '../ui/admin'
 import { Button, Input } from '../ui/controls'
 import type { ChatWidget } from '../core/intakes/chat-widget'
@@ -51,7 +52,10 @@ export function publicSettingsFields(
                   placeholder="https://support.example.com"
                 />
               </label>
-              <SaveActions verb="埋め込み先を登録" cancel="/extensions/chat" />
+              <SaveActions
+                verb="埋め込み先を登録"
+                cancel={extensionSettingsPath('chat', product)}
+              />
             </form>
           </Disclosure>
         </section>
@@ -77,7 +81,7 @@ export function publicSettingsFields(
               <small>問い合わせを受け付けた後、利用者に表示します。</small>
               <SaveActions
                 verb="返信の目安を保存"
-                cancel={'/extensions/' + id}
+                cancel={extensionSettingsPath(id, product)}
               />
             </form>
           </Disclosure>

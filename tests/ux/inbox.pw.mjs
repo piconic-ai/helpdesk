@@ -143,7 +143,12 @@ test('運営画面で識別子、アドレス、機械の単位を入力させ�
           return []
         }),
       )
-    expect.soft(invalid, path).toEqual([])
+    const expected = /^\/settings\/projects\/[^/]+\/members$/.test(
+      new URL(path, scene.origin).pathname,
+    )
+      ? ['email 招く人のメールアドレス']
+      : []
+    expect.soft(invalid, path).toEqual(expected)
     const links = await page
       .locator('main a[href],aside a[href]')
       .evaluateAll((anchors) =>
@@ -175,7 +180,7 @@ test('運営と公開の404から、それぞれの画面に戻れる', async ({
   }
 })
 
-test('公開ヘルプの戻り先には受付を公開したプロダクトのリンクがある', async ({
+test('公開ヘルプの戻り先には受付を公開したプロジェクトのリンクがある', async ({
   page,
   scene,
 }) => {

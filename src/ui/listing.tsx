@@ -1,3 +1,5 @@
+import { ProductSelect } from './product-mark'
+import { projectTerm } from '../core/settings/project-term'
 import { paginateRows } from './pagination'
 import { ActionLink, Field, Input, NativeSelect } from './controls'
 import { FilterBar } from './patterns'
@@ -12,6 +14,8 @@ type Filters = {
   options?: Option[]
   filterLabel?: string
   defaultOrder?: string
+  projects?: { id: string; name: string }[]
+  searchable?: boolean
   sortable?: boolean
 }
 export type ListWindow = { total: number; page: number; pages: number }
@@ -54,7 +58,10 @@ export function ListFilters({
   filterLabel,
   defaultOrder = '標準の順序',
   sortable = true,
+  searchable = true,
+  projects,
 }: Filters) {
+  const project = projects?.find((p) => p.id === query.product)
   const chip = (key: string, label: string) => (
     <ActionLink
       variant="ghost"
@@ -67,9 +74,10 @@ export function ListFilters({
   return (
     <FilterBar
       chips={
-        Boolean(query.q || query.filter || query.sort) && (
+        Boolean(query.q || query.filter || query.sort || project) && (
           <>
             {query.q && chip('q', '検索：' + query.q)}
+            {project && chip('product', project.name)}
             {query.filter &&
               chip(
                 'filter',
@@ -87,18 +95,29 @@ export function ListFilters({
         data-live-filters=""
         data-list-filters=""
       >
-        {query.product && (
+        {!projects && query.product && (
           <Input type="hidden" name="product" value={query.product} />
         )}
-        <Field label="検索">
-          <Input
-            type="search"
-            name="q"
-            value={query.q ?? ''}
-            aria-label={title + 'を検索'}
-            placeholder={title + 'を検索'}
-          />
-        </Field>
+        {projects && (
+          <Field label={projectTerm}>
+            <ProductSelect
+              products={projects}
+              empty={`すべての${projectTerm}`}
+              selected={query.product}
+            />
+          </Field>
+        )}
+        {searchable && (
+          <Field label="検索">
+            <Input
+              type="search"
+              name="q"
+              value={query.q ?? ''}
+              aria-label={title + 'を検索'}
+              placeholder={title + 'を検索'}
+            />
+          </Field>
+        )}
         {options && (
           <Field label={filterLabel ?? '絞り込み'}>
             <NativeSelect name="filter" aria-label={filterLabel ?? '絞り込み'}>

@@ -1,3 +1,4 @@
+import { projectTerm } from '../core/settings/project-term'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
 import type { MissingArticle } from '../core/suggestions/suggestion'
@@ -33,11 +34,11 @@ export function missingArticlesPage(
         <FilterBar>
           <form action="/articles/questions" method="get" data-live-filters="">
             <label>
-              プロダクト
+              {projectTerm}
               <ProductSelect
                 products={frame.products}
                 selected={product}
-                empty="すべてのプロダクト"
+                empty={`すべての${projectTerm}`}
               />
             </label>
           </form>

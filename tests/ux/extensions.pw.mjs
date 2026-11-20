@@ -14,7 +14,7 @@ test('J5 記事をプレビューし公開してから返信に添える', async
   await page.goto(scene.origin)
   await page.getByRole('link', { name: 'ヘルプ記事', exact: true }).click()
   await page.getByRole('link', { name: '記事を書く' }).click()
-  await choose(page, 'プロダクト', { label: 'Slide' })
+  await choose(page, 'プロジェクト', { label: 'Slide' })
   await page.getByLabel('題名').fill(title)
   await page.getByLabel('本文').fill(body)
   await page.getByRole('button', { name: 'プレビュー' }).click()
@@ -98,7 +98,7 @@ test('J8 起票内容を確認し、Issue が閉じた通知案を承認する',
   )
 })
 
-test('J10 直近30日の指標を確認しプロダクトと期間を切り替える', async ({
+test('J10 直近30日の指標を確認しプロジェクトと期間を切り替える', async ({
   page,
   scene,
 }) => {
@@ -113,7 +113,7 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
     .locator('strong')
   await expect(closed).toHaveText('1')
   await capture(page, 'J10', '01-month', '過去30日の集計')
-  await choose(page, 'プロダクト', { label: 'Desk' })
+  await choose(page, 'プロジェクト', { label: 'Desk' })
   await page
     .getByRole('combobox', { name: '期間', exact: true })
     .selectOption({ label: '過去7日' })
@@ -122,11 +122,11 @@ test('J10 直近30日の指標を確認しプロダクトと期間を切り替�
     page.getByRole('combobox', { name: '期間', exact: true }),
   ).toHaveValue('7')
   await expect(closed).toHaveText('0')
-  await capture(page, 'J10', '02-product', '選択したプロダクトの過去7日間')
+  await capture(page, 'J10', '02-product', '選択したプロジェクトの過去7日間')
   await page
     .getByRole('combobox', { name: '期間', exact: true })
     .selectOption({ label: '日付を指定' })
-  await choose(page, 'プロダクト', { label: 'Slide' })
+  await choose(page, 'プロジェクト', { label: 'Slide' })
   await page.getByRole('button', { name: '日付の範囲' }).click()
   await page.getByLabel('開始日').fill('2026-11-01')
   await page.getByLabel('終了日').fill('2026-11-15')
@@ -208,7 +208,7 @@ test.describe('公開画面の埋め込み', () => {
       ['articles', 'ヘルプ記事'],
     ]
     for (const [id, heading] of fronts) {
-      await page.goto(scene.origin + '/extensions/' + id)
+      await page.goto(scene.origin + '/extensions/' + id + '?product=slide')
       const product = page.locator('section.settings-card').filter({
         has: page.getByRole('heading', { name: 'Slide', exact: true }),
       })

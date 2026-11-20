@@ -159,8 +159,18 @@ async function seed(db, raw, extensions) {
       'mori@example.com',
       '森 直子',
     ),
+    query("INSERT INTO operators VALUES ('ito@example.com','agent')"),
+    query(
+      "INSERT INTO operator_profiles(email,display_name) VALUES('ito@example.com','伊藤 蓮')",
+    ),
     query('INSERT INTO products VALUES (?,?)', 'slide', 'Slide'),
     query('INSERT INTO products VALUES (?,?)', 'desk', 'Desk'),
+    query(
+      "INSERT INTO product_members(product,email,role) VALUES('slide','mori@example.com','admin'),('desk','mori@example.com','agent'),('desk','ito@example.com','agent')",
+    ),
+    query(
+      "INSERT INTO product_lifecycle(product,public_help) VALUES('slide',1),('desk',0) ON CONFLICT(product) DO UPDATE SET public_help=excluded.public_help",
+    ),
     query(
       'UPDATE product_ticket_prefixes SET prefix=? WHERE product=?',
       'SLD',
@@ -227,7 +237,11 @@ async function seed(db, raw, extensions) {
   statements.push(query('INSERT INTO labels VALUES(?,?)', 4, '請求'))
   // Two example labels hash to the same default; show a saved color choice as well.
   statements.push(
-    query('INSERT INTO label_colors(name,color) VALUES(?,?)', '社内確認', 3),
+    query(
+      "INSERT INTO project_labels(product,name,color) VALUES('slide',?,?) ON CONFLICT(product,name) DO UPDATE SET color=excluded.color",
+      '社内確認',
+      3,
+    ),
   )
   await db.batch(statements)
   await raw.put(

@@ -184,7 +184,7 @@ export function mailboxPage(
           <small>
             この窓口からの返信は、少なくとも選んだ時間だけ待ってから送ります。長くすると相手に届くのが遅くなります。
           </small>
-          <SaveActions verb="差出人を保存" cancel={path} />
+          <SaveActions verb="差出人を保存" cancel={projectPath(product.id)} />
         </form>
       </FormSection>
       <FormSection title="登録済みの窓口">
@@ -197,7 +197,7 @@ export function mailboxPage(
           <form method="post" action={path}>
             <Input type="hidden" name="product" value={product.id} />
             {addressFields(domains)}
-            <SaveActions verb="窓口を追加" cancel={path} />
+            <SaveActions verb="窓口を追加" cancel={projectPath(product.id)} />
           </form>
         </Disclosure>
       </FormSection>

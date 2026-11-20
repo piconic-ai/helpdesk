@@ -8,7 +8,7 @@ test('定型文・ルール・並べ替え・拡張有効化を結果から元�
 }) => {
   const undo = () =>
     page.getByRole('button', { name: '元に戻す', exact: true }).click()
-  await page.goto(scene.origin + '/extensions/canned')
+  await page.goto(scene.origin + '/extensions/canned?product=slide')
   const newTemplate = page
     .locator('form[action="/extensions/canned/save"]')
     .last()
@@ -78,7 +78,7 @@ multiAdmin(
     ])
     const second = await peer.newPage()
     try {
-      const path = scene.origin + '/extensions/canned'
+      const path = scene.origin + '/extensions/canned?product=slide'
       const open = async (p, label) => {
         await p.goto(path)
         await p.getByLabel('編集：' + label, { exact: true }).click()

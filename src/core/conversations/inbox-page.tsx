@@ -1,3 +1,4 @@
+import { projectTerm } from '../settings/project-term'
 import type { Child } from 'hono/jsx'
 import { glyph } from '../../ui/glyph'
 import { ProductSelect, ProductMark } from '../../ui/product-mark'
@@ -130,7 +131,7 @@ function filters(q: Query, frame: ConsoleFrame) {
               q.status ? undefined : status,
               statusIcon,
             )}
-          <Field label="プロダクト">
+          <Field label={projectTerm}>
             <ProductSelect
               products={frame.products}
               selected={q.product}

@@ -11,7 +11,8 @@ test('C 実際に発行したトークンで CLI と MCP を操作する', async
   scene,
 }) => {
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  await page.getByRole('link', { name: /API トークン/ }).click()
+  await page.getByRole('link', { name: /^全体の設定/ }).click()
+  await page.getByRole('link', { name: /^API トークンの管理/ }).click()
   await page.getByLabel('トークン名').fill('受付担当')
   await page
     .getByRole('combobox', { name: '発行する権限', exact: true })
@@ -83,7 +84,7 @@ test.describe('C 受信メールの拡張処理', () => {
     scene,
   }) => {
     await page.goto(scene.origin + '/extensions/rules')
-    await choose(page, 'プロダクト', { label: 'Slide' })
+    await choose(page, 'プロジェクト', { label: 'Slide' })
     await page.getByLabel('件名に含む言葉').fill('請求変更')
     await choose(page, '付けるラベル', { label: '経理' })
     await page
@@ -173,4 +174,58 @@ test('C 設定で有効にした拡張から使い始め方へ進む', async ({ 
     '01-enabled',
     '7つの拡張を有効にし、それぞれの使い始め方と戻り先を確認',
   )
+})
+
+test.describe('拡張の設定をプロジェクトごとに開く', () => {
+  const extensions = [
+    'articles',
+    'chat',
+    'feedback',
+    'form',
+    'issues',
+    'canned',
+  ]
+  test.use({ extensions })
+  test('設定の入口で選んだプロジェクトだけを編集できる', async ({
+    page,
+    scene,
+  }) => {
+    const main = page.getByRole('main')
+    for (const id of extensions) {
+      await test.step(id, async () => {
+        await page.goto(scene.origin + '/extensions/' + id)
+        await expect(
+          main.getByRole('heading', { name: 'Slide', exact: true }),
+        ).toHaveCount(0)
+        await expect(
+          main.getByRole('heading', { name: 'Desk', exact: true }),
+        ).toHaveCount(0)
+        await expect(
+          main.getByRole('button', { name: '定型文を作成' }),
+        ).toHaveCount(0)
+        await choose(main, 'プロジェクト', 'slide')
+        await main.getByRole('button', { name: '設定を開く' }).click()
+        await expect(page).toHaveURL(
+          (url) => url.searchParams.get('product') === 'slide',
+        )
+        if (id === 'canned')
+          await expect(
+            main.getByRole('button', { name: '定型文を作成' }),
+          ).toBeVisible()
+        else
+          await expect(
+            main.getByRole('heading', { name: 'Slide', exact: true }),
+          ).toBeVisible()
+        await expect(
+          main.getByRole('heading', { name: 'Desk', exact: true }),
+        ).toHaveCount(0)
+        await main
+          .getByRole('link', { name: 'プロジェクトの設定に戻る' })
+          .click()
+        await expect(page).toHaveURL(
+          (url) => url.pathname === '/settings/projects/slide',
+        )
+      })
+    }
+  })
 })

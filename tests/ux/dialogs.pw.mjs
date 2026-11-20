@@ -166,7 +166,7 @@ test('拡張の無効化・ルールの削除・記事の公開は確認を閉�
   await editor.getByRole('button', { name: 'ルールを保存' }).click()
   await page.locator('[data-list=rules] summary').first().click()
   await inspectModal(page, formButton(page, '/extensions/rules/remove'), {
-    content: '全プロダクト・件名に「請求内容の確認」・ラベル「請求」',
+    content: '全プロジェクト・件名に「請求内容の確認」・ラベル「請求」',
   })
   await page.goto(scene.origin + '/articles/new')
   await page.getByLabel('題名').fill('更新の手順')

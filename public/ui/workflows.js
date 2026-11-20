@@ -185,9 +185,7 @@ function settingsConfirmation(action, form, trigger, label) {
     return [
       form.closest('[data-extension]').querySelector('h3').textContent +
         'を有効にする',
-      (form.dataset.publicIntake
-        ? '全プロダクトで機能が使えるようになります。受付はプロダクトごとに開始します。\n'
-        : '') +
+      (form.dataset.publicIntake ? form.dataset.publicIntake + '\n' : '') +
         '使用する権限：' +
         form.dataset.permissions,
     ]

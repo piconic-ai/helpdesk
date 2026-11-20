@@ -1,3 +1,4 @@
+import { seedConferenceProjects } from './project-examples.mjs'
 import { startScene } from './seed.mjs'
 import { seedReviewExamples } from './review-screens.mjs'
 import { seedReviewIssues } from './review-issue-seed.mjs'
@@ -24,6 +25,7 @@ export async function startDemo(port = 0, { tickingClock = true } = {}) {
     { tickingClock, port, demoIssues: true },
   )
   try {
+    await seedConferenceProjects(demo.db)
     await seedReviewExamples(demo.db, ['articles'])
     await seedReviewIssues(demo.db, true)
     await demo.db.batch([

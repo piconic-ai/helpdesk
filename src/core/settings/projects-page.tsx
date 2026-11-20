@@ -24,7 +24,7 @@ import {
   SettingRow,
   ActionBar,
 } from '../../ui/patterns'
-import { ProductSelect, ProductMark } from '../../ui/product-mark'
+import { ProjectPickerForm, ProductMark } from '../../ui/product-mark'
 import { ActionLink, Button, Field, Input, Dialog } from '../../ui/controls'
 import { setupIssues } from '../conversations/settings-page'
 
@@ -38,8 +38,8 @@ const globalTitle = '全体の設定'
 const projectTitle = projectTerm + 'の設定'
 const directoryTitle = projectTerm + 'と窓口'
 type Row = { href: string; title: string; description: string; value?: string }
-const rows = (items: Row[]) => (
-  <nav aria-label="設定項目">
+const rows = (items: Row[], label = '設定項目') => (
+  <nav aria-label={label}>
     {items.map((item) => (
       <SettingRow {...item} />
     ))}
@@ -209,16 +209,11 @@ export function projectPicker(
     projectTitle,
     <EditPage title={projectTitle} back={rootBack}>
       {available.length ? (
-        <form action="/settings/projects" method="get">
-          <Field label={projectTerm}>
-            <ProductSelect
-              products={available}
-              label={projectTerm}
-              empty={projectTerm + 'を選ぶ'}
-            />
-          </Field>
-          <Button>設定を開く</Button>
-        </form>
+        <ProjectPickerForm
+          action="/settings/projects"
+          products={available}
+          empty={projectTerm + 'を選ぶ'}
+        />
       ) : (
         <EmptyState icon="mail">使用中の{projectTerm}がありません。</EmptyState>
       )}
@@ -289,6 +284,11 @@ export function projectHome(frame: ConsoleFrame, project: ProjectSettings) {
     project.name,
     <OverviewPage
       title={<ProductMark product={project} size="heading" />}
+      description={
+        project.archived
+          ? '保管済み · 新しい問い合わせの受付は終了しています。'
+          : '使用中'
+      }
       back={rootBack}
     >
       {frame.query.saved && (
@@ -298,7 +298,9 @@ export function projectHome(frame: ConsoleFrame, project: ProjectSettings) {
       )}
       {rows(links)}
       {!!extensions.length && (
-        <FormSection title="拡張の設定">{rows(extensions)}</FormSection>
+        <FormSection title="拡張の設定">
+          {rows(extensions, '拡張の設定')}
+        </FormSection>
       )}
       <FormSection title="公開のヘルプ">
         <form method="post" action={url + '/publication'}>

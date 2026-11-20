@@ -25,7 +25,9 @@ export async function hostedProducts(
   const rows = await db
     .prepare(`SELECT p.id,p.name,(SELECT address FROM mailboxes WHERE product=p.id ORDER BY address LIMIT 1) AS mailbox FROM products p
     LEFT JOIN hosted_intakes h ON h.product=p.id
-    WHERE h.origin=? OR p.id IN (SELECT value FROM json_each(?)) ORDER BY p.name,p.id`)
+    LEFT JOIN product_lifecycle l ON l.product=p.id
+    WHERE (h.origin=? OR p.id IN (SELECT value FROM json_each(?)))
+    AND l.archived_at IS NULL AND l.public_help=1 ORDER BY p.name,p.id`)
     .bind(origin, JSON.stringify(configured))
     .all()
   return z

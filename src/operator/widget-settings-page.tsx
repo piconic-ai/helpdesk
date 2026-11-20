@@ -1,3 +1,5 @@
+import { extensionSettingsPath } from '../core/settings/project-setting-links'
+import { projectTerm } from '../core/settings/project-term'
 import { DetailPage } from '../ui/patterns'
 import { html } from 'hono/html'
 import { Button, Input, Textarea, NativeSelect } from '../ui/controls'
@@ -74,7 +76,9 @@ export function WidgetSettings({
     >
       <Stack gap="md">
         <h3>
-          {local ? 'この端末で試す埋め込みコード' : 'プロダクトへの埋め込み'}
+          {local
+            ? 'この端末で試す埋め込みコード'
+            : `${projectTerm}への埋め込み`}
         </h3>
         <label>
           埋め込みコード
@@ -126,7 +130,7 @@ export function WidgetSettings({
                 name="introduction"
                 rows={3}
                 maxlength={500}
-                placeholder="このプロダクトで案内できる内容など"
+                placeholder={`この${projectTerm}で案内できる内容など`}
               >
                 {options.introduction}
               </Textarea>
@@ -137,7 +141,7 @@ export function WidgetSettings({
             <p>位置・文言を変えた場合はコードを貼り直してください。</p>
             <SaveActions
               verb="チャットの表示を保存"
-              cancel="/extensions/chat"
+              cancel={extensionSettingsPath('chat', product.id)}
             />
           </form>
         </Disclosure>

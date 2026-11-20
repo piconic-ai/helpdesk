@@ -1,3 +1,4 @@
+import { projectTerm } from '../settings/project-term'
 import { displayReference } from '../conversations/ticket-reference'
 import { metricValue } from '../../ui/metric-value'
 import { IssuePostFields } from '../../ui/issue-board'
@@ -60,7 +61,9 @@ function extensionSettings(entry: ExtensionEntry) {
       action={'/extensions/' + entry.id}
       data-permissions={permissionText(entry.permissions)}
       data-public-intake={
-        publicIntakeIds.includes(entry.id) ? 'yes' : undefined
+        publicIntakeIds.includes(entry.id)
+          ? `全${projectTerm}で機能が使えるようになります。受付は${projectTerm}ごとに開始します。`
+          : undefined
       }
     >
       <input
@@ -759,7 +762,7 @@ export function operationResult(
   const title = report ? '対応状況の集計' : operationLabel(name)
   const product =
     frame?.products.find((item) => item.id === input.product)?.name ??
-    'すべてのプロダクト'
+    `すべての${projectTerm}`
   const period =
     report && input.from && input.to ? (
       <>

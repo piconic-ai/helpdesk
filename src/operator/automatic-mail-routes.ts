@@ -1,3 +1,4 @@
+import { projectTerm } from '../core/settings/project-term'
 import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 import { consoleFrame } from '../core/conversations/console-usecase'
@@ -40,6 +41,13 @@ function mailNotice(conflict: boolean, preview: boolean, saved: boolean) {
   if (saved) return '文面を保存しました。'
 }
 
+function sampleSubject(language: string, reference: string) {
+  return replySubject(
+    language === 'ja' ? 'お問い合わせの例' : 'Sample inquiry',
+    reference,
+  )
+}
+
 async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
   const ctx = context(c)
   const requested = form?.product ?? c.req.query('product')
@@ -49,9 +57,10 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
     (entry) => entry.extension.id === id,
   )
   if (!installed) return c.notFound()
-  const frame = await consoleFrame(c.env, ctx.operator, '/extensions/' + id)
-  const selection =
-    form?.product ?? c.req.query('product') ?? frame.products[0]?.id
+  const frame = await consoleFrame(c.env, ctx.operator, '/extensions/' + id, {
+    product: requested ?? '',
+  })
+  const selection = requested ?? frame.products[0]?.id
   const product = frame.products.find((p) => p.id === selection)
   if (selection && !product) return c.notFound()
   const key = messageKey(selection ?? '')
@@ -114,10 +123,7 @@ async function settings(c: Context<AppEnv>, form?: z.infer<typeof formSchema>) {
         wording: wording.body,
         language: wording.language,
         revision: draft?.revision ?? current.revision,
-        subject: replySubject(
-          wording.language === 'ja' ? 'お問い合わせの例' : 'Sample inquiry',
-          reference,
-        ),
+        subject: sampleSubject(wording.language, reference),
         preview,
       },
       mailNotice(conflict, !!draft, c.req.query('notice') === 'saved'),
@@ -131,7 +137,7 @@ app.post(path + '/message', async (c) => {
   const form = formSchema.safeParse(await c.req.parseBody())
   if (!form.success)
     return c.text(
-      'プロダクトと文面を確認してください。本文は1～8000文字で入力してください。',
+      `${projectTerm}と文面を確認してください。本文は1～8000文字で入力してください。`,
       400,
     )
   return settings(c, form.data)

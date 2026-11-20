@@ -2,6 +2,7 @@ import { visibleProductIds, can } from '../core/operators/project-access'
 import { requireSettings } from '../core/settings/project-settings-usecase'
 import { requireProduct } from '../core/operators/project-permission'
 import { requireConversations } from '../core/operators/project-targets-usecase'
+import { reportProjectVolume } from './project-volume-usecase'
 import { defaultTimeZone } from '../core/operators/time-zone'
 import { reportPeriod } from '../extensions/metrics/report-period'
 import {
@@ -54,7 +55,7 @@ import { invoke } from '../core/operations/runtime-usecase'
 import { panels } from '../core/extensions/registry-usecase'
 import { extensionPanels } from '../core/extensions/extensions-page'
 import {
-  publicGuides,
+  hasProjectPortal,
   permissionText,
 } from '../core/extensions/extension-guides'
 import { reportResult } from '../extensions/metrics/extension'
@@ -458,6 +459,7 @@ app.get('/metrics', async (c) => {
       { product, period, start: range.start, end: range.end, timeZone: zone },
       result,
       history,
+      await reportProjectVolume(context(c), from, to, product),
     ),
   )
 })
@@ -491,14 +493,14 @@ app.get('/extensions/chat/preview/:product', async (c) => {
 })
 app.post('/extensions/chat/recommendations', async (c) => {
   if (!active(c, 'chat')) return c.notFound()
-  const token = await saveRecommendationForm(
-    context(c),
-    await c.req.parseBody(),
-  )
+  const fields = await c.req.parseBody()
+  const token = await saveRecommendationForm(context(c), fields)
   return c.redirect(
     '/extensions/chat?publicSettings=' +
       (token === null ? 'conflict' : 'recommendations') +
-      (token ? '&undo=' + token : ''),
+      (token ? '&undo=' + token : '') +
+      '&product=' +
+      encodeURIComponent(String(fields.product)),
     303,
   )
 })
@@ -513,7 +515,10 @@ app.post('/extensions/chat/widget-settings', async (c) => {
   if (token === null)
     return c.text('ボタンの位置・文言・説明文を確認してください。', 400)
   return c.redirect(
-    '/extensions/chat?publicSettings=saved' + (token ? '&undo=' + token : ''),
+    '/extensions/chat?publicSettings=saved' +
+      (token ? '&undo=' + token : '') +
+      '&product=' +
+      encodeURIComponent(String(fields.product)),
     303,
   )
 })
@@ -548,7 +553,9 @@ app.post(
       '/extensions/' +
         id +
         '?publicSettings=saved' +
-        (token ? '&undo=' + token : ''),
+        (token ? '&undo=' + token : '') +
+        '&product=' +
+        encodeURIComponent(String(fields.product)),
       303,
     )
   },
@@ -556,7 +563,8 @@ app.post(
 app.post('/extensions/:id{form|chat}/undo-setting', async (c) => {
   const id = c.req.param('id')
   if (!active(c, id)) return c.notFound()
-  const token = String((await c.req.parseBody()).changeId)
+  const fields = await c.req.parseBody()
+  const token = String(fields.changeId)
   const ctx = context(c)
   const restored =
     (await undoPublicSetting(ctx, token)) ||
@@ -565,7 +573,10 @@ app.post('/extensions/:id{form|chat}/undo-setting', async (c) => {
     '/extensions/' +
       id +
       '?publicSettings=' +
-      (restored ? 'restored' : 'outdated'),
+      (restored ? 'restored' : 'outdated') +
+      (fields.returnProduct
+        ? '&product=' + encodeURIComponent(String(fields.returnProduct))
+        : ''),
     303,
   )
 })
@@ -576,8 +587,7 @@ async function guidePortals(
   products: ConsoleFrame['products'],
 ) {
   const origin = new URL(c.req.url).origin
-  const applicable =
-    Object.hasOwn(publicGuides, id) || id === 'issues' ? products : []
+  const applicable = hasProjectPortal(id) ? products : []
   return Promise.all(
     applicable.map(async (p) => {
       const policy =
@@ -648,7 +658,9 @@ app.get('/extensions/:id', async (c) => {
     c,
     id,
     api,
-    state.products.filter((p) => !project || p.id === project),
+    state.products.filter(
+      (p) => p.id === project || (!project && state.products.length === 1),
+    ),
   )
   const sections =
     id === 'export'
@@ -661,13 +673,10 @@ app.get('/extensions/:id', async (c) => {
     ) : (
       extensionPanels(sections)
     )
-  if (id === 'canned' || id === 'rules') {
+  if ((id === 'canned' && project) || id === 'rules') {
     const { rows, versions } = await readExtensionSettings(c.env.DB, id)
-    if (id === 'canned') {
-      const product = c.req.query('product') ?? state.products[0]?.id
-      if (!product) return c.redirect('/settings/projects', 302)
-      requireSettings(ctx, product)
-      state.query.product = product
+    if (project && id === 'canned') {
+      const product = project
       const templates = templatesFromSettings(api.config, rows, product)
       const window = listRows([...templates], state.query, ([, t]) => ({
         text: t.name + ' ' + t.body,
@@ -711,6 +720,7 @@ app.get('/extensions/:id', async (c) => {
       ['conflict', 'outdated'].includes(c.req.query('publicSettings') ?? ''),
       permissionText(installed.extension.permissions),
       list,
+      id === 'issues' && Boolean(api.secret('GITHUB_TOKEN')),
     ),
   )
 })

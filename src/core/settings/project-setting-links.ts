@@ -7,3 +7,13 @@ export const projectBack = (id: string) => ({
   href: projectPath(id),
   label: projectTerm + 'の設定に戻る',
 })
+
+export const extensionBack = (project?: string) =>
+  project
+    ? projectBack(project)
+    : { href: '/extensions', label: '拡張の管理に戻る' }
+
+export function extensionSettingsPath(extension: string, project?: string) {
+  const path = '/extensions/' + encodeURIComponent(extension)
+  return project ? path + '?' + new URLSearchParams({ product: project }) : path
+}

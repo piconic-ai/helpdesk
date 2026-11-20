@@ -20,7 +20,7 @@ const pages = [
   ['link-issue', '既存の課題を選ぶ', '/extensions/issues/link/1', ['issues']],
   ['account', 'アカウント', '/account'],
   ['settings-home', '設定の入口', '/settings'],
-  ['retention', '保存期間', '/settings/retention'],
+  ['retention', '保存期間', '/settings/projects/slide/retention'],
   ['article-new', '新しい記事', '/articles/new', ['articles']],
   [
     'article-edit',

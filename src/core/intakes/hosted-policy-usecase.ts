@@ -1,6 +1,10 @@
 import type { Bindings } from '../settings/bindings'
 import { intakePolicySchema, type IntakePolicy } from './intake'
-import { savedHostedPolicy, startHostedIntake } from './hosted-policy-store'
+import {
+  isArchived,
+  savedHostedPolicy,
+  startHostedIntake,
+} from './hosted-policy-store'
 import type { Context } from '../operations/catalog-usecase'
 import { authorize } from '../operations/catalog'
 
@@ -9,6 +13,7 @@ export async function hostedPolicy(
   product: string,
   origin: string,
 ): Promise<IntakePolicy | undefined> {
+  if (await isArchived(env.DB, product)) return undefined
   if (Object.hasOwn(env.PUBLIC_INTAKES ?? {}, product)) {
     const parsed = intakePolicySchema.safeParse(env.PUBLIC_INTAKES?.[product])
     if (parsed.success && parsed.data.origins.includes(origin))

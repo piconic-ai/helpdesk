@@ -2,7 +2,7 @@ import { choose } from './choice.mjs'
 import { test, expect, capture } from './harness.mjs'
 test.use({ extensions: ['articles', 'feedback', 'metrics'] })
 
-test('A3 声を受付期間・プロダクト・ラベル別に集計し、同じ条件の問い合わせとフィードバックを開く', async ({
+test('A3 声を受付期間・プロジェクト・ラベル別に集計し、同じ条件の問い合わせとフィードバックを開く', async ({
   page,
   scene,
 }) => {
@@ -21,7 +21,7 @@ test('A3 声を受付期間・プロダクト・ラベル別に集計し、同�
     ...[1, 2, 3, 9, 10].map((number) => label.bind(number, '新しい受付')),
   ])
   await page.goto(scene.origin + '/voices')
-  await choose(page, 'プロダクト', 'slide')
+  await choose(page, 'プロジェクト', 'slide')
   await page.getByLabel('開始日').fill(date)
   await page.getByLabel('終了日').fill(date)
   await page.getByRole('button', { name: '集計する' }).click()

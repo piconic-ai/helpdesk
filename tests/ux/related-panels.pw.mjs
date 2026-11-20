@@ -37,7 +37,7 @@ test('C 会話で定型文を下書きにし、スヌーズを設定・解除し
     page,
     'C-panels',
     '01-draft',
-    '相手の名前とプロダクト名が入った定型返信を下書きにする',
+    '相手の名前とプロジェクト名が入った定型返信を下書きにする',
   )
   await page.getByRole('button', { name: 'その他の操作' }).click()
   await expand('snooze', 'スヌーズ')

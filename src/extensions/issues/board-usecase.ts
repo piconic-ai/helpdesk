@@ -1,3 +1,4 @@
+import { projectTerm } from '../../core/settings/project-term'
 import { z } from 'zod'
 import { keyedDraftId } from '../../core/intakes/intake'
 import type { ExtensionContext, Voice } from '../../core/extensions/extension'
@@ -217,7 +218,7 @@ export async function draftIssueNotices(
     .filter((l) => products.get(l.number)?.product === product)
   if (!members.length)
     throw new Error(
-      '指定したプロダクトにこの課題と関連付けられた声はありません。',
+      `指定した${projectTerm}にこの課題と関連付けられた声はありません。`,
     )
   const state = await loadIssueState(ctx, repository, issue)
   if (state?.closedAt == null) throw new Error('閉じた課題を選んでください。')

@@ -139,7 +139,12 @@ app.post('/settings/public-intakes/:product', async (c) => {
     c.req.param('product'),
     new URL(c.req.url).origin,
   )
-  return c.redirect(destination + '?started=yes', 303)
+  return c.redirect(
+    destination +
+      '?started=yes&product=' +
+      encodeURIComponent(c.req.param('product')),
+    303,
+  )
 })
 app.get('/conversation/:number', async (c) => {
   const inbox = returnInbox(c.req.url, c.req.header('referer'))

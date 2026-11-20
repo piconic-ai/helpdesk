@@ -1,3 +1,4 @@
+import { isArchived } from './hosted-policy-store'
 import type { Bindings } from '../settings/bindings'
 import { chatEmbedSites } from './public-settings-store'
 import { hostedPolicy } from './hosted-policy-usecase'
@@ -112,7 +113,8 @@ export async function verifyIntake(
   if (
     !origin ||
     !policy.origins.includes(origin) ||
-    request.headers.get('X-Helpdesk-Key') !== policy.publicKey
+    request.headers.get('X-Helpdesk-Key') !== policy.publicKey ||
+    (await isArchived(env.DB, product))
   )
     return false
   const ip = request.headers.get('CF-Connecting-IP')

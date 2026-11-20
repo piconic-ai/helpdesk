@@ -125,6 +125,8 @@ test('ラベルの追加・名前変更・統合・削除で会話の件数と�
     .click()
   await row('改善候補').getByLabel('新しい名前（20字まで）').fill('経理の改善')
   await page.getByRole('button', { name: '名前を変更', exact: true }).click()
+  await expect(row('経理の改善')).toContainText('0件')
+  await expect(row('改善候補')).toHaveCount(0)
   await row('経理')
     .getByRole('button', { name: '操作：経理', exact: true })
     .click()
@@ -236,7 +238,7 @@ test.describe('通常の受信箱', () => {
   })
 })
 
-test('畳んだナビでもプロダクト選択と自分のアカウントを絵で識別できる', async ({
+test('畳んだナビでもプロジェクト選択と自分のアカウントを絵で識別できる', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1024, height: 812 })

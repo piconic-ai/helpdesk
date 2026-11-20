@@ -16,8 +16,8 @@ const surfaces = [
   ['/metrics?product=slide', 'main', 16],
   ['/articles', 'main [data-ui=article-list-row]', 16],
   ['/settings/mailboxes?edit=slide', 'main h1', 20],
-  ['/extensions/issues', 'main h2', 20],
-  ['/extensions/chat', 'main h2', 20],
+  ['/extensions/issues?product=slide', 'main h2', 20],
+  ['/extensions/chat?product=slide', 'main h2', 20],
   ['/help/', 'main h2', 20],
   ['/help/articles/slide/', '.public-header', 28],
   ['/help/articles/slide/receipt', '.public-header', 28],
@@ -33,13 +33,13 @@ async function revealForm(page, scene) {
       exact: true,
     }),
   })
-  await group.getByText('プロダクトのアイコンを変更', { exact: true }).click()
+  await group.getByText('プロジェクトのアイコンを変更', { exact: true }).click()
   return group.locator('form[data-product-icon-form]')
 }
 
 for (const mode of ['initial', 'emoji', 'image']) {
   test(
-    '設定したプロダクトのアイコンが各画面とタブに反映される · ' + mode,
+    '設定したプロジェクトのアイコンが各画面とタブに反映される · ' + mode,
     async ({ page, scene }) => {
       await seedReviewIssues(scene.db)
       if (mode !== 'initial') {
@@ -105,7 +105,7 @@ for (const mode of ['initial', 'emoji', 'image']) {
     },
   )
 }
-test('アイコンを変更しても他のプロダクトに影響せず、無効な画像や絵文字を退け、頭文字にも戻せる', async ({
+test('アイコンを変更しても他のプロジェクトに影響せず、無効な画像や絵文字を退け、頭文字にも戻せる', async ({
   page,
   scene,
 }) => {

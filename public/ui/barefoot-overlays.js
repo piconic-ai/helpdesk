@@ -84,9 +84,14 @@ document.addEventListener(
     const open = panel.matches(':popover-open')
     trigger.setAttribute('aria-expanded', String(open))
     panel.dataset.state = open ? 'open' : 'closed'
-    positions.get(panel)?.()
-    positions.delete(panel)
+    if (positions.has(panel)) {
+      positions.get(panel)()
+      positions.delete(panel)
+      panel.style.removeProperty('top')
+      panel.style.removeProperty('left')
+    }
     if (!open) return
+    if (panel.id === 'product-switcher') orderRecentProjects(panel)
     prepareSearch(panel)
     const scope = trigger.closest(
       '[data-slot="popover"], [data-slot="dropdown-menu"]',
@@ -97,7 +102,13 @@ document.addEventListener(
       outsideAnchor?.startsWith('--') &&
       outsideAnchor !== '--helpdesk-trigger' &&
       getComputedStyle(trigger).anchorName === outsideAnchor
-    if (!hasAnchorPositioning || (!scope?.contains(panel) && !namedPair)) {
+    const bounds = panel.getBoundingClientRect()
+    if (
+      !hasAnchorPositioning ||
+      (!scope?.contains(panel) && !namedPair) ||
+      bounds.top < 0 ||
+      bounds.bottom > innerHeight
+    ) {
       const update = () => {
         const pos = clampDropdownMenuPosition(
           trigger.getBoundingClientRect(),
@@ -148,6 +159,52 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('helpdesk:menu-updated', (event) =>
   prepareSearch(event.target),
 )
+function projectHistoryKey(panel) {
+  return (
+    'helpdesk:recent-projects:' +
+    panel.closest('[data-project-history]').dataset.projectHistory
+  )
+}
+function recentProjects(panel) {
+  try {
+    const ids = JSON.parse(
+      localStorage.getItem(projectHistoryKey(panel)) || '[]',
+    )
+    return Array.isArray(ids) ? ids.filter((id) => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+function orderRecentProjects(panel) {
+  const links = new Map(
+    Array.from(panel.querySelectorAll('[data-project-option]'), (link) => [
+      link.dataset.projectOption,
+      link,
+    ]),
+  )
+  const ordered = new Set([...recentProjects(panel), ...links.keys()])
+  for (const id of ordered) {
+    const link = links.get(id)
+    if (link) panel.append(link)
+  }
+}
+document.addEventListener(
+  'click',
+  (event) => {
+    const link = event.target.closest('[data-project-option]')
+    if (!link) return
+    const panel = link.closest('#product-switcher')
+    const id = link.dataset.projectOption
+    const recent = [
+      id,
+      ...recentProjects(panel).filter((previous) => previous !== id),
+    ].slice(0, 8)
+    try {
+      localStorage.setItem(projectHistoryKey(panel), JSON.stringify(recent))
+    } catch {}
+  },
+  true,
+)
 function prepareSearch(panel) {
   if (panel.querySelector(':scope > [data-menu-search]')) return
   const options = menuItems(panel).filter(
@@ -155,7 +212,13 @@ function prepareSearch(panel) {
       item.matches('button,a[href]') &&
       !item.matches('[popovertarget], [data-manage-labels]'),
   )
-  if (options.length <= 8) return
+  const count =
+    panel.id === 'product-switcher'
+      ? panel.querySelectorAll('[data-project-option]').length
+      : panel.dataset.projectChoices === undefined
+        ? options.length
+        : Number(panel.dataset.projectChoices)
+  if (count <= 8) return
   const search = document.createElement('input')
   search.type = 'search'
   search.dataset.menuSearch = ''
@@ -195,6 +258,10 @@ function richChoice(select, index) {
   const panel = document.createElement('div')
   panel.id = 'choice-menu-' + index
   panel.popover = 'auto'
+  if (select.name === 'product')
+    panel.dataset.projectChoices = String(
+      Array.from(select.options).filter((option) => option.value).length,
+    )
   panel.dataset.slot = 'popover-content'
   trigger.setAttribute('popovertarget', panel.id)
   trigger.setAttribute('aria-controls', panel.id)

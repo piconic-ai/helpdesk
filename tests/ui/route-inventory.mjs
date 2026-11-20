@@ -1,4 +1,5 @@
 import { app } from '../../dist/worker/worker.js'
+import { hasProjectPortal } from '../../src/core/extensions/extension-guides.ts'
 import { extensions } from '../../helpdesk.config.ts'
 import { surveyId } from './seed.mjs'
 
@@ -18,6 +19,7 @@ const resources = new Set([
   '/api/operations',
   '/mcp',
   '/tokens/*',
+  '/extensions/*',
   '/attachment',
   '/account/avatar/:key',
   '/issues/choices/:number',
@@ -34,7 +36,12 @@ function examples(path) {
     return ['/help/articles/slide/receipt', '/help/survey/slide/' + surveyId]
   if (path === '/help/*') return ['/help/absent/slide']
   if (path === '/extensions/:id')
-    return extensions.map(({ extension }) => '/extensions/' + extension.id)
+    return extensions.flatMap(({ extension }) => {
+      const path = '/extensions/' + extension.id
+      return extension.id === 'canned' || hasProjectPortal(extension.id)
+        ? [path, path + '?product=slide']
+        : [path]
+    })
   const samples = {
     owner: 'example',
     repo: 'helpdesk',

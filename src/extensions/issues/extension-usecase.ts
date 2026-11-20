@@ -1,3 +1,4 @@
+import { projectTerm } from '../../core/settings/project-term'
 import { draftIssueNotices, pendingIssueCount } from './board-usecase'
 import { impactOperation } from './impact-usecase'
 import { z } from 'zod'
@@ -143,7 +144,7 @@ export const issues: Extension = {
           (await ctx.contact(number!)).product,
         )
         const missing = [
-          !repo && 'このプロダクトのリポジトリ',
+          !repo && `この${projectTerm}のリポジトリ`,
           !ctx.secret('GITHUB_TOKEN') && 'GITHUB_TOKEN',
         ].filter(Boolean)
         return (
@@ -153,9 +154,18 @@ export const issues: Extension = {
         )
       },
       async links(ctx, number) {
+        const { product } = await ctx.contact(number!)
         return [
           ...(await panelLinks(ctx, number)),
-          { href: '/extensions/issues', label: 'GitHub Issue の設定を開く' },
+          ...(ctx.canManageProject?.(product)
+            ? [
+                {
+                  href:
+                    '/extensions/issues?' + new URLSearchParams({ product }),
+                  label: 'GitHub Issue の設定を開く',
+                },
+              ]
+            : []),
         ]
       },
     },

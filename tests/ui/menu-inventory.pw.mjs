@@ -17,7 +17,9 @@ const routes = new Set([
 for (const [index, url] of [...routes].sort().entries()) {
   // Verify long menu inventories and timed receipts independently at each width.
   const batches =
-    url === '/' || url === '/settings/labels' || url.includes('notice=note')
+    url === '/' ||
+    url === '/settings/projects/slide/labels' ||
+    url.includes('notice=note')
       ? [[375], [1024], [1440]]
       : [[375, 1024, 1440]]
   for (const [batch, widths] of batches.entries()) {

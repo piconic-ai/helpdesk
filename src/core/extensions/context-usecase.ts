@@ -1,3 +1,4 @@
+import { can } from '../operators/project-access'
 import { actingProducts, requireProduct } from '../operators/project-permission'
 import { requireConversations } from '../operators/project-targets-usecase'
 import {
@@ -72,6 +73,7 @@ export function extensionContext(
   }
   return {
     visibleProducts: products,
+    canManageProject: (product) => can(c.operator, 'manage', product).allowed,
     visibleNumbers: (numbers) => accessibleNumbers(c.env.DB, numbers, products),
     canAssign: (number, email) => isProjectAssignee(c.env.DB, number, email),
     local: c.env.ENVIRONMENT === 'local',

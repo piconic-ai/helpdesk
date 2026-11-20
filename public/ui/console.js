@@ -449,3 +449,25 @@ window.onHelpdeskPage(() => {
     )
   })
 })
+
+window.onHelpdeskPage((signal) => {
+  for (const form of document.querySelectorAll('form[data-project-picker]')) {
+    const project = form.elements.namedItem('product')
+    const submit = form.querySelector('button[type="submit"]')
+    const sync = () => {
+      submit.disabled = !project.value
+    }
+    project.addEventListener('change', sync, { signal })
+    form.addEventListener(
+      'submit',
+      (event) => {
+        event.preventDefault()
+        const destination = new URL(form.action)
+        destination.search = new URLSearchParams(new FormData(form)).toString()
+        void window.helpdeskNavigate(destination.href)
+      },
+      { signal },
+    )
+    sync()
+  }
+})

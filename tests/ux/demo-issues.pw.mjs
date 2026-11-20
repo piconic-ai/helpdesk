@@ -27,10 +27,13 @@ test('W4 デモで声を起票し、同じ課題の2人に承認して知らせ�
   })
   await page.goto(demo.origin + '/extensions/issues')
   await expect(page.getByRole('main')).toContainText('デモ用の模擬 GitHub')
-  for (const [product, repo] of [
-    ['Slide', 'example/helpdesk'],
-    ['Desk', 'example/desk'],
+  await expect(page.getByLabel('GitHub リポジトリ')).toHaveCount(0)
+  for (const [id, product, repo] of [
+    ['slide', 'Slide', 'example/helpdesk'],
+    ['desk', 'Desk', 'example/desk'],
   ]) {
+    await page.goto(demo.origin + '/extensions/issues?product=' + id)
+    await expect(page.getByLabel('GitHub リポジトリ')).toHaveCount(1)
     await expect(
       page
         .locator('[data-ui=form-section]')

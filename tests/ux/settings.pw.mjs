@@ -161,6 +161,8 @@ test('J9 窓口を作成し、拡張の案内から新プロジェクトの公�
   await expect(page.getByRole('dialog')).toContainText('使用する権限')
   await confirmSubmission(page)
   await card.getByRole('link', { name: '設定' }).click()
+  await choose(page, 'プロジェクト', { label: 'Catalog' })
+  await page.getByRole('button', { name: '設定を開く' }).click()
   const product = page
     .locator('section')
     .filter({
@@ -245,10 +247,14 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
   await page.getByRole('link', { name: '運営者に戻る' }).click()
   await main.getByRole('link', { name: /^森 直子/ }).click()
   await main.getByLabel('表示名').fill('森 直子')
-  await main.getByLabel('権限').selectOption('admin')
+  await main
+    .getByRole('combobox', { name: '権限', exact: true })
+    .selectOption('admin')
   await main.getByRole('button', { name: '運営者を保存' }).click()
   await main.getByRole('link', { name: /^森 直子/ }).click()
-  await expect(main.getByLabel('権限')).toHaveValue('admin')
+  await expect(
+    main.getByRole('combobox', { name: '権限', exact: true }),
+  ).toHaveValue('admin')
   await page.reload()
   await expect(main.getByLabel('表示名')).toHaveValue('森 直子')
   await capture(

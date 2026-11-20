@@ -10,7 +10,7 @@ test(
     const title = '共有リンクを作成する'
     await page.goto(scene.origin + '/articles')
     await page.getByRole('link', { name: '記事を書く' }).click()
-    await choose(page, 'プロダクト', 'slide')
+    await choose(page, 'プロジェクト', 'slide')
     await page.getByLabel('題名').fill(title)
     await page
       .getByLabel(/要約/)

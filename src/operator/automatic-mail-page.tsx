@@ -1,3 +1,5 @@
+import { extensionBack } from '../core/settings/project-setting-links'
+import { projectTerm } from '../core/settings/project-term'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import type { AutomaticPolicy } from '../extensions/automatic-message'
 import { extensionLabel } from '../core/extensions/extension-labels'
@@ -41,10 +43,7 @@ export function automaticMailPage(
   const path = '/extensions/' + id
   return shell(
     policy,
-    <EditPage
-      title={policy}
-      back={{ href: '/extensions', label: '拡張の管理に戻る' }}
-    >
+    <EditPage title={policy} back={extensionBack(frame.query.product)}>
       {notice && (
         <Notice toast kind={error ? 'error' : 'success'}>
           {notice}
@@ -56,7 +55,7 @@ export function automaticMailPage(
             ? '初めて受け付けた問い合わせメールに自動で返信します。'
             : '問い合わせを完了すると、回答用のリンクを自動で送ります。'}
         </p>
-        <p>承認の対象は、すべてのプロダクトです。</p>
+        <p>承認の対象は、すべての{projectTerm}です。</p>
         {approval.by ? (
           <p>
             有効にした運営者：
@@ -80,7 +79,7 @@ export function automaticMailPage(
           <form method="get" action={path} data-live-filters="">
             {productSelect(frame, data.product)}
             <noscript>
-              <Button>プロダクトを表示</Button>
+              <Button>{projectTerm}を表示</Button>
             </noscript>
           </form>
           <FormSection title={data.productName + ' の送信文面'}>
@@ -141,7 +140,7 @@ export function automaticMailPage(
           </FormSection>
         </>
       ) : (
-        <p>「プロダクトと窓口」で窓口を登録すると文面を編集できます。</p>
+        <p>「{projectTerm}と窓口」で窓口を登録すると文面を編集できます。</p>
       )}
       <FormSection title="使用する権限">
         <p>メール送信</p>

@@ -106,6 +106,13 @@ it('requires administrator permissions for extension setup and only lists enable
   const guide = await visit('/extensions/form')
   expect(await guide.text()).toContain('/help/form/studio')
   expect(await (await visit('/extensions')).text()).toContain('有効な拡張')
+  expect(await (await visit('/help/')).text()).not.toContain(
+    '/help/form/studio',
+  )
+  const listed = await visit('/settings/projects/studio/publication', {
+    published: 'on',
+  })
+  expect(listed.status).toBe(303)
   expect(await (await visit('/help/')).text()).toContain('/help/form/studio')
   const disabled = await visit('/extensions/form', { enabled: 'no' })
   expect(

@@ -4,7 +4,11 @@ import { openReplyControls } from './drive.mjs'
 const missingId = '233b1729-7201-4ac3-a0e9-e5548a3fc6e8'
 const missingQuestion = 'チームの利用履歴を月ごとに集計できますか？'
 export const suggestionScenes = [
-  ['suggest-settings', '推薦する条件と自動受付を設定する', '/extensions/chat'],
+  [
+    'suggest-settings',
+    '推薦する条件と自動受付を設定する',
+    '/extensions/chat?product=slide',
+  ],
   ['suggest-form', '送信する前に記事を確認する', '/help/form/slide'],
   ['suggest-human', '個別調査が必要な質問をする', '/help/chat/slide'],
   ['suggest-composer', '返信に関連記事を添える', '/conversation/1'],

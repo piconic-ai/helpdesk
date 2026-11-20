@@ -1,3 +1,4 @@
+import { projectTerm } from '../core/settings/project-term'
 import { RowHeadline, RowPreview, RowLabels, inboxIcon } from './inbox-parts'
 import { operatorAvatar } from './operator-identity'
 import { BfScripts } from '@barefootjs/hono/scripts'
@@ -318,7 +319,7 @@ function OverviewExample() {
         />
       </MetricGrid>
       <SettingRow
-        title="プロダクトと窓口"
+        title={`${projectTerm}と窓口`}
         description="製品別の受付先を管理します。"
         href="#edit"
         value="窓口 2件"

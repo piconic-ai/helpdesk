@@ -19,7 +19,7 @@ export const widgetSettingsScenes = [
   id,
   label,
   group: '埋め込み設定',
-  url: '/extensions/chat',
+  url: '/extensions/chat?product=slide',
   extensions: ['chat', 'articles', 'form', 'feedback'],
 }))
 

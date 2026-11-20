@@ -2,7 +2,7 @@ import { expect, test } from './harness.mjs'
 
 test.use({ extensions: ['articles', 'form'] })
 
-test('公開記事を20件ずつ読み進め、検索語とプロダクトの窓口を保持する', async ({
+test('公開記事を20件ずつ読み進め、検索語とプロジェクトの窓口を保持する', async ({
   page,
   scene,
 }) => {
@@ -20,7 +20,12 @@ test('公開記事を20件ずつ読み進め、検索語とプロダクトの窓
       .prepare('INSERT INTO articles_data VALUES(?,?)')
       .bind('article/' + product + '/' + id, JSON.stringify(article))
   })
-  await scene.db.batch(articles)
+  await scene.db.batch([
+    ...articles,
+    scene.db.prepare(
+      "UPDATE product_lifecycle SET public_help=1 WHERE product='desk'",
+    ),
+  ])
   const registration = await page.request.post(
     scene.origin + '/settings/public-intakes/desk',
     {

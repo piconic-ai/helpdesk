@@ -5,10 +5,12 @@ test('W5 管理者が窓口・運営者の権限・保存期間を設定し、�
   scene,
 }) => {
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  const back = page.getByRole('link', { name: '設定に戻る' })
-  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
-  await page.getByLabel('プロダクト名', { exact: true }).fill('Atlas')
+  const settings = page.getByRole('link', { name: '設定', exact: true })
+  const main = page.getByRole('main')
+  await main.getByRole('link', { name: /^全体の設定/ }).click()
+  await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page.getByLabel('プロジェクト名', { exact: true }).fill('Atlas')
   await page.getByLabel('窓口アドレスの先頭').first().fill('atlas')
   await page
     .getByLabel('送信ドメイン')
@@ -16,27 +18,30 @@ test('W5 管理者が窓口・運営者の権限・保存期間を設定し、�
     .selectOption({ label: 'example.com' })
   await page.getByRole('button', { name: '窓口を登録' }).click()
   await expect(page.getByRole('main')).toContainText('atlas@example.com')
-  await capture(page, 'W5', '01-mailbox', '新しいプロダクトと窓口を登録')
-  await back.click()
-  await page.getByRole('link', { name: /^運営者/ }).click()
-  const operator = page.locator('details').filter({
-    has: page.getByRole('region', {
-      name: 'mori@example.com',
-      includeHidden: true,
-    }),
-  })
-  await operator.locator('summary').click()
-  await operator.getByLabel('権限').selectOption({ label: '管理者' })
-  await operator.getByRole('button', { name: '運営者を保存' }).click()
-  await operator.locator('summary').click()
-  await expect(operator.getByLabel('権限')).toHaveValue('admin')
+  await capture(page, 'W5', '01-mailbox', '新しいプロジェクトと窓口を登録')
+  await settings.click()
+  await main.getByRole('link', { name: /^全体の設定/ }).click()
+  await main.getByRole('link', { name: /^運営者/ }).click()
+  const operator = main.getByRole('link', { name: /^森 直子/ })
+  await operator.click()
+  await main
+    .getByRole('combobox', { name: '権限', exact: true })
+    .selectOption('admin')
+  await main.getByRole('button', { name: '運営者を保存' }).click()
+  await operator.click()
+  await expect(
+    main.getByRole('combobox', { name: '権限', exact: true }),
+  ).toHaveValue('admin')
   await capture(page, 'W5', '02-role', '同じ管理者で運営者の変更を確認')
-  await back.click()
-  await page.getByRole('link', { name: /^保存期間/ }).click()
+  await settings.click()
+  await main.getByRole('link', { name: /^全体の設定/ }).click()
+  await main.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
+  await main.getByRole('link', { name: /^Slide/ }).click()
+  await main.getByRole('link', { name: /^保存期間/ }).click()
   await page.getByLabel('日数を指定').check()
   await page.getByRole('spinbutton').fill('30')
   await page.getByRole('button', { name: '保存期間を変更' }).click()
-  await back.click()
+  await main.getByRole('link', { name: 'プロジェクトの設定に戻る' }).click()
   await expect(page.getByRole('link', { name: /^保存期間/ })).toContainText(
     '30日',
   )

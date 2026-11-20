@@ -9,7 +9,7 @@ test('ボタンの設定で埋め込みコードと見本が変わり、保存�
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], {
     origin: scene.origin,
   })
-  await page.goto(scene.origin + '/extensions/chat')
+  await page.goto(scene.origin + '/extensions/chat?product=slide')
   const product = page
     .locator('section.settings-card')
     .filter({ has: page.getByRole('heading', { name: 'Slide', exact: true }) })
@@ -106,9 +106,17 @@ test('公開ページや一般の運営者からの設定変更と、不正な�
       })
     ).status(),
   ).toBe(403)
-  await scene.db
-    .prepare("UPDATE operators SET role='agent' WHERE email='sato@example.com'")
-    .run()
+  await scene.db.batch([
+    scene.db.prepare(
+      "UPDATE operators SET role='admin' WHERE email='mori@example.com'",
+    ),
+    scene.db.prepare(
+      "UPDATE operators SET role='agent' WHERE email='sato@example.com'",
+    ),
+    scene.db.prepare(
+      "UPDATE product_members SET role='agent' WHERE product='slide' AND email='sato@example.com'",
+    ),
+  ])
   expect(
     (
       await page.request.post(endpoint, {

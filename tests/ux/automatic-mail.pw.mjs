@@ -25,12 +25,12 @@ for (const policy of ['auto-ack', 'survey']) {
         'datetime',
         '2026-11-04T05:00:00.000Z',
       )
-      await choose(page, 'プロダクト', 'slide')
+      await choose(page, 'プロジェクト', 'slide')
       await expect(page).toHaveURL(
         (url) => url.searchParams.get('product') === 'slide',
       )
       await expect(
-        page.getByText('承認の対象は、すべてのプロダクトです。'),
+        page.getByText('承認の対象は、すべてのプロジェクトです。'),
       ).toBeVisible()
       await page.getByLabel('自動送信の案内の言語').selectOption('ja')
       const body = page.getByRole('textbox', { name: /^本文/ })
@@ -68,9 +68,9 @@ for (const policy of ['auto-ack', 'survey']) {
         page,
         'review-4-mail',
         policy + '-saved',
-        '保存した文面が当該プロダクトのプレビューに反映',
+        '保存した文面が当該プロジェクトのプレビューに反映',
       )
-      await choose(page, 'プロダクト', 'desk')
+      await choose(page, 'プロジェクト', 'desk')
       await expect(page).toHaveURL(
         (url) => url.searchParams.get('product') === 'desk',
       )

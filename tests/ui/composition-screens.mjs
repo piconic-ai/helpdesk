@@ -17,7 +17,7 @@ const pages = [
   ['approval-list', '承認待ちの一覧', '/?view=approval'],
   ['my-inbox', '自分の担当', '/?status=all&assignee=sato%40example.com'],
   ['all-inbox', 'すべての会話', '/?status=all'],
-  ['deletion', 'データ管理', '/settings/deletion'],
+  ['deletion', 'データ管理', '/settings/projects/slide/deletion'],
   [
     'article-preview',
     '記事のプレビュー',
@@ -27,7 +27,7 @@ const pages = [
   ],
   [
     'help-results',
-    'プロダクト横断の検索結果',
+    'プロジェクト横断の検索結果',
     '/help/?q=領収書',
     ['articles', 'form'],
   ],

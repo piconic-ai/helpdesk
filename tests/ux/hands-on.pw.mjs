@@ -20,13 +20,13 @@ async function readInbox(page, scene) {
   const rows = page.locator('a.conversation-row')
   const total = await rows.count()
   expect(total).toBeGreaterThan(1)
-  await button(page, 'すべてのプロダクト').click()
+  await button(page, 'すべてのプロジェクト').click()
   await page.getByRole('link', { name: 'Desk', exact: true }).click()
   await expect(rows).toHaveCount(1)
   await expect(row(page, 3)).toBeVisible()
   await button(page, 'Desk').click()
   await page
-    .getByRole('link', { name: 'すべてのプロダクト', exact: true })
+    .getByRole('link', { name: 'すべてのプロジェクト', exact: true })
     .click()
   await expect(rows).toHaveCount(total)
   await expect(page.locator('select[name=sort]')).toHaveValue('waiting')
@@ -294,6 +294,8 @@ async function issueAndMetrics(page, scene, number) {
     .locator('[data-extension=issues]')
     .getByRole('link', { name: '設定' })
     .click()
+  await choose(page, 'プロジェクト', 'slide')
+  await page.getByRole('button', { name: '設定を開く' }).click()
   const slide = page
     .locator('[data-ui=form-section]')
     .filter({ has: page.getByRole('heading', { name: 'Slide', exact: true }) })
@@ -352,7 +354,7 @@ async function issueAndMetrics(page, scene, number) {
   ]) {
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
   }
-  await choose(page, 'プロダクト', 'slide')
+  await choose(page, 'プロジェクト', 'slide')
   await page.waitForURL(
     (url) =>
       url.pathname === '/metrics' &&
@@ -374,18 +376,26 @@ async function settings(page) {
   await page.getByRole('link', { name: /佐藤 優 のアカウント/ }).click()
   await expect(page.getByLabel('表示名')).toHaveValue('佐藤 優')
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
-  await expect(page.getByRole('main')).toContainText('support@example.com')
-  await page.getByRole('link', { name: '設定に戻る' }).click()
-  await page.getByRole('link', { name: /^保存期間/ }).click()
+  const main = page.getByRole('main')
+  await main.getByRole('link', { name: /^全体の設定/ }).click()
+  await main.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
+  await main.getByRole('link', { name: /^Slide/ }).click()
+  await main.getByRole('link', { name: /^窓口と差出人/ }).click()
+  await expect(main).toContainText('support@example.com')
+  const project = main.getByRole('link', { name: 'プロジェクトの設定に戻る' })
+  await project.click()
+  await main.getByRole('link', { name: /^保存期間/ }).click()
   await page.getByRole('radio', { name: '日数を指定' }).check()
   await expect(page.getByRole('spinbutton')).toBeVisible()
   await record(page, '10-retention', '本文の保存期間を確認')
-  await page.getByRole('link', { name: '設定に戻る' }).click()
-  await page.getByRole('link', { name: /^連絡先のデータ削除/ }).click()
-  await expect(page.getByRole('combobox')).toBeVisible()
-  await page.getByRole('link', { name: '設定に戻る' }).click()
-  await page.getByRole('link', { name: /^API トークンの管理/ }).click()
+  await project.click()
+  await main.getByRole('link', { name: /^連絡先のデータ削除/ }).click()
+  await expect(
+    page.getByRole('combobox', { name: '削除する相手' }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: '設定', exact: true }).click()
+  await main.getByRole('link', { name: /^全体の設定/ }).click()
+  await main.getByRole('link', { name: /^API トークンの管理/ }).click()
   const options = page
     .getByRole('combobox', { name: '発行する権限' })
     .locator('option')

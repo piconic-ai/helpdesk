@@ -1,8 +1,12 @@
+import { projectTerm } from '../core/settings/project-term'
 import { createElement } from 'hono/jsx'
-import { NativeSelect } from './controls'
+import { Button, Field, NativeSelect } from './controls'
 import { identityColor, identityPalette, initial } from './identity-color'
 
-type Product = { id: string; name: string }
+type Product = { id: string; name: string; archived?: boolean }
+
+export const activeProjects = <T extends Product>(projects: T[]) =>
+  projects.filter((p) => !p.archived)
 export const productIconUrl = (id: string) =>
   '/help/product-icon/' + encodeURIComponent(id)
 
@@ -69,18 +73,20 @@ export function ProductSelect({
   products,
   selected,
   empty,
-  label = 'プロダクト',
+  label = projectTerm,
+  required = !empty,
 }: {
   products: Product[]
   selected?: string
   empty?: string
   label?: string
+  required?: boolean
 }) {
   return (
     <NativeSelect
       name="product"
       aria-label={label}
-      required={!empty}
+      required={required}
       data-product-select=""
     >
       <button type="button">{createElement('selectedcontent', {})}</button>
@@ -89,11 +95,45 @@ export function ProductSelect({
           {empty}
         </option>
       )}
-      {products.map((p) => (
+      {activeProjects(products).map((p) => (
         <option value={p.id} selected={p.id === selected}>
           <ProductMark product={p} />
         </option>
       ))}
     </NativeSelect>
+  )
+}
+
+export function ProjectPickerForm({
+  action,
+  products,
+  selected,
+  empty,
+  submitLabel = '設定を開く',
+}: {
+  action: string
+  products: Product[]
+  selected?: string
+  empty?: string
+  submitLabel?: string
+}) {
+  return (
+    <form
+      action={action}
+      method="get"
+      data-layout="cluster"
+      data-gap="sm"
+      data-project-picker=""
+    >
+      <Field label={projectTerm}>
+        <ProductSelect
+          products={products}
+          selected={selected}
+          empty={empty}
+          required
+        />
+      </Field>
+      <Button type="submit">{submitLabel}</Button>
+    </form>
   )
 }

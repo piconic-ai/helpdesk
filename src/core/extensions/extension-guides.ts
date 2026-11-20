@@ -1,3 +1,4 @@
+import { projectTerm } from '../settings/project-term'
 import type { Permission } from './extension'
 const permissionLabels: Record<Permission, string> = {
   read_body: '問い合わせ本文の閲覧',
@@ -14,13 +15,11 @@ export function permissionText(permissions: Permission[]) {
 export const guides: Record<string, { description: string; start: string }> = {
   articles: {
     description: '回答をヘルプ記事にまとめ、公開・検索できます。',
-    start:
-      '記事を書いて公開し、各プロダクトのヘルプページで内容を確認してください。',
+    start: `記事を書いて公開し、各${projectTerm}のヘルプページで内容を確認してください。`,
   },
   form: {
     description: '問い合わせフォームの投稿を受信箱に取り込みます。',
-    start:
-      'プロダクトの受付を開始し、公開フォームからテストの問い合わせを送って受信箱を確認してください。',
+    start: `${projectTerm}の受付を開始し、公開フォームからテストの問い合わせを送って受信箱を確認してください。`,
   },
   feedback: {
     description: '製品への声を集め、確認済みや問い合わせに変更できます。',
@@ -34,14 +33,12 @@ export const guides: Record<string, { description: string; start: string }> = {
       '埋め込み先のサイトを登録し、そのページの HTML に埋め込みコードを貼り付けてください。関連記事の案内には、公開したヘルプ記事と Workers AI の AI バインディングを使用します。',
   },
   metrics: {
-    description: '期間とプロダクトごとの対応件数や解決時間を表示します。',
-    start:
-      '集計画面でプロダクトと期間を選び、問い合わせを完了した前後の指標を確認してください。',
+    description: `期間と${projectTerm}ごとの対応件数や解決時間を表示します。`,
+    start: `集計画面で${projectTerm}と期間を選び、問い合わせを完了した前後の指標を確認してください。`,
   },
   export: {
     description: '会話、メッセージ、操作履歴を JSON Lines で書き出します。',
-    start:
-      '全期間・全プロダクトの会話・メッセージ・操作履歴を書き出します。伏せる設定では、本文中も含めて、メールアドレスと登録された相手の名前を置き換えます。住所など、その他の自由記述は残ります。',
+    start: `全期間・全${projectTerm}の会話・メッセージ・操作履歴を書き出します。伏せる設定では、本文中も含めて、メールアドレスと登録された相手の名前を置き換えます。住所など、その他の自由記述は残ります。`,
   },
   snooze: {
     description: '指定した日時まで会話を受信箱から保留します。',
@@ -65,7 +62,7 @@ export const guides: Record<string, { description: string; start: string }> = {
       '対象リポジトリを登録し、会話の関連情報で公開してよい要約を入力してください。起票の前に投稿内容を確認できます。',
   },
   rules: {
-    description: '受信時に件名やプロダクトに応じて担当者やラベルを決めます。',
+    description: `受信時に件名や${projectTerm}に応じて担当者やラベルを決めます。`,
     start:
       '下のフォームで件名の条件と付けるラベルまたは担当者を選び、保存後に条件に合うメールを受信してください。',
   },
@@ -102,3 +99,6 @@ export const publicGuides: Record<string, string> = {
   chat: 'ヘルプチャットを開く',
   articles: 'ヘルプページを開く',
 }
+
+export const hasProjectPortal = (id: string) =>
+  id === 'issues' || Object.hasOwn(publicGuides, id)

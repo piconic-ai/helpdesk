@@ -1,3 +1,4 @@
+import { projectTerm } from './project-term'
 import {
   Button,
   Field,
@@ -45,7 +46,7 @@ export function ProductIconForm({
       </Field>
       <Field
         label="絵文字"
-        description="プロダクトを表す絵文字を1つ入力してください。"
+        description={`${projectTerm}を表す絵文字を1つ入力してください。`}
       >
         <Input type="text" name="emoji" value={emoji ?? product.emoji ?? ''} />
       </Field>
@@ -67,14 +68,17 @@ export function productIconErrorPage(
   error: string,
 ) {
   return shell(
-    'プロダクトのアイコン',
+    `${projectTerm}のアイコン`,
     <EditPage
       title={
         <>
           <ProductMark product={product} size="heading" /> のアイコン
         </>
       }
-      back={{ href: '/settings/mailboxes', label: 'プロダクトと窓口に戻る' }}
+      back={{
+        href: '/settings/mailboxes',
+        label: `${projectTerm}と窓口に戻る`,
+      }}
     >
       <Notice kind="error">{error}</Notice>
       <ProductIconForm product={product} mode={mode} emoji={emoji} />

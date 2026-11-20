@@ -138,6 +138,7 @@ app.on('GET', ['/help', '/help/'], async (c) => {
       await helpDestinations(c.env, new URL(c.req.url).origin, query),
       query,
       c.req.query('page'),
+      (c.req.query('filter') ?? '').trim().slice(0, 200),
     ),
   )
 })

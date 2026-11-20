@@ -1,3 +1,4 @@
+import { projectTerm } from '../settings/project-term'
 const names: Record<string, string> = {
   spam: '迷惑メールの隔離',
   notify: '新着通知',
@@ -40,7 +41,7 @@ export const operationLabel = (id: string, fallback = id) =>
   operations[id] ?? fallback
 const fields: Record<string, string> = {
   number: '問い合わせ番号',
-  product: 'プロダクト',
+  product: projectTerm,
   id: '記事 ID',
   status: '公開状態',
   body: '本文',

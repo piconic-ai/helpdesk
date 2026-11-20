@@ -239,3 +239,33 @@ it('requires the reviewed name and count, then removes only the selected project
     ).first('n'),
   ).toBe(1)
 })
+
+it('returns project managers to the project after viewing and saving extension settings', async () => {
+  for (const id of ['form', 'auto-ack']) {
+    await platform.DB.prepare(
+      'INSERT INTO extension_settings(id,enabled,enabled_by) VALUES(?,1,?)',
+    )
+      .bind(id, admin)
+      .run()
+    const guide = await html('/extensions/' + id + '?product=a', lead)
+    expect(guide).toMatch(
+      /href="\/settings\/projects\/a"[^>]*>[^<]*プロジェクトの設定に戻る|href="\/settings\/projects\/a"[\s\S]{0,1200}プロジェクトの設定に戻る/,
+    )
+  }
+  const directory = await html('/extensions/form')
+  expect(directory).toContain('設定を開く')
+  expect(directory).not.toContain('action="/settings/public-intakes/a"')
+  const dest = await submit(
+    '/settings/public-intakes/a',
+    { returnTo: '/extensions/form' },
+    lead,
+  )
+  expect(new URL(dest, origin).searchParams.get('product')).toBe('a')
+  expect(await html(dest, lead)).toContain('プロジェクトの設定に戻る')
+  await platform.DB.prepare(
+    "UPDATE product_lifecycle SET archived_at=1 WHERE product='a'",
+  ).run()
+  expect(await html('/settings/projects/a', lead)).toContain(
+    '新しい問い合わせの受付は終了しています。',
+  )
+})

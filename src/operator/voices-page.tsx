@@ -1,3 +1,5 @@
+import { projectBreakdown } from './project-volume'
+import { projectTerm } from '../core/settings/project-term'
 import { displayReference } from '../core/conversations/ticket-reference'
 import { ProductMark, ProductSelect } from '../ui/product-mark'
 import { LabelDot } from '../ui/inbox-parts'
@@ -34,11 +36,11 @@ function VoiceFilterBar({
   return (
     <FilterBar>
       <form action={summary} method="get">
-        <Field label="プロダクト">
+        <Field label={projectTerm}>
           <ProductSelect
             products={frame.products}
             selected={q.product}
-            empty="すべてのプロダクト"
+            empty={`すべての${projectTerm}`}
           />
         </Field>
         <Field label="開始日">
@@ -62,7 +64,11 @@ function VoiceFilterBar({
     </FilterBar>
   )
 }
-const titles = { label: 'ラベル別', product: 'プロダクト別', month: '受付月別' }
+const titles = {
+  label: 'ラベル別',
+  product: `${projectTerm}別`,
+  month: '受付月別',
+}
 export function voicesOverview(
   frame: ConsoleFrame,
   q: VoiceFilters,
@@ -91,7 +97,16 @@ export function voicesOverview(
             </p>
           )}
           {(['label', 'product', 'month'] as const).map((dimension) => {
-            const buckets = rows.filter((r) => r.dimension === dimension)
+            const entries = rows.filter((r) => r.dimension === dimension)
+            const projects =
+              dimension === 'product'
+                ? projectBreakdown(
+                    entries.flatMap((r) =>
+                      r.value === null ? [] : [{ ...r, value: r.value }],
+                    ),
+                  )
+                : null
+            const buckets = projects?.leading ?? entries
             const max = buckets.reduce(
               (highest, r) => Math.max(highest, r.count),
               0,
@@ -144,6 +159,17 @@ export function voicesOverview(
                       />
                     )
                   })}
+                  {projects && projects.remaining.length > 0 && (
+                    <ListRow
+                      title="そのほか"
+                      status={
+                        projects.remaining.reduce(
+                          (n, row) => n + row.count,
+                          0,
+                        ) + '件'
+                      }
+                    />
+                  )}
                 </RowList>
               </FormSection>
             )
@@ -163,7 +189,7 @@ export function voicesResults(
 ) {
   const product = frame.products.find((p) => p.id === q.product)
   const conditions = [
-    !product && 'すべてのプロダクト',
+    !product && `すべての${projectTerm}`,
     q.unlabeled ? 'ラベルなし' : q.label,
     !q.month && !q.start && !q.end ? '全期間' : q.month,
     q.start && q.start + '以降',

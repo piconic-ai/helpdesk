@@ -1,3 +1,4 @@
+import { projectTerm } from '../core/settings/project-term'
 import { displayReference } from '../core/conversations/ticket-reference'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
 import { shell } from '../core/conversations/console-page'
@@ -99,7 +100,10 @@ export function issueBoardPage(
   rows: Row[],
   query: Record<string, string>,
 ) {
-  const all = aggregate(rows, productNames(frame))
+  const all = aggregate(
+    rows.filter((r) => !query.product || r.product === query.product),
+    productNames(frame),
+  )
   const showFilters = all.length > 20
   const issues = showFilters
     ? all.filter(
@@ -134,19 +138,23 @@ export function issueBoardPage(
       action={<ActionLink href="/issues/new">課題を追加</ActionLink>}
       footer={<PageLinks path="/issues" query={query} {...page} />}
       filters={
-        showFilters && (
-          <ListFilters
-            title="課題"
-            path="/issues"
-            query={query}
-            sortable={false}
-            filterLabel="状態"
-            options={[
-              { value: 'open', label: '開いている' },
-              { value: 'closed', label: '直した' },
-            ]}
-          />
-        )
+        <ListFilters
+          title="課題"
+          projects={frame.products}
+          searchable={showFilters}
+          path="/issues"
+          query={query}
+          sortable={false}
+          filterLabel="状態"
+          options={
+            showFilters
+              ? [
+                  { value: 'open', label: '開いている' },
+                  { value: 'closed', label: '直した' },
+                ]
+              : undefined
+          }
+        />
       }
     >
       <Stack gap="lg">
@@ -326,7 +334,8 @@ export function issueNewPage(
           />
         ) : (
           <EmptyState icon="issues">
-            起票できる会話はありません。起票先とトークンを設定したプロダクトの会話から追加できます。
+            起票できる会話はありません。起票先とトークンを設定した{projectTerm}
+            の会話から追加できます。
           </EmptyState>
         )}
       </FormSection>

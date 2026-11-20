@@ -191,14 +191,14 @@ export const screens = [
   screen(
     '設定',
     'mailboxes',
-    'プロダクトと窓口',
+    'プロジェクトと窓口',
     '/settings/mailboxes',
     settings,
     {
       beforeUrl: '/settings',
       before: 'section',
       beforeHeading: 'Mailboxes',
-      after: 'main [data-ui=row-list]',
+      after: 'main nav[aria-label="プロジェクトと窓口"]',
     },
   ),
   screen('設定', 'operators', '運営者', '/settings/operators', settings, {
@@ -227,7 +227,7 @@ export const screens = [
     '設定',
     'forget',
     '削除の確認',
-    '/settings/deletion',
+    '/settings/projects/slide/deletion',
     '確認ダイアログに削除対象を表示します。旧版は確認前の削除フォームを載せています。',
     { action: 'forget', beforeUrl: '/settings' },
   ),
@@ -275,7 +275,7 @@ export const screens = [
     'article-index',
     '記事の一覧・検索',
     '/help/articles/slide/',
-    '記事検索と一覧をプロダクト別に表示します。',
+    '記事検索と一覧をプロジェクト別に表示します。',
     { extensions: ['articles', 'form'] },
   ),
   screen(

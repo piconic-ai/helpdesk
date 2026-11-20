@@ -75,16 +75,22 @@ afterAll(async () => {
 
 async function registerMailbox(page: Page) {
   await page.goto(origin + '/settings')
-  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
-  await page.getByLabel('プロダクト名').fill('Shop')
+  await page.getByRole('link', { name: /^全体の設定/ }).click()
+  await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page
+    .getByLabel('プロジェクト名')
+    .fill('Shop')
+    .catch(async (error) => {
+      throw new Error(
+        page.url() + '\n' + (await page.locator('main').innerText()),
+        { cause: error },
+      )
+    })
   await page.getByLabel('窓口のメールアドレス').fill('support@example.com')
   await page.getByRole('button', { name: '窓口を登録' }).click()
-  await page
-    .getByRole('listitem')
-    .filter({ hasText: 'Shop' })
-    .getByText('support@example.com', { exact: true })
-    .waitFor()
+  await page.getByRole('heading', { name: 'Shop', exact: true }).waitFor()
+  await page.getByText('support@example.com', { exact: true }).waitFor()
 }
 async function receive(fixtureName: string) {
   const fixture = await readFile('tests/fixtures/' + fixtureName, 'utf8')

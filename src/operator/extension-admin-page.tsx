@@ -1,3 +1,9 @@
+import {
+  extensionBack,
+  extensionSettingsPath,
+} from '../core/settings/project-setting-links'
+import { projectBreakdown } from './project-volume'
+import { projectTerm } from '../core/settings/project-term'
 import { displayReference } from '../core/conversations/ticket-reference'
 import type { SuggestionCount } from '../core/suggestions/suggestion'
 import {
@@ -5,7 +11,11 @@ import {
   type RecommendationForm,
 } from './recommendation-settings-page'
 import { WidgetSettings } from './widget-settings-page'
-import { ProductMark, ProductSelect } from '../ui/product-mark'
+import {
+  ProductMark,
+  ProductSelect,
+  ProjectPickerForm,
+} from '../ui/product-mark'
 import { OutcomeCard } from '../ui/outcome-cards'
 import { ArticleListRow } from '../ui/article-list'
 import type {
@@ -56,17 +66,21 @@ import {
   publicSettingsFields,
   type PublicSettings,
 } from './public-settings-page'
-import { guides, publicGuides } from '../core/extensions/extension-guides'
+import {
+  guides,
+  publicGuides,
+  hasProjectPortal,
+} from '../core/extensions/extension-guides'
 import type { Child } from 'hono/jsx'
 
 export function productSelect(frame: ConsoleFrame, selected = '', all = false) {
   return (
     <label>
-      プロダクト
+      {projectTerm}
       <ProductSelect
         products={frame.products}
         selected={selected}
-        empty={all ? 'すべてのプロダクト' : undefined}
+        empty={all ? `すべての${projectTerm}` : undefined}
       />
     </label>
   )
@@ -103,9 +117,9 @@ export function libraryPage(
   candidateCount: number,
   query: Record<string, string>,
 ) {
-  const updated = [...items].sort(
-    (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
-  )
+  const updated = items
+    .filter((a) => !query.product || a.product === query.product)
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
   const list = listRows(updated, query, (a) => ({
     text:
       a.title +
@@ -120,6 +134,7 @@ export function libraryPage(
   const filters = (
     <ListFilters
       title="記事"
+      projects={frame.products}
       path="/articles"
       defaultOrder="更新が新しい順"
       query={query}
@@ -473,7 +488,7 @@ function repositorySettings(p: Portal) {
       </label>
       <SaveActions
         verb={p.repository ? 'リポジトリを更新' : '登録する'}
-        cancel="/extensions/issues"
+        cancel={extensionSettingsPath('issues', p.id)}
       />
     </form>
   )
@@ -584,13 +599,26 @@ function guideProduct(id: string, p: Portal) {
     </FormSection>
   )
 }
-function githubConnectionDescription(demo: boolean, items: Portal[]) {
+function githubConnectionDescription(demo: boolean, tokenReady: boolean) {
   return demo
     ? 'デモ用の模擬 GitHub に接続しています。トークンとリポジトリはローカルの例示データです。'
-    : items.some((p) => p.tokenReady)
+    : tokenReady
       ? 'GitHub の接続用トークンは設定済みです。'
       : 'GitHub の接続用トークンは未設定です。接続の設定手順を確認してください。'
 }
+function guideProjectPicker(id: string, frame: ConsoleFrame) {
+  const choose =
+    id === 'canned' || (hasProjectPortal(id) && frame.products.length > 1)
+  if (!choose || frame.query.product) return null
+  return (
+    <ProjectPickerForm
+      action={'/extensions/' + id}
+      products={frame.products}
+      empty={`${projectTerm}を選択`}
+    />
+  )
+}
+
 export function guidePage(
   id: string,
   frame: ConsoleFrame,
@@ -601,6 +629,7 @@ export function guidePage(
   hasError = false,
   permissions = '追加の権限はありません',
   list?: ListWindow,
+  tokenReady = false,
 ) {
   const Page = list === undefined ? EditPage : ListPage
   return shell(
@@ -623,7 +652,7 @@ export function guidePage(
           <PageLinks path={'/extensions/' + id} query={frame.query} {...list} />
         )
       }
-      back={{ href: '/extensions', label: '拡張の管理に戻る' }}
+      back={extensionBack(frame.query.product)}
     >
       {notice && (
         <Notice toast kind={hasError ? 'error' : 'success'}>
@@ -643,9 +672,10 @@ export function guidePage(
       )}
       {!['notify', 'issues', 'chat'].includes(id) && <p>{guides[id]?.start}</p>}
       {id === 'issues' && (
-        <p>{githubConnectionDescription(frame.demoGithub, items)}</p>
+        <p>{githubConnectionDescription(frame.demoGithub, tokenReady)}</p>
       )}
       {guideLink(id)}
+      {guideProjectPicker(id, frame)}
       {Object.hasOwn(publicGuides, id) && (
         <script type="module" src="/ui/copy-snippet.js" />
       )}
@@ -706,7 +736,9 @@ export function metricsPage(
   filter: MetricFilter,
   result: Record<string, number | null>,
   history: MetricWindow[],
+  volumes: { value: string; title: string; count: number }[],
 ) {
+  const { leading, remaining } = projectBreakdown(volumes)
   const previous = history.at(-2)?.values ?? {}
   const zoneLabel =
     filter.timeZone === 'Asia/Tokyo' ? '日本時間' : filter.timeZone
@@ -774,7 +806,7 @@ export function metricsPage(
         <>
           {selected && (
             <ActionLink variant="ghost" href={url({ product: '' })}>
-              プロダクト：
+              {projectTerm}：
               <ProductMark product={selected} /> ×
             </ActionLink>
           )}
@@ -855,6 +887,26 @@ export function metricsPage(
       <section aria-label="集計の内訳">
         <MetricGrid>{counts.map(card)}</MetricGrid>
       </section>
+      {leading.length > 0 && (
+        <FormSection title={`${projectTerm}別の受付件数`}>
+          <RowList>
+            {leading.map((row) => (
+              <ListRow
+                title={
+                  <ProductMark product={{ id: row.value, name: row.title }} />
+                }
+                status={row.count + '件'}
+              />
+            ))}
+            {remaining.length > 0 && (
+              <ListRow
+                title="そのほか"
+                status={remaining.reduce((n, row) => n + row.count, 0) + '件'}
+              />
+            )}
+          </RowList>
+        </FormSection>
+      )}
     </OverviewPage>,
     frame,
   )

@@ -6,6 +6,7 @@ import {
   conversationFor,
   attachmentKey,
   mailboxProduct,
+  archivedMailbox,
   receipt,
   recordFailure,
   saveMail,
@@ -23,6 +24,7 @@ export async function archiveInbound(
   raw: ReadableStream,
   job: InboundJob,
 ) {
+  if (await archivedMailbox(env.DB, job.to)) return false
   await reserveInbound(env.DB, job)
   await env.RAW.put(job.rawKey, raw)
   const state = await archiveState(env.DB, job)
@@ -31,6 +33,7 @@ export async function archiveInbound(
     // The scheduled worker retries until the consumer commits the receipt.
     await env.JOBS.send({ ...job, tracked: true }).catch(() => {})
   }
+  return true
 }
 
 export async function recoverInbound(env: InboundEnv, now: number) {

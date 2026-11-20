@@ -95,7 +95,7 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
   )
   try {
     const site = 'http://127.0.0.1:' + server.address().port
-    await page.goto(scene.origin + '/extensions/chat')
+    await page.goto(scene.origin + '/extensions/chat?product=slide')
     const slide = page.locator('section.settings-card').filter({
       has: page.getByRole('heading', { name: 'Slide', exact: true }),
     })
@@ -133,7 +133,7 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
       '問い合わせを受け付けました',
     )
     await expect(frame.getByText('2営業日以内')).toBeVisible()
-    await page.goto(scene.origin + '/extensions/chat')
+    await page.goto(scene.origin + '/extensions/chat?product=slide')
     await sites.click()
     await slide.getByRole('button', { name: site + ' を解除' }).click()
     const refusal = page.waitForEvent(
@@ -149,7 +149,7 @@ test('管理者が埋め込み先を追加すると、そのサイト内でチ�
   }
 })
 
-test('公開ヘルプの入口でプロダクトをまたいで記事を検索し、問い合わせにも進める', async ({
+test('公開ヘルプの入口でプロジェクトをまたいで記事を検索し、問い合わせにも進める', async ({
   page,
   scene,
 }) => {

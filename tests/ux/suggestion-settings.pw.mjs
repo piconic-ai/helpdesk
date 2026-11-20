@@ -6,13 +6,12 @@ test('製品別に記事の提示基準と自動受付を設定し、以前の�
   page,
   scene,
 }) => {
-  await page.goto(scene.origin + '/extensions/chat')
-  const product = (name) =>
-    page
+  await page.goto(scene.origin + '/extensions/chat?product=slide')
+  const product = (tab, name) =>
+    tab
       .locator('section.settings-card')
-      .filter({ has: page.getByRole('heading', { name, exact: true }) })
-  const slide = product('Slide'),
-    desk = product('Desk')
+      .filter({ has: tab.getByRole('heading', { name, exact: true }) })
+  const slide = product(page, 'Slide')
   const disclose = async (card) =>
     card.getByText('記事のおすすめを設定', { exact: true }).click()
   await disclose(slide)
@@ -31,9 +30,13 @@ test('製品別に記事の提示基準と自動受付を設定し、以前の�
   await disclose(slide)
   await expect(slide.getByRole('spinbutton')).toHaveValue('96')
   await expect(slide.getByRole('checkbox')).toBeChecked()
+  const deskPage = await page.context().newPage()
+  await deskPage.goto(scene.origin + '/extensions/chat?product=desk')
+  const desk = product(deskPage, 'Desk')
   await disclose(desk)
   await expect(desk.getByRole('spinbutton')).toHaveValue('60')
   await expect(desk.getByRole('checkbox')).not.toBeChecked()
+  await deskPage.close()
   const chat = await page.context().newPage()
   await chat.goto(scene.origin + '/help/chat/slide')
   await chat.getByLabel('質問', { exact: true }).fill('領収書を発行したい')

@@ -103,7 +103,7 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     has: page.getByRole('heading', { name: '声が改善に届いた割合' }),
   })
   await expect(metric.locator('strong')).toHaveText('10%')
-  await choose(page, 'プロダクト', 'slide')
+  await choose(page, 'プロジェクト', 'slide')
   await expect(metric.locator('strong')).toHaveText('11.1%')
   await expect(metric).toContainText('1件 / 9件')
   await metric
@@ -116,9 +116,9 @@ test('W4 起票・題で紐づけ・修正の下書き・承認したお知ら�
     page,
     'review-4-issues',
     '03-delivered',
-    '承認後に配送された会話を選択期間・プロダクトの分母で確認',
+    '承認後に配送された会話を選択期間・プロジェクトの分母で確認',
   )
-  await choose(page, 'プロダクト', 'desk')
+  await choose(page, 'プロジェクト', 'desk')
   await expect(metric.locator('strong')).toHaveText('0%')
 })
 
@@ -141,6 +141,11 @@ test('設定が必要な会話から起票先とシークレットの設定方�
       '会話に不足している設定と設定画面への導線が出る',
     )
     await panel.getByRole('link', { name: 'GitHub Issue の設定を開く' }).click()
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === '/extensions/issues' &&
+        url.searchParams.get('product') === 'desk',
+    )
     await expect(
       page.getByText(/GitHub の接続用トークンは未設定/),
     ).toBeVisible()
@@ -150,7 +155,9 @@ test('設定が必要な会話から起票先とシークレットの設定方�
     await desk.getByLabel('GitHub リポジトリ').fill('example/desk')
     await desk.getByRole('button', { name: '登録する' }).click()
     await expect(page.getByRole('status')).toContainText('リポジトリを登録')
-    await page.getByRole('link', { name: '拡張の管理に戻る' }).click()
+    await page.getByRole('link', { name: 'プロジェクトの設定に戻る' }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Desk')
+    await page.getByRole('link', { name: '拡張の管理', exact: true }).click()
     const entry = page.locator('[data-extension=issues]')
     await expect(entry).toContainText('設定が必要：GITHUB_TOKEN')
     await expect(entry).not.toContainText('Desk のリポジトリ')
@@ -187,7 +194,7 @@ test('課題の拡張を無効にすると、一覧と下書き作成を利用�
   ).toBe(404)
 })
 
-test('同じ課題に複数のプロダクトから届いた声をまとめ、割合は製品単位で示す', async ({
+test('同じ課題に複数のプロジェクトから届いた声をまとめ、割合は製品単位で示す', async ({
   page,
   scene,
 }) => {

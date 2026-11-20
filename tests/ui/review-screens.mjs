@@ -10,7 +10,7 @@ export const reviewScreens = [
   },
   {
     id: 'voices',
-    label: 'ラベル・プロダクト・期間別の声',
+    label: 'ラベル・プロジェクト・期間別の声',
     url: '/voices',
     extensions: ['metrics'],
     heading: '声の集計',

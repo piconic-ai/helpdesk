@@ -1,3 +1,5 @@
+import { extensionSettingsPath } from '../core/settings/project-setting-links'
+import { projectTerm } from '../core/settings/project-term'
 import { LabelDot } from '../ui/inbox-parts'
 import { ProductMark } from '../ui/product-mark'
 import type { ConsoleFrame } from '../core/conversations/console-usecase'
@@ -28,7 +30,9 @@ export function rulesSettings(
   const ruleSummary = (rule: (typeof rules)[number]['rule'], index: number) =>
     [
       index + 1 + '番目',
-      rule.product ? (products[rule.product] ?? rule.product) : '全プロダクト',
+      rule.product
+        ? (products[rule.product] ?? rule.product)
+        : `全${projectTerm}`,
       rule.subjectContains
         ? '件名に「' + rule.subjectContains + '」'
         : 'すべての件名',
@@ -53,10 +57,10 @@ export function rulesSettings(
       <input type="hidden" name="key" value={key} />
       {select(
         'product',
-        'プロダクト',
+        projectTerm,
         frame.query.product
           ? { [frame.query.product]: products[frame.query.product] }
-          : { '': 'すべてのプロダクトに適用', ...products },
+          : { '': `すべての${projectTerm}に適用`, ...products },
         rule.product ?? frame.query.product ?? '',
       )}
       <Field
@@ -90,7 +94,7 @@ export function rulesSettings(
       </small>
       <SaveActions
         verb={key ? '変更を保存' : 'ルールを保存'}
-        cancel="/extensions/rules"
+        cancel={extensionSettingsPath('rules', frame.query.product)}
         primary={!key}
       />
     </form>
@@ -129,7 +133,7 @@ export function rulesSettings(
                       }}
                     />
                   ) : (
-                    '全プロダクト'
+                    `全${projectTerm}`
                   )}{' '}
                   · {rule.subjectContains || 'すべての件名'}
                 </>

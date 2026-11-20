@@ -2,15 +2,19 @@ import assert from 'node:assert/strict'
 import { PNG } from 'pngjs'
 
 export const identityScenes = [
-  { id: 'label-colors', label: 'ラベルの色を選ぶ', url: '/settings/labels' },
+  {
+    id: 'label-colors',
+    label: 'ラベルの色を選ぶ',
+    url: '/settings/projects/slide/labels',
+  },
   {
     id: 'product-icon-settings',
-    label: 'プロダクトのアイコンを設定',
+    label: 'プロジェクトのアイコンを設定',
     url: '/settings/mailboxes?edit=slide',
   },
   {
     id: 'product-switcher',
-    label: 'アイコンからプロダクトを選ぶ',
+    label: 'アイコンからプロジェクトを選ぶ',
     url: '/?product=slide',
   },
   {
@@ -67,7 +71,7 @@ export async function setSceneIcon(origin, mode) {
 export async function exposeIdentityControls(page, id, baseline = false) {
   if (id === 'product-icon-settings' && !baseline) {
     await page
-      .getByText('プロダクトのアイコンを変更', { exact: true })
+      .getByText('プロジェクトのアイコンを変更', { exact: true })
       .first()
       .click()
     await page

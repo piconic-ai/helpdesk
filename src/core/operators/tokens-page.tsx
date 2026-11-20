@@ -37,7 +37,7 @@ function scopeSummary(
 function TokenProjectScope({ projects }: Pick<TokenPageData, 'projects'>) {
   const choices = projects.filter((p) => p.archivedAt === null)
   return (
-    <fieldset className="template-choices" data-token-scope="">
+    <fieldset data-token-scope="">
       <legend>{'対象の' + projectTerm}</legend>
       <label>
         <Input type="radio" name="projectScope" value="all" checked />

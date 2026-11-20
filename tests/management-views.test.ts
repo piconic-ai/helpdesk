@@ -259,9 +259,9 @@ it('finds a saved reply by its body and restores the previous text after an edit
   const created = await page(after)
   expect(created).toContain('定型文を保存しました。')
   expect(created).toContain('編集：Shipping help')
-  const query = '/extensions/canned?q=TRACKING'
+  const query = '/extensions/canned?product=studio&q=TRACKING'
   expect(await page(query)).toContain('Shipping help')
-  expect(await page('/extensions/canned?q=unmatched')).toContain(
+  expect(await page('/extensions/canned?product=studio&q=unmatched')).toContain(
     '条件に合う定型文はありません。',
   )
   const revision = new URL(after, origin).searchParams.get('undo')!

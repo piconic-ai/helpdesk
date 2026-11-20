@@ -566,8 +566,8 @@ html:has(dialog:modal) {
 }
 .thread-command[open],
 .thread-command .extension-form,
-.template-choices,
-.template-choices label > span {
+:is(.template-choices, [data-token-scope]),
+:is(.template-choices, [data-token-scope]) label > span {
   display: grid;
   gap: var(--spacing-xs);
 }
@@ -578,16 +578,16 @@ html:has(dialog:modal) {
 .thread-command .extension-form {
   justify-items: start;
 }
-.template-choices {
+:is(.template-choices, [data-token-scope]) {
   max-height: 35dvh;
   overflow: auto;
 }
-.template-choices label {
+:is(.template-choices, [data-token-scope]) label {
   display: flex;
   align-items: baseline;
   gap: var(--spacing-xs);
 }
-.template-choices small {
+:is(.template-choices, [data-token-scope]) small {
   white-space: pre-line;
   overflow-wrap: anywhere;
 }

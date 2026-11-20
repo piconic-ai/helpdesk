@@ -2,7 +2,11 @@ import type { Child } from 'hono/jsx'
 import { ActionLink, Button, Field, Input } from './controls'
 import { FilterBar, ListRow, Notice, RowList } from './patterns'
 
-export function PublicSearch(props: { label: string; query: string }) {
+export function PublicSearch(props: {
+  label: string
+  query: string
+  name?: string
+}) {
   return (
     <FilterBar
       chips={
@@ -19,7 +23,12 @@ export function PublicSearch(props: { label: string; query: string }) {
     >
       <form method="get" className="article-search" data-live-filters="">
         <Field label={props.label}>
-          <Input type="search" name="q" value={props.query} maxlength={200} />
+          <Input
+            type="search"
+            name={props.name ?? 'q'}
+            value={props.query}
+            maxlength={200}
+          />
         </Field>
       </form>
     </FilterBar>

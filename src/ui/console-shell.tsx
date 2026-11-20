@@ -1,4 +1,6 @@
-import { ProductMark } from './product-mark'
+import { can, visibleProductIds } from '../core/operators/project-access'
+import { projectTerm } from '../core/settings/project-term'
+import { activeProjects, ProductMark } from './product-mark'
 import { glyph, type GlyphName } from './glyph'
 import { operatorAvatar } from './operator-identity'
 import type { Child } from 'hono/jsx'
@@ -131,6 +133,15 @@ function navigation(frame: ConsoleFrame) {
   const product = frame.query.product ?? ''
   const feedback = frame.extensions.find((ext) => ext.id === 'feedback')
   const selectedProduct = frame.products.find((p) => p.id === product)
+  const globalAdmin = can(frame.operator, 'global').allowed
+  const managesProjects =
+    globalAdmin ||
+    visibleProductIds(frame.operator)?.some(
+      (id) => can(frame.operator, 'manage', id).allowed,
+    )
+  const settings = product
+    ? '/settings?' + new URLSearchParams({ product })
+    : '/settings'
   const person = frame.operators.find((o) => o.email === frame.operator.email)
   return (
     <>
@@ -150,7 +161,7 @@ function navigation(frame: ConsoleFrame) {
           {glyph('close')}
         </Button>
       </div>
-      <div className="product-menu">
+      <div className="product-menu" data-project-history={frame.operator.email}>
         <Popover
           id="product-switcher"
           label={
@@ -160,7 +171,7 @@ function navigation(frame: ConsoleFrame) {
               ) : (
                 <>
                   {glyph('products')}
-                  <span>すべてのプロダクト</span>
+                  <span>すべての{projectTerm}</span>
                 </>
               )}
             </span>
@@ -170,10 +181,11 @@ function navigation(frame: ConsoleFrame) {
             aria-current={!product ? 'true' : undefined}
             href={inboxUrl({ ...frame.query, page: '', product: '' })}
           >
-            すべてのプロダクト
+            すべての{projectTerm}
           </a>
-          {frame.products.map((p) => (
+          {activeProjects(frame.products).map((p) => (
             <a
+              data-project-option={p.id}
               aria-current={p.id === product ? 'true' : undefined}
               href={inboxUrl({ ...frame.query, page: '', product: p.id })}
             >
@@ -215,15 +227,20 @@ function navigation(frame: ConsoleFrame) {
       </nav>
       {extensionMenu(frame)}
       <nav className="sidebar-footer" aria-label="管理">
-        {frame.operator.role === 'admin' &&
+        {globalAdmin &&
           navItem(
             '/extensions',
             '拡張の管理',
             'extensions',
             frame.path === '/extensions',
           )}
-        {frame.operator.role === 'admin' &&
-          navItem('/settings', '設定', 'settings', frame.path === '/settings')}
+        {managesProjects &&
+          navItem(
+            settings,
+            '設定',
+            'settings',
+            frame.path.startsWith('/settings'),
+          )}
         <div className="account-navigation">
           <a
             className="sidebar-item sidebar-account"

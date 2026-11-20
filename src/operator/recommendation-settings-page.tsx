@@ -1,3 +1,4 @@
+import { extensionSettingsPath } from '../core/settings/project-setting-links'
 import { Input, NativeSelect } from '../ui/controls'
 import { SaveActions, Disclosure } from '../ui/admin'
 import type { recommendationForm } from './recommendation-settings-usecase'
@@ -56,7 +57,7 @@ export function RecommendationSettings({
         </label>
         <SaveActions
           verb="記事のおすすめ設定を保存"
-          cancel="/extensions/chat"
+          cancel={extensionSettingsPath('chat', product)}
         />
       </form>
     </Disclosure>

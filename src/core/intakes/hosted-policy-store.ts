@@ -39,3 +39,13 @@ export async function startHostedIntake(
       .bind(audit.actor, JSON.stringify({ product, origin }), audit.now),
   ])
 }
+
+export async function isArchived(db: D1Database, product: string) {
+  const row = await db
+    .prepare(
+      'SELECT 1 FROM product_lifecycle WHERE product=? AND archived_at IS NOT NULL',
+    )
+    .bind(product)
+    .first()
+  return row !== null
+}

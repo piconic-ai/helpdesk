@@ -48,6 +48,9 @@
   align-items: center;
   flex-wrap: wrap;
 }
+[data-project-picker] > button {
+  align-self: end;
+}
 [data-layout='grid'] {
   display: grid;
   align-items: stretch;

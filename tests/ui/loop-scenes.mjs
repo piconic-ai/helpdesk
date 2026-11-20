@@ -277,25 +277,26 @@ const entries = [
   ],
   [
     'mailbox-add',
-    'このプロダクトに窓口を追加する',
+    'このプロジェクトに窓口を追加する',
     '/settings/mailboxes?edit=slide',
     [],
     async (page) => {
-      await openDisclosure(page, 'このプロダクトに窓口を追加')
+      await openDisclosure(page, 'このプロジェクトに窓口を追加')
       await button(page, '窓口を追加').scrollIntoViewIfNeeded()
     },
   ],
   [
     'operator-edit',
     '運営者の登録内容を編集する',
-    '/settings/operators',
+    '/settings/operators?edit=mori%40example.com',
     [],
-    (page) => openDisclosure(page, '編集'),
+    (page) =>
+      expect(page.getByRole('heading', { level: 1 })).toHaveText('森 直子'),
   ],
   [
     'canned-edit',
     '定型返信を編集する',
-    '/extensions/canned',
+    '/extensions/canned?product=slide',
     ['canned'],
     (page) => openDisclosure(page, '編集'),
   ],
@@ -318,7 +319,7 @@ const entries = [
         page
           .locator('form[action="/extensions/rules/remove"] button:visible')
           .first(),
-        '全プロダクト・件名に「領収書」',
+        '全プロジェクト・件名に「領収書」',
       )
     },
   ],

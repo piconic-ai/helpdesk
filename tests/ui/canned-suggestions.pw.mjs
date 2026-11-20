@@ -112,7 +112,7 @@ test('suggests scoped templates alongside articles and inserts them into an edit
         .first('edited'),
     ).toBeNull()
 
-    await page.goto(scene.origin + '/extensions/canned')
+    await page.goto(scene.origin + '/extensions/canned?product=slide')
     const row = page.getByRole('listitem').filter({ hasText: '領収書の案内' })
     await expect(row).toContainText('提示 1 回・使用 1 回・編集 100%')
   } finally {

@@ -73,7 +73,7 @@ test('集計の推移は日本時間の受付・完了件数を示し、対象�
   await expect(selfResolution.locator('circle')).toHaveCount(0)
   await page.goto(scene.origin + '/voices?start=2025-06-02&end=2025-06-04')
   const products = main
-    .getByRole('heading', { name: 'プロダクト別' })
+    .getByRole('heading', { name: 'プロジェクト別' })
     .locator('..')
   const row = (name) =>
     products.getByRole('link', { name, exact: true }).locator('..')
@@ -176,7 +176,7 @@ test('6製品の声が集まった課題は一覧で5個まで示し、詳細で
   await expect(detail.nth(1).locator('.product-mark')).toHaveCount(1)
 })
 
-test('375pxの集計条件で長いプロダクト名と期間の選択値を全文読める', async ({
+test('375pxの集計条件で長いプロジェクト名と期間の選択値を全文読める', async ({
   page,
   scene,
 }) => {
@@ -186,7 +186,7 @@ test('375pxの集計条件で長いプロダクト名と期間の選択値を全
     .bind(name, 'slide')
     .run()
   await page.setViewportSize({ width: 375, height: 812 })
-  const product = page.getByRole('button', { name: /^プロダクト：/ })
+  const product = page.getByRole('button', { name: /^プロジェクト：/ })
   for (const path of [
     '/metrics?product=slide&period=custom&start=2026-11-01&end=2026-11-18',
     '/voices?product=slide',

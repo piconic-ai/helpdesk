@@ -31,19 +31,19 @@ test('新しい記事を離れてプレビューに戻り、公開したら次�
   await expect(page.getByLabel('本文')).toBeEmpty()
 })
 
-test('新規と既存プロダクトの窓口フォームを区別し、成功したフォームだけを消す', async ({
+test('新規と既存プロジェクトの窓口フォームを区別し、成功したフォームだけを消す', async ({
   page,
   scene,
 }) => {
   const path = scene.origin + '/settings/mailboxes'
   const fresh = page
     .locator('form')
-    .filter({ has: page.getByLabel('プロダクト名', { exact: true }) })
+    .filter({ has: page.getByLabel('プロジェクト名', { exact: true }) })
   const existing = page
     .locator('details')
-    .filter({ hasText: 'このプロダクトに窓口を追加' })
+    .filter({ hasText: 'このプロジェクトに窓口を追加' })
   await page.goto(path + '?new=yes')
-  await fresh.getByLabel('プロダクト名').fill('新規登録の途中')
+  await fresh.getByLabel('プロジェクト名').fill('新規登録の途中')
   await fresh.getByLabel('窓口アドレスの先頭').fill('new-window')
   await page.goto(path + '?edit=slide')
   await existing.locator('summary').click()
@@ -142,7 +142,7 @@ test('定型文の編集中の下書きと新規作成、振り分けルール�
   page,
   scene,
 }) => {
-  const templates = scene.origin + '/extensions/canned'
+  const templates = scene.origin + '/extensions/canned?product=slide'
   await page.goto(templates)
   const existing = page.locator('details').filter({
     has: page.getByLabel('編集：お問い合わせの受付', { exact: true }),
@@ -181,12 +181,12 @@ test('フォームの取り消しは、そのフォームの下書きだけを�
     .locator('form')
     .filter({ has: page.getByRole('button', { name: '窓口を登録' }) })
   const sender = page.locator('form[action="/settings/senders/slide"]')
-  await add.getByLabel('プロダクト名').fill('残す窓口')
+  await add.getByLabel('プロジェクト名').fill('残す窓口')
   await page.goto(path + '?edit=slide')
   await sender.getByLabel('差出人名').fill('取り消す差出人')
   await sender.getByRole('link', { name: '取り消し', exact: true }).click()
   await page.goto(path + '?edit=slide')
   await expect(sender.getByLabel('差出人名')).toHaveValue('Slide')
   await page.goto(path + '?new=yes')
-  await expect(add.getByLabel('プロダクト名')).toHaveValue('残す窓口')
+  await expect(add.getByLabel('プロジェクト名')).toHaveValue('残す窓口')
 })

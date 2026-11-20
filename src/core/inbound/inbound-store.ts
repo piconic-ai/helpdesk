@@ -16,13 +16,26 @@ const candidateSchema = z.object({
   provider_id: z.string().nullable(),
 })
 
+export async function archivedMailbox(db: D1Database, address: string) {
+  return (
+    (await db
+      .prepare(
+        'SELECT 1 FROM mailboxes m JOIN product_lifecycle l ON l.product=m.product WHERE m.address=? AND l.archived_at IS NOT NULL',
+      )
+      .bind(address)
+      .first()) !== null
+  )
+}
+
 export async function mailboxProduct(db: D1Database, address: string) {
   return z
     .string()
     .nullable()
     .parse(
       await db
-        .prepare('SELECT product FROM mailboxes WHERE address=?')
+        .prepare(
+          'SELECT m.product FROM mailboxes m LEFT JOIN product_lifecycle l ON l.product=m.product WHERE m.address=? AND l.archived_at IS NULL',
+        )
         .bind(address)
         .first('product'),
     )
