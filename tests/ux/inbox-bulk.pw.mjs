@@ -435,3 +435,42 @@ test('完了した行を次ページから補い、元に戻すとページ送�
   ).toEqual(ids)
   await expect(page).toHaveURL(url.href)
 })
+
+test('リクエスト処理の読み込み中に画面を移っても、確定済みの操作だけ送信する', async ({
+  page,
+  scene,
+}) => {
+  const requested = Promise.withResolvers()
+  const release = Promise.withResolvers()
+  await page.route('**/components/local-requests.js', async (route) => {
+    requested.resolve()
+    await release.promise
+    await route.continue()
+  })
+  await page.reload()
+  const posted = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/inbox/change',
+  )
+  await row(page, 7).focus()
+  await page.keyboard.press('e')
+  try {
+    await requested.promise
+    await page.locator('.sidebar-item[href="/account"]').click()
+    await expect(page).toHaveURL(scene.origin + '/account')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'アカウント',
+    )
+  } finally {
+    release.resolve()
+  }
+  expect((await posted).ok()).toBe(true)
+  expect(
+    await scene.db
+      .prepare('SELECT status FROM conversations WHERE number=7')
+      .first('status'),
+  ).toBe('closed')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('アカウント')
+  await expect(page.getByRole('button', { name: '元に戻す' })).toHaveCount(0)
+})

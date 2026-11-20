@@ -266,7 +266,6 @@ window.onHelpdeskPage((signal) => {
     try {
       const { jsonMutation, pageQuery, syncPageCounts } =
         await import('/components/local-requests.js')
-      if (signal.aborted) return
       const receipt = await mutate(jsonMutation)
       if (signal.aborted) return
       let stale = false
