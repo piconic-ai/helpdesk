@@ -56,6 +56,18 @@ interface ReplyComposerProps {
 function suggestedArticles(articles: ReplyComposerProps['articles'] = []) {
   return articles.filter((article) => article.url.includes('?suggestion='))
 }
+function revealFirstLine(event: KeyboardEvent) {
+  const toStart =
+    (event.ctrlKey && event.key === 'Home') ||
+    (event.metaKey && event.key === 'ArrowUp')
+  const field = event.target
+  if (
+    toStart &&
+    field instanceof HTMLTextAreaElement &&
+    field.selectionEnd === 0
+  )
+    field.scrollTop = 0
+}
 function showSuggestions(note: boolean, articles: number, templates: number) {
   return !note && (articles > 0 || templates > 0)
 }
@@ -433,6 +445,7 @@ export function ReplyComposer(props: ReplyComposerProps) {
           readonly={sending()}
           data-draft-slot="reply"
           placeholder="返信を入力"
+          onKeyUp={revealFirstLine}
           onInput={(event) =>
             writeReply(
               event.target.value,
