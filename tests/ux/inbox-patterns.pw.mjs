@@ -54,9 +54,17 @@ test('会話の前後へ移動し、候補のアイコンと印から現在の�
   scene,
 }) => {
   await page.goto(scene.origin + '/conversation/1')
-  await page.getByRole('link', { name: '次の未対応へ' }).click()
-  await page.getByRole('link', { name: '前の未対応へ' }).click()
+  const next = page.getByRole('link', { name: '次の未対応へ' })
+  const destination = new URL(await next.getAttribute('href'), scene.origin)
+  await next.click()
+  await expect(page).toHaveURL(destination.href)
+  const previous = page.getByRole('link', { name: '前の未対応へ' })
+  await expect(previous).toHaveAttribute('href', '/conversation/1')
+  await previous.click()
   await expect(page).toHaveURL(/\/conversation\/1$/)
+  await expect(
+    page.getByRole('heading', { name: '領収書の宛名を変更できますか' }),
+  ).toBeVisible()
   await page.getByRole('button', { name: '担当者を選ぶ' }).click()
   await expect(
     page.getByRole('button', { name: '担当なし', exact: true }),

@@ -69,7 +69,11 @@ test('公開フォームでは送信前に記事を読み、そのまま送る�
     article.getByRole('heading', { name: '領収書を発行する' }),
   ).toBeVisible()
   await article.getByRole('button', { name: 'いいえ', exact: true }).click()
+  await expect(
+    article.getByText('記事への評価を受け付けました。', { exact: true }),
+  ).toBeVisible()
   await article.close()
+  await page.bringToFront()
   const form = await send.evaluate((el) =>
     Object.fromEntries(new FormData(el.form)),
   )
@@ -110,7 +114,11 @@ test('W3 公開フォームから記事で解決し、問い合わせを送ら�
   await link.click()
   const article = await reading
   await article.getByRole('button', { name: 'はい', exact: true }).click()
+  await expect(
+    article.getByText('記事への評価を受け付けました。', { exact: true }),
+  ).toBeVisible()
   await article.close()
+  await page.bringToFront()
   await page.getByRole('link', { name: '送信せずに終了' }).click()
   await expect(page).toHaveURL(/\/help\/articles\/slide\/?$/)
   expect(await reactions(scene, presentation)).toEqual(['opened', 'resolved'])
