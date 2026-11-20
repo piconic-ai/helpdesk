@@ -91,7 +91,13 @@ document.addEventListener(
     const scope = trigger.closest(
       '[data-slot="popover"], [data-slot="dropdown-menu"]',
     )
-    if (!hasAnchorPositioning || !scope?.contains(panel)) {
+    // The template picker lives outside the composer form and has its own named anchor.
+    const outsideAnchor = getComputedStyle(panel).positionAnchor
+    const namedPair =
+      outsideAnchor?.startsWith('--') &&
+      outsideAnchor !== '--helpdesk-trigger' &&
+      getComputedStyle(trigger).anchorName === outsideAnchor
+    if (!hasAnchorPositioning || (!scope?.contains(panel) && !namedPair)) {
       const update = () => {
         const pos = clampDropdownMenuPosition(
           trigger.getBoundingClientRect(),

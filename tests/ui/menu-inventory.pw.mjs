@@ -25,7 +25,9 @@ for (const [index, url] of [...routes].sort().entries()) {
     test(
       'メニューの列挙とキーボード操作 ' + url + caption,
       async ({ browser }) => {
-        const server = await startDemo(26200 + index + batch * 1000)
+        const server = await startDemo(26200 + index + batch * 1000, {
+          tickingClock: false,
+        })
         try {
           if (url === '/tokens')
             await seedLoopScene(server.db, { id: 'loop-revoke' })

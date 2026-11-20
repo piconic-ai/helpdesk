@@ -2,7 +2,7 @@ import { startScene } from './seed.mjs'
 import { seedReviewExamples } from './review-screens.mjs'
 import { seedReviewIssues } from './review-issue-seed.mjs'
 
-export async function startDemo(port = 0) {
+export async function startDemo(port = 0, { tickingClock = true } = {}) {
   const demo = await startScene(
     [
       'articles',
@@ -21,7 +21,7 @@ export async function startDemo(port = 0) {
       'metrics',
     ],
     '.',
-    { tickingClock: true, port, demoIssues: true },
+    { tickingClock, port, demoIssues: true },
   )
   try {
     await seedReviewExamples(demo.db, ['articles'])
