@@ -136,15 +136,16 @@ test.describe('公開受付', () => {
   })
 })
 
-test('J9 窓口を作成し、拡張の案内から新プロダクトの公開受付を開始する', async ({
+test('J9 窓口を作成し、拡張の案内から新プロジェクトの公開受付を開始する', async ({
   page,
   scene,
 }) => {
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
-  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
-  await page.getByLabel('プロダクト名', { exact: true }).fill('Catalog')
+  await page.getByRole('link', { name: /^全体の設定/ }).click()
+  await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
+  await page.getByLabel('プロジェクト名', { exact: true }).fill('Catalog')
   await page.getByLabel('窓口アドレスの先頭').first().fill('catalog')
   await page
     .getByLabel('送信ドメイン')
@@ -152,7 +153,7 @@ test('J9 窓口を作成し、拡張の案内から新プロダクトの公開�
     .selectOption({ label: 'example.com' })
   await page.getByRole('button', { name: '窓口を登録' }).click()
   await expect(page.getByRole('status')).toContainText('登録')
-  await capture(page, 'J9', '01-mailbox', 'プロダクトと送信窓口を登録')
+  await capture(page, 'J9', '01-mailbox', 'プロジェクトと送信窓口を登録')
   await page.getByRole('link', { name: '拡張の管理', exact: true }).click()
   const card = page.locator('[data-extension=form]')
   await card.getByRole('switch', { name: /有効にする/ }).click()
@@ -197,6 +198,11 @@ test('J11 候補から相手を選び、確認して会話を削除する', asyn
 }) => {
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
+  await page.getByRole('link', { name: /^プロジェクトの設定/ }).click()
+  await page
+    .getByRole('combobox', { name: 'プロジェクト', exact: true })
+    .selectOption('slide')
+  await page.getByRole('button', { name: '設定を開く' }).click()
   await page.getByRole('link', { name: /^連絡先のデータ削除/ }).click()
   const contacts = page.getByRole('combobox', { name: '削除する相手' })
   const label = await contacts
@@ -231,47 +237,38 @@ test('C 権限と表示名を保存し、不正な窓口は修正方法を表示
 }) => {
   await inbox(page, scene)
   await page.getByRole('link', { name: '設定', exact: true }).click()
+  await page.getByRole('link', { name: /^全体の設定/ }).click()
   await page.getByRole('link', { name: /^運営者/ }).click()
-  await page
-    .locator('details')
-    .filter({ has: page.locator('section[aria-label="sato@example.com"]') })
-    .locator('summary')
-    .click()
-  const owner = page.getByRole('region', { name: 'sato@example.com' })
-  await expect(owner).toContainText('最後の管理者です。')
-  await expect(owner.getByRole('combobox', { name: '権限' })).toHaveCount(0)
-  const editor = page
-    .locator('details')
-    .filter({ has: page.locator('section[aria-label="mori@example.com"]') })
-  await editor.locator('summary').click()
-  const operator = page.getByRole('region', { name: 'mori@example.com' })
-  await operator.getByLabel('表示名').fill('森 直子')
-  await operator.getByLabel('権限').selectOption({ label: '管理者' })
-  await operator.getByRole('button', { name: '運営者を保存' }).click()
-  await editor.locator('summary').click()
-  await expect(editor.locator('summary')).toHaveAccessibleName('編集：森 直子')
-  await expect(operator.getByLabel('表示名')).toHaveValue('森 直子')
-  await expect(operator.getByLabel('権限')).toHaveValue('admin')
+  const main = page.getByRole('main')
+  await main.getByRole('link', { name: /^佐藤 優/ }).click()
+  await expect(main).toContainText('最後の管理者です。')
+  await expect(main.getByRole('combobox', { name: '権限' })).toHaveCount(0)
+  await page.getByRole('link', { name: '運営者に戻る' }).click()
+  await main.getByRole('link', { name: /^森 直子/ }).click()
+  await main.getByLabel('表示名').fill('森 直子')
+  await main.getByLabel('権限').selectOption('admin')
+  await main.getByRole('button', { name: '運営者を保存' }).click()
+  await main.getByRole('link', { name: /^森 直子/ }).click()
+  await expect(main.getByLabel('権限')).toHaveValue('admin')
   await page.reload()
-  await editor.locator('summary').click()
-  await expect(editor.locator('summary')).toHaveAccessibleName('編集：森 直子')
-  await expect(operator.getByLabel('表示名')).toHaveValue('森 直子')
+  await expect(main.getByLabel('表示名')).toHaveValue('森 直子')
   await capture(
     page,
     'C-settings',
     '01-role',
     '運営者の表示名と権限を変更して再読み込みで確認',
   )
-  await page.getByRole('link', { name: '設定に戻る' }).click()
-  await page.getByRole('link', { name: /^プロダクトと窓口/ }).click()
-  await page.getByRole('link', { name: 'プロダクトを追加' }).click()
+  await page.getByRole('link', { name: '運営者に戻る' }).click()
+  await page.getByRole('link', { name: '全体の設定に戻る' }).click()
+  await page.getByRole('link', { name: /^プロジェクトと窓口/ }).click()
+  await page.getByRole('link', { name: 'プロジェクトを追加' }).click()
   const form = page.locator('form[action="/settings/mailboxes"]')
   await form.getByRole('button', { name: '窓口を登録' }).click()
-  await expect(form.getByLabel('プロダクト名')).toBeFocused()
-  await expect(form.getByLabel('プロダクト名')).toHaveAccessibleDescription(
+  await expect(form.getByLabel('プロジェクト名')).toBeFocused()
+  await expect(form.getByLabel('プロジェクト名')).toHaveAccessibleDescription(
     'この項目を入力してください。',
   )
-  await expect(form.getByLabel('プロダクト名')).toHaveAttribute(
+  await expect(form.getByLabel('プロジェクト名')).toHaveAttribute(
     'aria-invalid',
     'true',
   )

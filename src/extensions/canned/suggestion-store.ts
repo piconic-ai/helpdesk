@@ -81,12 +81,13 @@ export async function recordCannedUse(
   return Boolean(accepted)
 }
 
-export async function cannedCounts(db: D1Database) {
+export async function cannedCounts(db: D1Database, product?: string) {
   const result = await db
     .prepare(`SELECT i.template, count(DISTINCT i.presentation) AS shown,
     count(u.id) AS used, sum(u.edited) AS edited, count(u.edited) AS submitted
-    FROM canned_impressions i LEFT JOIN canned_uses u USING(presentation,template)
-    GROUP BY i.template`)
+    FROM canned_impressions i JOIN canned_presentations p ON p.id=i.presentation JOIN conversations c ON c.number=p.number LEFT JOIN canned_uses u ON u.presentation=i.presentation AND u.template=i.template
+    WHERE ?1 IS NULL OR c.product=?1 GROUP BY i.template`)
+    .bind(product ?? null)
     .all()
   const counts = z
     .object({

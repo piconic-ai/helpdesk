@@ -71,7 +71,7 @@ import {
   replyUndoForm,
 } from './thread-controls-page'
 export { inboxPage } from './inbox-page'
-export { settingsPage } from './settings-page'
+
 export { shell } from './console-page'
 type Names = ConsoleFrame['operators']
 type Details = Result<'get'>

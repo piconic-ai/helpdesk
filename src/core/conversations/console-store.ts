@@ -121,9 +121,15 @@ export async function fileMessages(db: D1Database, keys: string[]) {
     .parse(rows.results)
 }
 
-export async function labelChoices(db: D1Database) {
+export async function labelChoices(
+  db: D1Database,
+  projects: string[] | null = null,
+) {
   const rows = await db
-    .prepare('SELECT name FROM label_names ORDER BY name')
+    .prepare(
+      'SELECT DISTINCT name FROM project_labels WHERE ?1 IS NULL OR product IN (SELECT value FROM json_each(?1)) ORDER BY name',
+    )
+    .bind(projects && JSON.stringify(projects))
     .all()
   return z
     .array(z.object({ name: z.string() }))

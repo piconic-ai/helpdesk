@@ -1,5 +1,4 @@
 import { requireMedia } from '../operators/project-targets-store'
-import { listTokens } from '../operators/tokens-usecase'
 import {
   undoExtensionSetting,
   activationNamespace,
@@ -13,7 +12,6 @@ import { authorize, PermissionDenied } from './catalog'
 import {
   inboxPage,
   conversationPage,
-  settingsPage,
   htmlMailPage,
 } from '../conversations/conversations-page'
 import {
@@ -22,18 +20,8 @@ import {
   inboxOrder,
   threadFiles,
 } from '../conversations/console-usecase'
-import {
-  settingsSections,
-  settingsSectionPage,
-} from '../conversations/settings-page'
-import {
-  mailboxInput,
-  settingsContacts,
-  changeLabel,
-  changeTicketPrefix,
-  settingsLabels,
-  sendingDomains,
-} from '../settings/console-settings-usecase'
+import { projectSettingsRoutes } from '../settings/project-settings-routes'
+import { projectPath } from '../settings/project-setting-links'
 import { enableHostedIntake } from '../intakes/hosted-policy-usecase'
 import {
   feedbackReceipt,
@@ -140,86 +128,7 @@ app.post('/inbox/:command{change|undo}', async (c) => {
   const name = c.req.param('command') === 'undo' ? 'undoBulk' : 'bulk'
   return c.json(await run(context(c), name, await c.req.json()))
 })
-app.get('/settings', async (c) => {
-  const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
-  const [doctor, frame, settings, tokens] = await Promise.all([
-    run(ctx, 'doctor', {}),
-    consoleFrame(c.env, ctx.operator, c.req.path, {
-      q: c.req.query('q') ?? '',
-    }),
-    run(ctx, 'settings', {}),
-    listTokens(c.env, ctx.operator.email),
-  ])
-  return c.render(settingsPage(doctor.issues, frame, settings, tokens.length))
-})
-app.get(
-  '/settings/:section{mailboxes|operators|labels|retention|deletion}',
-  async (c) => {
-    const ctx = context(c)
-    const section = settingsSections.parse(c.req.param('section'))
-    const data = await run(ctx, 'settings', {})
-    return c.render(
-      settingsSectionPage(
-        section,
-        data,
-        sendingDomains(c.env.SENDING_DOMAINS),
-        section === 'deletion' ? await settingsContacts(ctx) : [],
-        await consoleFrame(c.env, ctx.operator, c.req.path, c.req.query()),
-        c.req.query('saved'),
-        section === 'labels' ? await settingsLabels(ctx) : [],
-      ),
-    )
-  },
-)
-app.post('/settings/labels', async (c) => {
-  const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
-  await changeLabel(ctx, await c.req.parseBody())
-  if (c.req.header('Accept') === 'application/json')
-    return c.json({ saved: true })
-  return c.redirect('/settings/labels?saved=yes', 303)
-})
-app.post('/settings/mailboxes', async (c) => {
-  const ctx = context(c)
-  const data = await run(ctx, 'settings', {})
-  const input = mailboxInput(ctx, await c.req.parseBody(), data.mailboxes)
-  await run(ctx, 'mailbox', input)
-  return c.redirect('/settings/mailboxes?saved=yes', 303)
-})
-app.post('/settings/ticket-prefix/:product', async (c) => {
-  const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
-  const product = c.req.param('product')
-  const settings = '/settings/mailboxes?edit=' + encodeURIComponent(product)
-  const form = await c.req.parseBody()
-  const result = await changeTicketPrefix(ctx, product, form.prefix)
-  if (result === 'missing') return c.notFound()
-  if (result === 'saved') return c.redirect(settings + '&saved=prefix', 303)
-  const frame = await consoleFrame(c.env, ctx.operator, '/settings/mailboxes', {
-    edit: product,
-  })
-  if (!frame.products.some((item) => item.id === product)) return c.notFound()
-  c.status(result === 'duplicate' ? 409 : 400)
-  return c.render(
-    settingsSectionPage(
-      'mailboxes',
-      await run(ctx, 'settings', {}),
-      sendingDomains(c.env.SENDING_DOMAINS),
-      [],
-      frame,
-      undefined,
-      [],
-      {
-        input: typeof form.prefix === 'string' ? form.prefix.slice(0, 5) : '',
-        message:
-          result === 'duplicate'
-            ? 'この接頭辞はすでに使用されています。'
-            : '問い合わせ番号の接頭辞は英大文字2〜5字で入力してください。',
-      },
-    ),
-  )
-})
+app.route('/', projectSettingsRoutes)
 app.post('/settings/public-intakes/:product', async (c) => {
   const form = await c.req.parseBody()
   const destination = z
@@ -438,6 +347,23 @@ async function extensionResponse(
     ),
   )
 }
+function settingsReceipt(name: string, product: unknown) {
+  const settingsLocations: Record<string, string> = {
+    role: 'operators',
+    retention: 'retention',
+    forget: 'deletion',
+    mailbox: 'mailboxes',
+  }
+  const settingsLocation = settingsLocations[name]
+  if (settingsLocation) {
+    if (
+      typeof product === 'string' &&
+      (name === 'forget' || name === 'retention')
+    )
+      return projectPath(product, settingsLocation) + '?saved=yes'
+    return '/settings/' + settingsLocation + '?saved=yes'
+  }
+}
 app.post('/actions/:name', async (c) => {
   const name = c.req.param('name')
   const input = await c.req.parseBody()
@@ -473,15 +399,8 @@ app.post('/actions/:name', async (c) => {
       { ...input, changeId: String(args.changeId ?? '') },
       result,
     )
-  const settingsLocations: Record<string, string> = {
-    role: 'operators',
-    retention: 'retention',
-    forget: 'deletion',
-    mailbox: 'mailboxes',
-  }
-  const settingsLocation = settingsLocations[name]
-  if (settingsLocation)
-    return c.redirect('/settings/' + settingsLocation + '?saved=yes', 303)
+  const destination = settingsReceipt(name, input.product)
+  if (destination) return c.redirect(destination, 303)
   const number = z.coerce.number().int().positive().safeParse(input.number)
   const notice = name === 'status' ? String(input.event) : name
   return c.redirect(

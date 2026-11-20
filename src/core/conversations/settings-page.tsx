@@ -1,20 +1,11 @@
+import { projectBack, projectPath } from '../settings/project-setting-links'
+import { projectTerm } from '../settings/project-term'
 import { extensionLabel } from '../extensions/extension-labels'
 import { ProductIconForm } from '../settings/product-icon-page'
 import { ProductMark } from '../../ui/product-mark'
-import {
-  listRows,
-  ListFilters,
-  matchesSearch,
-  PageLinks,
-} from '../../ui/listing'
-import { labelTable, addLabel } from '../../ui/label-directory'
 import { ActionLink, Dialog } from '../../ui/controls'
 import {
-  ListPage,
   EditPage,
-  OverviewPage,
-  ListRow,
-  SettingRow,
   RowList,
   Notice,
   EmptyState,
@@ -23,28 +14,13 @@ import {
 } from '../../ui/patterns'
 import { Button, Field, Input, NativeSelect } from '../../ui/controls'
 import { SaveActions, Disclosure } from '../../ui/admin'
-import { z } from 'zod'
 import { replyDelayLabels } from '../settings/reply-delay'
-import { shell, action, field, select } from './console-page'
+import { field, select } from './console-page'
 import type { Result } from './inbox-page'
 import type { ConsoleFrame } from './console-usecase'
 
-const titles = {
-  mailboxes: 'プロダクトと窓口',
-  operators: '運営者',
-  labels: 'ラベル',
-  retention: '保存期間',
-  deletion: '連絡先のデータ削除',
-}
-export const settingsSections = z.enum([
-  'mailboxes',
-  'operators',
-  'labels',
-  'retention',
-  'deletion',
-])
-type Section = z.infer<typeof settingsSections>
-type Data = Result<'settings'>
+type Section = 'mailboxes' | 'operators' | 'labels' | 'retention' | 'deletion'
+type Data = Pick<Result<'settings'>, 'mailboxes' | 'retentionDays'>
 type Contact = { email: string; name: string | null; conversations: number }
 
 function setupIssue(issue: string) {
@@ -62,7 +38,7 @@ function setupIssue(issue: string) {
     return 'Cloudflare で窓口ドメインのメール送信を有効にし、SENDING_DOMAINS に設定してください。'
   return issue
 }
-function setupIssues(issues: string[]) {
+export function setupIssues(issues: string[]) {
   return (
     issues.length > 0 && (
       <Notice kind="error">
@@ -77,104 +53,6 @@ function setupIssues(issues: string[]) {
   )
 }
 
-export function settingsPage(
-  issues: string[],
-  frame: ConsoleFrame,
-  data: Data,
-  tokenCount: number,
-) {
-  const query = frame.query
-  const general = [
-    {
-      href: '/settings/mailboxes',
-      title: titles.mailboxes,
-      description: '問い合わせを受け付ける窓口とメールの差出人を管理します。',
-      value: '窓口 ' + data.mailboxes.length + '件',
-    },
-    {
-      href: '/settings/operators',
-      title: titles.operators,
-      description: '運営者の表示名と権限を変更します。',
-      value: data.operators.length + '人',
-    },
-    {
-      href: '/settings/labels',
-      title: titles.labels,
-      description:
-        '名前と色、使われている件数を確認し、会話のラベルを管理します。',
-      value: frame.labels.length + '件',
-    },
-    {
-      href: '/settings/retention',
-      title: titles.retention,
-      description: '完了した問い合わせの本文を保持する期間を設定します。',
-      value: data.retentionDays ? data.retentionDays + '日' : '無期限',
-    },
-    {
-      href: '/tokens',
-      title: 'API トークンの管理',
-      description: 'CLI や MCP に使う自分のトークンを発行・失効します。',
-      value: tokenCount + '件',
-    },
-  ]
-  const sensitive = [
-    {
-      href: '/settings/deletion',
-      title: titles.deletion,
-      description: '相手と削除される会話の件数を確認してから実行します。',
-      value: '取り消し不可',
-    },
-  ]
-  if (frame.extensions.some((e) => e.id === 'export'))
-    sensitive.unshift({
-      href: '/extensions/export',
-      title: 'データの書き出し',
-      description: '会話・メッセージ・操作履歴を JSON Lines 形式で取得します。',
-      value: 'JSON Lines',
-    })
-  const matchingRows = (rows: typeof general, group: string) =>
-    rows
-      .filter((row) =>
-        matchesSearch(
-          [group, row.title, row.description, row.value].join(' '),
-          query.q,
-        ),
-      )
-      .map((row) => <SettingRow {...row} />)
-  const settings = matchingRows(general, '設定項目')
-  const dataManagement = matchingRows(sensitive, 'データ管理')
-  return shell(
-    '設定',
-    <OverviewPage
-      title="設定"
-      filters={
-        <ListFilters
-          title="設定項目"
-          path="/settings"
-          query={query}
-          sortable={false}
-        />
-      }
-    >
-      {setupIssues(issues)}
-      {settings.length > 0 && <nav aria-label="設定項目">{settings}</nav>}
-      {dataManagement.length > 0 && (
-        <FormSection
-          title="データ管理"
-          description="連絡先を削除すると、その相手との会話や添付ファイルも消えます。"
-        >
-          {dataManagement}
-        </FormSection>
-      )}
-      {!settings.length && !dataManagement.length && (
-        <EmptyState icon="search">
-          条件に合う設定項目はありません。検索条件を解除すると、すべての項目を表示できます。
-        </EmptyState>
-      )}
-    </OverviewPage>,
-    frame,
-  )
-}
 function addressFields(domains: string[]) {
   if (!domains.length)
     return field('address', '窓口のメールアドレス', '', 'email', true)
@@ -200,7 +78,7 @@ function addressFields(domains: string[]) {
 }
 type PrefixError = { input: string; message: string }
 
-function mailboxPage(
+export function mailboxPage(
   data: Data,
   domains: string[],
   frame: ConsoleFrame,
@@ -208,13 +86,15 @@ function mailboxPage(
   prefixError?: PrefixError,
 ) {
   const path = '/settings/mailboxes'
-  const back = { href: path, label: 'プロダクトと窓口に戻る' }
+  const back = frame.query.edit
+    ? projectBack(frame.query.edit)
+    : { href: path, label: projectTerm + 'と窓口に戻る' }
   if (frame.query.new === 'yes')
     return (
-      <EditPage title="新しいプロダクトと窓口" back={back}>
+      <EditPage title={'新しい' + projectTerm + 'と窓口'} back={back}>
         <FormSection title="窓口を登録" id="mailboxes">
           <form method="post" action={path}>
-            {field('name', 'プロダクト名', '', 'text', true)}
+            {field('name', projectTerm + '名', '', 'text', true)}
             {addressFields(domains)}
             <MailboxPolicies extensions={frame.extensions} />
             <SaveActions
@@ -232,36 +112,7 @@ function mailboxPage(
     )
   const product = frame.products.find((p) => p.id === frame.query.edit)
   if (!product)
-    return (
-      <ListPage
-        title={titles.mailboxes}
-        back={{ href: '/settings', label: '設定に戻る' }}
-        action={
-          <ActionLink href={path + '?new=yes'}>プロダクトを追加</ActionLink>
-        }
-      >
-        {notice}
-        {frame.products.length ? (
-          <RowList>
-            {frame.products.map((p) => (
-              <ListRow
-                href={path + '?edit=' + encodeURIComponent(p.id)}
-                title={<ProductMark product={p} />}
-                status={<span aria-hidden="true">›</span>}
-                description={data.mailboxes
-                  .filter((m) => m.product === p.id)
-                  .map((m) => m.address)
-                  .join('、')}
-              />
-            ))}
-          </RowList>
-        ) : (
-          <EmptyState icon="mail">
-            プロダクトを追加して窓口を登録してください。
-          </EmptyState>
-        )}
-      </ListPage>
-    )
+    return <EmptyState icon="search">窓口が見つかりません。</EmptyState>
   return (
     <EditPage
       title={<ProductMark product={product} size="heading" />}
@@ -295,7 +146,7 @@ function mailboxPage(
         </form>
       </FormSection>
       <FormSection title="アイコンとメール差出人">
-        <Disclosure title="プロダクトのアイコンを変更">
+        <Disclosure title={projectTerm + 'のアイコンを変更'}>
           <ProductIconForm product={product} />
         </Disclosure>
         <form
@@ -342,7 +193,7 @@ function mailboxPage(
           .map((m) => (
             <p>{m.address}</p>
           ))}
-        <Disclosure title="このプロダクトに窓口を追加">
+        <Disclosure title={'この' + projectTerm + 'に窓口を追加'}>
           <form method="post" action={path}>
             <Input type="hidden" name="product" value={product.id} />
             {addressFields(domains)}
@@ -391,60 +242,11 @@ function MailboxPolicies({ extensions }: Pick<ConsoleFrame, 'extensions'>) {
     </div>
   )
 }
-function operators(data: Data, visible: Data['operators']) {
-  const admins = data.operators.filter((o) => o.role === 'admin')
-  return (
-    <RowList>
-      {visible.map((o) => (
-        <ListRow
-          title={o.displayName}
-          description={<code>{o.email}</code>}
-          status={o.role === 'admin' ? '管理者' : '担当者'}
-          action={
-            <Disclosure title="編集" accessibleName={'編集：' + o.displayName}>
-              <section aria-label={o.email}>
-                {action(
-                  'role',
-                  '運営者を保存',
-                  <>
-                    <input type="hidden" name="email" value={o.email} />
-                    <Field label="表示名">
-                      <Input
-                        name="displayName"
-                        maxlength={100}
-                        value={o.displayName}
-                      />
-                    </Field>
-                    {admins.length === 1 && admins[0].email === o.email ? (
-                      <>
-                        <p>権限　管理者</p>
-                        <small>
-                          最後の管理者です。権限を変更するには、先にほかの運営者を管理者にしてください。
-                        </small>
-                        <input type="hidden" name="role" value="admin" />
-                      </>
-                    ) : (
-                      select(
-                        'role',
-                        '権限',
-                        { admin: '管理者', agent: '担当者' },
-                        o.role,
-                      )
-                    )}
-                  </>,
-                )}
-              </section>
-            </Disclosure>
-          }
-        />
-      ))}
-    </RowList>
-  )
-}
-function retention(data: Data) {
+export function retention(data: Data, product: string) {
   return (
     <FormSection title="完了した会話の保存期間" id="retention">
       <form action="/actions/retention" method="post">
+        <Input type="hidden" name="product" value={product} />
         <fieldset data-retention-mode="">
           <legend>保持する期間</legend>
           <label>
@@ -476,12 +278,16 @@ function retention(data: Data) {
             value={data.retentionDays || 30}
           />
         </Field>
-        <SaveActions verb="保存期間を変更" cancel="/settings" primary />
+        <SaveActions
+          verb="保存期間を変更"
+          cancel={projectPath(product)}
+          primary
+        />
       </form>
     </FormSection>
   )
 }
-function deletion(contacts: Contact[]) {
+export function deletion(contacts: Contact[], product: string) {
   return (
     <FormSection id="forget" title="相手を選んでデータを削除">
       <p>指定した相手の会話、メール原文、添付ファイルを削除します。</p>
@@ -489,6 +295,7 @@ function deletion(contacts: Contact[]) {
         <EmptyState icon="mine">削除できる連絡先はありません。</EmptyState>
       ) : (
         <form action="/actions/forget" method="post" data-forget="">
+          <Input type="hidden" name="product" value={product} />
           <Field label="削除する相手">
             <NativeSelect name="contact" required>
               <option value="">相手を選んでください</option>
@@ -540,14 +347,14 @@ const notices: Record<Section, string> = {
   retention: '保存期間を変更しました。',
   deletion: '選択した相手のデータを削除しました。',
 }
-function settingsNotice(section: Section, saved?: string) {
+export function settingsNotice(section: Section, saved?: string) {
   return (
     (saved === 'yes' ||
       (section === 'mailboxes' &&
         (saved === 'sender' || saved === 'icon' || saved === 'prefix'))) && (
       <Notice toast kind="success">
         {saved === 'icon'
-          ? 'プロダクトのアイコンを保存しました。'
+          ? projectTerm + 'のアイコンを保存しました。'
           : saved === 'sender'
             ? 'メールの差出人を保存しました。'
             : saved === 'prefix'
@@ -555,72 +362,5 @@ function settingsNotice(section: Section, saved?: string) {
               : notices[section]}
       </Notice>
     )
-  )
-}
-export function settingsSectionPage(
-  section: Section,
-  data: Data,
-  domains: string[],
-  contacts: Contact[],
-  frame: ConsoleFrame,
-  saved: string | undefined,
-  labels: { name: string; count: number }[],
-  prefixError?: PrefixError,
-) {
-  const list = listRows(data.operators, frame.query, (person) => ({
-    text: person.displayName + ' ' + person.email,
-    filter: person.role,
-  }))
-  const content = {
-    retention: () => retention(data),
-    deletion: () => deletion(contacts),
-  }
-  const notice = settingsNotice(section, saved)
-  const back = { href: '/settings', label: '設定に戻る' }
-  const title = titles[section]
-  return shell(
-    title,
-    section === 'mailboxes' ? (
-      mailboxPage(data, domains, frame, notice, prefixError)
-    ) : section === 'labels' ? (
-      <ListPage title={title} back={back} action={addLabel()}>
-        {notice}
-        {labelTable(labels, frame.labelColors)}
-      </ListPage>
-    ) : section === 'operators' ? (
-      <ListPage
-        title={title}
-        description={list.total + '人'}
-        filters={
-          <ListFilters
-            title="運営者"
-            path="/settings/operators"
-            query={frame.query}
-            filterLabel="権限で絞り込む"
-            options={[
-              { value: 'admin', label: '管理者' },
-              { value: 'agent', label: '担当者' },
-            ]}
-          />
-        }
-        footer={
-          <PageLinks path="/settings/operators" query={frame.query} {...list} />
-        }
-        back={back}
-      >
-        {notice}
-        {list.rows.length ? (
-          operators(data, list.rows)
-        ) : (
-          <EmptyState icon="search">条件に合う運営者はいません。</EmptyState>
-        )}
-      </ListPage>
-    ) : (
-      <EditPage title={title} back={back}>
-        {notice}
-        {content[section]()}
-      </EditPage>
-    ),
-    frame,
   )
 }

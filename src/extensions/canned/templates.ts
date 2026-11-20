@@ -26,15 +26,15 @@ export const templateConfig = z
       }),
   })
   .strict()
+export function projectTemplateKey(product: string, id: string) {
+  return 'project-template/' + encodeURIComponent(product) + '/' + id
+}
 export async function savedTemplates(ctx: ExtensionContext, product?: string) {
-  const all = templatesFromSettings(ctx.config, await ctx.list('template/'))
-  return product
-    ? new Map(
-        [...all].filter(
-          ([, item]) => !item.product || item.product === product,
-        ),
-      )
-    : all
+  const legacy = await ctx.list('template/')
+  const rows = product
+    ? [...legacy, ...(await ctx.list(projectTemplateKey(product, '')))]
+    : legacy
+  return templatesFromSettings(ctx.config, rows, product)
 }
 
 export function fillTemplate(
@@ -48,6 +48,7 @@ export function fillTemplate(
 export function templatesFromSettings(
   config: unknown,
   rows: { key: string; value: unknown }[],
+  product?: string,
 ) {
   const result = new Map<string, z.infer<typeof template>>(
     Object.entries(templateConfig.parse(config).templates).map(([id, item]) => [
@@ -63,5 +64,12 @@ export function templatesFromSettings(
   )
   for (const row of rows.filter((item) => item.key.startsWith('template/')))
     result.set(row.key.slice(9), template.parse(row.value))
+  if (product) {
+    for (const [id, item] of result)
+      if (item.product && item.product !== product) result.delete(id)
+    const prefix = projectTemplateKey(product, '')
+    for (const row of rows.filter((r) => r.key.startsWith(prefix)))
+      result.set(row.key.slice(prefix.length), template.parse(row.value))
+  }
   return result
 }

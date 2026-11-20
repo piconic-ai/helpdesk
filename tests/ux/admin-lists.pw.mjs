@@ -68,7 +68,9 @@ test('読み込み中に変更した検索と選択を一度に反映し、入�
     },
   )
   await expect(page).toHaveURL(scene.origin + '/settings')
-  await expect(page.getByRole('link', { name: /^保存期間/ })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: /^プロジェクトの設定/ }),
+  ).toBeVisible()
   await expect(search).toBeFocused()
 })
 test('記事の検索・公開状態・ページ送りを URL から復元し、更新日と評価を読む', async ({
@@ -114,13 +116,14 @@ test('設定項目の窓口数と保存期間が実際の変更後の値に変�
   scene,
   page,
 }) => {
-  await page.goto(scene.origin + '/settings')
+  await page.goto(scene.origin + '/settings/global')
   const main = page.getByRole('main')
+  await expect(
+    main.getByRole('link', { name: /^プロジェクトと窓口/ }),
+  ).toContainText('窓口 2件')
+  await page.goto(scene.origin + '/settings/projects/slide')
   const retention = main.getByRole('link', { name: /^保存期間/ })
   await expect(retention).toContainText('無期限')
-  await expect(
-    main.getByRole('link', { name: /^プロダクトと窓口/ }),
-  ).toContainText('窓口 2件')
   await retention.click()
   await page.getByLabel('日数を指定').check()
   await page.getByRole('spinbutton').fill('15')
@@ -148,15 +151,13 @@ test('拡張と設定の概要で検索条件を組み合わせ、解除でき�
 
   await page.goto(scene.origin + '/settings')
   const search = main.getByRole('searchbox', { name: '設定項目を検索' })
-  await search.fill('削除')
-  await expect(main.getByRole('link', { name: /^保存期間/ })).toHaveCount(0)
-  await expect(main.getByRole('heading', { name: 'データ管理' })).toBeVisible()
+  await search.fill('窓口')
   await expect(
-    main.getByRole('link', { name: /^連絡先のデータ削除/ }),
+    main.getByRole('link', { name: /^プロジェクトの設定/ }),
   ).toBeVisible()
+  await expect(main.getByRole('link', { name: /^全体の設定/ })).toHaveCount(0)
   await search.fill('該当しない設定')
   await expect(main).toContainText('条件に合う設定項目はありません。')
-  await expect(main.getByRole('heading', { name: 'データ管理' })).toHaveCount(0)
   await main.getByRole('link', { name: '検索：該当しない設定 を解除' }).click()
-  await expect(main.getByRole('link', { name: /^保存期間/ })).toBeVisible()
+  await expect(main.getByRole('link', { name: /^全体の設定/ })).toBeVisible()
 })

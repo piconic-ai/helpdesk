@@ -104,14 +104,25 @@ export async function setRole(
   if (!result.meta.changes)
     throw new Error('Unknown operator or last administrator')
 }
-export async function saveRetention(db: D1Database, a: Audit, days: number) {
+export async function saveRetention(
+  db: D1Database,
+  a: Audit,
+  days: number,
+  product?: string,
+) {
   await db.batch([
-    db
-      .prepare(
-        "INSERT INTO settings VALUES('retention_days',?) ON CONFLICT(name) DO UPDATE SET value=excluded.value",
-      )
-      .bind(String(days)),
-    eventStatement(db, a, null, 'retention_changed', { days }),
+    product
+      ? db
+          .prepare(
+            'INSERT INTO project_retention(product,days) VALUES(?,?) ON CONFLICT(product) DO UPDATE SET days=excluded.days',
+          )
+          .bind(product, days)
+      : db
+          .prepare(
+            "INSERT INTO settings VALUES('retention_days',?) ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+          )
+          .bind(String(days)),
+    eventStatement(db, a, null, 'retention_changed', { days, product }),
   ])
 }
 export async function addNote(
@@ -166,14 +177,15 @@ export async function setLabel(
   ])
 }
 
-export async function listContacts(db: D1Database) {
+export async function listContacts(db: D1Database, product?: string) {
   const rows = await db
     .prepare(`
     SELECT email, max(name) AS name, sum(conversation) AS conversations FROM (
-      SELECT contact AS email, contact_name AS name, 1 AS conversation FROM conversations
-      UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_failures
-      UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_jobs
+      SELECT contact AS email, contact_name AS name, 1 AS conversation FROM conversations WHERE ?1 IS NULL OR product=?1
+      UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_failures WHERE ?1 IS NULL OR mailbox IN (SELECT address FROM mailboxes WHERE product=?1)
+      UNION ALL SELECT sender AS email, NULL AS name, 0 AS conversation FROM inbound_jobs WHERE ?1 IS NULL OR mailbox IN (SELECT address FROM mailboxes WHERE product=?1)
     ) WHERE length(email)>0 GROUP BY email ORDER BY coalesce(max(name),email),email`)
+    .bind(product ?? null)
     .all()
   return z
     .array(

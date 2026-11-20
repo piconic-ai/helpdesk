@@ -42,7 +42,7 @@ export function listRows<T>(
 function location(path: string, query: Search, change: Search) {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries({ ...query, ...change }))
-    if (['q', 'filter', 'sort', 'page'].includes(key) && value)
+    if (['q', 'filter', 'sort', 'page', 'product'].includes(key) && value)
       params.set(key, value)
   return params.size ? path + '?' + params : path
 }
@@ -87,6 +87,9 @@ export function ListFilters({
         data-live-filters=""
         data-list-filters=""
       >
+        {query.product && (
+          <Input type="hidden" name="product" value={query.product} />
+        )}
         <Field label="検索">
           <Input
             type="search"

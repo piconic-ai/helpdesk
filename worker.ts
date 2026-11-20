@@ -1,3 +1,4 @@
+import { bundledProjectDeletion } from './src/extensions/project-deletion-store'
 import { consoleFrame } from './src/core/conversations/console-usecase'
 import { Hono, type Context } from 'hono'
 import { galleryPage } from './src/ui/gallery-page'
@@ -68,6 +69,7 @@ function configureWorker(env: Bindings) {
   return configure(
     {
       ...env,
+      projectDeletion: bundledProjectDeletion,
       judgeArticles: env.judgeArticles ?? judgeArticles,
       candidateSources: {
         articles: selectArticleCandidates,

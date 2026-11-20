@@ -147,9 +147,16 @@ export function makeCatalog(handlers: typeof usecases) {
     ),
     retention: operation(
       'admin',
-      z.object({ days: z.coerce.number().int().min(0).max(36500) }),
+      z.object({
+        days: z.coerce.number().int().min(0).max(36500),
+        product: text.optional(),
+      }),
       handlers.retention,
     ),
-    forget: operation('admin', z.object({ contact: email }), handlers.forget),
+    forget: operation(
+      'admin',
+      z.object({ contact: email, product: text.optional() }),
+      handlers.forget,
+    ),
   }
 }

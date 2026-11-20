@@ -3,6 +3,7 @@ import {
   requireConversations,
   requireProduct,
 } from '../core/operators/project-targets-store'
+import { requireSettings } from '../core/settings/project-settings-usecase'
 import { defaultTimeZone } from '../core/operators/time-zone'
 import { reportPeriod } from '../extensions/metrics/report-period'
 import {
@@ -32,6 +33,7 @@ import {
 } from '../extensions/rules/rule-list'
 import {
   savedTemplates,
+  projectTemplateKey,
   template,
   templatesFromSettings,
 } from '../extensions/canned/templates'
@@ -664,7 +666,11 @@ app.get('/extensions/:id', async (c) => {
   if (id === 'canned' || id === 'rules') {
     const { rows, versions } = await readExtensionSettings(c.env.DB, id)
     if (id === 'canned') {
-      const templates = templatesFromSettings(api.config, rows)
+      const product = c.req.query('product') ?? state.products[0]?.id
+      if (!product) return c.redirect('/settings/projects', 302)
+      requireSettings(ctx, product)
+      state.query.product = product
+      const templates = templatesFromSettings(api.config, rows, product)
       const window = listRows([...templates], state.query, ([, t]) => ({
         text: t.name + ' ' + t.body,
       }))
@@ -674,7 +680,9 @@ app.get('/extensions/:id', async (c) => {
         versions,
         templates.size > 0,
         state.products,
-        await cannedCounts(c.env.DB),
+        state.products.filter((p) => can(ctx.operator, 'manage', p.id).allowed),
+        product,
+        await cannedCounts(c.env.DB, product),
       )
     } else {
       const rules = rulesFromSettings(
@@ -712,52 +720,89 @@ function settingResult(
   c: RequestContext,
   id: 'canned' | 'rules',
   token: string | null,
+  product?: string,
 ) {
+  const project = product ? '&product=' + encodeURIComponent(product) : ''
   if (token === null)
-    return c.redirect('/extensions/' + id + '?publicSettings=conflict', 303)
+    return c.redirect(
+      '/extensions/' + id + '?publicSettings=conflict' + project,
+      303,
+    )
   return c.redirect(
-    '/extensions/' + id + '?saved=1' + (token ? '&undo=' + token : ''),
+    '/extensions/' +
+      id +
+      '?saved=1' +
+      project +
+      (token ? '&undo=' + token : ''),
     303,
   )
 }
 app.post('/extensions/:id{canned|rules}/undo-setting', async (c) => {
   const id = c.req.param('id') as 'canned' | 'rules'
   if (!active(c, id)) return c.notFound()
-  const restored = await undoExtensionSetting(
-    context(c),
-    id,
-    (await c.req.parseBody()).changeId,
-  )
+  const form = await c.req.parseBody()
+  const restored = await undoExtensionSetting(context(c), id, form.changeId)
   return c.redirect(
     '/extensions/' +
       id +
       '?publicSettings=' +
-      (restored ? 'restored' : 'outdated'),
+      (restored ? 'restored' : 'outdated') +
+      (typeof form.returnProduct === 'string' && form.returnProduct
+        ? '&product=' + encodeURIComponent(form.returnProduct)
+        : ''),
     303,
   )
 })
 app.post('/extensions/canned/save', async (c) => {
-  const ctx = context(c)
-  authorize(ctx, 'admin', scopes)
-  const api = active(c, 'canned')
+  const ctx = context(c),
+    api = active(c, 'canned')
   if (!api) return c.notFound()
-  const form = await c.req.parseBody()
-  const item = template.parse({ ...form, product: form.product || undefined })
-  if (item.product && !(await publicProduct(c.env, item.product)))
-    return c.notFound()
+  const form = await c.req.parseBody(),
+    product = z.string().min(1).parse(form.product)
+  requireSettings(ctx, product)
+  const item = template.parse({ ...form, product })
   const id = z.string().max(100).parse(form.id)
-  if (id && !(await savedTemplates(api)).has(id)) return c.notFound()
+  if (id && !(await savedTemplates(api, product)).has(id)) return c.notFound()
   return settingResult(
     c,
     'canned',
     await editExtensionSetting(
       ctx,
       'canned',
-      'template/' + (id || ctx.uuid()),
+      projectTemplateKey(product, id || ctx.uuid()),
       item,
       form.revision,
+      undefined,
+      product,
     ),
+    product,
   )
+})
+app.post('/extensions/canned/copy', async (c) => {
+  const ctx = context(c),
+    api = active(c, 'canned')
+  if (!api) return c.notFound()
+  const form = z
+    .object({ product: z.string().min(1), target: z.string().min(1) })
+    .parse(await c.req.parseBody())
+  requireSettings(ctx, form.target)
+  if (!can(ctx.operator, 'read', form.product).allowed) return c.notFound()
+  const { versions } = await readExtensionSettings(c.env.DB, 'canned')
+  const templates = await savedTemplates(api, form.product)
+  for (const [id, item] of templates) {
+    const key = projectTemplateKey(form.target, id)
+    if (!versions.has(key))
+      await editExtensionSetting(
+        ctx,
+        'canned',
+        key,
+        { ...item, product: form.target },
+        '',
+        undefined,
+        form.target,
+      )
+  }
+  return settingResult(c, 'canned', '', form.target)
 })
 app.post('/extensions/rules/add', async (c) => {
   const ctx = context(c)

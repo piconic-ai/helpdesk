@@ -77,7 +77,7 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   expect(empty).toContain('最初の窓口を登録してください。')
   expect(empty).toContain('条件に合う設定項目はありません。')
   expect(empty).not.toContain('href="/settings/deletion"')
-  expect(await page('/settings/mailboxes')).toContain('プロダクトを追加')
+  expect(await page('/settings/mailboxes')).toContain('プロジェクトを追加')
   expect(await page('/settings/mailboxes?new=yes')).toContain(
     '窓口のメールアドレス',
   )
@@ -100,15 +100,13 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   expect(await page('/settings')).not.toContain('初期設定が必要です')
   const mailboxSettings = await page('/settings/mailboxes?edit=' + product)
   expect(mailboxSettings).toContain('窓口アドレスの先頭')
-  expect(mailboxSettings).toContain('このプロダクトに窓口を追加')
+  expect(mailboxSettings).toContain('このプロジェクトに窓口を追加')
   await submit('/settings/mailboxes', {
     product: product!,
     local: 'returns',
     domain: 'example.org',
   })
-  expect(await page('/settings?q=' + encodeURIComponent('窓口 2件'))).toContain(
-    'href="/settings/mailboxes"',
-  )
+  expect(await page('/settings/global')).toContain('窓口 2件')
   const sender = await submit('/settings/senders/' + product, {
     senderName: 'Studio Support',
     showOperator: 'on',
@@ -119,22 +117,27 @@ it('keeps onboarding visible during searches and reflects saved mailbox, sender 
   expect(
     await page(await submit('/actions/retention', { days: '14' })),
   ).toContain('保存期間を変更しました。')
-  expect(await page('/settings?q=14')).toContain('14日')
+  expect(await page('/settings/projects/' + product)).toContain('14日')
   await enable('export')
-  const sensitive = await page(
-    '/settings?q=' + encodeURIComponent('データ管理'),
+  const sensitive = await page('/settings/projects/' + product)
+  expect(sensitive).toContain(
+    'href="/extensions/export?product=' + product + '"',
   )
-  expect(sensitive).toContain('href="/extensions/export"')
-  expect(sensitive).toContain('href="/settings/deletion"')
-  expect(sensitive).not.toContain('href="/settings/retention"')
+  expect(sensitive).toContain(
+    'href="/settings/projects/' + product + '/deletion"',
+  )
+  expect(await page('/settings')).toContain('全体の設定')
 })
 
 it('protects the last administrator and shows contact names and conversation counts before deletion', async () => {
   await studio()
   const admins = await page('/settings/operators?filter=admin')
-  expect(admins).toContain('最後の管理者です。')
+  expect(admins).toContain('全体の管理者')
+  expect(
+    await page('/settings/operators?edit=' + encodeURIComponent(admin)),
+  ).toContain('最後の管理者です。')
   const agents = await page('/settings/operators?filter=agent')
-  expect(agents).toContain('編集：agent')
+  expect(agents).toContain('/settings/operators?edit=agent%40example.org')
   expect(agents).not.toContain('最後の管理者です。')
   expect(await page('/settings/operators?q=unmatched')).toContain(
     '条件に合う運営者はいません。',
@@ -146,7 +149,7 @@ it('protects the last administrator and shows contact names and conversation cou
   })
   const roster = await page(updated)
   expect(roster).toContain('運営者の情報を保存しました。')
-  expect(roster).toContain('編集：Second administrator')
+  expect(roster).toContain('Second administrator')
   expect(roster).not.toContain('最後の管理者です。')
   expect(await page('/settings/deletion')).toContain(
     '削除できる連絡先はありません。',
@@ -238,14 +241,16 @@ it('directs an operator to the reply area for live teammate activity', async () 
 it('shows the scope and record counts beside the anonymized export action', async () => {
   await enable('export')
   const html = await page('/extensions/export')
-  expect(html).toContain('全期間・全プロダクト')
+  expect(html).toContain('全期間・全プロジェクト')
   expect(html).toContain('会話 0件・メッセージ 0件・操作履歴 0件')
   expect(html).toContain('書き出す個人情報')
 })
 
 it('finds a saved reply by its body and restores the previous text after an edit', async () => {
+  await studio()
   await enable('canned')
   const after = await submit('/extensions/canned/save', {
+    product: 'studio',
     id: '',
     name: 'Shipping help',
     body: 'Follow the tracking number',
@@ -261,12 +266,13 @@ it('finds a saved reply by its body and restores the previous text after an edit
   )
   const revision = new URL(after, origin).searchParams.get('undo')!
   const id = await platform.DB.prepare(
-    'SELECT substr(setting,10) AS id FROM extension_setting_changes WHERE token=?',
+    "SELECT substr(setting,length('project-template/studio/')+1) AS id FROM extension_setting_changes WHERE token=?",
   )
     .bind(revision)
     .first<string>('id')
   const changes = {
     id: id!,
+    product: 'studio',
     name: 'Shipping help',
     body: 'Read the delivery notice',
     revision,
@@ -317,7 +323,7 @@ it('keeps rule priority visible while filtering and rejects stale assignment cho
   )
   expect(titles).toContain('Studio · すべての件名')
   expect(view).toContain('2番目')
-  expect(titles).not.toContain('全プロダクト · invoice')
+  expect(titles).not.toContain('全プロジェクト · invoice')
   expect(await page('/extensions/rules?q=unmatched')).toContain(
     '条件に合うルールはありません。',
   )

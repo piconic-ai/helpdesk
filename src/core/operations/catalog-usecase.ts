@@ -1,4 +1,5 @@
 import { changeInbox, undoInbox } from '../conversations/inbox-change-usecase'
+import { can } from '../operators/project-access'
 import { makeCatalog } from './catalog'
 import type { filterSchema } from '../conversations/filters'
 import {
@@ -108,18 +109,20 @@ export const handlers = {
       c.env.DB,
       audit(c),
       i,
-      c.env.EXTENSIONS?.active
-        .filter((x) => x.extension.permissions.includes('send'))
-        .map((x) => x.extension.id) ?? [],
+      can(c.operator, 'global').allowed
+        ? (c.env.EXTENSIONS?.active
+            .filter((x) => x.extension.permissions.includes('send'))
+            .map((x) => x.extension.id) ?? [])
+        : [],
       c.operator.email,
     ),
   role: (
     c: Context,
     i: { email: string; role: 'admin' | 'agent'; displayName?: string },
   ) => store.setRole(c.env.DB, audit(c), i),
-  retention: (c: Context, i: { days: number }) =>
-    store.saveRetention(c.env.DB, audit(c), i.days),
-  forget: async (c: Context, i: { contact: string }) => {
+  retention: (c: Context, i: { days: number; product?: string }) =>
+    store.saveRetention(c.env.DB, audit(c), i.days, i.product),
+  forget: async (c: Context, i: { contact: string; product?: string }) => {
     await deleteContent(c.env.DB, i)
     await drainDeleted(c.env.DB, c.env.RAW)
   },

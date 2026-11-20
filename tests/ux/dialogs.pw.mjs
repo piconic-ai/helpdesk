@@ -178,7 +178,7 @@ test('連絡先の削除とトークン失効は対象を示し、Esc で対象�
   page,
   scene,
 }) => {
-  await page.goto(scene.origin + '/settings/deletion')
+  await page.goto(scene.origin + '/settings/projects/slide/deletion')
   await page.getByLabel('削除する相手').selectOption('customer1@example.net')
   await inspectModal(page, button(page, '削除内容を確認'), {
     content: 'customer1@example.net',

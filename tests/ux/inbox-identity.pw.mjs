@@ -78,7 +78,7 @@ test('ラベルの色を保存し、会話と一覧と絞り込みから同じ�
   page,
   scene,
 }) => {
-  await page.goto(scene.origin + '/settings')
+  await page.goto(scene.origin + '/settings/projects/slide')
   await page.getByRole('link', { name: /^ラベル/ }).click()
   const marks = await page
     .locator('button[popovertarget^="label-color-"] .label-dot')

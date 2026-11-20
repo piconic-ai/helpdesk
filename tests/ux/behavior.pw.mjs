@@ -107,7 +107,7 @@ test('ラベルの追加・名前変更・統合・削除で会話の件数と�
   scene,
   page,
 }) => {
-  await page.goto(scene.origin + '/settings/labels')
+  await page.goto(scene.origin + '/settings/projects/slide/labels')
   const main = page.getByRole('main')
   const row = (name) =>
     main.getByRole('row').filter({
@@ -153,7 +153,9 @@ test('候補が多いラベルを検索し、同じメニューで一括の付�
   const names = Array.from({ length: 10 }, (_, i) => '分類見本' + i)
   await scene.db.batch(
     names.map((name) =>
-      scene.db.prepare('INSERT INTO label_names(name) VALUES(?)').bind(name),
+      scene.db
+        .prepare("INSERT INTO project_labels(product,name) VALUES('slide',?)")
+        .bind(name),
     ),
   )
   await page.reload()

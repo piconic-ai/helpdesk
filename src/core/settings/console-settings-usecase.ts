@@ -18,8 +18,8 @@ export function sendingDomains(declaration: string | undefined) {
     ),
   ]
 }
-export function settingsContacts(ctx: Context) {
-  return listContacts(ctx.env.DB)
+export function settingsContacts(ctx: Context, product: string) {
+  return listContacts(ctx.env.DB, product)
 }
 
 export function mailboxInput(
@@ -44,10 +44,16 @@ export function mailboxInput(
   return { product: ctx.uuid(), name, address }
 }
 
-export const settingsLabels = (ctx: Context) => labelDirectory(ctx.env.DB)
-export function changeLabel(ctx: Context, input: Record<string, unknown>) {
+export const settingsLabels = (ctx: Context, product: string) =>
+  labelDirectory(ctx.env.DB, product)
+export function changeLabel(
+  ctx: Context,
+  product: string,
+  input: Record<string, unknown>,
+) {
   return editLabelDirectory(
     ctx.env.DB,
+    product,
     labelEdit.parse({ action: 'color', ...input }),
   )
 }

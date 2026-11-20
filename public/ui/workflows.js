@@ -75,8 +75,7 @@ function displaySwatch(form, selected) {
 }
 document.addEventListener('submit', async (event) => {
   const form = event.target
-  if (form.getAttribute('action') !== '/settings/labels' || !event.submitter)
-    return
+  if (!form.hasAttribute('data-label-edit') || !event.submitter) return
   event.preventDefault()
   if (form.getAttribute('aria-busy') === 'true') return
   form.setAttribute('aria-busy', 'true')
@@ -90,7 +89,8 @@ document.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error()
     if (!form.isConnected) return
     if (form.matches('.swatches')) displaySwatch(form, selected)
-    else void window.helpdeskNavigate('/settings/labels?saved=yes')
+    else
+      void window.helpdeskNavigate(form.getAttribute('action') + '?saved=yes')
   } catch {
     window.helpdeskToast(
       'ラベルを更新できませんでした。同じ名前の有無と使用件数を確認して、もう一度お試しください。',

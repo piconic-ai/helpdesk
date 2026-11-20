@@ -4,10 +4,10 @@ import { identityColor, identityColorNames } from './identity-color'
 import { EmptyState } from './patterns'
 
 type Row = { name: string; count: number }
-const endpoint = '/settings/labels'
-export const addLabel = () => (
+
+export const addLabel = (endpoint: string) => (
   <Popover id="add-label" label="ラベルを追加" variant="outline">
-    <form action={endpoint} method="post">
+    <form action={endpoint} data-label-edit="" method="post">
       <Input type="hidden" name="action" value="add" />
       <Field label="ラベル名（20字まで）">
         <Input name="name" maxlength={20} required />
@@ -17,7 +17,12 @@ export const addLabel = () => (
   </Popover>
 )
 
-function swatches(label: string, color: number, index: number) {
+function swatches(
+  label: string,
+  color: number,
+  index: number,
+  endpoint: string,
+) {
   return (
     <Popover
       id={'label-color-' + index}
@@ -28,7 +33,12 @@ function swatches(label: string, color: number, index: number) {
         </>
       }
     >
-      <form action={endpoint} method="post" className="swatches">
+      <form
+        action={endpoint}
+        data-label-edit=""
+        method="post"
+        className="swatches"
+      >
         <Input type="hidden" name="label" value={label} />
         {identityColorNames.map((name, n) => (
           <Button
@@ -46,7 +56,7 @@ function swatches(label: string, color: number, index: number) {
     </Popover>
   )
 }
-function labelActions(row: Row, rows: Row[], index: number) {
+function labelActions(row: Row, rows: Row[], index: number, endpoint: string) {
   return (
     <Popover
       id={'label-actions-' + index}
@@ -55,7 +65,12 @@ function labelActions(row: Row, rows: Row[], index: number) {
     >
       <p>{row.name}</p>
       {rows.length > 1 && (
-        <form method="post" action={endpoint} data-label-impact={row.count}>
+        <form
+          method="post"
+          action={endpoint}
+          data-label-edit=""
+          data-label-impact={row.count}
+        >
           <Input type="hidden" name="action" value="merge" />
           <Input type="hidden" name="count" value={row.count} />
           <Input type="hidden" name="label" value={row.name} />
@@ -74,7 +89,12 @@ function labelActions(row: Row, rows: Row[], index: number) {
           <Button>別のラベルにまとめる</Button>
         </form>
       )}
-      <form method="post" action={endpoint} data-label-impact={row.count}>
+      <form
+        method="post"
+        action={endpoint}
+        data-label-edit=""
+        data-label-impact={row.count}
+      >
         <Input type="hidden" name="action" value="delete" />
         <Input type="hidden" name="label" value={row.name} />
         <Input type="hidden" name="count" value={row.count} />
@@ -83,7 +103,11 @@ function labelActions(row: Row, rows: Row[], index: number) {
     </Popover>
   )
 }
-export function labelTable(rows: Row[], colors: Record<string, number>) {
+export function labelTable(
+  rows: Row[],
+  colors: Record<string, number>,
+  endpoint: string,
+) {
   if (!rows.length)
     return (
       <EmptyState icon="tag">
@@ -108,6 +132,7 @@ export function labelTable(rows: Row[], colors: Record<string, number>) {
                   row.name,
                   colors[row.name] ?? identityColor(row.name),
                   index,
+                  endpoint,
                 )}
                 <Popover
                   id={'label-rename-' + index}
@@ -117,6 +142,7 @@ export function labelTable(rows: Row[], colors: Record<string, number>) {
                   <form
                     method="post"
                     action={endpoint}
+                    data-label-edit=""
                     data-layout="stack"
                     data-gap="xs"
                   >
@@ -148,7 +174,7 @@ export function labelTable(rows: Row[], colors: Record<string, number>) {
               )}
             </th>
             <td>{row.count}件</td>
-            <td>{labelActions(row, rows, index)}</td>
+            <td>{labelActions(row, rows, index, endpoint)}</td>
           </tr>
         ))}
       </tbody>

@@ -6,6 +6,10 @@ import type {
 } from '../extensions/article-judgment'
 import type { Registry } from '../extensions/registry'
 export interface Bindings {
+  projectDeletion?: (
+    db: D1Database,
+    product: string,
+  ) => Promise<D1PreparedStatement[]>
   SENDING_DOMAINS?: string
   EXTENSIONS?: Registry
   NOTIFY_WEBHOOK_URL?: string

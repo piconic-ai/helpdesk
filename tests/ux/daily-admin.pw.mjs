@@ -61,7 +61,7 @@ test('定型返信を表示名で作成・編集して会話に適用し、既�
   page,
   scene,
 }) => {
-  await page.goto(scene.origin + '/extensions/canned')
+  await page.goto(scene.origin + '/extensions/canned?product=slide')
   const newTemplate = page
     .locator('form')
     .filter({ has: page.getByRole('button', { name: '定型文を作成' }) })
