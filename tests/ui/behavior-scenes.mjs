@@ -63,7 +63,12 @@ const cases = [
     'reply-controls-open',
     '返信欄の操作を開く',
     '/conversation/7',
-    openReplyControls,
+    async (page) => {
+      await openReplyControls(page)
+      await expect(
+        page.getByRole('button', { name: /^関連しそうな課題：/ }),
+      ).toBeVisible()
+    },
   ],
 ]
 // Create the success state through its real command so the timeline and notice agree.
