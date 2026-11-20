@@ -1176,3 +1176,55 @@ body:has([data-empty-composer]:not([hidden]))
     min-height: calc(2 * var(--layout-touch-target) + var(--spacing-md));
   }
 }
+
+#thread-messages {
+  position: relative;
+  border-inline-start: var(--layout-hairline-width) solid var(--colors-hairline);
+  margin-inline-start: var(--spacing-xs);
+  padding-inline-start: var(--spacing-lg);
+}
+#thread-messages :is([data-ui='message'], .timeline-draft, .timeline-fold) {
+  position: relative;
+}
+#thread-messages
+  :is([data-ui='message'], .timeline-draft, .timeline-fold)::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--spacing-lg));
+  top: var(--spacing-md);
+  transform: translateX(-50%);
+  width: var(--spacing-xs);
+  height: var(--spacing-xs);
+  border: var(--layout-hairline-width) solid var(--colors-muted);
+  border-radius: var(--rounded-pill);
+  background: var(--colors-body);
+}
+#thread-messages .message-inbound::before {
+  background: var(--colors-canvas);
+}
+#thread-messages .message-record::before {
+  width: var(--spacing-xxs);
+  height: var(--spacing-xxs);
+  top: var(--spacing-xs);
+}
+.timeline-toggle {
+  justify-self: start;
+}
+.timeline-fold[open] > :not(summary) {
+  margin-block-start: var(--spacing-md);
+}
+#thread-messages:has(.timeline-toggle input:checked) .message-record {
+  display: none;
+}
+.thread-next {
+  font: var(--typography-title-sm);
+}
+@media (max-width: 767px) {
+  #thread-messages {
+    padding-inline-start: var(--spacing-sm);
+  }
+  #thread-messages
+    :is([data-ui='message'], .timeline-draft, .timeline-fold)::before {
+    inset-inline-start: calc(-1 * var(--spacing-sm));
+  }
+}

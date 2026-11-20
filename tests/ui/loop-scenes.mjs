@@ -265,12 +265,11 @@ const entries = [
   ],
   [
     'history',
-    '会話の操作履歴を展開する',
+    '会話のメッセージと出来事を時刻順に読む',
     '/conversation/2',
     [],
     async (page) => {
-      await openContext(page)
-      await openDisclosure(page, '操作履歴')
+      await page.locator('#thread-messages').scrollIntoViewIfNeeded()
     },
   ],
   [

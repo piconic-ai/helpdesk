@@ -97,9 +97,34 @@ export const ThreadTimeline = ({ children }: Content) => (
     className="message-list"
     aria-label="メッセージ"
   >
+    <label className="timeline-toggle">
+      <input type="checkbox" />
+      出来事を隠す
+    </label>
     {children}
   </section>
 )
+export const DraftReference = ({ id, children }: Content & { id: string }) => (
+  <div className="timeline-draft">
+    <ActionLink variant="ghost" href={'#approve-' + id}>
+      下書きを確認する
+    </ActionLink>{' '}
+    {children}
+  </div>
+)
+export const TimelineFold = ({
+  count,
+  children,
+}: Content & { count: number }) => (
+  <details className="timeline-fold">
+    <summary>{count}件のやりとり</summary>
+    {children}
+  </details>
+)
+export const NextThreadStep = ({ children }: Content) => (
+  <p className="thread-next">{children}</p>
+)
+
 export const TimelineEntry = ({ children }: Content) => (
   <Message kind="record">
     <p className="timeline-entry">{children}</p>

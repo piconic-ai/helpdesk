@@ -1,6 +1,11 @@
 import { embeddingPage } from '../intakes/intake'
 import { threadUrl } from './inbox-location'
-import { displayEvents, timelineChange, timelineLabel } from './timeline'
+import {
+  nextThreadAction,
+  threadTimeline,
+  timelineChange,
+  timelineLabel,
+} from './timeline'
 import { ReplyComposer } from '@/components/ReplyComposer'
 import type { Child } from 'hono/jsx'
 import { ActionMenu, Popover, ActionLink, Input } from '../../ui/controls'
@@ -11,7 +16,6 @@ import {
   ActionBar,
   Message,
   Notice,
-  RowList,
 } from '../../ui/patterns'
 import {
   AttachmentList,
@@ -26,6 +30,9 @@ import {
   ThreadTimeline,
   ThreadActivity,
   TimelineEntry,
+  TimelineFold,
+  DraftReference,
+  NextThreadStep,
 } from '../../ui/thread-parts'
 import {
   Delivery,
@@ -147,7 +154,7 @@ function messageHeading(
   return kind === 'inbound' ? (
     <>
       <ContactAvatar name={label} email={contact} />
-      {label}
+      相手 · {label}
     </>
   ) : (
     label
@@ -253,8 +260,10 @@ const eventLabels: Record<string, string> = {
   assigned: '担当者を変更',
   label_changed: 'ラベルを変更',
   note_added: '内部メモを追加',
-  conversation_viewed: '会話を表示',
-  operation_invoked: '操作を実行',
+  reply_awaiting_approval: '下書きの承認を依頼',
+  feedback_converted: '問い合わせに変更',
+  feedback_reviewed: 'フィードバックの確認状況を変更',
+  'issues.linked': '課題に紐づけ',
 }
 function eventActor(actor: string, names: Names) {
   try {
@@ -273,14 +282,7 @@ function pageAtIntake(events: Details['events']) {
     return
   }
 }
-function threadContext(
-  data: Details,
-  panels: Child,
-  now: number,
-  names: Names,
-  colors: ConsoleFrame['labelColors'],
-  productName: string,
-) {
+function threadContext(data: Details, panels: Child, productName: string) {
   const sourcePage = pageAtIntake(data.events)
   return (
     <ThreadPanel context={'#' + data.conversation.number + ' · ' + productName}>
@@ -303,24 +305,49 @@ function threadContext(
           <p>ほかの問い合わせはありません。</p>
         )}
       </FormSection>
-      <details>
-        <summary>操作履歴</summary>
-        <RowList>
-          {displayEvents(data.events).map((e) => (
-            <li>
-              {stamp(e.at, now)}
-              <span>
-                {' '}
-                {changeSummary(e, names, colors) ??
-                  eventLabels[e.kind] ??
-                  e.kind}{' '}
-                · {eventActor(e.actor, names)}
-              </span>
-            </li>
-          ))}
-        </RowList>
-      </details>
     </ThreadPanel>
+  )
+}
+function timelineView(
+  data: Details,
+  frame: ConsoleFrame,
+  render: (m: Details['messages'][number]) => Child,
+  pending: ReadonlySet<string>,
+) {
+  const rows = threadTimeline(data.messages, data.events)
+  type Row = Exclude<(typeof rows)[number], { kind: 'fold' }>
+  function entry(row: Row) {
+    if (row.kind === 'message') {
+      if (!pending.has(row.value.id)) return render(row.value)
+      return (
+        <DraftReference id={row.value.id}>
+          {stamp(row.value.created_at, frame.now)}
+        </DraftReference>
+      )
+    }
+    const e = row.value
+    return (
+      <TimelineEntry>
+        {eventActor(e.actor, frame.operators)}{' '}
+        <span>
+          {changeSummary(e, frame.operators, frame.labelColors) ??
+            eventLabels[e.kind] ??
+            e.kind}
+        </span>{' '}
+        {stamp(e.at, frame.now)}
+      </TimelineEntry>
+    )
+  }
+  return (
+    <ThreadTimeline>
+      {rows.map((row) =>
+        row.kind === 'fold' ? (
+          <TimelineFold count={row.count}>{row.items.map(entry)}</TimelineFold>
+        ) : (
+          entry(row)
+        ),
+      )}
+    </ThreadTimeline>
   )
 }
 function inboxBackLink(search: string, email: string) {
@@ -392,6 +419,23 @@ export function conversationPage(
   const reply = c.kind === 'inquiry' && c.status.kind !== 'spam'
   const { next, previous } = adjacentOpen(frame.openNumbers, c.number)
   const search = frame.query.inbox ?? ''
+  const renderMessage = (m: Details['messages'][number]) =>
+    message(
+      m,
+      data,
+      files.filter((f) => f.message === m.id),
+      info?.name || c.contact || '匿名',
+      names,
+      frame.now,
+      m.delivery === 'draft' && held.has(m.id),
+      schedules.get(m.id),
+    )
+  const drafts =
+    reply && c.status.kind !== 'closed'
+      ? data.messages.filter(
+          (m) => m.delivery === 'draft' || m.delivery === 'awaiting_approval',
+        )
+      : []
   const main = (
     <DetailPage
       title={<ThreadSubject>{c.subject}</ThreadSubject>}
@@ -428,51 +472,19 @@ export function conversationPage(
           {activity && <ThreadActivity message={activity} />}
         </AttributeRow>
       }
-      aside={threadContext(
-        data,
-        panels.related,
-        frame.now,
-        names,
-        frame.labelColors,
-        product?.name ?? c.product,
-      )}
+      aside={threadContext(data, panels.related, product?.name ?? c.product)}
     >
-      <ThreadTimeline>
-        {[
-          ...data.messages.map((m) => ({
-            at: m.created_at,
-            view: message(
-              m,
-              data,
-              files.filter((f) => f.message === m.id),
-              info?.name || c.contact || '匿名',
-              names,
-              frame.now,
-              m.delivery === 'draft' && held.has(m.id),
-              schedules.get(m.id),
-            ),
-          })),
-          ...displayEvents(data.events).flatMap((e) => {
-            const label = changeSummary(e, names, frame.labelColors)
-            return label
-              ? [
-                  {
-                    at: e.at,
-                    view: (
-                      <TimelineEntry>
-                        {eventActor(e.actor, names)} <span>{label}</span>{' '}
-                        {stamp(e.at, frame.now)}
-                      </TimelineEntry>
-                    ),
-                  },
-                ]
-              : []
-          }),
-        ]
-          .sort((a, b) => a.at - b.at)
-          .map((entry) => entry.view)}
-      </ThreadTimeline>
+      {timelineView(
+        data,
+        frame,
+        renderMessage,
+        new Set(drafts.map((m) => m.id)),
+      )}
       <ReplyArea templates={panels.canned}>
+        <NextThreadStep>
+          {nextThreadAction(c.status.kind, data.messages, frame.now)}
+        </NextThreadStep>
+        {drafts.map(renderMessage)}
         {replyReceipt(frame.query, c.number, holds)}
         {offerToWrite && (
           <form

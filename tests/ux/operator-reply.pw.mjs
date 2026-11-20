@@ -122,10 +122,10 @@ test('W1 長い差出人でも製品名が読め、最後の担当変更と拡�
   await expect(page.locator('.message-outbound .message-author')).toContainText(
     'GitHub Issue',
   )
-  await page.getByText('操作履歴', { exact: true }).click()
-  await expect(
-    page.locator('details[open] li').filter({ hasText: '担当者を変更' }),
-  ).toHaveCount(1)
+  await page.getByLabel('出来事を隠す').check()
+  await expect(changes).toBeHidden()
+  await page.getByLabel('出来事を隠す').uncheck()
+  await expect(changes).toBeVisible()
 })
 
 test('送信結果が分からない時は別タブで最新の会話を開き、元の下書きを保持する', async ({
@@ -346,4 +346,40 @@ test('送信予定を一覧で確認し、トーストを閉じた後も会話�
   await message.getByRole('button', { name: '今すぐ送る' }).click()
   await expect(message).toContainText('送信済み', { timeout: 15000 })
   await expect(message.getByRole('button', { name: '取り消す' })).toHaveCount(0)
+})
+
+test('長い会話を時刻順にたどり、途中を開き、出来事を隠して次の操作へ進める', async ({
+  page,
+  scene,
+}) => {
+  const at = Date.now() - 600000
+  await scene.db.batch(
+    Array.from({ length: 10 }, (_, i) =>
+      scene.db
+        .prepare(
+          "INSERT INTO messages(id,number,kind,body,created_at) VALUES(?,1,'inbound',?,?)",
+        )
+        .bind('timeline-extra-' + i, '追加の質問 ' + i, at + i * 1000),
+    ),
+  )
+  await scene.db
+    .prepare(
+      "INSERT INTO events(number,kind,at,actor,payload) VALUES(1,'issues.linked',?,?,'{}')",
+    )
+    .bind(at + 2100, JSON.stringify({ kind: 'system' }))
+    .run()
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(scene.origin + '/conversation/1')
+  const line = page.locator('#thread-messages')
+  const middle = line.locator('details').filter({ hasText: '5件のやりとり' })
+  await expect(middle.locator('summary')).toBeVisible()
+  await expect(line.getByText('追加の質問 1', { exact: true })).toBeHidden()
+  await middle.locator('summary').click()
+  await expect(line.getByText('追加の質問 1', { exact: true })).toBeVisible()
+  const event = line.getByText('課題に紐づけ', { exact: true })
+  await expect(event).toBeVisible()
+  await page.getByLabel('出来事を隠す').check()
+  await expect(event).toBeHidden()
+  await expect(line.getByText('追加の質問 1', { exact: true })).toBeVisible()
+  await expect(page.locator('#reply-area')).toContainText(/返信する（\d+[分時]/)
 })
