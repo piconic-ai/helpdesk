@@ -43,7 +43,10 @@ export async function projectExtensions(
   >()
   for (const entry of row.array().parse(records)) {
     let projects = byExtension.get(entry.extension)
-    if (!projects) byExtension.set(entry.extension, (projects = new Map()))
+    if (!projects) {
+      projects = new Map()
+      byExtension.set(entry.extension, projects)
+    }
     projects.set(entry.product, {
       by: entry.enabled_by,
       afterEvent: entry.after_event,

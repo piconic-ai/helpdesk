@@ -10,6 +10,7 @@ export type Installed = Registration & {
   projects?: ReadonlyMap<string, { by: string | null; afterEvent: number }>
 }
 export function forProject(item: Installed, product: string) {
+  if (!item.enabled) return
   if (!item.projects) return item
   const setting = item.projects.get(product)
   return setting

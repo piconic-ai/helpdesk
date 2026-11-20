@@ -35,6 +35,7 @@ HELPDESK_TOKEN=$(curl -fsS -H "Origin: $HELPDESK_URL" -d 'label=self-host&access
 export HELPDESK_TOKEN
 node cli/helpdesk.mjs --json doctor
 curl -fsS -o /dev/null -H "Origin: $HELPDESK_URL" -d 'enabled=yes' "$HELPDESK_URL/extensions/export"
+curl -fsS -o /dev/null -H "Origin: $HELPDESK_URL" -d 'enabled=yes' "$HELPDESK_URL/settings/projects/shop/extensions/export"
 curl -fsS -o /dev/null --data-binary @tests/fixtures/mail-flow.eml \
   "$HELPDESK_URL/cdn-cgi/local/email?from=person@example.net&to=support@example.com"
 ```

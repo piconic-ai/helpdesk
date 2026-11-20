@@ -53,6 +53,10 @@ export function extensionContext(
     await requireConversations(c, [number], 'write')
     return run()
   }
+  async function suggestionAccess(input: { product: string; number?: number }) {
+    requireProduct(c, input.product, 'read')
+    if (input.number) await requireConversations(c, [input.number], 'read')
+  }
   async function approvedSend(
     number: number,
     body: string,
@@ -76,15 +80,26 @@ export function extensionContext(
   }
   return {
     visibleProducts: products,
-    canManageProject: (product) => can(c.operator, 'manage', product).allowed,
+    canManageProject: (product) =>
+      (!products || products.includes(product)) &&
+      can(c.operator, 'manage', product).allowed,
     visibleNumbers: (numbers) => accessibleNumbers(c.env.DB, numbers, products),
     canAssign: (number, email) => isProjectAssignee(c.env.DB, number, email),
     local: c.env.ENVIRONMENT === 'local',
     demoGithub: !!c.env.DEMO_GITHUB,
     enabledBy: installed.enabledBy,
-    previousSuggestion: (input) => previousSuggestion(c.env.DB, input),
-    presentSuggestion: (input) => presentSuggestion(c.env.DB, input, c.now),
-    reactToSuggestion: (input) => reactToSuggestion(c.env.DB, input, c.now),
+    previousSuggestion: async (input) => {
+      await suggestionAccess(input)
+      return previousSuggestion(c.env.DB, input)
+    },
+    presentSuggestion: async (input) => {
+      await suggestionAccess(input)
+      return presentSuggestion(c.env.DB, input, c.now)
+    },
+    reactToSuggestion: async (input) => {
+      await suggestionAccess(input)
+      return reactToSuggestion(c.env.DB, input, c.now)
+    },
     suggestionResolution: (product, from, to) =>
       suggestionResolution(c.env.DB, product, from, to, products),
     voices: () => receivedVoices(c.env.DB, products),
@@ -222,8 +237,11 @@ export function extensionContext(
       const binding: unknown = Reflect.get(c.env, name)
       return typeof binding === 'string' ? binding : undefined
     },
-    emit: (kind, number, payload, key) =>
-      emitOnce(
+    emit: async (kind, number, payload, key) => {
+      if (typeof payload.product === 'string')
+        requireProduct(c, payload.product, 'read')
+      if (number !== null) await requireConversations(c, [number], 'read')
+      return emitOnce(
         c.env.DB,
         actor,
         ext.id + '.' + kind,
@@ -231,6 +249,7 @@ export function extensionContext(
         payload,
         c.now,
         key,
-      ),
+      )
+    },
   }
 }

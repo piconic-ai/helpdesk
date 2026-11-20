@@ -1,4 +1,5 @@
 import { extensionDetailsPage } from '../extensions/extension-details-page'
+import { activeExtensions } from '../extensions/registry'
 import { requireMedia } from '../operators/project-targets-usecase'
 import {
   undoExtensionSetting,
@@ -141,11 +142,15 @@ app.post('/settings/public-intakes/:product', async (c) => {
   const destination = z
     .enum(['/extensions/form', '/extensions/feedback', '/extensions/chat'])
     .parse(form.returnTo)
-  await enableHostedIntake(
-    context(c),
-    c.req.param('product'),
-    new URL(c.req.url).origin,
+  const product = c.req.param('product')
+  const id = destination.split('/').at(-1)
+  if (
+    !activeExtensions(c.env.EXTENSIONS, product).some(
+      (item) => item.extension.id === id,
+    )
   )
+    return c.notFound()
+  await enableHostedIntake(context(c), product, new URL(c.req.url).origin)
   return c.redirect(
     destination +
       '?started=yes&product=' +

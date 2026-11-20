@@ -46,6 +46,11 @@ beforeAll(async () => {
       "WITH RECURSIVE n(v) AS(VALUES(1) UNION ALL SELECT v+1 FROM n WHERE v<12) INSERT INTO conversations(number,product,mailbox,contact,subject,kind,status,created_at) SELECT v,'test','support@example.com','reader@example.net','Test','inquiry','open',1 FROM n",
     ),
     db
+      .prepare(
+        "INSERT INTO project_extension_settings(product,extension,enabled,enabled_by) VALUES('test','merge',1,?)",
+      )
+      .bind(owner),
+    db
       .prepare("INSERT INTO extension_settings VALUES('merge',1,?)")
       .bind(owner),
   ])

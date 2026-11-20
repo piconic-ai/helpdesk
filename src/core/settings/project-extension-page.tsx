@@ -32,10 +32,8 @@ export function projectExtensionPage(
       {items.map((item) => {
         const id = item.extension.id
         const active = forProject(item, project.id)
-        const needsApproval =
-          active &&
-          item.extension.permissions.includes('send') &&
-          !active.enabledBy
+        const sends = item.extension.permissions.includes('send')
+        const needsApproval = active && sends && !active.enabledBy
         return (
           <FormSection title={extensionLabel(id)}>
             <p>{guides[id]?.description}</p>
@@ -56,7 +54,9 @@ export function projectExtensionPage(
                   ? '自動送信を承認する'
                   : active
                     ? '無効にする'
-                    : '有効にする'}
+                    : sends
+                      ? '自動送信を承認して有効にする'
+                      : '有効にする'}
               </Button>
               {needsApproval && (
                 <Button name="enabled" value="no">

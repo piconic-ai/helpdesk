@@ -30,7 +30,9 @@ function enabled(c: Context<AppEnv>) {
   const installed = c.env.EXTENSIONS?.active.find(
     (i) => i.extension.id === 'issues',
   )
-  return installed && extensionContext(context(c), installed)
+  if (!installed) return
+  const api = extensionContext(context(c), installed)
+  return api.visibleProducts?.length === 0 ? undefined : api
 }
 const frame = (c: Context<AppEnv>) =>
   consoleFrame(c.env, c.get('operator'), c.req.path, c.req.query())

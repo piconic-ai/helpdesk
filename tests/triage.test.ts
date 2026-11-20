@@ -46,6 +46,15 @@ const run = (name: string, input: unknown, c = ctx) =>
   invoke(c, scopes, name, input)
 beforeAll(async () => {
   local = await testPlatform()
+  await local.DB.batch([
+    local.DB.prepare("INSERT INTO products VALUES('shop','Shop')"),
+    local.DB.prepare("INSERT INTO mailboxes VALUES('shop@example.com','shop')"),
+    local.DB.prepare("INSERT INTO operators VALUES(?,'admin')").bind(owner),
+    local.DB.prepare("INSERT INTO operators VALUES(?,'agent')").bind(other),
+    local.DB.prepare(
+      "INSERT INTO product_members VALUES('shop',?,'agent')",
+    ).bind(other),
+  ])
   const env = await configure(
     {
       ...local,
@@ -62,15 +71,6 @@ beforeAll(async () => {
     now: Date.now(),
     uuid: () => crypto.randomUUID(),
   }
-  await local.DB.batch([
-    local.DB.prepare("INSERT INTO products VALUES('shop','Shop')"),
-    local.DB.prepare("INSERT INTO mailboxes VALUES('shop@example.com','shop')"),
-    local.DB.prepare("INSERT INTO operators VALUES(?,'admin')").bind(owner),
-    local.DB.prepare("INSERT INTO operators VALUES(?,'agent')").bind(other),
-    local.DB.prepare(
-      "INSERT INTO product_members VALUES('shop',?,'agent')",
-    ).bind(other),
-  ])
 })
 afterAll(() => local?.dispose())
 async function receive(

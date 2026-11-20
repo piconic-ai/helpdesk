@@ -9,7 +9,7 @@ import { extensionContext } from './context-usecase'
 export async function enqueueEvents(env: Bindings, now: number) {
   for (const item of env.EXTENSIONS?.active ?? []) {
     const kinds = item.extension.subscribers?.map((s) => s.kind) ?? []
-    if (!kinds.length) continue
+    if (!kinds.length || item.projects?.size === 0) continue
     await scan(env.DB, item.extension.id, kinds)
     const ids = await due(env.DB, item.extension.id, now)
     await Promise.all(
@@ -33,9 +33,16 @@ async function subscriptionFor(
     event.number === null
       ? event.payload.product
       : await conversationProject(db, event.number)
-  if (typeof product !== 'string') return item
-  if (event.id <= (item.projects?.get(product)?.afterEvent ?? 0)) return
-  return forProject(item, product)
+  if (typeof product === 'string') {
+    if (event.id <= (item.projects?.get(product)?.afterEvent ?? 0)) return
+    return forProject(item, product)
+  }
+  if (event.number !== null) return
+  if (!item.projects) return item
+  const eligible = new Map(
+    [...item.projects].filter(([, setting]) => event.id > setting.afterEvent),
+  )
+  return eligible.size ? { ...item, projects: eligible } : undefined
 }
 export async function deliverEvent(
   env: Bindings,
@@ -77,8 +84,10 @@ export async function deliverEvent(
 }
 export async function tick(env: Bindings, now: number) {
   if (
-    env.EXTENSIONS?.active.some((x) =>
-      x.extension.subscribers?.some((s) => s.kind === 'scheduled'),
+    env.EXTENSIONS?.active.some(
+      (x) =>
+        x.projects?.size !== 0 &&
+        x.extension.subscribers?.some((s) => s.kind === 'scheduled'),
     )
   )
     await env.DB.prepare(

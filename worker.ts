@@ -16,6 +16,7 @@ import { deliverReply, recoverReplies } from './src/core/outbound/reply-usecase'
 import { purgeExpired } from './src/core/retention/retention-usecase'
 
 import { extensions, publicIntakes } from './helpdesk.config'
+import { activeExtensions } from './src/core/extensions/registry'
 import { configure } from './src/core/extensions/registry-usecase'
 import {
   deliverEvent,
@@ -45,7 +46,7 @@ async function renderMissingPage(c: Context<AppEnv>) {
     if (path.startsWith('/help/')) {
       const id = path.split('/')[3] ?? ''
       const product = id && (await publicProduct(c.env, id))
-      const hasArticles = c.env.EXTENSIONS?.active.some(
+      const hasArticles = activeExtensions(c.env.EXTENSIONS, id).some(
         (item) => item.extension.id === 'articles',
       )
       const back =
