@@ -35,6 +35,10 @@ function examples(path) {
   if (path === '/help/:id/:product/:path{.*}?')
     return ['/help/articles/slide/receipt', '/help/survey/slide/' + surveyId]
   if (path === '/help/*') return ['/help/absent/slide']
+  if (path === '/extensions/:id/details')
+    return extensions.map(
+      ({ extension }) => '/extensions/' + extension.id + '/details',
+    )
   if (path === '/extensions/:id')
     return extensions.flatMap(({ extension }) => {
       const path = '/extensions/' + extension.id
